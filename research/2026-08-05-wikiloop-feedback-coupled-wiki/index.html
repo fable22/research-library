@@ -448,7 +448,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         <div class="card">
           <span class="tag">LLM-Wiki의 처리 방식</span>
           <p class="small">Error Book이 오류를 규칙으로 바꿔 다음 배치 프롬프트에 넣는다. 다만 이것이 잡는 것은 <b>끊긴 링크, 잘못된 출처 참조 같은 구조 오류</b>다. &ldquo;이 페이지를 이렇게 쪼갰을 때 나중 질문에 도움이 되는가&rdquo;는 판단하지 못한다.</p>
-          <p class="small">실제로 원 논문 ablation에서 Error Book은 세 구성 요소 중 <b>효과가 가장 작았다</b>(−3.4~4.0 F1). <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p15">해당 절제 실험 보기</a></p>
+          <p class="small">실제로 원 논문 ablation에서 Error Book은 세 구성 요소 중 <b>효과가 가장 작았다</b>(−3.4~4.0 F1). <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p16">해당 절제 실험 보기</a></p>
         </div>
         <div class="card">
           <span class="tag">WikiLoop의 처리 방식</span>
@@ -693,7 +693,7 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
         </table>
       </div>
 
-      <p class="note warn"><b>이 표를 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p14">LLM-Wiki 문서의 AuthTrace 표</a>와 나란히 두면 안 된다.</b> 두 가지가 다르다. 첫째, 백본이 GLM-5.1이 아니라 Qwen3.5-9B라 절대 수치가 전반적으로 낮다. 둘째, <b>구간 정의가 바뀌었다.</b> AuthTrace 원 논문과 LLM-Wiki는 Low를 2~3개, High를 4개 이상으로 나눴는데, WikiLoop은 Low를 2개, High를 3개 이상으로 잡았다(1,285 / 552 / 262). 전체 합은 2,099로 같지만 구간별 값은 서로 비교할 수 없다.</p>
+      <p class="note warn"><b>이 표를 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p15">LLM-Wiki 문서의 AuthTrace 표</a>와 나란히 두면 안 된다.</b> 두 가지가 다르다. 첫째, 백본이 GLM-5.1이 아니라 Qwen3.5-9B라 절대 수치가 전반적으로 낮다. 둘째, <b>구간 정의가 바뀌었다.</b> AuthTrace 원 논문과 LLM-Wiki는 Low를 2~3개, High를 4개 이상으로 나눴는데, WikiLoop은 Low를 2개, High를 3개 이상으로 잡았다(1,285 / 552 / 262). 전체 합은 2,099로 같지만 구간별 값은 서로 비교할 수 없다.</p>
     </div>
   </section>
 
@@ -758,7 +758,7 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
         </div>
         <div class="card">
           <span class="tag" style="color:var(--link)">LLM-Wiki가 빠뜨렸던 숫자</span>
-          <p class="small"><a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p17">원 논문의 가장 큰 공백</a>이 컴파일 비용 미보고였다. WikiLoop 보충 자료가 이를 채운다.</p>
+          <p class="small"><a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p18">원 논문의 가장 큰 공백</a>이 컴파일 비용 미보고였다. WikiLoop 보충 자료가 이를 채운다.</p>
           <div class="stats" style="margin:12px 0 0">
             <div class="stat"><span class="lab">위키 전체 구축</span><span class="val">185.15<span class="u">M</span></span><span class="sub">LLM-Wiki base 194.00M 토큰</span></div>
             <div class="stat"><span class="lab">질문당 지연</span><span class="val">15.76<span class="u">초</span></span><span class="sub">LLM-Wiki base 16.90초</span></div>
@@ -813,7 +813,7 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
         </div>
         <div class="card">
           <span class="tag">주의</span>
-          <p class="small">표 4에는 GLM-5.1로 돌린 참고 수치도 함께 실려 있는데, 논문은 이를 <b>맥락용이며 같은 백본 비교에 쓰지 말라</b>고 명시했다. 그 블록의 LLM-Wiki 0.839 / 0.739는 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p11">원 논문 표 1</a>의 값을 그대로 옮긴 것이다.</p>
+          <p class="small">표 4에는 GLM-5.1로 돌린 참고 수치도 함께 실려 있는데, 논문은 이를 <b>맥락용이며 같은 백본 비교에 쓰지 말라</b>고 명시했다. 그 블록의 LLM-Wiki 0.839 / 0.739는 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p12">원 논문 표 1</a>의 값을 그대로 옮긴 것이다.</p>
           <p class="small">전이 검증은 벤치마크 2개, 더 큰 백본 1개에 그친다. 논문도 &ldquo;더 넓은 모델 계열과 규모는 앞으로의 과제&rdquo;라고 적었다.</p>
         </div>
       </div>
@@ -838,7 +838,7 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
         </div>
         <div class="card">
           <span class="tag" style="color:var(--redlink)">3. 벤치마크가 여전히 자체 제작</span>
-          <p class="small">주 평가가 AuthTrace이고, <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p17">앞선 문서에서 지적한 대로</a> 같은 팀의 벤치마크다. 게다가 이번에는 <b>구간 정의까지 바꿔서</b>(Low=2, High≥3) 원 논문과 구간별 비교가 불가능하다. 전이 검증에 쓴 HotpotQA와 MuSiQue가 유일한 외부 척도다.</p>
+          <p class="small">주 평가가 AuthTrace이고, <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p18">앞선 문서에서 지적한 대로</a> 같은 팀의 벤치마크다. 게다가 이번에는 <b>구간 정의까지 바꿔서</b>(Low=2, High≥3) 원 논문과 구간별 비교가 불가능하다. 전이 검증에 쓴 HotpotQA와 MuSiQue가 유일한 외부 척도다.</p>
         </div>
         <div class="card">
           <span class="tag" style="color:var(--redlink)">4. 재현 불가</span>
@@ -866,7 +866,7 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
         <div class="card">
           <span class="tag">바뀐 것 2</span>
           <h3>비용의 자릿수를 알게 됐다</h3>
-          <p class="small">AuthTrace 코퍼스 860편 위키 구축에 <b>약 1.9억 토큰</b>. 문서당 22만 토큰꼴이다. <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p19">5월 시점에 계산할 수 없다고 적었던 손익분기</a>를, 이제 자기 워크로드에 대입해 어림잡을 수는 있다.</p>
+          <p class="small">AuthTrace 코퍼스 860편 위키 구축에 <b>약 1.9억 토큰</b>. 문서당 22만 토큰꼴이다. <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p20">5월 시점에 계산할 수 없다고 적었던 손익분기</a>를, 이제 자기 워크로드에 대입해 어림잡을 수는 있다.</p>
         </div>
         <div class="card">
           <span class="tag">바뀌지 않은 것</span>
@@ -875,7 +875,7 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
         </div>
       </div>
 
-      <p class="note"><b>도입 관점에서는.</b> WikiLoop은 RL 학습 파이프라인을 요구하므로 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p18">LLM-Wiki 도입 조건</a>보다 문턱이 훨씬 높다. 합성 학습 데이터 생성, 편집마다 위키 사본을 뜨고 Navigator를 두 번 돌리는 롤아웃, 역할별 배치 구성이 전부 필요하다. 반면 <b>sufficiency 게이팅은 학습 없이도 바로 쓸 수 있다.</b> 검색 agent의 도구 호출 예산을 다룰 때 &ldquo;증거가 충분해지기 전에는 비용을 재촉하지 않는다&rdquo;는 규칙 하나만 옮겨도 된다.</p>
+      <p class="note"><b>도입 관점에서는.</b> WikiLoop은 RL 학습 파이프라인을 요구하므로 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p19">LLM-Wiki 도입 조건</a>보다 문턱이 훨씬 높다. 합성 학습 데이터 생성, 편집마다 위키 사본을 뜨고 Navigator를 두 번 돌리는 롤아웃, 역할별 배치 구성이 전부 필요하다. 반면 <b>sufficiency 게이팅은 학습 없이도 바로 쓸 수 있다.</b> 검색 agent의 도구 호출 예산을 다룰 때 &ldquo;증거가 충분해지기 전에는 비용을 재촉하지 않는다&rdquo;는 규칙 하나만 옮겨도 된다.</p>
 
       <p class="note">같은 계보의 다른 문서: <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM-Wiki 논문 분석</a> · <a class="xref" href="../2026-08-05-wikikv-hierarchical-kb-storage/">WikiKV 논문 분석</a></p>
     </div>

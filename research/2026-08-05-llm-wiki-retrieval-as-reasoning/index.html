@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Retrieval as Reasoning: LLM-Wiki 논문 분석</title>
-<meta name="description" content="문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, 컴파일 루프의 동작, ablation 해석, 도입 조건을 다룬다.">
+<meta name="description" content="문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, 컴파일 루프와 순회 기록, ablation 해석, 도입 조건을 다룬다.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Retrieval as Reasoning: LLM-Wiki 논문 분석">
-<meta property="og:description" content="문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, 컴파일 루프의 동작, ablation 해석, 도입 조건을 다룬다.">
+<meta property="og:description" content="문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, 컴파일 루프와 순회 기록, ablation 해석, 도입 조건을 다룬다.">
 <meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-05-llm-wiki-retrieval-as-reasoning/">
 <meta name="twitter:card" content="summary">
 <style>
@@ -357,20 +357,21 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     <button class="rail-item" data-go="5"><span class="n">06</span><span>컴파일 루프</span></button>
     <button class="rail-item" data-go="6"><span class="n">07</span><span>위키 페이지 형식</span></button>
     <button class="rail-item" data-go="7"><span class="n">08</span><span>순회 방식</span></button>
-    <button class="rail-item" data-go="8"><span class="n">09</span><span>Error Book</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>순회 기록</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>Error Book</span></button>
     <div class="rail-sep"></div>
-    <button class="rail-item" data-go="9"><span class="n">10</span><span>실험 설정</span></button>
-    <button class="rail-item" data-go="10"><span class="n">11</span><span>결과 1. 전체 성능</span></button>
-    <button class="rail-item" data-go="11"><span class="n">12</span><span>결과 2. hop 수별</span></button>
-    <button class="rail-item" data-go="12"><span class="n">13</span><span>결과 3. 질문 유형별</span></button>
-    <button class="rail-item" data-go="13"><span class="n">14</span><span>결과 4. AuthTrace</span></button>
-    <button class="rail-item" data-go="14"><span class="n">15</span><span>결과 5. ablation</span></button>
-    <button class="rail-item" data-go="15"><span class="n">16</span><span>결과 6. 시간·이식성</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>실험 설정</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>결과 1. 전체 성능</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>결과 2. hop 수별</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>결과 3. 질문 유형별</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>결과 4. AuthTrace</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>결과 5. ablation</span></button>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>결과 6. 시간·이식성</span></button>
     <div class="rail-sep"></div>
-    <button class="rail-item" data-go="16"><span class="n">17</span><span>해석의 한계</span></button>
-    <button class="rail-item" data-go="17"><span class="n">18</span><span>도입 판단 기준</span></button>
-    <button class="rail-item" data-go="18"><span class="n">19</span><span>결론</span></button>
-    <button class="rail-item" data-go="19"><span class="n">20</span><span>출처</span></button>
+    <button class="rail-item" data-go="17"><span class="n">18</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="18"><span class="n">19</span><span>도입 판단 기준</span></button>
+    <button class="rail-item" data-go="19"><span class="n">20</span><span>결론</span></button>
+    <button class="rail-item" data-go="20"><span class="n">21</span><span>출처</span></button>
   </nav>
 
   <main class="stage" id="stage">
@@ -414,7 +415,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     <div class="slide-inner">
       <p class="eyebrow">tl-dr</p>
       <h2>요약</h2>
-      <p class="dek">핵심 결과는 ablation에 있다. 위키 구조와 agent의 반복 순회는 둘 중 하나만 있으면 효과가 없다. 위키를 만들어 놓고 기존처럼 한 번에 읽으면 Dense RAG보다 점수가 낮아진다. 자세한 근거는 <b>19장 결론</b>에 있다.</p>
+      <p class="dek">핵심 결과는 ablation에 있다. 위키 구조와 agent의 반복 순회는 둘 중 하나만 있으면 효과가 없다. 위키를 만들어 놓고 기존처럼 한 번에 읽으면 Dense RAG보다 점수가 낮아진다. 자세한 근거는 <b>20장 결론</b>에 있다.</p>
 
       <div class="stats">
         <div class="stat hero"><span class="lab">multi-hop QA F1 향상</span><span class="val">+2.0<span class="u">~</span>8.1</span><span class="sub">가장 강한 baseline 대비 (F1 point)</span></div>
@@ -715,6 +716,78 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
             <li><span class="m">03</span><span><b>Browse &amp; Aggregation</b> 범위가 넓거나 비교가 필요한 질문. 디렉터리 인덱스를 먼저 읽어 전체를 파악한 뒤 필요한 페이지만 골라 읽는다.</span></li>
           </ul>
           <p class="note"><b>멈추는 조건</b> 필요한 확인을 모두 끝냈거나, tool call 예산 <span class="wl">T_max = 15</span>에 도달했거나, 검색 결과가 <span class="wl">P = 3</span>회 연속 비었을 때다. 답하기 전에 <span class="wl">wiki_read</span>를 최소 한 번은 해야 한다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 09 순회 기록 ══════════ -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">traversal-trace</p>
+      <h2>실제 순회 기록</h2>
+      <p class="dek">부록 H에 agent의 도구 호출 순서가 그대로 실려 있다. 같은 질문을 Dense RAG가 어떻게 처리하는지와 나란히 놓으면 &lsquo;검색이 추론이 된다&rsquo;는 말이 무엇을 가리키는지 드러난다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">Case 2. &ldquo;John V, Prince of Anhalt-Zerbst의 아버지는 언제 죽었나?&rdquo;</p>
+        <div class="grid g2">
+          <div>
+            <p class="fig-sub" style="margin-bottom:8px"><b style="color:var(--redlink)">Dense RAG</b> 한 문단이 두 사실을 다 담고 있기를 기대해야 한다</p>
+            <pre>질의 embedding
+  "John V Prince of Anhalt-Zerbst
+   father death"
+       │
+       ▼
+top-5 문단
+  <span class="r">John V 본인의 전기</span>
+  <span class="r">다른 Anhalt 공작들</span>
+  ...
+
+아버지 <span class="k">Ernest I</span>의 사망일은
+<span class="r">John V를 언급하지 않는 별도 문단</span>에 있다.
+질의 embedding과 거리가 멀어
+상위에 오지 않는다.</pre>
+          </div>
+          <div>
+            <p class="fig-sub" style="margin-bottom:8px"><b style="color:var(--link)">LLM-Wiki</b> 도구 호출 3회로 종료</p>
+            <pre><span class="k">1</span> wiki_search("John V, Prince of
+              Anhalt-Zerbst")
+  → people/John-V-Prince-of-Anhalt-Zerbst
+
+<span class="k">2</span> wiki_read([위 경로])
+  → ## Related Pages
+    <span class="k">[[people/Ernest-I-Prince-of-Anhalt-Dessau]]</span>
+    -- father of John V        <span class="c">← 링크에 관계가 적혀 있다</span>
+
+<span class="k">3</span> wiki_read([Ernest I 경로])
+  → "Ernest I died on
+     12 June 1516 in Dessau."
+
+<span class="c">모호성 없이 종료</span></pre>
+          </div>
+        </div>
+        <figcaption>2단계에서 반환된 본문에 <b>다음에 갈 곳이 관계 설명과 함께 들어 있다</b>. 논문이 링크를 &lsquo;순회 어포던스&rsquo;라고 부르는 이유다. agent는 어디로 갈지 추측하지 않고 읽은 내용에서 경로를 얻는다.</figcaption>
+      </figure>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">Case 1. 4-hop 비교 질문에서는 홉마다 병렬로 넓힌다</span>
+          <p class="small">&ldquo;The Gamecock과 Monster A Go-Go 중 감독이 더 나이 많은 영화는?&rdquo;의 실제 순서다.</p>
+          <ul class="clean" style="margin-top:10px">
+            <li><span class="m">1</span><span>두 영화 제목을 <b>병렬로</b> 검색</span></li>
+            <li><span class="m">2</span><span>영화 페이지 두 개를 <b>한 번에</b> 읽고 구조화 필드에서 감독 이름 추출</span></li>
+            <li><span class="m">3</span><span><span class="wl">links_to</span> 포인터를 따라 감독 전기 두 개를 <b>한 번에</b> 읽고 생년월일 확보</span></li>
+          </ul>
+          <p class="note">4홉짜리 질문인데 <b>왕복은 3회</b>다. <span class="wl">wiki_read</span>가 경로 목록을 받아 배치로 읽기 때문에, 같은 깊이에 있는 페이지들은 한 번에 처리된다. 홉 수와 도구 호출 수가 비례하지 않는다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">예산은 15회지만 실제로는 3회 안팎이다</span>
+          <div class="stats" style="margin:10px 0 0">
+            <div class="stat"><span class="lab">허용된 도구 호출</span><span class="val">15</span><span class="sub">T_max, 빈 검색 3회 연속이면 조기 종료</span></div>
+            <div class="stat hero"><span class="lab">질문당 실제로 읽는 페이지</span><span class="val">2.5<span class="u">~</span>3.9</span><span class="sub">RAG의 고정 5문단보다 적다</span></div>
+          </div>
+          <p class="note">이 숫자가 <a class="xref" href="#p18">예산 비대칭 비판</a>에 대한 부분적인 반론이 된다. 상한은 분명히 더 크지만 <b>평균 소비는 오히려 RAG보다 적다.</b> 남는 예산은 어려운 질문에만 쓰인다. MuSiQue는 평균 8.2단계가 필요해 지연이 27.1초까지 오르는데, HotpotQA와 2Wiki는 15초 안팎에서 끝난다.</p>
+          <p class="note warn">다만 완전한 반론은 아니다. 반복형 RAG(IRCoT, Self-RAG)에 같은 상한을 주고 비교한 실험이 없어서, 이 절약이 <b>위키 구조 덕분인지 agent 루프 덕분인지</b>는 여전히 갈라지지 않는다.</p>
         </div>
       </div>
     </div>
@@ -1146,7 +1219,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         </div>
       </div>
 
-      <p class="note">실무에서 중요한 부분이다. 마크다운 위키를 만들어 두는 것만으로는 부족하다. 위키를 만들고 기존 RAG처럼 한 번에 top-k를 뽑아 쓰면 향상 폭이 줄어드는 정도가 아니라, 표 1의 Dense RAG(.764/.611/.815)보다 낮은 .722/.601/.789가 된다. agent에게 tool과 호출 예산을 함께 줘야 효과가 난다. 이 비교는 19장에서 다룬다.</p>
+      <p class="note">실무에서 중요한 부분이다. 마크다운 위키를 만들어 두는 것만으로는 부족하다. 위키를 만들고 기존 RAG처럼 한 번에 top-k를 뽑아 쓰면 향상 폭이 줄어드는 정도가 아니라, 표 1의 Dense RAG(.764/.611/.815)보다 낮은 .722/.601/.789가 된다. agent에게 tool과 호출 예산을 함께 줘야 효과가 난다. 이 비교는 20장에서 다룬다.</p>
     </div>
   </section>
 
@@ -1389,7 +1462,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <footer class="hud">
     <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
     <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
-    <span class="counter" id="counter">01 / 20</span>
+    <span class="counter" id="counter">01 / 21</span>
     <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
     <span class="hint">← → 키 · Space · Home / End</span>
   </footer>
