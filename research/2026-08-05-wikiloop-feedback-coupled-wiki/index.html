@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WikiLoop: 위키 구축과 순회를 함께 학습시키는 논문 분석</title>
-<meta name="description" content="편집이 나중의 검색 성능을 얼마나 바꾸는지를 보상으로 삼아 위키 구축 정책을 강화학습으로 학습시킨다. LLM-Wiki가 빠뜨린 구축 비용도 처음 공개된다.">
+<meta name="description" content="편집이 나중의 검색 성능을 얼마나 바꾸는지를 보상으로 삼아 위키 구축 정책을 학습시킨다. 학습하지 않는 팀이 바로 쓸 수 있는 설계 원칙과, LLM-Wiki가 빠뜨린 구축 비용을 함께 다룬다.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="WikiLoop: 위키 구축과 순회를 함께 학습시키는 논문 분석">
-<meta property="og:description" content="편집이 나중의 검색 성능을 얼마나 바꾸는지를 보상으로 삼아 위키 구축 정책을 강화학습으로 학습시킨다. LLM-Wiki가 빠뜨린 구축 비용도 처음 공개된다.">
+<meta property="og:description" content="편집이 나중의 검색 성능을 얼마나 바꾸는지를 보상으로 삼아 위키 구축 정책을 학습시킨다. 학습하지 않는 팀이 바로 쓸 수 있는 설계 원칙과, LLM-Wiki가 빠뜨린 구축 비용을 함께 다룬다.">
 <meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-05-wikiloop-feedback-coupled-wiki/">
 <meta name="twitter:card" content="summary">
 <style>
@@ -358,13 +358,12 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     <button class="rail-item" data-go="6"><span class="n">07</span><span>학습 순서</span></button>
     <div class="rail-sep"></div>
     <button class="rail-item" data-go="7"><span class="n">08</span><span>결과 1. 전체 성능</span></button>
-    <button class="rail-item" data-go="8"><span class="n">09</span><span>결과 2. 목적함수</span></button>
-    <button class="rail-item" data-go="9"><span class="n">10</span><span>결과 3. 역량 유지·비용</span></button>
-    <button class="rail-item" data-go="10"><span class="n">11</span><span>결과 4. 전이</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>결과 2. 역량 유지·비용</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>결과 3. 전이</span></button>
     <div class="rail-sep"></div>
-    <button class="rail-item" data-go="11"><span class="n">12</span><span>해석의 한계</span></button>
-    <button class="rail-item" data-go="12"><span class="n">13</span><span>결론</span></button>
-    <button class="rail-item" data-go="13"><span class="n">14</span><span>출처</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>결론</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>출처</span></button>
   </nav>
 
   <main class="stage" id="stage">
@@ -387,14 +386,14 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <div class="grid g3">
         <div class="card">
           <span class="tag">저자 · 소속</span>
-          <p class="small">Haoliang Ming, Feifei Li, Wenhui Que<br><b>WeChat, Tencent Inc.</b><br>LLM-Wiki 저자 4명 중 3명</p>
+          <p class="small">Haoliang Ming, Feifei Li, Wenhui Que<br>제출본은 익명 처리돼 소속 표기가 없다. 저자 3명이 <b>LLM-Wiki 저자 4명 중 3명</b>과 같다.</p>
         </div>
         <div class="card">
           <span class="tag">출처</span>
           <p class="small">arXiv:2607.26604<br>2026-07-29<br>코드 공개 없음</p>
         </div>
         <div class="card">
-          <span class="tag">왜 중요한가</span>
+          <span class="tag">앞 문서와 달라진 점</span>
           <p class="small">LLM-Wiki에서 <b>효과가 가장 작았던 Error Book 자리</b>(−3.4~4.0 F1)를 학습으로 대체한다. 그리고 원 논문이 빠뜨린 <b>위키 구축 비용을 처음으로 수치로</b> 공개한다.</p>
         </div>
       </div>
@@ -407,7 +406,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     <div class="slide-inner">
       <p class="eyebrow">tl-dr</p>
       <h2>요약</h2>
-      <p class="dek">같은 백본(Qwen3.5-9B)에서 LLM-Wiki를 6.3 AC 앞선다. 이득은 거의 전부 <b>여러 문서를 봐야 하는 질문</b>에서 나온다.</p>
+      <p class="dek">같은 모델(Qwen3.5-9B)에서 LLM-Wiki를 <b>AC 6.3점</b> 앞선다. 이득은 거의 전부 여러 문서를 봐야 하는 질문에서 나온다.<br><br><b>AC(Answer Correctness)</b>는 LLM 채점자가 답변을 0~3점으로 매겨 100점 만점으로 환산한 값이다. <b>정답률이 아니다.</b> 사람이 블라인드로 다시 채점해도 순위가 같았다(62.8).</p>
 
       <div class="stats">
         <div class="stat hero"><span class="lab">AuthTrace 전체 AC</span><span class="val">62.6</span><span class="sub">LLM-Wiki base 56.3, HippoRAG 2 55.8</span></div>
@@ -416,11 +415,11 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         <div class="stat"><span class="lab">질문당 지연</span><span class="val">15.76<span class="u">초</span></span><span class="sub">LLM-Wiki 16.90초</span></div>
       </div>
 
-      <div class="grid g2">
+      <div class="grid g3">
         <div class="card">
-          <span class="tag">핵심 장치 두 개</span>
+          <span class="tag">새 목적함수 두 개</span>
           <ul class="clean">
-            <li><span class="m">01</span><span><b>sufficiency-before-efficiency.</b> 증거를 다 모으기 전에는 비용 페널티를 걸지 않는다. 이것만으로 조기 종료가 18.9%에서 11.1%로 줄고 전체 증거 확보율이 66.8%에서 76.1%로 오른다.</span></li>
+            <li><span class="m">01</span><span><b>증거를 다 모으기 전에는 비용을 재촉하지 않는다.</b> 이 항 하나를 빼면 조기 종료가 11.1%에서 <b>24.2%로 뛴다.</b></span></li>
             <li><span class="m">02</span><span><b>효용 차이로 편집을 채점한다.</b> 편집 전후 위키를 각각 복사해 <b>고정된</b> Navigator를 돌리고, 그 차이를 보상으로 쓴다. 편집 후 상태가 좋은 게 아니라 <b>편집이 얼마나 바꿨는지</b>를 본다.</span></li>
           </ul>
         </div>
@@ -432,8 +431,18 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
             <li><span class="m">▸</span><span>Builder 학습에 쓴 평가자와 <b>다른 시드로 따로 학습시킨 Navigator</b>로 편집의 유용성을 다시 확인했다.</span></li>
           </ul>
         </div>
+        <div class="card">
+          <span class="tag" style="color:var(--link)">학습 없이 바로 쓸 수 있는 것</span>
+          <ul class="clean">
+            <li><span class="m">01</span><span><b>검색 agent의 비용 압박을 뒤로 미룬다.</b> 호출 수를 줄이라는 지시를 항상 걸지 말고, 근거를 다 모았다고 판단되기 전에는 걸지 않는다. 조기 종료 24.2% → 11.1%.</span></li>
+            <li><span class="m">02</span><span><b>평가를 전후 차이로 기록한다.</b> 규칙을 바꿨을 때 &ldquo;바꾼 뒤 정확도&rdquo;가 아니라 &ldquo;같은 질문 세트에서 바뀐 폭&rdquo;을 남긴다. 절대값으로 재면 개선을 절반으로 과소평가한다(6.2 대 12.8).</span></li>
+            <li><span class="m">03</span><span><b>무관한 질문을 회귀 테스트로 같이 돌린다.</b> 손상 0.046 → 0.016으로 65% 줄고 목표 이득은 거의 안 깎인다.</span></li>
+            <li><span class="m">04</span><span><b>평가 파이프라인을 실험 도중에 바꾸지 않는다.</b> 채점 기준이 같이 변하면 개선인지 기준 변화인지 구분할 수 없다.</span></li>
+          </ul>
+          <p class="note">넷 다 프롬프트와 평가 스크립트만으로 된다. 나머지 장(04~06)은 RL 파이프라인이 있어야 한다.</p>
+        </div>
       </div>
-      <p class="note warn">다만 벤치마크 AuthTrace가 여전히 <b>같은 팀의 것</b>이고, 학습과 평가가 같은 코퍼스와 같은 초기 위키를 공유한다(논문이 transductive라고 명시). 외부 재현은 이 계보 전체에 아직 없다.</p>
+      <p class="note warn"><b>WikiLoop 자체는 도입 대상이 아니다.</b> 코드와 학습 데이터와 보상 계수가 모두 비공개이고 RL 파이프라인이 필요하다. 벤치마크도 같은 팀 것이고 학습과 평가가 같은 코퍼스를 공유한다. 가져갈 것은 위 네 가지 설계 원칙이지 시스템이 아니다. 자세한 조건은 <a class="xref" href="#p11">11장</a>.</p>
     </div>
   </section>
 
@@ -442,18 +451,18 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     <div class="slide-inner">
       <p class="eyebrow">problem</p>
       <h2>지식베이스를 만드는 일이 쓰이는 방식과 끊겨 있다</h2>
-      <p class="dek">기존 구도에서는 검색 agent가 <b>외부에서 고정된 인덱스</b> 위에서 동작하고, 구축 쪽은 다운스트림에서 아무 신호도 받지 못한다. 페이지를 어떻게 쪼갤지, 어떤 링크를 걸지는 컴파일 시점의 추측으로 정해지고, 그 추측이 맞았는지는 아무도 확인하지 않는다.</p>
+      <p class="dek">기존 구도에서는 검색 agent가 <b>외부에서 고정된 인덱스</b> 위에서 동작하고, 구축 쪽은 다운스트림에서 아무 신호도 받지 못한다. 페이지를 어떻게 쪼갤지, 어떤 링크를 걸지는 컴파일 시점의 추측으로 정해지고, 그 선택이 이후 검색에 도움이 됐는지는 측정되지 않는다.</p>
 
       <div class="grid g2">
         <div class="card">
           <span class="tag">LLM-Wiki의 처리 방식</span>
           <p class="small">Error Book이 오류를 규칙으로 바꿔 다음 배치 프롬프트에 넣는다. 다만 이것이 잡는 것은 <b>끊긴 링크, 잘못된 출처 참조 같은 구조 오류</b>다. &ldquo;이 페이지를 이렇게 쪼갰을 때 나중 질문에 도움이 되는가&rdquo;는 판단하지 못한다.</p>
-          <p class="small">실제로 원 논문 ablation에서 Error Book은 세 구성 요소 중 <b>효과가 가장 작았다</b>(−3.4~4.0 F1). <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p17">해당 절제 실험 보기</a></p>
+          <p class="small">실제로 원 논문 ablation에서 Error Book은 세 구성 요소 중 <b>효과가 가장 작았다</b>(−3.4~4.0 F1). <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p17">해당 LLM-Wiki 17장 ablation</a></p>
         </div>
         <div class="card">
           <span class="tag">WikiLoop의 처리 방식</span>
-          <p class="small">편집 후보 <span class="wl">e</span>마다 <b>영향 받는 질문 집합</b>(최대 3개)과 <b>guard 질문 집합</b>(2개, 페이지·출처가 겹치지 않는 같은 저자 질문)을 짝지운다.</p>
-          <p class="small">위키를 복사해 편집 전 상태와 후 상태를 만들고, <b>고정된 Navigator</b>로 두 집합을 각각 실행한다. 영향 받는 질문에서 올라간 만큼 보상하고, guard 질문에서 내려간 만큼 벌점을 준다. 편집의 <b>한계 효용</b>을 직접 측정하는 셈이다.</p>
+          <p class="small">편집 후보 <span class="wl">e</span>마다 <b>영향 받는 질문 집합</b>(최대 3개)과 <b>guard 질문 집합</b>(2개, 페이지·출처가 겹치지 않는 같은 저자 질문)을 짝짓는다.</p>
+          <p class="small">위키를 복사해 편집 전 상태와 후 상태를 만들고, <b>고정 Navigator</b>로 두 집합을 각각 실행한다. 영향 받는 질문에서 올라간 만큼 보상하고, guard 질문에서 내려간 만큼 벌점을 준다. 편집의 <b>한계 효용</b>을 직접 측정하는 셈이다.</p>
         </div>
       </div>
 
@@ -471,7 +480,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <figure class="figure">
         <p class="fig-title">역할 조건부 공유 정책</p>
         <div class="svgwrap">
-          <svg class="chart" viewBox="0 0 760 250" role="img" aria-label="역할 조건부 공유 정책 구조도. 가운데 공유 파라미터에서 위쪽 Navigator 인터페이스와 아래쪽 Builder 인터페이스로 갈라진다. Navigator는 위키에서 증거를 찾아 답을 내고, Builder는 편집 후보를 제안하면 고정된 Navigator가 편집 전후 위키에서 효용 차이를 측정해 보상을 돌려준다.">
+          <svg class="chart" viewBox="0 0 760 250" role="img" aria-label="역할 조건부 공유 정책 구조도. 가운데 공유 파라미터에서 위쪽 Navigator 인터페이스와 아래쪽 Builder 인터페이스로 갈라진다. Navigator는 위키에서 증거를 찾아 답을 내고, Builder는 편집 후보를 제안하면 고정 Navigator가 편집 전후 위키에서 효용 차이를 측정해 보상을 돌려준다.">
             <rect class="box-hi" x="290" y="102" width="180" height="46" rx="8"/>
             <text class="txt" x="306" y="123">공유 파라미터 θ</text>
             <text class="txt-s" x="306" y="139">역할 프롬프트로 분기</text>
@@ -510,7 +519,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         <figcaption>추론 시점에는 역할 프롬프트만 바꾸면 된다. 모델을 두 개 들고 있을 필요가 없다.</figcaption>
       </figure>
 
-      <p class="note">궤적을 섞어서 학습하지는 않는다. Navigator 궤적과 Builder 궤적은 행동 공간도 보상 정의도 다르므로, 한 배치에 섞으면 그룹 상대 이점(GRPO)이 <b>역할 정체성과 궤적 품질을 뒤섞는다</b>. 그래서 배치는 역할별로 순수하게 구성하고, 갱신만 같은 파라미터에 가한다. 최적화는 GRPO 이점 계산 + GSPO 시퀀스 목적함수를 쓴다.</p>
+      <p class="note">학습할 때는 한 묶음에 한 역할만 담는다. 이 학습법은 <b>같은 묶음 안의 여러 시도를 서로 비교해 잘한 쪽을 강화하는 방식</b>이다. 그런데 검색 시도와 편집 시도는 점수 기준 자체가 다르다. 한 묶음에 섞으면 점수 차이가 &ldquo;어느 역할인가&rdquo; 때문인지 &ldquo;얼마나 잘했는가&rdquo; 때문인지 구분되지 않는다. 그래서 묶음은 역할별로 나누되 학습 결과는 같은 모델에 함께 반영한다. <span style="color:var(--muted)">(알고리즘은 GRPO와 GSPO. 직접 학습할 때만 필요한 이름이다.)</span></p>
     </div>
   </section>
 
@@ -522,28 +531,24 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <p class="dek">검색 비용에 계속 페널티를 걸면 agent가 <b>일찍 멈추는 쪽</b>을 학습한다. 짧은 궤적이 싸기 때문이다. WikiLoop은 증거 재현율이 1이 된 뒤에야 비용 항을 켠다.</p>
 
       <figure class="figure">
-        <p class="fig-title">보상 구성</p>
-        <pre>R_NAV = clip[ α<sub>a</sub>·AC·(ρ + (1−ρ)·ER)   <span class="c">← 답변 정확도, 증거를 모을수록 가중</span>
-             + α<sub>e</sub>·ER                  <span class="c">← 증거 재현율 자체의 조밀한 신호</span>
-             + β<sub>full</sub>·I<sub>full</sub>              <span class="c">← 증거를 다 모았을 때 보너스</span>
-             <span class="r">− α<sub>c</sub>·Cost·I<sub>full</sub></span>          <span class="c">← 비용 페널티. I_full로 게이팅된다</span>
-             + P<sub>deg</sub> , −1, 1 ]         <span class="c">← 잘못된 행동·조기 종료·도구 미사용 벌점</span></pre>
-        <p class="fig-sub"><span class="wl">I_full = 1[ER = 1]</span>. 이 지시 함수 하나가 보너스와 비용 페널티를 동시에 켠다. Cost는 궤적 토큰 수, wiki_search 호출 수, read 호출 수를 정규화해 가중합한 값이다.</p>
+        <p class="fig-title">비용 페널티에 스위치가 하나 달려 있다</p>
+        <p class="small" style="max-width:62ch">스위치는 <b>필요한 증거를 전부 모았는가</b> 하나로만 켜진다. 켜지기 전에는 아무리 오래 뒤져도 벌점이 없고, 켜진 뒤부터 짧고 싼 경로가 유리해진다. 답변이 맞았는지와 증거를 얼마나 모았는지는 스위치와 무관하게 항상 점수에 들어가고, 잘못된 행동이나 도구를 아예 안 쓴 경우는 따로 벌점을 받는다.</p>
+        <p class="small" style="max-width:62ch">이 한 문단이 Navigator 보상의 전부다. 논문의 수식에는 각 항의 가중치가 기호로 들어가는데 <b>값이 공개되지 않았으므로</b> 여기서는 옮기지 않는다.</p>
       </figure>
 
       <div class="tablewrap">
         <table>
-          <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">표 2A. 게이팅을 뺐을 때 무슨 일이 생기나</caption>
+          <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">표 2A. Navigator 목적함수 ablation</caption>
           <thead><tr><th>목적함수</th><th>AC ↑</th><th>증거 완전 확보 ↑</th><th>조기 종료 ↓</th><th>완주 시 비용 ↓</th></tr></thead>
           <tbody>
             <tr><td>Joint SFT (학습 전)</td><td>58.2</td><td>66.8%</td><td>18.9%</td><td>0.411</td></tr>
-            <tr><td>NAV-RL, 게이팅 없음</td><td>58.1</td><td class="lose">64.0%</td><td class="lose">24.2%</td><td class="win">0.364</td></tr>
+            <tr><td>NAV-RL, 스위치 없음</td><td>58.1</td><td class="lose">64.0%</td><td class="lose">24.2%</td><td class="win">0.364</td></tr>
             <tr class="hero"><td>NAV-RL 전체</td><td>60.4</td><td>76.1%</td><td>11.1%</td><td>0.379</td></tr>
           </tbody>
         </table>
       </div>
 
-      <p class="note">게이팅을 빼면 <b>비용은 가장 낮아지지만(0.364) 정확도는 오르지 않고 조기 종료가 24.2%로 뛴다.</b> 예측된 실패 양상이 그대로 나타난 셈이다. 게이팅을 넣으면 비용이 0.015 올라가는 대신 증거 완전 확보가 12.1%p 오르고 조기 종료가 13.1%p 떨어진다. 게다가 <b>완주한 궤적만 놓고 봐도 SFT(0.411)보다 싸다</b>. 오래 뒤져서 이긴 게 아니라는 뜻이다.</p>
+      <p class="note">스위치를 빼면 <b>비용은 가장 낮아지지만(0.364) 정확도는 오르지 않고 조기 종료가 24.2%로 뛴다.</b> 예측된 실패 양상이 그대로 나타난 셈이다. 스위치를 넣으면 비용이 0.015 올라가는 대신 증거 완전 확보가 12.1%p 오르고 조기 종료가 13.1%p 떨어진다. 게다가 <b>완주한 궤적만 놓고 봐도 SFT(0.411)보다 싸다</b>. 더 많이 검색해서 얻은 정확도가 아니라는 뜻이다.</p>
     </div>
   </section>
 
@@ -555,19 +560,15 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <p class="dek">편집 후보 하나를 위키 사본에 적용하고, <b>고정된</b> Navigator로 영향 질문과 guard 질문을 각각 편집 전후에 실행한다. 사본은 채점 후 버린다. 학습용 위키에 반영하지 않는다.</p>
 
       <figure class="figure">
-        <p class="fig-title">보상 구성</p>
-        <pre>R_BUILD = clip[ ΔU<sub>affected</sub>                <span class="c">← 영향 질문에서의 효용 변화</span>
-              <span class="r">− λ<sub>g</sub>·[ −ΔU<sub>guard</sub> ]<sub>+</sub></span>       <span class="c">← guard 질문이 나빠졌을 때만 벌점 (단방향)</span>
-              − λ<sub>e</sub>·C<sub>edit</sub>              <span class="c">← 편집 크기</span>
-              − P<sub>structure</sub> , −1, 1 ]     <span class="c">← 고아 페이지·구조 복잡도·파편화·과다 길이</span>
-
-U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER − w<sub>c</sub>·Cost      <span class="c">w<sub>a</sub> + w<sub>e</sub> + w<sub>c</sub> = 1</span></pre>
-        <p class="fig-sub">파싱 실패, 스키마 위반, 적용 불가 연산은 −1. 유효하지만 아무 변화도 없는 편집은 0을 받고 편집 비용 벌점을 면제받는다.</p>
+        <p class="fig-title">편집 점수를 계산하는 방식</p>
+        <p class="small" style="max-width:64ch"><b>편집 점수 = (관련 질문이 좋아진 만큼) − (무관한 질문이 나빠진 만큼) − (편집이 컸던 만큼) − (구조를 망친 만큼).</b> 무관한 질문이 <i>좋아지는</i> 것은 가점하지 않는다. 벌점만 있는 단방향이다.</p>
+        <p class="small" style="max-width:64ch">여기서 &ldquo;좋아졌다&rdquo;는 <b>고정 Navigator가 그 질문을 풀 때의 정답 정확도, 증거 확보율, 검색 비용을 하나로 합친 점수</b>의 변화량이다. 세 항목의 가중치는 논문이 공개하지 않았다.</p>
+        <p class="small" style="max-width:64ch">파싱에 실패하거나 스키마를 어긴 편집은 −1점. 유효하지만 아무것도 바꾸지 않은 편집은 0점이고 편집 크기와 구조 벌점을 적용하지 않는다.</p>
       </figure>
 
       <div class="tablewrap">
         <table>
-          <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">표 2B. 채점 방식을 바꿔가며 측정</caption>
+          <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">표 2B. Builder 목적함수 ablation. <b>학습 평가자</b>는 Builder 학습에 점수를 매긴 그 채점자이고 <b>held-out</b>은 그 학습에 전혀 참여하지 않은 별도 채점자다. ΔU는 −1~1 구간 합성 점수의 <b>변화량</b>이라 절대값이 작아 보이는 게 정상이다</caption>
           <thead><tr><th>채점 방식</th><th>영향 질문 ΔAC ↑</th><th>학습 평가자 ΔU ↑</th><th>held-out ΔU ↑</th><th>guard 손상 ↓</th></tr></thead>
           <tbody>
             <tr><td>Joint SFT</td><td>4.9</td><td>0.040</td><td>0.026</td><td>0.021</td></tr>
@@ -584,8 +585,8 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
           <p class="small">절대 효용은 SFT 대비 4.9 → 6.2로 소폭 오르는 데 그친다. 전후 차이로 바꾸면 12.8까지 간다. 개별 편집에 대한 신호로는 <b>결과 상태보다 변화량이 훨씬 정보가 많다</b>.</p>
         </div>
         <div class="card">
-          <span class="tag">guard 항은 거의 공짜다</span>
-          <p class="small">guard를 넣으면 무관한 질문의 손상이 0.046에서 0.016으로 <b>65.2% 줄어드는데</b>, 영향 질문 이득은 12.8에서 12.1로만 내려간다. 게다가 <b>held-out Navigator 기준으로는 오히려 0.077에서 0.084로 오른다</b>. 학습 평가자에 과적합되던 편집이 걸러진다는 뜻이다.</p>
+          <span class="tag">guard 항의 비용</span>
+          <p class="small">guard를 넣으면 무관한 질문의 손상이 0.046에서 0.016으로 <b>65.2% 줄어드는데</b>, 영향 질문 이득은 12.8에서 12.1로만 내려간다. 학습에 쓰지 않은 별도 채점자로 다시 재도 0.077에서 0.084로 떨어지지 않는다. 채점자에게만 잘 보이는 편집이 걸러진다는 뜻이다. 다만 <b>이 상승분 자체는 논문이 통계적으로 유의하지 않다고 적었다.</b></p>
         </div>
       </div>
     </div>
@@ -596,7 +597,7 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
     <div class="slide-inner">
       <p class="eyebrow">training</p>
       <h2>학습은 네 단계를 순서대로 밟는다</h2>
-      <p class="dek">Builder에게 채점자가 필요하므로 Navigator를 먼저 만든다. 그리고 그 채점자를 <b>얼려서</b> Builder가 바뀌는 동안 효용의 척도가 흔들리지 않게 한다.</p>
+      <p class="dek"><b>여기서 읽을 것은 하나다.</b> 편집을 채점하려면 채점자가 필요한데, 채점자가 학습 중에 같이 변하면 점수가 오른 게 편집이 좋아져서인지 채점 기준이 물러져서인지 구분할 수 없다. 그래서 채점자를 특정 시점에 복사해 고정해 놓고 쓴다. 사람이 만든 규칙으로 청킹을 바꿔가며 평가할 때도 같은 원칙이 적용된다. <b>평가 파이프라인을 실험 도중에 건드리면 안 된다.</b> 아래 4단계 순서는 직접 학습할 때만 필요하다.</p>
 
       <figure class="figure">
         <div class="svgwrap">
@@ -622,13 +623,13 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
               <path d="M478 122 L671 122 L671 88" style="stroke-dasharray:4 3"/>
               <path d="M666 95 L671 88 L676 95"/>
             </g>
-            <text class="txt-s" x="292" y="140">NAV-RL 결과를 복사해 얼린 평가자로 3·4단계 내내 사용한다</text>
+            <text class="txt-s" x="292" y="140">NAV-RL 결과를 복사해 고정 Navigator로 3·4단계 내내 사용한다</text>
           </svg>
         </div>
         <figcaption>학습 데이터는 DeepSeek-V4-Flash를 교사로 삼아 문서 단위로 나눈 합성 데이터로 만들었다. AuthTrace 질문은 전부 최종 평가용으로 남겨두고 지도, 보상, 필터링, 보정, 모델 선택 어디에도 쓰지 않았다.</figcaption>
       </figure>
 
-      <p class="note">3단계에서 Builder를 학습시키고 나면 2단계에서 익힌 검색 행동이 조금 밀린다. Navigator AC가 60.4에서 59.7로, 조기 종료가 11.1%에서 12.5%로 나빠진다. 4단계 Joint RL은 이 밀림을 되돌리는 역할이다. 결과는 60.8 / 10.9로 <b>특화 모델보다도 살짝 낫다</b>.</p>
+      <p class="note">3단계에서 Builder를 학습시키고 나면 2단계에서 익힌 검색 성능이 일부 떨어진다. Navigator AC가 60.4에서 59.7로, 조기 종료가 11.1%에서 12.5%로 나빠진다. 4단계 Joint RL은 이 하락을 되돌리는 역할이다. 결과는 60.8 / 10.9로 <b>특화 모델보다도 살짝 낫다</b>.</p>
     </div>
   </section>
 
@@ -641,9 +642,9 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
 
       <figure class="figure">
         <p class="fig-title">필요 문서 수별 AC</p>
-        <div class="legend"><span><i class="s1"></i>WikiLoop</span><span><i class="s2"></i>LLM-Wiki base</span><span><i class="sn"></i>나머지 6종</span></div>
+        <div class="legend"><span><i class="s1"></i>WikiLoop</span><span><i class="s2"></i>LLM-Wiki base</span><span><i class="sn"></i>HippoRAG 2 (점선)</span><span><i class="sn"></i>나머지 5종</span></div>
         <div class="svgwrap">
-          <svg class="chart" viewBox="0 0 720 360" role="img" aria-label="필요 문서 수별 채점 정확도 선그래프. WikiLoop은 69.1에서 54.8, 47.5로 완만하게 내려가고 LLM-Wiki base는 66.7에서 42.0, 35.2로, HippoRAG 2는 69.8에서 36.5, 28.0으로 더 가파르게 떨어진다. 나머지 평면 검색 방식들은 40대에서 10 미만으로 급락한다.">
+          <svg class="chart" viewBox="0 0 720 360" role="img" aria-label="필요 문서 수별 AC 선그래프. WikiLoop은 69.1, 54.8, 47.5로 완만하게 내려가고 LLM-Wiki base는 66.7, 42.0, 35.2, 점선의 HippoRAG 2는 69.8, 36.5, 28.0으로 더 가파르게 떨어진다. BM25와 Dense와 LightRAG와 RAPTOR는 40 안팎에서 시작해 5에서 12 사이로 떨어지고, Closed-book은 세 구간 모두 5 미만에서 평평하다.">
             <g class="grid-l">
               <line x1="90" y1="320" x2="640" y2="320"/><line x1="90" y1="247.5" x2="640" y2="247.5"/>
               <line x1="90" y1="175" x2="640" y2="175"/><line x1="90" y1="102.5" x2="640" y2="102.5"/>
@@ -693,47 +694,15 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
         </table>
       </div>
 
-      <p class="note warn"><b>이 표를 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p16">LLM-Wiki 문서의 AuthTrace 표</a>와 나란히 두면 안 된다.</b> 두 가지가 다르다. 첫째, 백본이 GLM-5.1이 아니라 Qwen3.5-9B라 절대 수치가 전반적으로 낮다. 둘째, <b>구간 정의가 바뀌었다.</b> AuthTrace 원 논문과 LLM-Wiki는 Low를 2~3개, High를 4개 이상으로 나눴는데, WikiLoop은 Low를 2개, High를 3개 이상으로 잡았다(1,285 / 552 / 262). 전체 합은 2,099로 같지만 구간별 값은 서로 비교할 수 없다.</p>
+      <p class="note warn"><b>이 표를 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p16">LLM-Wiki 문서의 AuthTrace 표</a>와 나란히 두면 안 된다.</b> 두 가지가 다르다. 첫째, 백본이 GLM-5.1이 아니라 Qwen3.5-9B라 절대 수치가 전반적으로 낮다. 둘째, <b>구간 정의가 바뀌었다.</b> WikiLoop은 Low를 2개, High를 3개 이상으로 잡는다(1,285 / 552 / 262). 그런데 AuthTrace 원 논문은 Low를 2~3개, High를 4개 이상으로 정의한다. WikiLoop은 &ldquo;공식 구간 수를 쓴다&rdquo;고 적었지만 두 서술이 어긋난다. 전체 합은 2,099로 같지만 구간별 값은 서로 비교할 수 없다.</p>
     </div>
   </section>
 
   <!-- 09 -->
   <section class="slide">
     <div class="slide-inner">
-      <p class="eyebrow">result-objective</p>
-      <h2>결과 2. 두 장치가 실제로 의도한 대로 작동하는가</h2>
-      <p class="dek">성능이 올랐다는 것과 &lsquo;설계한 이유대로 올랐다&rsquo;는 것은 다르다. 논문은 각 장치마다 한 항만 바꾼 대조군을 두고, 그 장치가 겨냥한 지표가 실제로 움직였는지 확인한다.</p>
-
-      <div class="grid g2">
-        <div class="card">
-          <span class="tag">sufficiency 게이팅이 겨냥한 지표</span>
-          <ul class="clean">
-            <li><span class="m">▸</span><span><b>조기 종료</b> 18.9% → 11.1% (게이팅 없으면 24.2%로 악화)</span></li>
-            <li><span class="m">▸</span><span><b>증거 완전 확보</b> 66.8% → 76.1% (게이팅 없으면 64.0%)</span></li>
-            <li><span class="m">▸</span><span><b>증거 부족 오류</b> 28.9% → 17.6%</span></li>
-          </ul>
-          <p class="note">겨냥한 지표가 정확히 움직였고, 다른 오류 범주는 완만하게만 개선됐다. 우연히 전반적으로 좋아진 게 아니라는 근거다.</p>
-        </div>
-        <div class="card">
-          <span class="tag">효용 차이와 guard가 겨냥한 지표</span>
-          <ul class="clean">
-            <li><span class="m">▸</span><span><b>한계 효용 채점</b> → held-out 편집 유용성 0.034 → 0.077</span></li>
-            <li><span class="m">▸</span><span><b>guard 항</b> → 무관 질문 손상 0.046 → 0.016</span></li>
-            <li><span class="m">▸</span><span><b>held-out Navigator</b>에서도 0.084로 유지 (학습 평가자 전용 이득이 아님)</span></li>
-          </ul>
-          <p class="note warn">다만 논문 스스로 두 가지는 <b>통계적으로 유의하지 않다</b>고 적었다. 절대 효용에서 guard 없는 한계 효용으로 갈 때의 guard 손상 증가, 그리고 guard 없는 것에서 전체 목적함수로 갈 때의 held-out 효용 변화다.</p>
-        </div>
-      </div>
-
-      <p class="note"><b>held-out 검증이 이 논문에서 가장 값어치 있는 설계다.</b> Builder는 학습 중 특정 Navigator에게 점수를 받는다. 그 Navigator에게만 잘 보이는 편집을 학습할 위험이 있다. 그래서 <b>다른 시드로 따로 학습시킨, Builder 학습과 모델 선택에 전혀 참여하지 않은 Navigator</b>를 데려와 편집을 다시 평가했다. 여기서도 효용이 유지된다는 것은 편집 자체가 위키를 좋게 만들었다는 뜻이지, 채점자를 속인 게 아니라는 뜻이다.</p>
-    </div>
-  </section>
-
-  <!-- 10 -->
-  <section class="slide">
-    <div class="slide-inner">
       <p class="eyebrow">result-cost</p>
-      <h2>결과 3. 역량 유지, 그리고 처음 공개된 구축 비용</h2>
+      <h2>결과 2. 역량 유지, 그리고 처음 공개된 구축 비용</h2>
       <p class="dek">공유 정책 하나로 합쳤을 때 두 역할의 능력이 유지되는지, 그리고 이 모든 게 얼마나 드는지.</p>
 
       <div class="tablewrap" style="margin-bottom:16px">
@@ -742,10 +711,10 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
           <thead><tr><th>지표</th><th>Joint SFT</th><th>특화 모델</th><th>BUILD 이후</th><th>Joint RL</th><th>Δ (95% CI)</th><th>Holm p</th></tr></thead>
           <tbody>
             <tr><td>Navigator AC ↑</td><td>58.2</td><td>60.4</td><td>59.7</td><td class="win">60.8</td><td>+0.4 [+0.08, +0.73]</td><td>0.034</td></tr>
-            <tr><td>증거 완전 확보 ↑</td><td>66.8</td><td>76.1</td><td>74.5</td><td>75.9</td><td>—</td><td>—</td></tr>
-            <tr><td>조기 종료 ↓</td><td>18.9</td><td>11.1</td><td>12.5</td><td class="win">10.9</td><td>—</td><td>—</td></tr>
-            <tr><td>Builder held-out ΔU ↑</td><td>0.026</td><td>0.084</td><td>—</td><td>0.081</td><td>−0.003 [−0.008, +0.002]</td><td>0.231</td></tr>
-            <tr class="hero"><td>전체 AC ↑</td><td>58.2</td><td>62.2</td><td>—</td><td>62.6</td><td>+0.4 [+0.12, +0.69]</td><td>0.018</td></tr>
+            <tr><td>증거 완전 확보 ↑</td><td>66.8</td><td>76.1</td><td>74.5</td><td>75.9</td><td>·</td><td>·</td></tr>
+            <tr><td>조기 종료 ↓</td><td>18.9</td><td>11.1</td><td>12.5</td><td class="win">10.9</td><td>·</td><td>·</td></tr>
+            <tr><td>Builder held-out ΔU ↑</td><td>0.026</td><td>0.084</td><td>·</td><td>0.081</td><td>−0.003 [−0.008, +0.002]</td><td>0.231</td></tr>
+            <tr class="hero"><td>전체 AC ↑</td><td>58.2</td><td>62.2</td><td>·</td><td>62.6</td><td>+0.4 [+0.12, +0.69]</td><td>0.018</td></tr>
           </tbody>
         </table>
       </div>
@@ -754,7 +723,7 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
         <div class="card">
           <span class="tag">역량 유지</span>
           <p class="small">Navigator와 전체 성능은 특화 모델 대비 <b>0.4점씩 올랐고 신뢰구간이 0을 포함하지 않는다</b>. Builder 효용은 0.084에서 0.081로 내려갔지만 신뢰구간이 0을 걸쳐 있어 차이라고 말할 수 없다(p=0.231).</p>
-          <p class="small">즉 두 모델을 따로 들고 있을 이유가 없다. 하나로 합쳐도 잃는 게 없다.</p>
+          <p class="small">즉 두 모델을 따로 들고 있을 이유가 없다. 하나로 합쳐도 성능이 떨어지지 않는다. 논문 표현으로는 &ldquo;대체로 유지된다&rdquo;이다.</p>
         </div>
         <div class="card">
           <span class="tag" style="color:var(--link)">LLM-Wiki가 빠뜨렸던 숫자</span>
@@ -766,15 +735,15 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
         </div>
       </div>
 
-      <p class="note"><b>비용 수치를 어떻게 읽어야 하나.</b> AuthTrace 코퍼스(860편) 위키를 짓는 데 <b>약 1.9억 토큰</b>이 든다. 문서 한 편당 대략 22만 토큰인 셈이다. 이것이 질의당 15~17초짜리 질문 몇 번으로 회수되는지는 여전히 계산되지 않았지만, 최소한 <b>이제 자릿수는 알 수 있다</b>. 그리고 WikiLoop이 LLM-Wiki보다 성능은 6.3점 높으면서 구축 토큰은 4.6% 적고 지연도 6.7% 낮다는 점은, 학습된 Builder가 <b>더 적게 쓰면서 더 쓸모 있는 위키</b>를 만든다는 뜻이다.</p>
+      <p class="note"><b>비용 수치를 어떻게 읽어야 하나.</b> AuthTrace 코퍼스(860편) 위키를 짓는 데 <b>약 1.9억 토큰</b>이 든다. 문서 한 편당 <b>21.5만 토큰</b>이다(LLM-Wiki는 194.00M, 편당 22.6만). <b>손익분기는 여전히 계산할 수 없다.</b> 비교 대상인 &ldquo;위키 없이 같은 질문을 풀 때 드는 토큰&rdquo;을 논문이 보고하지 않기 때문이다. 다만 구축 쪽 자릿수는 자기 문서 수에 곱해볼 수 있다. 문서 1,000편이면 약 2.2억 토큰, 5,000편이면 약 11억 토큰이 초기 구축에만 든다. 그리고 WikiLoop이 LLM-Wiki보다 성능은 6.3점 높으면서 구축 토큰은 4.6% 적고 지연도 6.7% 낮다는 점은, 학습된 Builder가 <b>더 적게 쓰면서 더 쓸모 있는 위키</b>를 만든다는 뜻이다.</p>
     </div>
   </section>
 
-  <!-- 11 -->
+  <!-- 10 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">result-transfer</p>
-      <h2>결과 4. 다른 데이터셋과 더 큰 모델로 옮겨가는가</h2>
+      <h2>결과 3. 다른 데이터셋과 더 큰 모델로 전이된다</h2>
       <p class="dek">AuthTrace로만 학습하고 보정했으므로, 학습에 전혀 참여하지 않은 두 벤치마크로 zero-shot 전이를 확인한다.</p>
 
       <figure class="figure">
@@ -820,7 +789,7 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
     </div>
   </section>
 
-  <!-- 12 -->
+  <!-- 11 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">critique</p>
@@ -830,7 +799,7 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
       <div class="grid g2">
         <div class="card">
           <span class="tag" style="color:var(--redlink)">1. 닫힌 고리가 아니다</span>
-          <p class="small">편집 후보는 위키 <b>사본</b>에 적용해 채점하고 버린다. 실제 위키에 반영되지 않는다. 논문이 한계로 직접 밝힌 대로, 편집과 이후 검색이 <b>하나의 궤적 안에서</b> 최적화되지는 않는다. 편집이 쌓이면서 서로 간섭하거나 오류가 전파되는 상황은 다루지 못한다. 이름은 Loop이지만 아직 고리가 닫히지 않았다.</p>
+          <p class="small">편집 후보는 위키 <b>사본</b>에 적용해 채점하고 버린다. 실제 위키에 반영되지 않는다. 논문이 한계로 직접 밝힌 대로, 편집과 이후 검색이 <b>하나의 궤적 안에서</b> 최적화되지는 않는다. 편집이 쌓이면서 서로 간섭하거나 오류가 전파되는 상황은 다루지 못한다. </p>
         </div>
         <div class="card">
           <span class="tag" style="color:var(--redlink)">2. 지식베이스 수준에서 transductive</span>
@@ -850,7 +819,7 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
     </div>
   </section>
 
-  <!-- 13 -->
+  <!-- 12 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">conclusion</p>
@@ -866,7 +835,7 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
         <div class="card">
           <span class="tag">바뀐 것 2</span>
           <h3>비용의 자릿수를 알게 됐다</h3>
-          <p class="small">AuthTrace 코퍼스 860편 위키 구축에 <b>약 1.9억 토큰</b>. 문서당 22만 토큰꼴이다. <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p21">5월 시점에 계산할 수 없다고 적었던 손익분기</a>를, 이제 자기 워크로드에 대입해 어림잡을 수는 있다.</p>
+          <p class="small">AuthTrace 코퍼스 860편 위키 구축에 <b>185.15M 토큰</b>. 문서당 21.5만 토큰이다. <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p21">5월 시점에 계산할 수 없다고 적었던 손익분기</a>를, 이제 자기 워크로드에 대입해 어림잡을 수는 있다.</p>
         </div>
         <div class="card">
           <span class="tag">바뀌지 않은 것</span>
@@ -875,13 +844,13 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
         </div>
       </div>
 
-      <p class="note"><b>도입 관점에서는.</b> WikiLoop은 RL 학습 파이프라인을 요구하므로 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p20">LLM-Wiki 도입 조건</a>보다 문턱이 훨씬 높다. 합성 학습 데이터 생성, 편집마다 위키 사본을 뜨고 Navigator를 두 번 돌리는 롤아웃, 역할별 배치 구성이 전부 필요하다. 반면 <b>sufficiency 게이팅은 학습 없이도 바로 쓸 수 있다.</b> 검색 agent의 도구 호출 예산을 다룰 때 &ldquo;증거가 충분해지기 전에는 비용을 재촉하지 않는다&rdquo;는 규칙 하나만 옮겨도 된다.</p>
+      <p class="note"><b>도입 관점에서는.</b> WikiLoop은 RL 학습 파이프라인을 요구하므로 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p20">LLM-Wiki 도입 조건</a>보다 문턱이 훨씬 높다. 합성 학습 데이터 생성, 편집마다 위키 사본을 뜨고 Navigator를 두 번 돌리는 롤아웃, 역할별 배치 구성이 전부 필요하다. 반면 <b>sufficiency 스위치은 학습 없이도 바로 쓸 수 있다.</b> 검색 agent의 도구 호출 예산을 다룰 때 &ldquo;증거가 충분해지기 전에는 비용을 재촉하지 않는다&rdquo;는 규칙 하나만 옮겨도 된다.</p>
 
       <p class="note">같은 계보의 다른 문서: <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM-Wiki 논문 분석</a> · <a class="xref" href="../2026-08-05-wikikv-hierarchical-kb-storage/">WikiKV 논문 분석</a></p>
     </div>
   </section>
 
-  <!-- 14 -->
+  <!-- 13 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">sources</p>
@@ -923,7 +892,7 @@ U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER �
   <footer class="hud">
     <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
     <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
-    <span class="counter" id="counter">01 / 14</span>
+    <span class="counter" id="counter">01 / 13</span>
     <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
     <span class="hint">← → 키 · Space · Home / End</span>
   </footer>
