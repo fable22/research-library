@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Retrieval as Reasoning: LLM-Wiki 논문 분석</title>
-<meta name="description" content="문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, 컴파일 루프와 순회 기록, ablation 해석, 도입 조건을 다룬다.">
+<meta name="description" content="문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, 컴파일 루프와 순회 기록, ablation 해석, 도입 판단 기준을 다룬다.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Retrieval as Reasoning: LLM-Wiki 논문 분석">
-<meta property="og:description" content="문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, 컴파일 루프와 순회 기록, ablation 해석, 도입 조건을 다룬다.">
+<meta property="og:description" content="문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, 컴파일 루프와 순회 기록, ablation 해석, 도입 판단 기준을 다룬다.">
 <meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-05-llm-wiki-retrieval-as-reasoning/">
 <meta name="twitter:card" content="summary">
 <style>
@@ -353,25 +353,26 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     <div class="rail-sep"></div>
     <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
     <button class="rail-item" data-go="3"><span class="n">04</span><span>세 가지 원칙</span></button>
-    <button class="rail-item" data-go="4"><span class="n">05</span><span>아키텍처</span></button>
-    <button class="rail-item" data-go="5"><span class="n">06</span><span>컴파일 루프</span></button>
-    <button class="rail-item" data-go="6"><span class="n">07</span><span>위키 페이지 형식</span></button>
-    <button class="rail-item" data-go="7"><span class="n">08</span><span>순회 방식</span></button>
-    <button class="rail-item" data-go="8"><span class="n">09</span><span>순회 기록</span></button>
-    <button class="rail-item" data-go="9"><span class="n">10</span><span>Error Book</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>패러다임 비교</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>아키텍처</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>컴파일 루프</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>위키 페이지 형식</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>순회 방식</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>순회 기록</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>Error Book</span></button>
     <div class="rail-sep"></div>
-    <button class="rail-item" data-go="10"><span class="n">11</span><span>실험 설정</span></button>
-    <button class="rail-item" data-go="11"><span class="n">12</span><span>결과 1. 전체 성능</span></button>
-    <button class="rail-item" data-go="12"><span class="n">13</span><span>결과 2. hop 수별</span></button>
-    <button class="rail-item" data-go="13"><span class="n">14</span><span>결과 3. 질문 유형별</span></button>
-    <button class="rail-item" data-go="14"><span class="n">15</span><span>결과 4. AuthTrace</span></button>
-    <button class="rail-item" data-go="15"><span class="n">16</span><span>결과 5. ablation</span></button>
-    <button class="rail-item" data-go="16"><span class="n">17</span><span>결과 6. 시간·이식성</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>실험 설정</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>결과 1. 전체 성능</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>결과 2. hop 수별</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>결과 3. 질문 유형별</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>결과 4. AuthTrace</span></button>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>결과 5. ablation</span></button>
+    <button class="rail-item" data-go="17"><span class="n">18</span><span>결과 6. 시간·이식성</span></button>
     <div class="rail-sep"></div>
-    <button class="rail-item" data-go="17"><span class="n">18</span><span>해석의 한계</span></button>
-    <button class="rail-item" data-go="18"><span class="n">19</span><span>도입 판단 기준</span></button>
-    <button class="rail-item" data-go="19"><span class="n">20</span><span>결론</span></button>
-    <button class="rail-item" data-go="20"><span class="n">21</span><span>출처</span></button>
+    <button class="rail-item" data-go="18"><span class="n">19</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="19"><span class="n">20</span><span>도입 판단 기준</span></button>
+    <button class="rail-item" data-go="20"><span class="n">21</span><span>결론</span></button>
+    <button class="rail-item" data-go="21"><span class="n">22</span><span>출처</span></button>
   </nav>
 
   <main class="stage" id="stage">
@@ -389,7 +390,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       </div>
       <h1>문서를 위키로 컴파일하고<br>agent가 직접 찾아가게 한<br>검색 시스템</h1>
       <p class="dek"><b>Retrieval as Reasoning: Self-Evolving Agent-Native Retrieval via LLM-Wiki</b><br>
-      문서를 청크로 잘라 벡터 DB에 넣는 대신, 양방향 링크가 있는 마크다운 위키로 변환한다. 그리고 agent가 search·read·link following으로 필요한 페이지를 직접 찾아가게 한다. multi-hop QA 벤치마크 3종과 저자들이 만든 벤치마크 1종에서 RAG·GraphRAG 계열 baseline 7개보다 높은 점수를 냈다.</p>
+      문서를 청크로 잘라 벡터 DB에 넣는 대신, 양방향 링크가 있는 마크다운 위키로 변환한다. 그리고 agent가 search·read·link following으로 필요한 페이지를 직접 찾아가게 한다. multi-hop QA 벤치마크 3종에서 RAG·GraphRAG 계열 baseline 7개를 전 항목 앞섰고, 저자들이 만든 벤치마크에서는 전체 점수 1위이되 문서 한 개로 답하는 질문에서는 HippoRAG 2에 뒤진다.</p>
 
       <div class="grid g3">
         <div class="card">
@@ -402,8 +403,17 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         </div>
         <div class="card">
           <span class="tag">배경</span>
-          <p class="small">Karpathy가 2026년에 공개한 <span class="wl">LLM Wiki</span> 아이디어를 실제로 구현하고 성능을 측정한 첫 논문이다.</p>
+          <p class="small">Karpathy가 2026년에 공개한 <span class="wl">LLM Wiki</span> 아이디어를 구현하고 성능을 측정했다. 저자들은 Retrieval-as-Reasoning을 구현한 첫 시스템이라고 &ldquo;아는 한&rdquo;이라는 단서를 달아 밝힌다.</p>
         </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <span class="tag">읽는 경로</span>
+        <ul class="clean">
+          <li><span class="m">전부</span><span>순서대로 22장, 약 30분. 방법과 실험과 한계를 다 본다.</span></li>
+          <li><span class="m">도입</span><span><a class="xref" href="#p2">2장 요약</a> → <a class="xref" href="#p21">21장 결론</a> → <a class="xref" href="#p20">20장 도입 판단</a>, 약 8분. 쓸지 말지만 정한다.</span></li>
+          <li><span class="m">결론</span><span><a class="xref" href="#p21">21장</a> 한 장, 2분.</span></li>
+        </ul>
       </div>
 
       <p class="note"><b>이동</b> 좌우 화살표 키, <kbd>Space</kbd>, 왼쪽 목차 클릭. 각 장은 URL 해시로 공유된다.</p>
@@ -415,18 +425,18 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     <div class="slide-inner">
       <p class="eyebrow">tl-dr</p>
       <h2>요약</h2>
-      <p class="dek">핵심 결과는 ablation에 있다. 위키 구조와 agent의 반복 순회는 둘 중 하나만 있으면 효과가 없다. 위키를 만들어 놓고 기존처럼 한 번에 읽으면 Dense RAG보다 점수가 낮아진다. 자세한 근거는 <b>20장 결론</b>에 있다.</p>
+      <p class="dek">핵심 결과는 ablation에 있다. 위키를 만들어 놓고 기존처럼 한 번에 읽으면 Dense RAG보다 점수가 <b>낮아진다</b>. 반대로 위키 없이 반복 검색만 하면 Dense RAG보다 <b>1.4~5.8 F1</b> 높은 데 그친다. 전체 이득 7.5~12.8 F1은 둘을 함께 썼을 때만 나온다. 자세한 근거는 <a class="xref" href="#p17">17장 ablation</a>과 <a class="xref" href="#p21">21장 결론</a>에 있다.</p>
 
       <div class="stats">
-        <div class="stat hero"><span class="lab">multi-hop QA F1 향상</span><span class="val">+2.0<span class="u">~</span>8.1</span><span class="sub">가장 강한 baseline 대비 (F1 point)</span></div>
-        <div class="stat"><span class="lab">2Wiki 4-hop F1</span><span class="val">0.983</span><span class="sub">LightRAG 0.900, Dense RAG 0.924</span></div>
+        <div class="stat hero"><span class="lab">multi-hop QA F1 향상</span><span class="val">+2.0<span class="u">~</span>8.0</span><span class="sub">표 1 기준. 본문 서술은 8.1</span></div>
+        <div class="stat"><span class="lab">compositional 유형 F1</span><span class="val">0.833</span><span class="sub">Dense RAG 0.677, LightRAG 0.760</span></div>
         <div class="stat bad"><span class="lab">순회를 제거했을 때</span><span class="val">−11.7<span class="u">~</span>13.8</span><span class="sub">구조 제거(−6.1~7.0)의 약 2배</span></div>
         <div class="stat"><span class="lab">질문당 응답 시간</span><span class="val">14.9<span class="u">초</span></span><span class="sub">HotpotQA 기준. LightRAG는 41.4초</span></div>
       </div>
 
       <div class="grid g2">
         <div class="card">
-          <span class="tag">논문이 보여준 것</span>
+          <span class="tag">보고된 결과</span>
           <ul class="clean">
             <li><span class="m">01</span><span><b>질문이 어려울수록 격차가 커진다.</b> 2Wiki에서 LightRAG와의 차이가 2-hop 5.7에서 4-hop 8.3 F1로 늘어난다.</span></li>
             <li><span class="m">02</span><span><b>순회가 가장 큰 요인이다.</b> 위키는 그대로 두고 반복 재검색만 껐을 때 F1이 가장 많이 떨어진다(−11.7~13.8).</span></li>
@@ -435,9 +445,9 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
           </ul>
         </div>
         <div class="card">
-          <span class="tag">논문이 보여주지 않은 것</span>
+          <span class="tag">보고되지 않은 항목</span>
           <ul class="clean">
-            <li><span class="m bad">01</span><span><b>컴파일 비용 수치가 없다.</b> 한계 절에서 더 비싸다고만 쓰고 토큰, 시간, 금액은 밝히지 않았다.</span></li>
+            <li><span class="m bad">01</span><span><b>컴파일 비용 수치가 없다.</b> <a class="xref" href="#p19">19장</a></span></li>
             <li><span class="m bad">02</span><span><b>질의 예산이 서로 다르다.</b> LLM-Wiki는 tool call을 15회까지 쓰고 baseline은 top-5 한 번이다. 논문도 이 점을 명시했다.</span></li>
             <li><span class="m bad">03</span><span><b>일반화 근거가 저자들 자신의 벤치마크다.</b> AuthTrace는 같은 저자 4명이 같은 날 공개한 논문이다.</span></li>
             <li><span class="m bad">04</span><span><b>open-domain 검색이 아니다.</b> 평가 문항에 딸린 문단만 모아 만든 작은 corpus를 썼다(2Wiki 3,440개).</span></li>
@@ -517,7 +527,44 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     </div>
   </section>
 
-  <!-- ══════════ 05 아키텍처 ══════════ -->
+  <!-- ══════════ 05 패러다임 비교 ══════════ -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">paradigm-comparison</p>
+      <h2>기존 방식과 무엇이 다른가</h2>
+      <p class="dek">논문은 세 축으로 비교한다. <b>인덱스 산출물</b>은 오프라인 처리 후 남는 결과물이다. <b>지식의 형태</b>는 그 결과물이 압축된 텍스트인지, 기계가 읽는 검색 구조인지, 사람이 열어서 확인할 수 있는 문서인지를 가른다. <b>핵심 병목</b>은 agent가 여러 단계를 조합해 검색할 때 막히는 지점이다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">표 4. 지식 조직 패러다임 비교</caption>
+          <thead><tr><th>방법</th><th>인덱스 산출물</th><th>지식의 형태</th><th>핵심 병목</th></tr></thead>
+          <tbody>
+            <tr><td>바닐라 RAG</td><td style="text-align:left;font-family:var(--sans)">평평한 청크</td><td style="text-align:left;font-family:var(--sans)">embedding으로 색인된 문단</td><td style="text-align:left;font-family:var(--sans)" class="lose">중간 노드를 거쳐 갈 수 없다</td></tr>
+            <tr><td>RAPTOR · MemWalker</td><td style="text-align:left;font-family:var(--sans)">요약 트리</td><td style="text-align:left;font-family:var(--sans)">텍스트 압축</td><td style="text-align:left;font-family:var(--sans)" class="lose">트리에 옆으로 잇는 연결이 없다</td></tr>
+            <tr><td>GraphRAG</td><td style="text-align:left;font-family:var(--sans)">커뮤니티 요약</td><td style="text-align:left;font-family:var(--sans)">계층적 압축</td><td style="text-align:left;font-family:var(--sans)" class="lose">요약이 디테일을 잃고 비용이 크다</td></tr>
+            <tr><td>HippoRAG 2</td><td style="text-align:left;font-family:var(--sans)">KG 트리플</td><td style="text-align:left;font-family:var(--sans)">기계가 읽는 조각</td><td style="text-align:left;font-family:var(--sans)" class="lose">트리플이 손실적이고 PPR이 근사다</td></tr>
+            <tr><td>LightRAG</td><td style="text-align:left;font-family:var(--sans)">엔티티·관계 벡터</td><td style="text-align:left;font-family:var(--sans)">벡터 인덱스</td><td style="text-align:left;font-family:var(--sans)" class="lose">중간 엔티티를 발견할 수 없다</td></tr>
+            <tr class="hero"><td>LLM-Wiki</td><td style="text-align:left">위키 페이지 + 링크</td><td style="text-align:left">구조화된 지식</td><td style="text-align:left">컴파일 비용 (일회성)</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid g2" style="margin-top:16px">
+        <div class="card">
+          <span class="tag">방법을 가르는 기준</span>
+          <p class="small">갈림길은 <b>그래프를 쓰느냐, LLM을 쓰느냐가 아니다.</b> RAPTOR도 GraphRAG도 LightRAG도 전부 LLM으로 전처리한다. 차이는 그 결과물이 <b>agent가 검색하고 읽고 따라갈 수 있는 명시적 구조를 노출하는가</b>이다.</p>
+          <p class="small">요약 계열은 압축하면서 정확한 이름과 관계를 버리고, 그래프 계열은 트리플이나 벡터로 바꾸면서 사람이 읽을 수 없게 만든다. 어느 쪽도 페이지를 읽고 링크를 따라가는 동작을 agent에게 열어 주지 않는다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">자기 병목을 스스로 적었다</span>
+          <p class="small">마지막 줄에서 LLM-Wiki의 병목을 <b>compilation cost (one-time)</b>이라고 밝힌다. 다른 방법들의 병목은 구조적 한계라 고칠 수 없지만, 컴파일 비용은 질의가 쌓이면 상각되는 성질이라는 주장이다.</p>
+          <p class="small">문제는 이 논문이 그 비용을 끝내 재지 않는다는 점이다. <a class="xref" href="#p19">19장에서 다룬다.</a></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 06 아키텍처 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">architecture</p>
@@ -531,18 +578,18 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <div class="grid g2">
         <div class="card">
           <span class="tag">배치 단위 컴파일 과정 (알고리즘 1)</span>
-          <p class="small">원본 문단 <span class="wl">x</span>마다 ① <b>SelectPages</b>로 인덱스에서 관련 있는 기존 페이지를 최대 5개 고르고 ② <b>CompileWikiPages</b>로 페이지, 링크, 인덱스 갱신본을 생성하며(이때 누적된 제약 조건을 프롬프트에 넣는다) ③ 구조 검증과 내용 검증을 돌리고 ④ 오류가 있으면 Error Book을 갱신하고 제약 조건을 다시 뽑고 코드로 자동 수정한 뒤 ⑤ 위키에 반영한다. 전체를 다시 만들지 않고 문서를 추가할 수 있다.</p>
+          <p class="small">원본 문단 <span class="wl">x</span>마다 ① <b>SelectPages</b>로 인덱스에서 관련 있는 기존 페이지를 최대 5개 고르고 ② <b>CompileWikiPages</b>로 페이지, 링크, 인덱스 갱신본을 생성하며(이때 누적된 제약 조건을 프롬프트에 넣는다) ③ 구조 검증과 내용 검증을 돌리고 ④ 오류가 있으면 Error Book을 갱신하고 제약 조건을 다시 뽑고 코드로 자동 수정한 뒤 ⑤ 위키에 반영한다. 전체를 다시 만들지 않고 문서를 <b>추가</b>할 수 있다. 기존 문서를 수정하거나 지웠을 때 어디까지 다시 컴파일해야 하는지는 논문에 없다.</p>
         </div>
         <div class="card">
           <span class="tag">실제로 컴파일된 규모 (2Wiki)</span>
           <p class="small">원본 문단 <b>3,440개</b>가 지식 페이지 <b>5,825개</b>(6개 주제 디렉터리)와 출처 페이지 <b>6,840개</b>(digests, articles)로 변환됐다.<br><br>
-          <span class="wl">people/</span> 디렉터리 한 곳에만 3,241개, 전체의 56%가 몰려 있다. 논문이 한계로 지적한 &lsquo;디렉터리 인덱스가 너무 커진다&rsquo;는 문제가 이 규모에서 이미 나타난다.</p>
+          <span class="wl">people/</span> 디렉터리 한 곳에만 3,241개, 전체의 56%가 몰려 있다. 다만 논문이 한계로 든 조건은 &ldquo;페이지가 수만 개&rdquo;이고, 5,825개 규모에서 열화가 관측됐다는 보고는 논문에 없다.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══════════ 06 컴파일 루프 ══════════ -->
+  <!-- ══════════ 07 컴파일 루프 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">compile-loop</p>
@@ -601,9 +648,9 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
 
       <div class="grid g2">
         <div class="card">
-          <span class="tag">①이 이 시스템의 핵심이다</span>
+          <span class="tag">SelectPages가 정하는 것</span>
           <p class="small">SelectPages가 정하는 것은 <b>&ldquo;이 문단이 이미 있는 페이지에 속하는가, 새 페이지가 필요한가&rdquo;</b>다. 이 판단이 있어서 같은 개체를 다루는 문단이 나중에 또 들어와도 중복 페이지가 생기지 않고 사실이 한 페이지에 쌓인다.</p>
-          <p class="small">RAPTOR나 GraphRAG의 요약은 한 번 만들면 되돌릴 수 없다. 위키는 계속 자란다. 논문이 이 차이를 <b>컴파일</b>이라고 부르는 이유다.</p>
+          <p class="small">RAPTOR나 GraphRAG의 요약은 한 번 만들면 되돌릴 수 없다. 위키는 문단이 들어올 때마다 기존 페이지에 사실을 더하거나 새 페이지를 만든다. 논문이 이 차이를 <b>컴파일</b>이라고 부르는 이유다.</p>
         </div>
         <div>
           <p class="fig-sub" style="margin-bottom:8px">부록 E의 실제 페이지로 본 한 문단의 처리</p>
@@ -629,7 +676,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     </div>
   </section>
 
-  <!-- ══════════ 06 스키마 ══════════ -->
+  <!-- ══════════ 08 스키마 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">page-schema</p>
@@ -688,7 +735,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     </div>
   </section>
 
-  <!-- ══════════ 07 순회 ══════════ -->
+  <!-- ══════════ 09 순회 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">traversal</p>
@@ -721,7 +768,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     </div>
   </section>
 
-  <!-- ══════════ 09 순회 기록 ══════════ -->
+  <!-- ══════════ 10 순회 기록 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">traversal-trace</p>
@@ -766,34 +813,34 @@ top-5 문단
 <span class="c">모호성 없이 종료</span></pre>
           </div>
         </div>
-        <figcaption>2단계에서 반환된 본문에 <b>다음에 갈 곳이 관계 설명과 함께 들어 있다</b>. 논문이 링크를 &lsquo;순회 어포던스&rsquo;라고 부르는 이유다. agent는 어디로 갈지 추측하지 않고 읽은 내용에서 경로를 얻는다.</figcaption>
+        <figcaption>2단계에서 반환된 본문에 <b>다음에 갈 곳이 관계 설명과 함께 들어 있다</b>. 논문이 링크를 traversal affordance라고 부르는 이유다. agent는 어디로 갈지 추측하지 않고 읽은 내용에서 경로를 얻는다.</figcaption>
       </figure>
 
       <div class="grid g2">
         <div class="card">
-          <span class="tag">Case 1. 4-hop 비교 질문에서는 홉마다 병렬로 넓힌다</span>
+          <span class="tag">Case 1. 4-hop 비교 질문에서는 hop마다 병렬로 넓힌다</span>
           <p class="small">&ldquo;The Gamecock과 Monster A Go-Go 중 감독이 더 나이 많은 영화는?&rdquo;의 실제 순서다.</p>
           <ul class="clean" style="margin-top:10px">
             <li><span class="m">1</span><span>두 영화 제목을 <b>병렬로</b> 검색</span></li>
             <li><span class="m">2</span><span>영화 페이지 두 개를 <b>한 번에</b> 읽고 구조화 필드에서 감독 이름 추출</span></li>
             <li><span class="m">3</span><span><span class="wl">links_to</span> 포인터를 따라 감독 전기 두 개를 <b>한 번에</b> 읽고 생년월일 확보</span></li>
           </ul>
-          <p class="note">4홉짜리 질문인데 <b>왕복은 3회</b>다. <span class="wl">wiki_read</span>가 경로 목록을 받아 배치로 읽기 때문에, 같은 깊이에 있는 페이지들은 한 번에 처리된다. 홉 수와 도구 호출 수가 비례하지 않는다.</p>
+          <p class="note">4-hop 질문인데 <b>왕복은 3회</b>다. <span class="wl">wiki_read</span>가 경로 목록을 받아 배치로 읽기 때문에, 같은 깊이에 있는 페이지들은 한 번에 처리된다. hop 수와 도구 호출 수가 비례하지 않는다.</p>
         </div>
         <div class="card">
-          <span class="tag">예산은 15회지만 실제로는 3회 안팎이다</span>
+          <span class="tag">예산 상한과 실제 소비</span>
           <div class="stats" style="margin:10px 0 0">
             <div class="stat"><span class="lab">허용된 도구 호출</span><span class="val">15</span><span class="sub">T_max, 빈 검색 3회 연속이면 조기 종료</span></div>
-            <div class="stat hero"><span class="lab">질문당 실제로 읽는 페이지</span><span class="val">2.5<span class="u">~</span>3.9</span><span class="sub">RAG의 고정 5문단보다 적다</span></div>
+            <div class="stat hero"><span class="lab">질문당 읽는 페이지</span><span class="val">2.5<span class="u">~</span>3.9</span><span class="sub">MuSiQue는 평균 8.2단계 필요</span></div>
           </div>
-          <p class="note">이 숫자가 <a class="xref" href="#p18">예산 비대칭 비판</a>에 대한 부분적인 반론이 된다. 상한은 분명히 더 크지만 <b>평균 소비는 오히려 RAG보다 적다.</b> 남는 예산은 어려운 질문에만 쓰인다. MuSiQue는 평균 8.2단계가 필요해 지연이 27.1초까지 오르는데, HotpotQA와 2Wiki는 15초 안팎에서 끝난다.</p>
-          <p class="note warn">다만 완전한 반론은 아니다. 반복형 RAG(IRCoT, Self-RAG)에 같은 상한을 주고 비교한 실험이 없어서, 이 절약이 <b>위키 구조 덕분인지 agent 루프 덕분인지</b>는 여전히 갈라지지 않는다.</p>
+          <p class="note">2.5~3.9는 <b>읽은 페이지 수</b>이지 tool call 횟수가 아니다. 논문은 평균 호출 수를 보고하지 않는다. 부록 H의 두 사례가 각각 3회로 끝났을 뿐이고, MuSiQue는 평균 8.2단계가 필요해 지연이 27.1초까지 오른다.</p>
+          <p class="note warn">따라서 <a class="xref" href="#p19">예산 비대칭 비판</a>의 반론으로 쓰기에는 근거가 약하다. 위키 페이지는 원본 문단 여러 개를 합쳐 만든 것이라 RAG의 top-5 문단과 <b>단위가 다르고</b>, LLM 호출 수는 오히려 많다. 실제로 19장이 인용하는 사전등록 연구는 위키가 질의 토큰을 <b>더</b> 썼다고 보고한다.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══════════ 08 Error Book ══════════ -->
+  <!-- ══════════ 11 Error Book ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">error-book</p>
@@ -865,13 +912,13 @@ top-5 문단
               </tbody>
             </table>
           </div>
-          <p class="note">위키백과 계열 corpus에서는 오류의 84~87%가 링크와 출처 참조 문제다. LLM이 내용을 잘못 이해하는 것보다, 존재하지 않는 페이지로 링크를 만드는 쪽이 훨씬 흔한 실패라는 뜻이다. 규칙 기반 코드 검증으로 대부분 잡히고, Error Book ablation 효과가 −3.4~4.0 F1로 크지 않은 이유이기도 하다.</p>
+          <p class="note">위키백과 계열 corpus에서는 오류의 <b>78~84%</b>가 링크와 출처 참조 문제다(AuthTrace는 57.6%). LLM이 내용을 잘못 이해하는 것보다, 존재하지 않는 페이지로 링크를 만드는 쪽이 훨씬 흔한 실패라는 뜻이다. 규칙 기반 코드 검증으로 대부분 잡히고, Error Book ablation 효과가 −3.4~4.0 F1로 크지 않은 이유이기도 하다.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══════════ 09 실험 설정 ══════════ -->
+  <!-- ══════════ 12 실험 설정 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">setup</p>
@@ -913,7 +960,7 @@ top-5 문단
     </div>
   </section>
 
-  <!-- ══════════ 10 결과 1 ══════════ -->
+  <!-- ══════════ 13 결과 1 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">result-main</p>
@@ -974,7 +1021,7 @@ top-5 문단
     </div>
   </section>
 
-  <!-- ══════════ 11 결과 2 ══════════ -->
+  <!-- ══════════ 14 결과 2 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">result-hop</p>
@@ -1037,13 +1084,13 @@ top-5 문단
         </div>
         <div class="card">
           <span class="tag" style="color:var(--redlink)">주의할 점</span>
-          <p class="small">2Wiki에서는 <b>모든 방법이 2-hop보다 4-hop에서 점수가 높다.</b> Closed-book도 0.623에서 0.689로 오른다. 이 벤치마크에서 hop 수는 난이도가 아니라 질문 유형에 가깝다. 4-hop 문항 상당수가 답이 짧은 comparison형과 bridge-comparison형이다. 따라서 &lsquo;단계가 늘수록 이득이 커진다&rsquo;는 결론은 차이의 증가폭(5.7 → 8.3)으로만 성립하고, 절대 점수로는 성립하지 않는다.</p>
+          <p class="small">2Wiki에서는 <b>모든 방법이 2-hop보다 4-hop에서 점수가 높다.</b> Closed-book도 0.623에서 0.689로 오른다. 이 벤치마크에서 hop 수는 난이도가 아니라 질문 유형에 가깝다. 논문은 그 이유를 설명하지 않는다. 따라서 &lsquo;단계가 늘수록 이득이 커진다&rsquo;는 결론은 차이의 증가폭(5.7 → 8.3)으로만 성립하고, 절대 점수로는 성립하지 않는다.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══════════ 12 결과 3 ══════════ -->
+  <!-- ══════════ 15 결과 3 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">result-type</p>
@@ -1086,16 +1133,16 @@ top-5 문단
         <figcaption>표 8(논문). 나머지 두 유형은 bridge-comparison에서 LLM-Wiki 0.983 대 HippoRAG 2 0.958, inference에서 0.909 대 LightRAG 0.857이다.</figcaption>
       </figure>
 
-      <div class="note">comparison 유형은 어떤 방법을 써도 0.93~0.99가 나오므로 위키를 만들 이유가 없다. compositional 유형에서는 Dense RAG보다 <b>15.6 F1</b>, LightRAG보다 <b>7.3 F1</b> 높다. 다만 절대 점수가 <b>0.833</b>이어서, 논문도 복잡한 조합 추론에는 개선 여지가 남아 있다고 적었다. 결국 전체 질문 중 여러 단계를 거쳐야 하는 질문이 몇 %인지가 이 시스템의 효용을 대부분 결정한다.</div>
+      <div class="note">comparison 유형은 상위권 방법이면 0.95~0.99가 나오므로 위키를 만들 이유가 없다(GraphRAG 0.860이 최저). compositional 유형에서는 Dense RAG보다 <b>15.6 F1</b>, LightRAG보다 <b>7.3 F1</b> 높다. 다만 절대 점수가 <b>0.833</b>이어서, 논문도 복잡한 조합 추론에는 개선 여지가 남아 있다고 적었다. 결국 전체 질문 중 여러 단계를 거쳐야 하는 질문이 몇 %인지가 이 시스템의 효용을 대부분 결정한다.</div>
     </div>
   </section>
 
-  <!-- ══════════ 13 결과 4 ══════════ -->
+  <!-- ══════════ 16 결과 4 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">result-authtrace</p>
       <h2>결과 4. 답에 필요한 문서 수가 늘어날 때</h2>
-      <p class="dek">AuthTrace는 한 저자의 글만 모아서, 문체와 주제와 어휘가 거의 같은 오답 후보를 함께 넣은 벤치마크다. 답을 만드는 데 필요한 문서 수(fan-in)를 기준으로 각 방식이 어디서 무너지는지 본다.</p>
+      <p class="dek">AuthTrace는 한 저자의 글만 모아서, 문체와 주제와 어휘가 거의 같은 오답 후보를 함께 넣은 벤치마크다. 답을 만드는 데 필요한 문서 수(fan-in)를 기준으로 각 방식의 정확도가 어느 구간에서 떨어지는지 본다.</p>
 
       <figure class="figure">
         <p class="fig-title">필요 문서 수가 늘 때 채점 정확도(AC) 변화</p>
@@ -1163,7 +1210,7 @@ top-5 문단
     </div>
   </section>
 
-  <!-- ══════════ 14 결과 5 ══════════ -->
+  <!-- ══════════ 17 결과 5 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">result-ablation</p>
@@ -1219,11 +1266,11 @@ top-5 문단
         </div>
       </div>
 
-      <p class="note">실무에서 중요한 부분이다. 마크다운 위키를 만들어 두는 것만으로는 부족하다. 위키를 만들고 기존 RAG처럼 한 번에 top-k를 뽑아 쓰면 향상 폭이 줄어드는 정도가 아니라, 표 1의 Dense RAG(.764/.611/.815)보다 낮은 .722/.601/.789가 된다. agent에게 tool과 호출 예산을 함께 줘야 효과가 난다. 이 비교는 20장에서 다룬다.</p>
+      <p class="note">실무에서 중요한 부분이다. 마크다운 위키를 만들어 두는 것만으로는 부족하다. 위키를 만들고 기존 RAG처럼 한 번에 top-k를 뽑아 쓰면 향상 폭이 줄어드는 정도가 아니라, 표 1의 Dense RAG(.764/.611/.815)보다 낮은 .722/.601/.789가 된다. agent에게 tool과 호출 예산을 함께 줘야 효과가 난다. 이 비교는 <a class="xref" href="#p21">21장</a>에서 다룬다.</p>
     </div>
   </section>
 
-  <!-- ══════════ 15 결과 6 ══════════ -->
+  <!-- ══════════ 18 결과 6 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">result-cost</p>
@@ -1245,7 +1292,22 @@ top-5 문단
             <div class="bar-row"><span class="bar-name">LightRAG</span><div class="bar-track g5"><div class="bar" style="--w:75.3%"></div></div><span class="bar-val">41.4</span></div>
           </div>
           <div class="bar-axis"><div class="ticks"><span>0</span><span>11</span><span>22</span><span>33</span><span>44</span><span>55</span></div></div>
-          <figcaption>표 10(논문). MuSiQue에서는 LLM-Wiki도 27.1초로 늘어난다. 평균 8.2번 이동해야 하기 때문이다. 그래도 LightRAG 51.3초, RAPTOR 40.2초, HippoRAG 2 38.2초보다 빠르다. GraphRAG가 가장 빠른 이유는 커뮤니티 요약을 한 번만 조회하기 때문이고, 대신 정확도가 낮다.</figcaption>
+          <div class="tablewrap" style="margin-top:14px">
+            <table>
+              <thead><tr><th>방법</th><th>Hotpot</th><th>MuSiQue</th><th>2Wiki</th></tr></thead>
+              <tbody>
+                <tr class="hero"><td>LLM-Wiki</td><td class="win">14.9</td><td>27.1</td><td>15.9</td></tr>
+                <tr><td>Dense RAG</td><td>16.3</td><td class="win">26.9</td><td class="win">15.6</td></tr>
+                <tr><td>GraphRAG</td><td>14.0</td><td>13.9</td><td>10.8</td></tr>
+                <tr><td>BM25 RAG</td><td>18.1</td><td>30.2</td><td>16.7</td></tr>
+                <tr><td>Closed-book</td><td>24.7</td><td>30.0</td><td>21.6</td></tr>
+                <tr><td>RAPTOR</td><td>19.9</td><td>40.2</td><td>28.0</td></tr>
+                <tr><td>HippoRAG 2</td><td>33.5</td><td>38.2</td><td>32.4</td></tr>
+                <tr><td>LightRAG</td><td>41.4</td><td>51.3</td><td>39.7</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <figcaption>표 10(논문). <b>Dense RAG와 비교하면 세 벤치마크 중 하나에서만 빠르다.</b> MuSiQue 26.9 대 27.1, 2Wiki 15.6 대 15.9로 나머지 둘은 사실상 같거나 근소하게 느리다. 위 막대는 HotpotQA 하나만 그린 것이라 이 표와 함께 봐야 한다. 검색을 아예 안 하는 Closed-book이 21.6~30.0초로 더 느린 것도 눈여겨볼 대목이다. 근거 없이 답할 때 생성이 길어지기 때문이라고 논문은 설명한다. MuSiQue에서는 LLM-Wiki도 27.1초로 늘어난다. 평균 8.2번 이동해야 하기 때문이다. 그래도 LightRAG 51.3초, RAPTOR 40.2초, HippoRAG 2 38.2초보다 빠르다. GraphRAG가 가장 빠른 이유는 커뮤니티 요약을 한 번만 조회하기 때문이고, 대신 정확도가 낮다.</figcaption>
         </figure>
 
         <div>
@@ -1261,21 +1323,23 @@ top-5 문단
               </tbody>
             </table>
           </div>
-          <p class="note">위키는 GLM-5.1로 만든 것을 그대로 두고 답변 모델만 GPT-4o로 바꿨다. 차이는 <b>5.1, 10.5, 16.9 F1</b>로 오히려 커진다. 향상이 특정 모델의 추론 능력이 아니라 지식을 정리하는 방식에서 온다는 근거다. 반대로 보면 성능이 낮은 모델일수록 구조의 효과가 크다는 뜻이기도 하다.</p>
+          <p class="note">위키는 GLM-5.1로 만든 것을 그대로 두고 답변 모델만 GPT-4o로 바꿨다. GLM-5.1에서의 격차는 7.5 / 12.8 / 9.6 F1이고 GPT-4o에서는 5.1 / 10.5 / 16.9 F1이다. 세 벤치마크 중 둘은 격차가 오히려 줄고 2Wiki만 커진다. 이 표가 뒷받침하는 것은 <b>답변 모델을 바꿔도 이득이 남는다</b>는 것까지다.</p>
+          <p class="note warn"><b>표 9에서 눈여겨볼 것이 하나 더 있다.</b> LLM-Wiki를 GPT-4o로 돌린 2Wiki 점수(0.805)가 Dense RAG를 GLM-5.1로 돌린 점수(0.815)보다 낮다. 이 실험 범위에서는 <b>답변 모델 선택이 검색 구조 선택보다 영향이 클 수 있다</b>는 뜻이다. 위키를 만들 예산으로 모델을 올리는 선택지를 먼저 재봐야 한다.</p>
+
           <p class="note warn">표 10은 질의 응답 시간만 다룬다. 문단 3,440개를 페이지 5,825개로 컴파일하는 데 든 토큰과 시간과 비용은 이 논문 어디에도 없다. 이 공백은 두 달 뒤 <a class="xref" href="../2026-08-05-wikiloop-feedback-coupled-wiki/#p10">같은 팀의 WikiLoop</a>이 채운다. AuthTrace 코퍼스 위키 구축에 194.00M 토큰이 든다고 보고했다.</p>
         </div>
       </div>
     </div>
   </section>
 
-  <!-- ══════════ 16 한계 ══════════ -->
+  <!-- ══════════ 19 한계 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">critique</p>
       <h2>결과를 어디까지 받아들일 것인가</h2>
       <p class="dek">결과 자체는 일관되고 ablation 설계도 좋다. 다만 &lsquo;LLM Wiki가 RAG보다 낫다&rsquo;를 일반적인 결론으로 옮기기 전에 확인할 점이 다섯 가지 있다.</p>
 
-      <div class="grid g2">
+      <div class="grid g3">
         <div class="card">
           <span class="tag" style="color:var(--redlink)">1. 질의 예산이 다르다</span>
           <p class="small">LLM-Wiki는 tool call을 최대 15번 쓰고 baseline은 top-5 한 번이다. 논문도 질의 시점 예산이 더 크다고 인정하고 응답 시간 표로 대신했다. 공정한 비교 대상은 같은 예산을 쓰는 반복형 RAG(IRCoT, Self-RAG 계열)인데, 관련 연구로 인용만 하고 baseline에는 넣지 않았다. 향상 중 얼마가 위키 때문이고 얼마가 agent 반복 때문인지 이 실험만으로는 나눌 수 없다.</p>
@@ -1294,13 +1358,16 @@ top-5 문단
         </div>
       </div>
 
-      <p class="note warn" style="margin-top:14px"><b>5. 재현할 수 없다.</b> 논문에 코드, 데이터, 프롬프트 공개 링크가 없다. 위키 컴파일 프롬프트, Error Book의 제약 조건 문구, SelectPages 세부 동작이 모두 설명으로만 있다. 부록 E의 페이지 예시와 알고리즘 1이 있어서 다시 구현할 수는 있지만, 보고된 수치를 재현했다는 제3자 결과는 아직 없다.</p>
+        <div class="card">
+          <span class="tag" style="color:var(--redlink)">5. 재현할 수 없다</span>
+          <p class="small">논문에 코드, 데이터, 프롬프트 공개 링크가 없다. 위키 컴파일 프롬프트, Error Book의 제약 조건 문구, SelectPages 세부 동작이 모두 설명으로만 있다. 부록 E의 페이지 예시와 알고리즘 1이 있어서 다시 구현할 수는 있지만, 보고된 수치를 재현했다는 제3자 결과는 아직 없다.</p>
+        </div>
 
-      <p class="note">그럼에도 ablation 결과는 위 문제들의 영향을 거의 받지 않는다. 같은 시스템 안에서 같은 agent, 같은 예산, 같은 모델로 순회만 껐을 때 11.7~13.8 F1이 떨어진다는 사실은 baseline 설정이나 corpus 선택과 관계없이 성립한다. 이 논문에서 다른 상황에 옮겨 쓸 수 있는 결과는 &lsquo;위키가 낫다&rsquo;보다 &lsquo;컴파일과 순회는 세트로만 작동한다&rsquo;에 가깝다.</p>
+      <p class="note">그럼에도 ablation 결과는 위 문제들의 영향을 거의 받지 않는다. 같은 시스템 안에서 같은 모델로 순회만 껐을 때 11.7~13.8 F1이 떨어진다는 사실은 baseline 설정이나 corpus 선택과 관계없이 성립한다. 다만 이 변형은 검색 1회와 읽기 1회로 줄인 것이라 <b>예산도 함께 줄었다.</b> 순회의 기여와 예산의 기여가 여기서도 완전히 갈라지지는 않는다.</p>
     </div>
   </section>
 
-  <!-- ══════════ 17 판단 기준 ══════════ -->
+  <!-- ══════════ 20 판단 기준 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">takeaway</p>
@@ -1331,8 +1398,8 @@ top-5 문단
         <div class="card">
           <span class="tag">구현한다면 순서</span>
           <ul class="clean">
-            <li><span class="m">01</span><span><b>순회부터 만든다.</b> ablation 기준 효과가 가장 크다. 위키가 없어도 반복 검색과 읽기와 재계획만으로 상당 부분을 얻을 수 있다.</span></li>
-            <li><span class="m">02</span><span><b>링크 검증은 코드로 한다.</b> 오류의 절반 이상이 끊긴 링크다. LLM에 맡기지 않는 편이 낫다.</span></li>
+            <li><span class="m">01</span><span><b>순회부터 만든다.</b> 위키 없이 반복 검색과 읽기만 해도 Dense RAG 대비 1.4~5.8 F1이 오른다. 전체 이득의 19~45%다. 나머지는 위키를 만들어야 나온다.</span></li>
+            <li><span class="m">02</span><span><b>링크 검증은 코드로 한다.</b> 위키백과 계열 corpus에서 오류의 55.8~63.8%가 끊긴 링크다(AuthTrace는 29.1%). LLM에 맡기지 않는 편이 낫다.</span></li>
             <li><span class="m">03</span><span><b>검색은 별칭과 태그를 먼저 본다.</b> 본문 검색은 마지막이다.</span></li>
             <li><span class="m">04</span><span><b>출처 digest를 남긴다.</b> 컴파일에서 빠진 내용을 되찾을 수 있는 유일한 경로이자 확인 근거다.</span></li>
             <li><span class="m">05</span><span><b>Error Book은 나중에 한다.</b> 효과가 −3.4~4.0으로 가장 작다.</span></li>
@@ -1340,16 +1407,49 @@ top-5 문단
         </div>
       </div>
 
-      <p class="note">오픈소스 구현 <span class="wl">alfadur7/llm-wiki-newsroom</span>은 이 논문의 ablation 결과를 근거로 GROUND Ladder(읽기 사다리, R0~R4)를 추가했다. 초안을 쓰기 전에 agent가 어디까지 읽어야 하는지를 선언된 의존성, 인덱스, 계산된 링크, 본문 검색, 전체 검토 순으로 나누고, 근거가 부족하다는 신호가 있을 때만 다음 단계로 올라가게 한다. 다만 저장소 설명에도 실험 단계이며 기록된 단계를 아직 활용하지 않는다고 적혀 있어, 효과는 측정되지 않았다.</p>
+      <figure class="figure" style="margin-top:16px">
+        <p class="fig-title">자기 워크로드에 대입하기</p>
+        <p class="fig-sub">논문 수치를 질문 유형별로 갈라놓은 것이다. 자기 질문 분포에 가중합하면 기대 이득의 자릿수가 나온다</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>우리 질문이 주로</th><th>비교 대상</th><th>기대 이득</th><th>근거</th></tr></thead>
+            <tbody>
+              <tr class="hero"><td>A의 B의 C 형태로 단계를 밟는다</td><td>Dense RAG</td><td class="win">+15.6 F1</td><td>2Wiki compositional</td></tr>
+              <tr><td>사실에서 추론을 한 단계 더 한다</td><td>Dense RAG</td><td class="win">+10.5 F1</td><td>2Wiki inference</td></tr>
+              <tr><td>두 개체를 거쳐 비교한다</td><td>Dense RAG</td><td>+5.9 F1</td><td>2Wiki bridge-comparison</td></tr>
+              <tr><td>두 개체의 속성을 바로 비교한다</td><td>Dense RAG</td><td>+0.8 F1</td><td>2Wiki comparison, 이미 0.98</td></tr>
+              <tr><td>문서 4개 이상을 모아야 한다</td><td>HippoRAG 2</td><td class="win">+8.9 AC</td><td>AuthTrace 고다중</td></tr>
+              <tr><td>문서 2~3개를 모아야 한다</td><td>HippoRAG 2</td><td>+5.0 AC</td><td>AuthTrace 저다중</td></tr>
+              <tr><td>문서 하나 안에서 사실을 찾는다</td><td>HippoRAG 2</td><td class="lose">−2.3 AC</td><td>AuthTrace 단일</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>두 블록은 벤치마크도 지표도 달라서 서로 더하면 안 된다. 질문이 <b>몇 단계를 밟는가</b>로 판단하려면 위쪽을, <b>문서 몇 개를 모으는가</b>로 판단하려면 아래쪽을 쓴다.</figcaption>
+      </figure>
+
+      <div class="grid g2" style="margin-top:14px">
+        <div class="card">
+          <span class="tag">비용 쪽 대입</span>
+          <p class="small">논문에는 없고 <a class="xref" href="../2026-08-05-wikiloop-feedback-coupled-wiki/#p10">후속 논문</a>에 있는 수치다. AuthTrace 코퍼스 <b>860편을 위키로 만드는 데 194.00M 토큰</b>, 문서 한 편당 약 <b>22.6만 토큰</b>이다.</p>
+          <p class="small">문서 길이에 비례하므로 자기 코퍼스의 평균 문서 길이로 보정해야 한다. 이 값은 단일 저자 산문 기준이다. 질의 쪽은 문서당 비용이 아니라 질문당 2.5~3.9페이지 읽기로, RAG의 고정 5문단보다 적다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">규모 쪽 대입</span>
+          <p class="small">이것도 논문에는 없고 <a class="xref" href="../2026-08-05-wikikv-hierarchical-kb-storage/#p2">WikiKV</a>에 있다. <b>KV 쌍 10⁴개를 넘기면 재구조화 규율 없이는 유지가 불가능</b>하다는 것이 배포 경험이다.</p>
+          <p class="small">이 논문의 2Wiki 위키가 지식 페이지 5,825개 + 출처 6,840개로 이미 그 근처다. 디렉터리를 사람이 정해 고정해 두면 <a class="xref" href="../2026-08-05-wikikv-hierarchical-kb-storage/#p10">정확도가 10점 떨어진다</a>는 실측도 함께 봐야 한다.</p>
+        </div>
+      </div>
+
+      <p class="note">오픈소스 구현 <span class="wl">alfadur7/llm-wiki-newsroom</span>은 이 논문의 ablation 결과를 근거로 GROUND Ladder(R0~R4)를 추가했다. 초안을 쓰기 전에 agent가 어디까지 읽어야 하는지를 선언된 의존성, 인덱스, 계산된 링크, 본문 검색, 전체 검토 순으로 나누고, 근거가 부족하다는 신호가 있을 때만 다음 단계로 올라가게 한다. 다만 저장소 설명에도 실험 단계이며 기록된 단계를 아직 활용하지 않는다고 적혀 있어, 효과는 측정되지 않았다.</p>
     </div>
   </section>
 
-  <!-- ══════════ 18 결론 ══════════ -->
+  <!-- ══════════ 21 결론 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">conclusion</p>
       <h2>결론</h2>
-      <p class="dek">LLM Wiki는 RAG의 대체재가 아니라 조건부 상위 호환이다. 아래 세 조건이 다 맞을 때만 더 나은 선택이고, 하나라도 어긋나면 기존 Dense RAG보다 점수가 낮게 나온다.</p>
+      <p class="dek">LLM Wiki는 RAG의 대체재가 아니라 조건부 상위 호환이다. 조건 1이 어긋나면 Dense RAG보다 <b>낮아지고</b>, 조건 2와 3이 어긋나면 이득이 <b>0에 가까워진다</b>. 낮아지는 것과 이득이 없는 것은 다르다.</p>
 
       <figure class="figure">
         <p class="fig-title">위키만 만들고 한 번에 읽으면 Dense RAG보다 낮다</p>
@@ -1403,7 +1503,7 @@ top-5 문단
         <div class="card">
           <span class="tag">조건 2</span>
           <h3>질문이 여러 단계나 여러 문서를 요구해야 한다</h3>
-          <p class="small">compositional 유형에서는 Dense RAG보다 15.6 F1 높다. 그러나 comparison 유형은 어떤 방법을 써도 0.93~0.99라 만들 이유가 없고, 문서 1개로 답하는 질문에서는 HippoRAG 2에 2.3 AC 진다.</p>
+          <p class="small">compositional 유형에서는 Dense RAG보다 15.6 F1 높다. 그러나 comparison 유형은 상위권 방법이면 0.95~0.99라 만들 이유가 없고, 문서 1개로 답하는 질문에서는 HippoRAG 2에 2.3 AC 진다.</p>
         </div>
         <div class="card">
           <span class="tag">조건 3</span>
@@ -1418,7 +1518,7 @@ top-5 문단
     </div>
   </section>
 
-  <!-- ══════════ 19 출처 ══════════ -->
+  <!-- ══════════ 22 출처 ══════════ -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">sources</p>
@@ -1462,7 +1562,7 @@ top-5 문단
   <footer class="hud">
     <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
     <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
-    <span class="counter" id="counter">01 / 21</span>
+    <span class="counter" id="counter">01 / 22</span>
     <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
     <span class="hint">← → 키 · Space · Home / End</span>
   </footer>
