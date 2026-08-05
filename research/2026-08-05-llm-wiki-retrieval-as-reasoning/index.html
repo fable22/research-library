@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Retrieval as Reasoning: LLM-Wiki 논문 분석</title>
-<meta name="description" content="문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, ablation 해석, 도입 조건 정리.">
+<meta name="description" content="문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, 컴파일 루프의 동작, ablation 해석, 도입 조건을 다룬다.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Retrieval as Reasoning: LLM-Wiki 논문 분석">
-<meta property="og:description" content="문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, ablation 해석, 도입 조건 정리.">
+<meta property="og:description" content="문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, 컴파일 루프의 동작, ablation 해석, 도입 조건을 다룬다.">
 <meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-05-llm-wiki-retrieval-as-reasoning/">
 <meta name="twitter:card" content="summary">
 <style>
@@ -354,22 +354,23 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
     <button class="rail-item" data-go="3"><span class="n">04</span><span>세 가지 원칙</span></button>
     <button class="rail-item" data-go="4"><span class="n">05</span><span>아키텍처</span></button>
-    <button class="rail-item" data-go="5"><span class="n">06</span><span>위키 페이지 형식</span></button>
-    <button class="rail-item" data-go="6"><span class="n">07</span><span>순회 방식</span></button>
-    <button class="rail-item" data-go="7"><span class="n">08</span><span>Error Book</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>컴파일 루프</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>위키 페이지 형식</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>순회 방식</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>Error Book</span></button>
     <div class="rail-sep"></div>
-    <button class="rail-item" data-go="8"><span class="n">09</span><span>실험 설정</span></button>
-    <button class="rail-item" data-go="9"><span class="n">10</span><span>결과 1. 전체 성능</span></button>
-    <button class="rail-item" data-go="10"><span class="n">11</span><span>결과 2. hop 수별</span></button>
-    <button class="rail-item" data-go="11"><span class="n">12</span><span>결과 3. 질문 유형별</span></button>
-    <button class="rail-item" data-go="12"><span class="n">13</span><span>결과 4. AuthTrace</span></button>
-    <button class="rail-item" data-go="13"><span class="n">14</span><span>결과 5. ablation</span></button>
-    <button class="rail-item" data-go="14"><span class="n">15</span><span>결과 6. 시간·이식성</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>실험 설정</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>결과 1. 전체 성능</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>결과 2. hop 수별</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>결과 3. 질문 유형별</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>결과 4. AuthTrace</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>결과 5. ablation</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>결과 6. 시간·이식성</span></button>
     <div class="rail-sep"></div>
-    <button class="rail-item" data-go="15"><span class="n">16</span><span>해석의 한계</span></button>
-    <button class="rail-item" data-go="16"><span class="n">17</span><span>도입 판단 기준</span></button>
-    <button class="rail-item" data-go="17"><span class="n">18</span><span>결론</span></button>
-    <button class="rail-item" data-go="18"><span class="n">19</span><span>출처</span></button>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="17"><span class="n">18</span><span>도입 판단 기준</span></button>
+    <button class="rail-item" data-go="18"><span class="n">19</span><span>결론</span></button>
+    <button class="rail-item" data-go="19"><span class="n">20</span><span>출처</span></button>
   </nav>
 
   <main class="stage" id="stage">
@@ -413,7 +414,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     <div class="slide-inner">
       <p class="eyebrow">tl-dr</p>
       <h2>요약</h2>
-      <p class="dek">핵심 결과는 ablation에 있다. 위키 구조와 agent의 반복 순회는 둘 중 하나만 있으면 효과가 없다. 위키를 만들어 놓고 기존처럼 한 번에 읽으면 Dense RAG보다 점수가 낮아진다. 자세한 근거는 <b>18장 결론</b>에 있다.</p>
+      <p class="dek">핵심 결과는 ablation에 있다. 위키 구조와 agent의 반복 순회는 둘 중 하나만 있으면 효과가 없다. 위키를 만들어 놓고 기존처럼 한 번에 읽으면 Dense RAG보다 점수가 낮아진다. 자세한 근거는 <b>19장 결론</b>에 있다.</p>
 
       <div class="stats">
         <div class="stat hero"><span class="lab">multi-hop QA F1 향상</span><span class="val">+2.0<span class="u">~</span>8.1</span><span class="sub">가장 강한 baseline 대비 (F1 point)</span></div>
@@ -535,6 +536,93 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
           <span class="tag">실제로 컴파일된 규모 (2Wiki)</span>
           <p class="small">원본 문단 <b>3,440개</b>가 지식 페이지 <b>5,825개</b>(6개 주제 디렉터리)와 출처 페이지 <b>6,840개</b>(digests, articles)로 변환됐다.<br><br>
           <span class="wl">people/</span> 디렉터리 한 곳에만 3,241개, 전체의 56%가 몰려 있다. 논문이 한계로 지적한 &lsquo;디렉터리 인덱스가 너무 커진다&rsquo;는 문제가 이 규모에서 이미 나타난다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ 06 컴파일 루프 ══════════ -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">compile-loop</p>
+      <h2>컴파일 루프를 문단 하나로 따라가기</h2>
+      <p class="dek">여기서 &lsquo;컴파일&rsquo;은 요약과 다르다. 문단이 들어올 때마다 <b>현재 위키 상태를 보고</b> 처리하고, 그 결과가 다시 위키가 된다. 그림 1을 한 문단 기준으로 펼치면 이렇게 된다.</p>
+
+      <figure class="figure">
+        <div class="svgwrap">
+          <svg class="chart" viewBox="0 0 760 300" role="img" aria-label="문단 하나의 컴파일 경로. 문단이 SelectPages로 들어가 인덱스에서 관련 기존 페이지를 최대 5개 고르고, CompileWikiPages가 페이지와 링크와 인덱스 갱신본을 만들고, 검증이 구조 오류와 내용 오류를 찾고, 위키에 증분 반영된다. 검증에서 나온 오류는 Error Book으로 흘러가 세 갈래로 되돌아간다. 제약 주입은 다음 문단의 컴파일 프롬프트로, 코드 자동수정은 매 배치마다 구조 오류를 고쳐 위키로, LLM 주기 수리는 N문서마다 의미 오류를 고쳐 위키로 간다.">
+            <rect class="box" x="8" y="26" width="92" height="62" rx="8"/>
+            <rect class="box" x="116" y="26" width="146" height="62" rx="8"/>
+            <rect class="box-hi" x="278" y="26" width="162" height="62" rx="8"/>
+            <rect class="box" x="456" y="26" width="118" height="62" rx="8"/>
+            <rect class="box" x="590" y="26" width="162" height="62" rx="8"/>
+
+            <text class="txt" x="20" y="52">문단 x</text>
+            <text class="txt-s" x="20" y="70">원본 한 조각</text>
+            <text class="txt" x="130" y="48">① SelectPages</text>
+            <text class="txt-s" x="130" y="66">인덱스에서 관련</text>
+            <text class="txt-s" x="130" y="80">기존 페이지 최대 5개</text>
+            <text class="txt" x="292" y="48">② CompileWikiPages</text>
+            <text class="txt-s" x="292" y="66">페이지 · 링크 · 인덱스</text>
+            <text class="txt-s" x="292" y="80">갱신본 생성</text>
+            <text class="txt" x="470" y="48">③ 검증</text>
+            <text class="txt-s" x="470" y="66">구조 Es</text>
+            <text class="txt-s" x="470" y="80">내용 Ec</text>
+            <text class="txt" x="604" y="48">④ 위키 반영</text>
+            <text class="txt-s" x="604" y="66">전체 재구축 없이</text>
+            <text class="txt-s" x="604" y="80">증분 갱신</text>
+
+            <g class="arw">
+              <path d="M100 57 L114 57"/><path d="M107 52 L114 57 L107 62"/>
+              <path d="M262 57 L276 57"/><path d="M269 52 L276 57 L269 62"/>
+              <path d="M440 57 L454 57"/><path d="M447 52 L454 57 L447 62"/>
+              <path d="M574 57 L588 57"/><path d="M581 52 L588 57 L581 62"/>
+            </g>
+
+            <rect class="box-hi" x="286" y="198" width="188" height="58" rx="8"/>
+            <text class="txt" x="300" y="222">Error Book</text>
+            <text class="txt-s" x="300" y="240">error_book.yaml 에 영속</text>
+
+            <g class="arw">
+              <path d="M515 88 L515 162 L380 162 L380 196"/><path d="M375 189 L380 196 L385 189"/>
+              <path d="M286 214 L238 214 L238 116 L359 116 L359 90"/><path d="M354 97 L359 90 L364 97"/>
+              <path d="M474 212 L648 212 L648 90"/><path d="M643 97 L648 90 L653 97"/>
+              <path d="M474 242 L706 242 L706 90"/><path d="M701 97 L706 90 L711 97"/>
+            </g>
+            <text class="txt-s" x="392" y="154">오류 Es ∪ Ec</text>
+            <text class="txt-s" x="244" y="108">제약 주입</text>
+            <text class="txt-s" x="484" y="206">코드 자동수정 · 매 배치 · 구조 오류</text>
+            <text class="txt-s" x="484" y="260">LLM 주기 수리 · N문서마다 · 의미 오류</text>
+          </svg>
+        </div>
+        <figcaption>되먹임이 세 개인데 도는 주기가 다르다. <b>제약 주입</b>은 예방이고 다음 문단부터 적용된다. <b>코드 자동수정</b>은 즉시 교정이고 규칙으로 판단 가능한 구조 오류만 다룬다. <b>LLM 주기 수리</b>는 지연 교정이고 판단이 필요한 의미 오류를 맡는다. 그림 1에서는 이 시간 차이가 드러나지 않는다.</figcaption>
+      </figure>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">①이 이 시스템의 핵심이다</span>
+          <p class="small">SelectPages가 정하는 것은 <b>&ldquo;이 문단이 이미 있는 페이지에 속하는가, 새 페이지가 필요한가&rdquo;</b>다. 이 판단이 있어서 같은 개체를 다루는 문단이 나중에 또 들어와도 중복 페이지가 생기지 않고 사실이 한 페이지에 쌓인다.</p>
+          <p class="small">RAPTOR나 GraphRAG의 요약은 한 번 만들면 되돌릴 수 없다. 위키는 계속 자란다. 논문이 이 차이를 <b>컴파일</b>이라고 부르는 이유다.</p>
+        </div>
+        <div>
+          <p class="fig-sub" style="margin-bottom:8px">부록 E의 실제 페이지로 본 한 문단의 처리</p>
+          <pre>문단: "Karl I, Prince of Anhalt-Zerbst was
+       the eldest son of John V..."
+
+<span class="k">①</span> people/_index.md 에서
+   <span class="k">[[John-V-Prince-of-Anhalt-Zerbst]]</span> 발견
+   → 이미 존재하는 페이지다
+
+<span class="k">②</span> John V 페이지 Key Facts 에 사실 한 줄 추가
+   Karl-I-Prince-of-Anhalt-Zerbst.md 신규 생성
+   두 페이지에 <span class="k">[[...]]</span> 양방향 링크
+   people/_index.md 에 Karl I 등록
+   sources/digests/ 에 출처 요약 생성
+
+<span class="k">③</span> 링크 대상이 실제 존재하는가 (구조)
+   사실이 인용 출처에 근거하는가 (내용)
+
+<span class="k">④</span> 위키에 반영. 다음 문단으로</pre>
         </div>
       </div>
     </div>
@@ -1058,7 +1146,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         </div>
       </div>
 
-      <p class="note">실무에서 중요한 부분이다. 마크다운 위키를 만들어 두는 것만으로는 부족하다. 위키를 만들고 기존 RAG처럼 한 번에 top-k를 뽑아 쓰면 향상 폭이 줄어드는 정도가 아니라, 표 1의 Dense RAG(.764/.611/.815)보다 낮은 .722/.601/.789가 된다. agent에게 tool과 호출 예산을 함께 줘야 효과가 난다. 이 비교는 18장에서 다룬다.</p>
+      <p class="note">실무에서 중요한 부분이다. 마크다운 위키를 만들어 두는 것만으로는 부족하다. 위키를 만들고 기존 RAG처럼 한 번에 top-k를 뽑아 쓰면 향상 폭이 줄어드는 정도가 아니라, 표 1의 Dense RAG(.764/.611/.815)보다 낮은 .722/.601/.789가 된다. agent에게 tool과 호출 예산을 함께 줘야 효과가 난다. 이 비교는 19장에서 다룬다.</p>
     </div>
   </section>
 
@@ -1301,7 +1389,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <footer class="hud">
     <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
     <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
-    <span class="counter" id="counter">01 / 19</span>
+    <span class="counter" id="counter">01 / 20</span>
     <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
     <span class="hint">← → 키 · Space · Home / End</span>
   </footer>
