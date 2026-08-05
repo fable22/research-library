@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>WikiKV: 계층형 지식베이스 저장 계층 논문 분석</title>
-<meta name="description" content="위키를 실제 서비스에서 굴리는 저장 계층. path-as-key 인코딩, 잠금 없는 일관성 프로토콜, 스키마 진화, 그리고 WeChat 프로덕션 배포 데이터.">
+<meta name="description" content="위키를 실제 서비스에서 굴리는 저장 계층. path-as-key 인코딩, 잠금 없는 일관성 프로토콜, 라우팅과 3단 캐시, 스키마 진화, WeChat 프로덕션 배포 데이터를 다룬다.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="WikiKV: 계층형 지식베이스 저장 계층 논문 분석">
-<meta property="og:description" content="위키를 실제 서비스에서 굴리는 저장 계층. path-as-key 인코딩, 잠금 없는 일관성 프로토콜, 스키마 진화, 그리고 WeChat 프로덕션 배포 데이터.">
+<meta property="og:description" content="위키를 실제 서비스에서 굴리는 저장 계층. path-as-key 인코딩, 잠금 없는 일관성 프로토콜, 라우팅과 3단 캐시, 스키마 진화, WeChat 프로덕션 배포 데이터를 다룬다.">
 <meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-05-wikikv-hierarchical-kb-storage/">
 <meta name="twitter:card" content="summary">
 <style>
@@ -358,13 +358,14 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     <button class="rail-item" data-go="6"><span class="n">07</span><span>스키마 설계와 진화</span></button>
     <button class="rail-item" data-go="7"><span class="n">08</span><span>탐색 가속</span></button>
     <div class="rail-sep"></div>
-    <button class="rail-item" data-go="8"><span class="n">09</span><span>결과 1. 백엔드 지연</span></button>
-    <button class="rail-item" data-go="9"><span class="n">10</span><span>결과 2. 스키마 효과</span></button>
-    <button class="rail-item" data-go="10"><span class="n">11</span><span>결과 3. 프로덕션</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>라우팅 실제 동작</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>결과 1. 백엔드 지연</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>결과 2. 스키마 효과</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>결과 3. 프로덕션</span></button>
     <div class="rail-sep"></div>
-    <button class="rail-item" data-go="11"><span class="n">12</span><span>해석의 한계</span></button>
-    <button class="rail-item" data-go="12"><span class="n">13</span><span>결론</span></button>
-    <button class="rail-item" data-go="13"><span class="n">14</span><span>출처</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>결론</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>출처</span></button>
   </nav>
 
   <main class="stage" id="stage">
@@ -410,10 +411,10 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <p class="dek">이 계보에서 <b>유일하게 실제 서비스 데이터가 있는 논문</b>이다. 그리고 스키마 품질이 정확도를 10점씩 좌우한다는 것을 보여준다.</p>
 
       <div class="stats">
-        <div class="stat hero"><span class="lab">AuthTrace 전체 AC</span><span class="val">63.2</span><span class="sub">RAPTOR 50.0, Dense-RAG 49.9</span></div>
+        <div class="stat hero"><span class="lab">검색 라우팅을 끄면</span><span class="val">−25.4</span><span class="sub">AC 65.6 → 40.2, Lu Xun 코퍼스</span></div>
         <div class="stat"><span class="lab">프로덕션 위키 도구 지연</span><span class="val">0.432<span class="u">초</span></span><span class="sub">P99에서도 0.966초</span></div>
         <div class="stat"><span class="lab">실사용 1,000건 사람 평가</span><span class="val">2.86<span class="u">/3</span></span><span class="sub">3인 블라인드, α=0.71</span></div>
-        <div class="stat bad"><span class="lab">스키마 진화를 끄면</span><span class="val">−10.7</span><span class="sub">AC 63.2 → 52.5</span></div>
+        <div class="stat bad"><span class="lab">스키마 진화를 끄면</span><span class="val">−10.7</span><span class="sub">AC 63.2 → 52.5, 저장·질의 계층 동일</span></div>
       </div>
 
       <div class="grid g2">
@@ -429,7 +430,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
           <span class="tag">가장 실무적인 발견</span>
           <p class="small">&ldquo;<b>재구조화 규율 없는 위키는 우리 배포 환경에서 KV 쌍 10⁴개를 넘기면 유지가 불가능하다.</b>&rdquo;</p>
           <p class="small">논문이 든 세 가지 붕괴 양상: <b>폭 드리프트</b>(최상위 항목이 늘어 첫 홉 판별이 어려워짐), <b>깊이·밀도 드리프트</b>(페이지와 링크가 코퍼스에 비례해 늘어 디렉터리 조회가 감당 불가), <b>품질 드리프트</b>(오래된 내용과 한 번도 안 읽힌 항목이 검색 잡음을 올림).</p>
-          <p class="small"><a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p5">LLM-Wiki의 2Wiki 위키에서 people/ 디렉터리에 페이지의 56%가 몰렸던 것</a>이 바로 이 폭 드리프트의 사례다.</p>
+          <p class="small"><a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p6">LLM-Wiki의 2Wiki 위키에서 people/ 디렉터리에 페이지의 56%가 몰렸던 것</a>이 바로 이 폭 드리프트의 사례다.</p>
         </div>
       </div>
     </div>
@@ -473,7 +474,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         </table>
       </div>
 
-      <p class="note">그래서 현장에서는 벡터 인덱스와 관계형 메타데이터와 별도 캐시를 <b>임시로 쌓아 올린 스택</b>을 쓰는데, 어느 것도 계층 의미를 끝까지 담아내지 못한다는 것이 논문의 출발점이다.</p>
+      <p class="note">그래서 현장에서는 벡터 인덱스와 관계형 메타데이터와 별도 캐시를 임시로 쌓아 올린 스택을 쓰는데, 어느 것도 계층 의미를 끝까지 담아내지 못한다는 것이 논문의 출발점이다.</p><p class="note"><b>다만 논문은 저장소를 갈아타라고 하지 않는다.</b> 관련연구 절의 결론 문장이 이렇다. &ldquo;WikiKV는 그래프 저장소나 KV 저장소의 대체재가 아니라, <b>점 조회와 접두사 스캔을 지원하는 어떤 백엔드 위에든 얹는 얇은 경로 인덱싱 계층</b>이다.&rdquo; 도입 판단의 대상은 새 저장소가 아니라 <b>키 인코딩 규약</b>이다. 위 표는 &ldquo;무엇을 버릴까&rdquo;가 아니라 &ldquo;지금 쓰는 것 위에 무엇이 빠져 있나&rdquo;로 읽어야 한다.</p>
     </div>
   </section>
 
@@ -549,7 +550,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
             <p class="small"><b>1. 디렉터리 나열이 점 조회가 된다.</b> 모든 디렉터리 레코드가 자식을 명시적으로 담고 있으므로 <span class="wl">Ls(π) ≡ Get(π)</span>다. 접두사 스캔도, 보조 인덱스도 필요 없다. 이것이 표 II에서 Q2가 가장 빠른 이유다.</p>
             <p class="small"><b>2. 메타 카운터가 스키마 진화의 입력이 된다.</b> <span class="wl">access_count</span>, <span class="wl">confidence</span>, <span class="wl">last_verified</span>는 저장 연산자 자신은 쓰지 않지만, 다음 장의 병합·분할 연산자가 이 값만 보고 판단한다. <b>별도 분석 로그나 데이터 웨어하우스가 필요 없다.</b></p>
           </div>
-          <p class="note">경로 정규화 규칙: 끝 슬래시 없음, 세그먼트 대소문자 구분, 세그먼트 안에 구분자 금지, 깊이는 D로 제한. 정규화를 해시 앞에 두어 경로가 <b>트리 주소이면서 동시에 저장 키</b>가 되게 한다.</p>
+          <p class="note warn"><b>여기에 논문이 정리하지 않은 지점이 있다.</b> 물리 키가 해시라면 사전순이 깨지므로 <b>접두사 범위 스캔(Q4)이 성립하지 않는다.</b> 그런데 논문은 표 II 설명에서 &ldquo;사전순 키 배치 덕분에 네이티브 접두사 범위 스캔이 가능하다&rdquo;고 적고, Q4는 다음 장 라우팅에서 정확도를 25.4점 좌우하는 핵심 연산이다. 경로 문자열에 대한 별도 색인이 어딘가 있어야 하는데 논문에 명시가 없다. 구현하려면 이 부분을 스스로 메워야 한다.</p><p class="note">경로 정규화 규칙: 끝 슬래시 없음, 세그먼트 대소문자 구분, 세그먼트 안에 구분자 금지, 깊이는 D로 제한. 정규화를 해시 앞에 두어 경로가 <b>트리 주소이면서 동시에 저장 키</b>가 되게 한다.</p>
         </div>
       </div>
     </div>
@@ -585,12 +586,12 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
             <text class="txt-s" x="440" y="136">2. 자식마다 Get을 보낸다</text>
             <text class="txt-s" x="440" y="151">없으면 결과에서 조용히 뺀다</text>
             <text class="txt-s" x="424" y="182">부모에 이름이 있는데 자식이 아직 없는</text>
-            <text class="txt-s" x="424" y="195">순간은 원리적으로 생기지 않는다</text>
+            <text class="txt-s" x="424" y="195">상태를 읽는 쪽이 보지 않는다</text>
 
             <g class="arw"><path d="M358 111 L400 111"/><path d="M393 106 L400 111 L393 116"/></g>
           </svg>
         </div>
-        <figcaption>자식을 먼저 쓰기 때문에, 부모 목록에 이름이 올라간 시점에는 자식이 이미 존재한다. 반대 순서였다면 읽는 쪽이 &ldquo;목록에는 있는데 열리지 않는&rdquo; 상태를 볼 수 있다.</figcaption>
+        <figcaption>자식을 먼저 쓰기 때문에, 부모 목록에 이름이 올라간 시점에는 자식이 이미 존재한다. 반대 순서였다면 읽는 쪽이 &ldquo;목록에는 있는데 열리지 않는&rdquo; 상태를 볼 수 있다.<br><br><b>정리 2가 보장하는 범위는 좁다.</b> 전제는 <b>단조 교차키 가시성</b>(부모 갱신을 본 독자는 그 앞의 자식 쓰기도 본다)이고, 대상은 <b>서브트리당 기록자 한 명</b>인 이 배포 환경이며, 막는 것은 &ldquo;목록에 있는데 없는 자식&rdquo;이지 <b>스냅숏 격리가 아니다.</b> 다중 기록자와 캐시 경쟁은 하부 저장소(TableKV)에 위임한다고 논문이 명시한다. 레코드의 <span class="wl">version</span> 필드는 그 위임된 동시성 제어의 CAS 토큰이다.</figcaption>
       </figure>
 
       <div class="grid g3">
@@ -644,14 +645,14 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">nav</p>
-      <h2>탐색 단계를 d에서 O(1)로 줄인다</h2>
+      <h2>탐색 LLM 호출을 5회에서 1~2회로 줄인다</h2>
       <p class="dek">Nav는 네 연산자 중 유일하게 단일 저장 원시 연산으로 매핑되지 않는다. 계층을 한 단계씩 내려가려면 매 단계마다 LLM이 어디로 갈지 판단해야 하고, 그것이 온라인 지연을 지배한다.</p>
 
       <div class="grid g2">
         <div class="card">
           <span class="tag">해법</span>
           <h3>검색 가속 라우팅</h3>
-          <p class="small">1단계에서 <b>접두사 검색(Q4)</b>으로 목표 근처 경로를 바로 찾는다. 단일 목표 질의에 대해 LLM이 개입하는 하강 단계의 기댓값이 <b>깊이 d에서 O(1)로</b> 줄어든다. 계층을 한 칸씩 내려가는 대신 목적지로 점프한 뒤 필요한 만큼만 보정하는 방식이다.</p>
+          <p class="small">1단계에서 <b>접두사 검색(Q4)</b>으로 목표 근처 경로를 바로 찾는다. 논문은 이를 &ldquo;깊이 <i>d</i>에서 <i>O</i>(1)&rdquo;로 적는데 <i>D</i>가 5로 고정이므로, 실제 의미는 <b>층마다 판단하던 5회를 1 + <i>h</i>회로 줄인다</b>는 것이다. 정리 3에 따르면 목표가 하나인 질의는 <i>h</i> ∈ {0, 1}이고 차원 <i>k</i>개를 가로지르면 <i>h</i> ≤ <i>k</i>이며 구현의 <i>k</i>는 3이다.</p>
           <p class="small">여기에 경로 키 기반 3단 캐시를 붙여 가장 자주 접근되는 네임스페이스 앞부분을 네트워크 경로에서 뺀다.</p>
         </div>
         <div class="card">
@@ -674,6 +675,70 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <!-- 09 -->
   <section class="slide">
     <div class="slide-inner">
+      <p class="eyebrow">routing-detail</p>
+      <h2>라우터가 실제로 하는 일</h2>
+      <p class="dek">앞 장의 &ldquo;목적지로 점프한다&rdquo;를 알고리즘으로 풀면 이렇다. 가벼운 부품 다섯 개로 이뤄져 있고 LLM이 개입하는 지점은 하나뿐이다.</p>
+      <figure class="figure">
+        <p class="fig-title">부품 다섯 개</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>부품</th><th>하는 일</th><th>비용</th></tr></thead>
+            <tbody>
+              <tr><td>Classify(q)</td><td style="text-align:left;font-family:var(--sans)">열거형 질문(&ldquo;어떤 ~&rdquo;, &ldquo;~ 목록&rdquo;)은 정규식으로, 모호한 것은 소형 증류 분류기로 경로를 정한다</td><td style="text-align:left;font-family:var(--sans)">5밀리초 이하</td></tr>
+              <tr><td>Extract(q) + Search</td><td style="text-align:left;font-family:var(--sans)">질의에서 페이지 이름 후보 키워드를 뽑아 경로 네임스페이스에 접두사 스캔</td><td style="text-align:left;font-family:var(--sans)">KV 스캔</td></tr>
+              <tr><td>TopK(&middot;, k)</td><td style="text-align:left;font-family:var(--sans)">후보 경로 <b>3개</b>로 추린다</td><td style="text-align:left;font-family:var(--sans)">·</td></tr>
+              <tr class="hero"><td>NeedsDeeper(q, v)</td><td style="text-align:left">후보 내용이 질의를 얼마나 덮는지 보고 임계 &theta; 아래일 때만 한 단계 더 내려간다</td><td style="text-align:left">가벼운 분류기 또는 <b>LLM 1회</b></td></tr>
+              <tr><td>BudgetExhausted(t&#8320;, B)</td><td style="text-align:left;font-family:var(--sans)">두 곳에서 예산을 검사하고, 소진되면 그 시점까지의 결과를 반환한다</td><td style="text-align:left;font-family:var(--sans)">·</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>라우터는 <b>경로 문자열</b>을 다루지 벡터 인덱스를 쓰지 않는다. 경로가 사람이 읽을 수 있는 이름이라서 어휘 매칭만으로 목표 근처에 닿는다. path-as-key 설계와 라우팅이 맞물리는 지점이 여기다.</figcaption>
+      </figure>
+      <div class="grid g2">
+        <div>
+          <p class="fig-sub" style="margin-bottom:8px">Lu Xun 코퍼스에서 결과가 나오는 순서 (논문 V장)</p>
+          <pre><span class="k">r1</span> Index 수준 요약, 가장 거친 답
+   "이 위키에는 N개 차원이 있습니다:
+    Personal Relationships, Writing Style, ..."
+
+<span class="k">r2</span> 선택된 차원으로 좁힌 요약
+   "Personal Relationships에는 세 개체가 있습니다:
+    Family, Mentors and Friends,
+    Polemic Opponents"
+
+<span class="k">r3</span> 개체 또는 원문 수준 페이지
+   "저우쭤런과 루쉰의 불화는 1923년에 ..."</pre>
+          <p class="note">예산이 r2에서 끊겨도 r1과 r2는 <b>더 거칠 뿐 틀린 답이 아니다.</b> 결과가 세밀도 증가 순으로 나오기 때문이다. 점진적 답변이 코드에서 보장되는 자리가 예산 검사 두 곳이다.</p>
+        </div>
+        <div>
+          <div class="card">
+            <span class="tag">LLM 호출 회계</span>
+            <p class="small"><b>층별 순회</b> 레벨마다 어디로 갈지 판단하므로 <i>D</i> = 5회<br><b>라우팅</b> 분류 1회 + 하강 <i>h</i>회, 목표가 하나면 <i>h</i>는 0 또는 1</p>
+            <p class="small">프로덕션 실측이 이 계산과 맞물린다. <a class="xref" href="#p12">질문당 위키 도구 호출 평균 2.2회, 중앙값 2회</a>가 곧 1 + <i>h</i>의 실측치다. 논문도 대다수 실제 질의가 한두 번의 탐색으로 해결된다고 읽는다.</p>
+          </div>
+          <div class="card" style="margin-top:14px">
+            <span class="tag">3단 캐시</span>
+            <div class="tablewrap" style="margin-top:8px">
+              <table>
+                <thead><tr><th>계층</th><th>담는 것</th><th>정책</th></tr></thead>
+                <tbody>
+                  <tr><td>L1 인프로세스</td><td style="text-align:left;font-family:var(--sans)">루트와 <b>모든 차원 노드</b>, 수십 페이지</td><td style="text-align:left;font-family:var(--sans)">시작 시 프리워밍, <b>만료 없음</b></td></tr>
+                  <tr><td>L2 공유 Redis</td><td style="text-align:left;font-family:var(--sans)">디렉터리 전체와 access_count로 고른 인기 개체, 수천 페이지</td><td style="text-align:left;font-family:var(--sans)">LRU, TTL 1시간</td></tr>
+                  <tr><td>L3 KV 저장소</td><td style="text-align:left;font-family:var(--sans)">위키 전체</td><td style="text-align:left;font-family:var(--sans)"><b>만료 없음</b></td></tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="note">L1이 1단계 라우팅의 최악 지연을 묶는다. 가장 자주 읽히는 네임스페이스 앞부분을 네트워크에서 아예 빼기 때문이다. <b>페이지가 늘어도 L1과 L2는 용량 상한으로 고정</b>되고 L3만 커져서 메모리가 평탄하다.</p>
+            <p class="note"><b>앞 장에서 답이 없던 R3가 여기서 풀린다.</b> 쓰기가 성공할 때마다 경로 키 무효화 이벤트를 발행하고, 온라인 티어가 그 경로를 접두사로 갖는 항목을 비동기로 갱신한다. &Delta;는 <b>커밋과 캐시 갱신 콜백 사이의 최대 지연</b>이고 위키 크기와 무관하다.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
       <p class="eyebrow">result-latency</p>
       <h2>결과 1. 저장 백엔드 지연 비교</h2>
       <p class="dek">KV 쌍 약 2,000개 규모 위키에서 연산자별 P50 지연을 잰다. 경로 100개를 무작위로 뽑고 백엔드마다 200회 워밍업 후 1,000회 질의한다.</p>
@@ -685,10 +750,10 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
           <div>
             <p class="fig-sub" style="margin-bottom:8px"><b>Q2 · 디렉터리 나열</b> 자식 목록을 함께 저장한 효과</p>
             <div class="bars">
-              <div class="bar-row is-hero"><span class="bar-name">WikiKV</span><div class="bar-track g5"><div class="bar s1" style="--w:7.2%"></div></div><span class="bar-val">0.088</span></div>
-              <div class="bar-row"><span class="bar-name">PostgreSQL</span><div class="bar-track g5"><div class="bar" style="--w:9.5%"></div></div><span class="bar-val">0.117</span></div>
-              <div class="bar-row"><span class="bar-name">파일 시스템</span><div class="bar-track g5"><div class="bar" style="--w:35.4%"></div></div><span class="bar-val">0.436</span></div>
-              <div class="bar-row"><span class="bar-name">Neo4j</span><div class="bar-track g5"><div class="bar" style="--w:100%"></div></div><span class="bar-val">1.230</span></div>
+              <div class="bar-row is-hero"><span class="bar-name">WikiKV</span><div class="bar-track g5"><div class="bar s1" style="--w:7.0%"></div></div><span class="bar-val">0.088</span></div>
+              <div class="bar-row"><span class="bar-name">PostgreSQL</span><div class="bar-track g5"><div class="bar" style="--w:9.4%"></div></div><span class="bar-val">0.117</span></div>
+              <div class="bar-row"><span class="bar-name">파일 시스템</span><div class="bar-track g5"><div class="bar" style="--w:34.9%"></div></div><span class="bar-val">0.436</span></div>
+              <div class="bar-row"><span class="bar-name">Neo4j</span><div class="bar-track g5"><div class="bar" style="--w:98.4%"></div></div><span class="bar-val">1.230</span></div>
             </div>
             <div class="bar-axis"><div class="ticks"><span>0</span><span>0.25</span><span>0.5</span><span>0.75</span><span>1.0</span><span>1.25</span></div></div>
           </div>
@@ -700,7 +765,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
               <div class="bar-row"><span class="bar-name">Neo4j</span><div class="bar-track g5"><div class="bar" style="--w:88.2%"></div></div><span class="bar-val">6.397</span></div>
               <div class="bar-row"><span class="bar-name">파일 시스템</span><div class="bar-track g5"><div class="bar" style="--w:89.4%"></div></div><span class="bar-val">6.480</span></div>
             </div>
-            <div class="bar-axis"><div class="ticks"><span>0</span><span>1.5</span><span>3</span><span>4.5</span><span>6</span><span>7.25</span></div></div>
+            <div class="bar-axis"><div class="ticks"><span>0</span><span>1.45</span><span>2.9</span><span>4.35</span><span>5.8</span><span>7.25</span></div></div>
           </div>
         </div>
         <figcaption>표 II(논문). Q1 경로 조회는 WikiKV 0.017 / FS 0.021 / PostgreSQL 0.075 / Neo4j 2.494, Q4 접두사 검색은 WikiKV 0.085 / FS 0.091 / PostgreSQL 0.432 / Neo4j 1.686 밀리초다.</figcaption>
@@ -712,7 +777,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     </div>
   </section>
 
-  <!-- 10 -->
+  <!-- 11 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">result-schema</p>
@@ -734,7 +799,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
           </table>
         </div>
         <div>
-          <p class="note"><b>가장 큰 스키마가 가장 부정확하다.</b> 고정 스키마는 페이지가 2,672개로 제일 많은데 AC는 53.5로 제일 낮다. 미리 정한 차원이 코퍼스를 <b>주제적으로 얄팍한 하위 트리로 과분할</b>하기 때문이다. 그 결과 인덱스가 넓어지고, navigator가 더 깊이 펼치고 더 많이 읽어야 해서 지연까지 1초 늘어난다.</p>
+          <p class="note"><b>가장 큰 스키마가 정확하지 않다.</b> 고정 스키마는 페이지가 2,672개로 제일 많은데 AC는 53.5다(최저는 진화를 끈 52.5). 논문 본문은 고정 스키마를 &ldquo;가장 부정확&rdquo;하다고 적었는데 자기 표와 어긋난다. 미리 정한 차원이 코퍼스를 <b>주제적으로 얄팍한 하위 트리로 과분할</b>하기 때문이다. 그 결과 인덱스가 넓어지고, navigator가 더 깊이 펼치고 더 많이 읽어야 해서 지연까지 1초 늘어난다.</p>
           <p class="note"><b>가장 작은 스키마도 마찬가지로 부정확하다.</b> 진화를 끈 쪽은 페이지가 2,290개로 제일 적고 지연은 전체 시스템과 같지만 AC가 52.5다. 코퍼스가 두꺼워진 영역에서 새 주제를 만들지 못하고, 접근 분포가 하나로 취급하는 차원들을 합치지도 못한다.</p>
           <p class="note"><b>즉 |V|를 줄이는 것만으로도, 팬아웃을 키우는 것만으로도 안 된다.</b> 비용 함수의 두 항을 함께 최적화해야 적정 크기의 네임스페이스와 최고 정확도가 같이 나온다.</p>
         </div>
@@ -742,7 +807,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
 
       <div class="tablewrap" style="margin-top:16px">
         <table>
-          <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">표 IV. AuthTrace end-to-end AC. 모든 방법이 같은 생성 모델(DeepSeek-V4-Flash)과 프롬프트를 쓴다</caption>
+          <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">표 IV. AuthTrace end-to-end AC. 모든 방법이 같은 생성 모델(DeepSeek-V4-Flash)과 프롬프트를 쓰고, 검색 방법은 LLM-Wiki 것을 그대로 쓴다</caption>
           <thead><tr><th>방법</th><th>문서 1개</th><th>2개</th><th>3개 이상</th><th>전체</th></tr></thead>
           <tbody>
             <tr class="hero"><td>LLM-Wiki on WikiKV</td><td class="win">67.2</td><td class="win">60.9</td><td class="win">47.7</td><td class="win">63.2</td></tr>
@@ -753,11 +818,11 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
           </tbody>
         </table>
       </div>
-      <p class="note">문서 2개 구간에서 격차가 가장 크게 벌어진다(60.9 대 37.1). 세 베이스라인은 1개에서 3개 이상으로 갈 때 <b>20점 넘게 잃는데</b> WikiKV는 20점 미만으로 잃는다. 다만 <b>비교 대상이 앞선 두 논문보다 약하다.</b> HippoRAG 2와 LightRAG가 빠져 있는데, <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p15">LLM-Wiki 실험에서 HippoRAG 2는 가장 강한 베이스라인이었다.</a></p>
+      <p class="note warn"><b>이 표를 저장 모델의 성과로 읽으면 안 된다.</b> 논문 스스로 &ldquo;저장 계층이 답변 품질을 해치지 않았음을 확인하기 위해&rdquo; 돌린 것이라고 적는다. 검색 방법은 LLM-Wiki 것을 그대로 가져다 쓴다. <b>path-as-key로 저장했을 때 무엇이 좋아지는지를 보여주는 end-to-end 실험은 이 논문에 없다.</b> 저장 계층의 기여를 판단할 근거는 표 II의 연산자별 지연뿐이다.</p><p class="note">문서 2개 구간에서 격차가 가장 크게 벌어진다(60.9 대 37.1). 세 베이스라인은 1개에서 3개 이상으로 갈 때 <b>20점 넘게 잃는데</b> WikiKV는 20점 미만으로 잃는다. 다만 <b>비교 대상이 앞선 두 논문보다 약하다.</b> HippoRAG 2와 LightRAG가 빠져 있는데, <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p16">LLM-Wiki 실험에서 HippoRAG 2는 가장 강한 베이스라인이었다.</a></p>
     </div>
   </section>
 
-  <!-- 11 -->
+  <!-- 12 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">result-production</p>
@@ -773,20 +838,20 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
               <tr><td>질문당 위키 도구 호출</td><td>2.2</td><td>2</td><td>3</td><td>4.6</td></tr>
               <tr class="hero"><td>위키 도구 지연 (초)</td><td>0.432</td><td>0.411</td><td>0.554</td><td>0.966</td></tr>
               <tr><td>첫 토큰까지 (초)</td><td>6.856</td><td>6.65</td><td>8.34</td><td>12.32</td></tr>
-              <tr><td>사람 평가 (1~3)</td><td>2.86</td><td>—</td><td>—</td><td>—</td></tr>
+              <tr><td>사람 평가 (1~3)</td><td>2.86</td><td>·</td><td>·</td><td>·</td></tr>
             </tbody>
           </table>
-          <p class="note"><b>검색이 병목이 아니다.</b> 위키 도구는 평균 0.432초, P99에서도 1초 미만이다. 전체 6.856초는 대부분 LLM 생성 시간이다. 저장 계층 설계가 온라인 경로에서 제 몫을 한다는 뜻이다.</p>
+          <p class="note"><b>검색이 병목이 아니다.</b> 위키 도구는 평균 0.432초, P99에서도 1초 미만이고 전체 6.856초는 대부분 LLM 생성 시간이다.</p><p class="note warn">다만 이 0.432초를 저장 모델의 성과로 읽으면 안 된다. 표 II의 점 조회는 <b>0.017밀리초</b>다. 432밀리초의 대부분은 KV 조회가 아니라 네트워크 왕복, 직렬화, 라우터 분류, NeedsDeeper 판정이다. <b>논문은 이 432밀리초를 구성 요소별로 분해하지 않는다.</b> 다른 저장 백엔드로 바꿔도 이 수치는 거의 그대로일 것이다.</p>
         </div>
         <div>
           <div class="card">
             <span class="tag">평가 방식</span>
-            <p class="small">1,000건을 실사용 로그에서 균등 표집해 비식별 처리했다. 3점 척도로 <b>3인이 시스템 구성을 모르는 상태로</b> 채점했고 Krippendorff α = 0.71로 상당한 일치를 보였다. 3점은 추가 추론 없이 바로 답이 되는 경우, 2점은 주제는 관련되지만 더 추론이 필요한 경우, 1점은 무관하거나 비어 있는 경우다.</p>
+            <p class="small"><b>샤딩 단위는 저자 한 명이다.</b> 저자마다 자기 서브트리로 컴파일되고 저자끼리 경로가 겹치지 않아 쓰기 집합이 구조적으로 서로소다. 그래서 저자 간 병렬, 저자 내부 직렬로 구축하고 정리 2도 서브트리 단위로 성립한다. 계정 하나에 문서와 페이지가 수백에서 수천이므로 <b>&ldquo;페이지 수백만&rdquo;은 위키 하나의 크기가 아니라 수백 개 위키의 총합</b>이다. 저자 같은 자연 경계가 없는 단일 코퍼스에는 이 구축·일관성 논증이 그대로 적용되지 않는다.</p><p class="small">1,000건을 실사용 로그에서 균등 표집해 비식별 처리했다. 3점 척도로 <b>3인이 시스템 구성을 모르는 상태로</b> 채점했고 Krippendorff α = 0.71로 상당한 일치를 보였다. 3점은 추가 추론 없이 바로 답이 되는 경우, 2점은 주제는 관련되지만 더 추론이 필요한 경우, 1점은 무관하거나 비어 있는 경우다.</p>
             <p class="small">평균 2.86은 2와 3 사이에서 <b>3 쪽에 훨씬 가깝다</b>. 관련 자료를 보여주는 수준이 아니라 대체로 바로 쓸 수 있는 답을 낸다는 뜻이다.</p>
           </div>
           <div class="card" style="margin-top:14px">
-            <span class="tag">규모 확장</span>
-            <p class="small">질문 집합을 두 배로 늘리면 페이지 수는 약 1.4배가 되는데 평균 지연은 <b>12.2%</b>, P99는 <b>10.2%</b>만 오른다. 전체 코퍼스로 가면 거기서 1% 미만이 더 붙는다. <b>디렉터리 수는 거의 변하지 않고 페이지만 는다.</b> 깊이가 아니라 질량으로 자라기 때문에 지연이 꼬리에서 터지지 않고 분포의 몸통에서만 완만하게 움직인다.</p>
+            <span class="tag">규모 확장 · 프로덕션이 아니라 AuthTrace 내부 측정</span>
+            <p class="small">질문 집합을 두 배로 늘리면 페이지 수는 약 1.4배가 되는데 평균 지연은 <b>12.2%</b>, P99는 <b>10.2%</b>만 오른다. 전체 코퍼스로 가면 거기서 1% 미만이 더 붙는다. <b>디렉터리 수는 34~35개로 거의 변하지 않고 페이지만 는다.</b> 깊이가 늘지 않고 잎만 늘어나므로 지연이 꼬리에서 터지지 않는다. 다만 측정 구간이 페이지 약 1.4천에서 2.4천 사이 한 구간이고 디렉터리가 34개 규모라, 프로덕션의 &ldquo;페이지 수백만&rdquo;과는 자릿수가 다르다.</p>
           </div>
           <p class="note warn">배포 규모는 &ldquo;페이지 수백만, KV 쌍 수천만, 저자 계정 수백&rdquo;이라고만 밝히고 <b>절대 수치는 영업 기밀로 공개하지 않았다.</b> 자릿수만 확인할 수 있다.</p>
         </div>
@@ -794,7 +859,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     </div>
   </section>
 
-  <!-- 12 -->
+  <!-- 13 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">critique</p>
@@ -820,11 +885,11 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         </div>
       </div>
 
-      <p class="note">한편 <b>이 논문에서 가장 옮겨 쓸 만한 결과</b>는 스키마 실험이다. 저장 계층과 질의 계층을 고정한 채 스키마만 바꿔서 AC가 63.2에서 52.5까지 떨어진다는 것은, 위키 기반 시스템을 만들 때 <b>디렉터리 구조를 사람이 정하고 고정해 두는 흔한 선택이 10점짜리 실수</b>라는 뜻이다. 이것은 저장소 구현이나 배포 규모와 무관하게 성립한다.</p>
+      <p class="note warn"><b>5. 정리 2가 보장하는 범위가 좁다.</b> 단조 교차키 가시성을 가정하고, 서브트리당 기록자가 한 명인 배포를 대상으로 하며, 막는 것은 &ldquo;목록에 있는데 없는 자식&rdquo;이지 스냅숏 격리가 아니다. 다중 기록자와 캐시 경쟁은 하부 TableKV에 위임한다고 논문이 명시한다. <b>우리 스택에 TableKV가 없다면 그 위임 대상을 스스로 마련해야 한다.</b> 부모 갱신에 실패해 남는 고아 레코드를 회수하는 경로도 논문에 없고, 물리 키가 해시라 경로 기준 순회로 찾을 수도 없다.</p><p class="note">한편 이 논문에서 <b>가장 옮겨 쓸 만한 결과</b>는 스키마 실험이다. 저장 계층과 질의 계층을 고정한 채 스키마만 바꿔서 AC가 63.2에서 52.5까지 떨어진다는 것은, 위키 기반 시스템을 만들 때 <b>디렉터리 구조를 사람이 정하고 고정해 두는 흔한 선택이 10점짜리 실수</b>라는 뜻이다. 이것은 저장소 구현이나 배포 규모와 무관하게 성립한다.</p>
     </div>
   </section>
 
-  <!-- 13 -->
+  <!-- 14 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">conclusion</p>
@@ -840,7 +905,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         <div class="card">
           <span class="tag">발견 2</span>
           <h3>10⁴ 규모가 분기점이다</h3>
-          <p class="small">재구조화 규율 없는 위키는 KV 쌍 10⁴개를 넘기면 유지가 불가능하다는 것이 배포 경험이다. <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p18">LLM-Wiki가 한계로만 적고 실험하지 않았던 확장성 문제</a>에 대한 첫 실측이다.</p>
+          <p class="small">재구조화 규율 없는 위키는 KV 쌍 10⁴개를 넘기면 유지가 불가능하다는 것이 배포 경험이다. 다만 이 임계값은 <b>배포 경험을 적은 것이고 논문에 뒷받침 실험이 없다.</b> 확장성 절의 측정 구간은 페이지 약 1.4천에서 2.4천 사이라 10⁴ 근처가 아니다.</p>
         </div>
         <div class="card">
           <span class="tag">발견 3</span>
@@ -855,7 +920,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     </div>
   </section>
 
-  <!-- 14 -->
+  <!-- 15 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">sources</p>
@@ -886,8 +951,8 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       </div>
 
       <div class="card" style="margin-top:14px">
-        <span class="tag">비교 대상 시스템</span>
-        <p class="small">PostgreSQL ltree · Neo4j · LevelDB · Redis Cluster · TableKV (WeChat의 LSM 트리 기반 분산 KV, PaxosStore 합의) · GraphRAG (Edge et al., arXiv:2404.16130) · RAPTOR (Sarthi et al., ICLR 2024) · Wikidata · DBpedia · Freebase</p>
+        <span class="tag">비교 대상 · 프로덕션 스택</span>
+        <p class="small"><b>저장 계층 비교(표 II)</b> 파일 시스템 · PostgreSQL + ltree · Neo4j<br><b>end-to-end 비교(표 IV)</b> No-RAG · Dense-RAG · GraphRAG (Edge et al., arXiv:2404.16130) · RAPTOR (Sarthi et al., ICLR 2024)<br><b>WikiKV 자신의 스택, 비교 대상 아님</b> 온라인 티어 Redis Cluster · 영속 티어 TableKV(WeChat의 LSM 트리 기반 분산 KV, PaxosStore 합의) · 표 II 측정에 쓴 로컬 LevelDB</p>
       </div>
     </div>
   </section>
@@ -897,7 +962,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <footer class="hud">
     <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
     <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
-    <span class="counter" id="counter">01 / 14</span>
+    <span class="counter" id="counter">01 / 15</span>
     <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
     <span class="hint">← → 키 · Space · Home / End</span>
   </footer>
