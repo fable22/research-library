@@ -1,0 +1,13 @@
+{
+  "title": "WikiKV: 계층형 지식베이스 저장 계층 논문 분석",
+  "summary": "위키를 실제 서비스에서 굴리는 저장 계층. path-as-key 인코딩, 잠금 없는 일관성 프로토콜, 스키마 진화, 그리고 WeChat 공식계정 AI 어시스턴트 프로덕션 배포 데이터를 다룬다.",
+  "date": "2026-08-05",
+  "category": "paper",
+  "format": "deck",
+  "series": "agent-native-wiki",
+  "tags": ["RAG", "knowledge base", "storage", "key-value", "production"],
+  "source": {
+    "label": "arXiv:2606.14275",
+    "url": "https://arxiv.org/abs/2606.14275"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "title": "Retrieval as Reasoning: LLM-Wiki 논문 분석",
+  "summary": "문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, ablation 해석, 도입 조건을 19장으로 정리했다.",
+  "date": "2026-08-05",
+  "category": "paper",
+  "format": "deck",
+  "series": "agent-native-wiki",
+  "tags": [
+    "RAG",
+    "knowledge base",
+    "retrieval",
+    "multi-hop QA",
+    "agent"
+  ],
+  "source": {
+    "label": "arXiv:2605.25480",
+    "url": "https://arxiv.org/abs/2605.25480"
+  }
+}

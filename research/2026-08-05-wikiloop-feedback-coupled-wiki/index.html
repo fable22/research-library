@@ -1,0 +1,984 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WikiLoop: 위키 구축과 순회를 함께 학습시키는 논문 분석</title>
+<meta name="description" content="편집이 나중의 검색 성능을 얼마나 바꾸는지를 보상으로 삼아 위키 구축 정책을 강화학습으로 학습시킨다. LLM-Wiki가 빠뜨린 구축 비용도 처음 공개된다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WikiLoop: 위키 구축과 순회를 함께 학습시키는 논문 분석">
+<meta property="og:description" content="편집이 나중의 검색 성능을 얼마나 바꾸는지를 보상으로 삼아 위키 구축 정책을 강화학습으로 학습시킨다. LLM-Wiki가 빠뜨린 구축 비용도 처음 공개된다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-05-wikiloop-feedback-coupled-wiki/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+.bar { height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>역할 조건부 정책</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>Navigator 보상</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>Builder 보상</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>학습 순서</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>결과 1. 전체 성능</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>결과 2. 목적함수</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>결과 3. 역량 유지·비용</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>결과 4. 전이</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>결론</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <div class="lineage">
+        <span class="lg">연구 계보</span>
+        <span class="ext">AuthTrace 05-25</span><span class="arrow">→</span>
+        <a href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM-Wiki 05-25</a><span class="arrow">→</span>
+        <a href="../2026-08-05-wikikv-hierarchical-kb-storage/">WikiKV 06-12</a><span class="arrow">→</span>
+        <span class="self">WikiLoop 07-29</span>
+      </div>
+      <h1>위키를 만드는 쪽과<br>쓰는 쪽을 하나의 정책으로<br>함께 학습시키기</h1>
+      <p class="dek"><b>WikiLoop: Jointly Learning to Build and Navigate Agent-Native Wikis with Downstream Feedback</b><br>
+      <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM-Wiki</a>는 위키를 만들어 두고 agent가 읽게 했다. WikiLoop은 여기서 한 단계 더 가서, <b>편집이 나중의 검색 성능을 얼마나 바꾸는지를 보상으로 삼아</b> 위키를 고치는 정책을 학습시킨다. Navigator(검색)와 Builder(편집)를 역할 조건부 공유 정책 하나로 묶었다.</p>
+
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag">저자 · 소속</span>
+          <p class="small">Haoliang Ming, Feifei Li, Wenhui Que<br><b>WeChat, Tencent Inc.</b><br>LLM-Wiki 저자 4명 중 3명</p>
+        </div>
+        <div class="card">
+          <span class="tag">출처</span>
+          <p class="small">arXiv:2607.26604<br>2026-07-29<br>코드 공개 없음</p>
+        </div>
+        <div class="card">
+          <span class="tag">왜 중요한가</span>
+          <p class="small">LLM-Wiki에서 <b>효과가 가장 작았던 Error Book 자리</b>(−3.4~4.0 F1)를 학습으로 대체한다. 그리고 원 논문이 빠뜨린 <b>위키 구축 비용을 처음으로 수치로</b> 공개한다.</p>
+        </div>
+      </div>
+      <p class="note"><b>이동</b> 좌우 화살표 키, <kbd>Space</kbd>, 왼쪽 목차 클릭.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약</h2>
+      <p class="dek">같은 백본(Qwen3.5-9B)에서 LLM-Wiki를 6.3 AC 앞선다. 이득은 거의 전부 <b>여러 문서를 봐야 하는 질문</b>에서 나온다.</p>
+
+      <div class="stats">
+        <div class="stat hero"><span class="lab">AuthTrace 전체 AC</span><span class="val">62.6</span><span class="sub">LLM-Wiki base 56.3, HippoRAG 2 55.8</span></div>
+        <div class="stat"><span class="lab">문서 3개 이상 질문</span><span class="val">+12.3</span><span class="sub">LLM-Wiki base 대비 AC</span></div>
+        <div class="stat"><span class="lab">위키 구축 비용</span><span class="val">185<span class="u">M 토큰</span></span><span class="sub">LLM-Wiki는 194.00M</span></div>
+        <div class="stat"><span class="lab">질문당 지연</span><span class="val">15.76<span class="u">초</span></span><span class="sub">LLM-Wiki 16.90초</span></div>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">핵심 장치 두 개</span>
+          <ul class="clean">
+            <li><span class="m">01</span><span><b>sufficiency-before-efficiency.</b> 증거를 다 모으기 전에는 비용 페널티를 걸지 않는다. 이것만으로 조기 종료가 18.9%에서 11.1%로 줄고 전체 증거 확보율이 66.8%에서 76.1%로 오른다.</span></li>
+            <li><span class="m">02</span><span><b>효용 차이로 편집을 채점한다.</b> 편집 전후 위키를 각각 복사해 <b>고정된</b> Navigator를 돌리고, 그 차이를 보상으로 쓴다. 편집 후 상태가 좋은 게 아니라 <b>편집이 얼마나 바꿨는지</b>를 본다.</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag">평가 방식이 원 논문보다 엄격하다</span>
+          <ul class="clean">
+            <li><span class="m">▸</span><span>주요 비교마다 <b>paired bootstrap 신뢰구간과 Holm 보정 p값</b>을 붙였다. LLM-Wiki에는 없던 것이다.</span></li>
+            <li><span class="m">▸</span><span>채점자를 셋 돌렸다. DeepSeek-V4-Flash 62.6, GLM-5.1 62.5, <b>블라인드 사람 62.8</b>. 순위가 모두 같다.</span></li>
+            <li><span class="m">▸</span><span>Builder 학습에 쓴 평가자와 <b>다른 시드로 따로 학습시킨 Navigator</b>로 편집의 유용성을 다시 확인했다.</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="note warn">다만 벤치마크 AuthTrace가 여전히 <b>같은 팀의 것</b>이고, 학습과 평가가 같은 코퍼스와 같은 초기 위키를 공유한다(논문이 transductive라고 명시). 외부 재현은 이 계보 전체에 아직 없다.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>지식베이스를 만드는 일이 쓰이는 방식과 끊겨 있다</h2>
+      <p class="dek">기존 구도에서는 검색 agent가 <b>외부에서 고정된 인덱스</b> 위에서 동작하고, 구축 쪽은 다운스트림에서 아무 신호도 받지 못한다. 페이지를 어떻게 쪼갤지, 어떤 링크를 걸지는 컴파일 시점의 추측으로 정해지고, 그 추측이 맞았는지는 아무도 확인하지 않는다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">LLM-Wiki의 처리 방식</span>
+          <p class="small">Error Book이 오류를 규칙으로 바꿔 다음 배치 프롬프트에 넣는다. 다만 이것이 잡는 것은 <b>끊긴 링크, 잘못된 출처 참조 같은 구조 오류</b>다. &ldquo;이 페이지를 이렇게 쪼갰을 때 나중 질문에 도움이 되는가&rdquo;는 판단하지 못한다.</p>
+          <p class="small">실제로 원 논문 ablation에서 Error Book은 세 구성 요소 중 <b>효과가 가장 작았다</b>(−3.4~4.0 F1). <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p14">해당 절제 실험 보기</a></p>
+        </div>
+        <div class="card">
+          <span class="tag">WikiLoop의 처리 방식</span>
+          <p class="small">편집 후보 <span class="wl">e</span>마다 <b>영향 받는 질문 집합</b>(최대 3개)과 <b>guard 질문 집합</b>(2개, 페이지·출처가 겹치지 않는 같은 저자 질문)을 짝지운다.</p>
+          <p class="small">위키를 복사해 편집 전 상태와 후 상태를 만들고, <b>고정된 Navigator</b>로 두 집합을 각각 실행한다. 영향 받는 질문에서 올라간 만큼 보상하고, guard 질문에서 내려간 만큼 벌점을 준다. 편집의 <b>한계 효용</b>을 직접 측정하는 셈이다.</p>
+        </div>
+      </div>
+
+      <p class="note"><b>왜 &ldquo;전후 차이&rdquo;여야 하나.</b> 편집 후 위키가 좋아 보이는 이유는 편집 전에 이미 좋았기 때문일 수 있다. 절대 성능으로 채점하면 아무것도 안 한 편집도 높은 점수를 받는다. 실제로 표 2B에서 절대 효용으로 채점했을 때 영향 질문 ΔAC는 6.2에 그치고, 전후 차이로 바꾸면 12.8로 두 배가 된다.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">shared-policy</p>
+      <h2>Navigator와 Builder를 파라미터 하나로 묶는다</h2>
+      <p class="dek">두 역할은 같은 위키 위에서 <b>읽는 쪽과 쓰는 쪽</b>이다. 둘 다 관련 정보를 찾고, 페이지와 링크 구조를 이해하고, 출처를 추적하고, 어떤 증거가 필요한지 판단해야 한다. 능력이 겹치니 파라미터를 공유하되, 역할별로 프롬프트·관측·행동 공간·보상은 따로 둔다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">역할 조건부 공유 정책</p>
+        <div class="svgwrap">
+          <svg class="chart" viewBox="0 0 760 250" role="img" aria-label="역할 조건부 공유 정책 구조도. 가운데 공유 파라미터에서 위쪽 Navigator 인터페이스와 아래쪽 Builder 인터페이스로 갈라진다. Navigator는 위키에서 증거를 찾아 답을 내고, Builder는 편집 후보를 제안하면 고정된 Navigator가 편집 전후 위키에서 효용 차이를 측정해 보상을 돌려준다.">
+            <rect class="box-hi" x="290" y="102" width="180" height="46" rx="8"/>
+            <text class="txt" x="306" y="123">공유 파라미터 θ</text>
+            <text class="txt-s" x="306" y="139">역할 프롬프트로 분기</text>
+
+            <rect class="box" x="30" y="18" width="200" height="58" rx="8"/>
+            <text class="txt" x="46" y="40">Navigator (r = NAV)</text>
+            <text class="txt-s" x="46" y="58">search · read · 링크 따라가기</text>
+            <text class="txt-s" x="46" y="70">→ 증거 수집 후 답변</text>
+
+            <rect class="box" x="30" y="174" width="200" height="58" rx="8"/>
+            <text class="txt" x="46" y="196">Builder (r = BUILD)</text>
+            <text class="txt-s" x="46" y="214">스키마 제약 편집 제안</text>
+            <text class="txt-s" x="46" y="226">페이지 · 링크 · 출처</text>
+
+            <rect class="box" x="530" y="18" width="216" height="58" rx="8"/>
+            <text class="txt" x="546" y="40">R_NAV</text>
+            <text class="txt-s" x="546" y="58">증거 충분성 우선,</text>
+            <text class="txt-s" x="546" y="70">그 다음에 비용</text>
+
+            <rect class="box" x="530" y="160" width="216" height="72" rx="8"/>
+            <text class="txt" x="546" y="182">R_BUILD</text>
+            <text class="txt-s" x="546" y="200">고정 Navigator가</text>
+            <text class="txt-s" x="546" y="212">편집 전후 위키에서</text>
+            <text class="txt-s" x="546" y="224">효용 차이를 측정</text>
+
+            <g class="arw">
+              <path d="M290 118 L235 60"/><path d="M240 68 L233 58 L245 57"/>
+              <path d="M290 134 L235 192"/><path d="M245 193 L233 194 L240 184"/>
+              <path d="M230 47 L528 47"/><path d="M521 42 L528 47 L521 52"/>
+              <path d="M230 203 L528 196"/><path d="M521 190 L528 196 L521 201"/>
+              <path d="M638 160 L638 96 L470 96 L470 102"/><path d="M465 95 L470 102 L475 95"/>
+            </g>
+            <text class="txt-s" x="482" y="88">보상이 같은 파라미터를 갱신한다</text>
+          </svg>
+        </div>
+        <figcaption>추론 시점에는 역할 프롬프트만 바꾸면 된다. 모델을 두 개 들고 있을 필요가 없다.</figcaption>
+      </figure>
+
+      <p class="note">궤적을 섞어서 학습하지는 않는다. Navigator 궤적과 Builder 궤적은 행동 공간도 보상 정의도 다르므로, 한 배치에 섞으면 그룹 상대 이점(GRPO)이 <b>역할 정체성과 궤적 품질을 뒤섞는다</b>. 그래서 배치는 역할별로 순수하게 구성하고, 갱신만 같은 파라미터에 가한다. 최적화는 GRPO 이점 계산 + GSPO 시퀀스 목적함수를 쓴다.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">nav-reward</p>
+      <h2>Navigator: 증거를 다 모으기 전에는 비용을 묻지 않는다</h2>
+      <p class="dek">검색 비용에 계속 페널티를 걸면 agent가 <b>일찍 멈추는 쪽</b>을 학습한다. 짧은 궤적이 싸기 때문이다. WikiLoop은 증거 재현율이 1이 된 뒤에야 비용 항을 켠다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">보상 구성</p>
+        <pre>R_NAV = clip[ α<sub>a</sub>·AC·(ρ + (1−ρ)·ER)   <span class="c">← 답변 정확도, 증거를 모을수록 가중</span>
+             + α<sub>e</sub>·ER                  <span class="c">← 증거 재현율 자체의 조밀한 신호</span>
+             + β<sub>full</sub>·I<sub>full</sub>              <span class="c">← 증거를 다 모았을 때 보너스</span>
+             <span class="r">− α<sub>c</sub>·Cost·I<sub>full</sub></span>          <span class="c">← 비용 페널티. I_full로 게이팅된다</span>
+             + P<sub>deg</sub> , −1, 1 ]         <span class="c">← 잘못된 행동·조기 종료·도구 미사용 벌점</span></pre>
+        <p class="fig-sub"><span class="wl">I_full = 1[ER = 1]</span>. 이 지시 함수 하나가 보너스와 비용 페널티를 동시에 켠다. Cost는 궤적 토큰 수, wiki_search 호출 수, read 호출 수를 정규화해 가중합한 값이다.</p>
+      </figure>
+
+      <div class="tablewrap">
+        <table>
+          <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">표 2A. 게이팅을 뺐을 때 무슨 일이 생기나</caption>
+          <thead><tr><th>목적함수</th><th>AC ↑</th><th>증거 완전 확보 ↑</th><th>조기 종료 ↓</th><th>완주 시 비용 ↓</th></tr></thead>
+          <tbody>
+            <tr><td>Joint SFT (학습 전)</td><td>58.2</td><td>66.8%</td><td>18.9%</td><td>0.411</td></tr>
+            <tr><td>NAV-RL, 게이팅 없음</td><td>58.1</td><td class="lose">64.0%</td><td class="lose">24.2%</td><td class="win">0.364</td></tr>
+            <tr class="hero"><td>NAV-RL 전체</td><td>60.4</td><td>76.1%</td><td>11.1%</td><td>0.379</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note">게이팅을 빼면 <b>비용은 가장 낮아지지만(0.364) 정확도는 오르지 않고 조기 종료가 24.2%로 뛴다.</b> 예측된 실패 양상이 그대로 나타난 셈이다. 게이팅을 넣으면 비용이 0.015 올라가는 대신 증거 완전 확보가 12.1%p 오르고 조기 종료가 13.1%p 떨어진다. 게다가 <b>완주한 궤적만 놓고 봐도 SFT(0.411)보다 싸다</b>. 오래 뒤져서 이긴 게 아니라는 뜻이다.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">build-reward</p>
+      <h2>Builder: 편집이 바꾼 만큼만 점수를 준다</h2>
+      <p class="dek">편집 후보 하나를 위키 사본에 적용하고, <b>고정된</b> Navigator로 영향 질문과 guard 질문을 각각 편집 전후에 실행한다. 사본은 채점 후 버린다. 학습용 위키에 반영하지 않는다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">보상 구성</p>
+        <pre>R_BUILD = clip[ ΔU<sub>affected</sub>                <span class="c">← 영향 질문에서의 효용 변화</span>
+              <span class="r">− λ<sub>g</sub>·[ −ΔU<sub>guard</sub> ]<sub>+</sub></span>       <span class="c">← guard 질문이 나빠졌을 때만 벌점 (단방향)</span>
+              − λ<sub>e</sub>·C<sub>edit</sub>              <span class="c">← 편집 크기</span>
+              − P<sub>structure</sub> , −1, 1 ]     <span class="c">← 고아 페이지·구조 복잡도·파편화·과다 길이</span>
+
+U<sub>q</sub>(W) = w<sub>a</sub>·AC·(κ + (1−κ)·ER) + w<sub>e</sub>·ER − w<sub>c</sub>·Cost      <span class="c">w<sub>a</sub> + w<sub>e</sub> + w<sub>c</sub> = 1</span></pre>
+        <p class="fig-sub">파싱 실패, 스키마 위반, 적용 불가 연산은 −1. 유효하지만 아무 변화도 없는 편집은 0을 받고 편집 비용 벌점을 면제받는다.</p>
+      </figure>
+
+      <div class="tablewrap">
+        <table>
+          <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">표 2B. 채점 방식을 바꿔가며 측정</caption>
+          <thead><tr><th>채점 방식</th><th>영향 질문 ΔAC ↑</th><th>학습 평가자 ΔU ↑</th><th>held-out ΔU ↑</th><th>guard 손상 ↓</th></tr></thead>
+          <tbody>
+            <tr><td>Joint SFT</td><td>4.9</td><td>0.040</td><td>0.026</td><td>0.021</td></tr>
+            <tr><td>편집 후 절대 효용</td><td>6.2</td><td>0.054</td><td>0.034</td><td>0.025</td></tr>
+            <tr><td>전후 차이, guard 없음</td><td class="win">12.8</td><td class="win">0.118</td><td>0.077</td><td class="lose">0.046</td></tr>
+            <tr class="hero"><td>BUILD-RL 전체</td><td>12.1</td><td>0.111</td><td>0.084</td><td>0.016</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid g2" style="margin-top:14px">
+        <div class="card">
+          <span class="tag">전후 차이가 절대값보다 낫다</span>
+          <p class="small">절대 효용은 SFT 대비 4.9 → 6.2로 소폭 오르는 데 그친다. 전후 차이로 바꾸면 12.8까지 간다. 개별 편집에 대한 신호로는 <b>결과 상태보다 변화량이 훨씬 정보가 많다</b>.</p>
+        </div>
+        <div class="card">
+          <span class="tag">guard 항은 거의 공짜다</span>
+          <p class="small">guard를 넣으면 무관한 질문의 손상이 0.046에서 0.016으로 <b>65.2% 줄어드는데</b>, 영향 질문 이득은 12.8에서 12.1로만 내려간다. 게다가 <b>held-out Navigator 기준으로는 오히려 0.077에서 0.084로 오른다</b>. 학습 평가자에 과적합되던 편집이 걸러진다는 뜻이다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">training</p>
+      <h2>학습은 네 단계를 순서대로 밟는다</h2>
+      <p class="dek">Builder에게 채점자가 필요하므로 Navigator를 먼저 만든다. 그리고 그 채점자를 <b>얼려서</b> Builder가 바뀌는 동안 효용의 척도가 흔들리지 않게 한다.</p>
+
+      <figure class="figure">
+        <div class="svgwrap">
+          <svg class="chart" viewBox="0 0 760 170" role="img" aria-label="학습 4단계. Joint SFT로 초기 정책을 만들고, NAV-RL로 Navigator를 학습시킨 뒤 그 사본을 얼려 평가자로 쓰고, BUILD-RL로 Builder를 학습시키고, 마지막 Joint RL에서 두 역할을 번갈아 학습해 하나의 공유 정책을 만든다.">
+            <rect class="box" x="10" y="30" width="160" height="56" rx="8"/>
+            <rect class="box" x="204" y="30" width="160" height="56" rx="8"/>
+            <rect class="box" x="398" y="30" width="160" height="56" rx="8"/>
+            <rect class="box-hi" x="592" y="30" width="158" height="56" rx="8"/>
+            <text class="txt" x="26" y="52">1 · Joint SFT</text>
+            <text class="txt-s" x="26" y="70">θ₀ · 두 역할 동시 지도학습</text>
+            <text class="txt" x="220" y="52">2 · NAV-RL</text>
+            <text class="txt-s" x="220" y="70">θ_N · Navigator 특화</text>
+            <text class="txt" x="414" y="52">3 · BUILD-RL</text>
+            <text class="txt-s" x="414" y="70">θ_B · Builder 특화</text>
+            <text class="txt" x="608" y="52">4 · Joint RL</text>
+            <text class="txt-s" x="608" y="70">θ_J · 두 역할 통합</text>
+            <g class="arw">
+              <path d="M172 58 L202 58"/><path d="M195 53 L202 58 L195 63"/>
+              <path d="M366 58 L396 58"/><path d="M359 53 L366 58 L359 63"/>
+              <path d="M560 58 L590 58"/><path d="M553 53 L560 58 L553 63"/>
+              <path d="M284 88 L284 122 L478 122 L478 88" style="stroke-dasharray:4 3"/>
+              <path d="M473 95 L478 88 L483 95"/>
+              <path d="M478 122 L671 122 L671 88" style="stroke-dasharray:4 3"/>
+              <path d="M666 95 L671 88 L676 95"/>
+            </g>
+            <text class="txt-s" x="292" y="140">NAV-RL 결과를 복사해 얼린 평가자로 3·4단계 내내 사용한다</text>
+          </svg>
+        </div>
+        <figcaption>학습 데이터는 DeepSeek-V4-Flash를 교사로 삼아 문서 단위로 나눈 합성 데이터로 만들었다. AuthTrace 질문은 전부 최종 평가용으로 남겨두고 지도, 보상, 필터링, 보정, 모델 선택 어디에도 쓰지 않았다.</figcaption>
+      </figure>
+
+      <p class="note">3단계에서 Builder를 학습시키고 나면 2단계에서 익힌 검색 행동이 조금 밀린다. Navigator AC가 60.4에서 59.7로, 조기 종료가 11.1%에서 12.5%로 나빠진다. 4단계 Joint RL은 이 밀림을 되돌리는 역할이다. 결과는 60.8 / 10.9로 <b>특화 모델보다도 살짝 낫다</b>.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-main</p>
+      <h2>결과 1. 필요한 문서가 늘수록 격차가 벌어진다</h2>
+      <p class="dek">답변 백본을 Qwen3.5-9B로 통일하고 AuthTrace에서 비교했다. 각 방법은 자기 인덱싱·검색 절차를 그대로 쓴다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">필요 문서 수별 AC</p>
+        <div class="legend"><span><i class="s1"></i>WikiLoop</span><span><i class="s2"></i>LLM-Wiki base</span><span><i class="sn"></i>나머지 6종</span></div>
+        <div class="svgwrap">
+          <svg class="chart" viewBox="0 0 720 360" role="img" aria-label="필요 문서 수별 채점 정확도 선그래프. WikiLoop은 69.1에서 54.8, 47.5로 완만하게 내려가고 LLM-Wiki base는 66.7에서 42.0, 35.2로, HippoRAG 2는 69.8에서 36.5, 28.0으로 더 가파르게 떨어진다. 나머지 평면 검색 방식들은 40대에서 10 미만으로 급락한다.">
+            <g class="grid-l">
+              <line x1="90" y1="320" x2="640" y2="320"/><line x1="90" y1="247.5" x2="640" y2="247.5"/>
+              <line x1="90" y1="175" x2="640" y2="175"/><line x1="90" y1="102.5" x2="640" y2="102.5"/>
+              <line x1="90" y1="30" x2="640" y2="30"/>
+            </g>
+            <g class="tick" text-anchor="end">
+              <text x="80" y="324">0</text><text x="80" y="251.5">25</text><text x="80" y="179">50</text><text x="80" y="106.5">75</text><text x="80" y="34">100</text>
+            </g>
+            <g class="lbl" text-anchor="middle">
+              <text x="90" y="344">문서 1개</text><text x="355" y="344">문서 2개</text><text x="620" y="344">문서 3개 이상</text>
+            </g>
+            <path class="ln dim" d="M90 312.5 L355 307.2 L620 310.1"/>
+            <path class="ln dim" d="M90 193.0 L355 285.2 L620 296.8"/>
+            <path class="ln dim" d="M90 199.7 L355 282.6 L620 286.4"/>
+            <path class="ln dim" d="M90 206.3 L355 289.3 L620 291.6"/>
+            <path class="ln dim" d="M90 196.5 L355 296.5 L620 305.8"/>
+            <path class="ln dim" style="stroke-dasharray:5 4" d="M90 117.6 L355 214.2 L620 238.8"/>
+            <path class="ln s2" d="M90 126.6 L355 198.2 L620 217.9"/>
+            <path class="ln s1" d="M90 119.6 L355 161.1 L620 182.3"/>
+            <g>
+              <circle class="dot s1" cx="90" cy="119.6" r="4.5"/><circle class="dot s1" cx="355" cy="161.1" r="4.5"/><circle class="dot s1" cx="620" cy="182.3" r="4.5"/>
+              <circle class="dot s2" cx="90" cy="126.6" r="4.5"/><circle class="dot s2" cx="355" cy="198.2" r="4.5"/><circle class="dot s2" cx="620" cy="217.9" r="4.5"/>
+            </g>
+            <g>
+              <text class="lbl-hi" x="632" y="180">WikiLoop 47.5</text>
+              <text class="lbl" x="632" y="221">LLM-Wiki base 35.2</text>
+              <text class="lbl" x="632" y="242">HippoRAG 2 28.0</text>
+            </g>
+          </svg>
+        </div>
+        <figcaption>표 1(논문). 점선은 HippoRAG 2다. 문서 1개짜리 질문에서는 HippoRAG 2가 69.8로 WikiLoop 69.1보다 0.7 높지만, <b>이 차이는 통계적으로 유의하지 않다</b>고 논문이 밝히고 있다. 나머지 구간에서는 WikiLoop이 유의하게 앞선다.</figcaption>
+      </figure>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>방법</th><th>문서 1개</th><th>2개</th><th>3개 이상</th><th>전체</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>WikiLoop</td><td>69.1</td><td class="win">54.8</td><td class="win">47.5</td><td class="win">62.6</td></tr>
+            <tr><td>LLM-Wiki, base</td><td>66.7</td><td>42.0</td><td>35.2</td><td>56.3</td></tr>
+            <tr><td>HippoRAG 2</td><td class="win">69.8</td><td>36.5</td><td>28.0</td><td>55.8</td></tr>
+            <tr><td>Vanilla RAG (BM25)</td><td>43.8</td><td>12.0</td><td>8.0</td><td>31.0</td></tr>
+            <tr><td>Vanilla RAG (Dense)</td><td>41.5</td><td>12.9</td><td>11.6</td><td>30.2</td></tr>
+            <tr><td>LightRAG</td><td>42.6</td><td>8.1</td><td class="lose">4.9</td><td>28.8</td></tr>
+            <tr><td>RAPTOR</td><td>39.2</td><td>10.6</td><td>9.8</td><td>28.0</td></tr>
+            <tr><td>Closed-book</td><td>2.6</td><td>4.4</td><td>3.4</td><td>3.2</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note warn"><b>이 표를 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p13">LLM-Wiki 문서의 AuthTrace 표</a>와 나란히 두면 안 된다.</b> 두 가지가 다르다. 첫째, 백본이 GLM-5.1이 아니라 Qwen3.5-9B라 절대 수치가 전반적으로 낮다. 둘째, <b>구간 정의가 바뀌었다.</b> AuthTrace 원 논문과 LLM-Wiki는 Low를 2~3개, High를 4개 이상으로 나눴는데, WikiLoop은 Low를 2개, High를 3개 이상으로 잡았다(1,285 / 552 / 262). 전체 합은 2,099로 같지만 구간별 값은 서로 비교할 수 없다.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-objective</p>
+      <h2>결과 2. 두 장치가 실제로 의도한 대로 작동하는가</h2>
+      <p class="dek">성능이 올랐다는 것과 &lsquo;설계한 이유대로 올랐다&rsquo;는 것은 다르다. 논문은 각 장치마다 한 항만 바꾼 대조군을 두고, 그 장치가 겨냥한 지표가 실제로 움직였는지 확인한다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">sufficiency 게이팅이 겨냥한 지표</span>
+          <ul class="clean">
+            <li><span class="m">▸</span><span><b>조기 종료</b> 18.9% → 11.1% (게이팅 없으면 24.2%로 악화)</span></li>
+            <li><span class="m">▸</span><span><b>증거 완전 확보</b> 66.8% → 76.1% (게이팅 없으면 64.0%)</span></li>
+            <li><span class="m">▸</span><span><b>증거 부족 오류</b> 28.9% → 17.6%</span></li>
+          </ul>
+          <p class="note">겨냥한 지표가 정확히 움직였고, 다른 오류 범주는 완만하게만 개선됐다. 우연히 전반적으로 좋아진 게 아니라는 근거다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">효용 차이와 guard가 겨냥한 지표</span>
+          <ul class="clean">
+            <li><span class="m">▸</span><span><b>한계 효용 채점</b> → held-out 편집 유용성 0.034 → 0.077</span></li>
+            <li><span class="m">▸</span><span><b>guard 항</b> → 무관 질문 손상 0.046 → 0.016</span></li>
+            <li><span class="m">▸</span><span><b>held-out Navigator</b>에서도 0.084로 유지 (학습 평가자 전용 이득이 아님)</span></li>
+          </ul>
+          <p class="note warn">다만 논문 스스로 두 가지는 <b>통계적으로 유의하지 않다</b>고 적었다. 절대 효용에서 guard 없는 한계 효용으로 갈 때의 guard 손상 증가, 그리고 guard 없는 것에서 전체 목적함수로 갈 때의 held-out 효용 변화다.</p>
+        </div>
+      </div>
+
+      <p class="note"><b>held-out 검증이 이 논문에서 가장 값어치 있는 설계다.</b> Builder는 학습 중 특정 Navigator에게 점수를 받는다. 그 Navigator에게만 잘 보이는 편집을 학습할 위험이 있다. 그래서 <b>다른 시드로 따로 학습시킨, Builder 학습과 모델 선택에 전혀 참여하지 않은 Navigator</b>를 데려와 편집을 다시 평가했다. 여기서도 효용이 유지된다는 것은 편집 자체가 위키를 좋게 만들었다는 뜻이지, 채점자를 속인 게 아니라는 뜻이다.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-cost</p>
+      <h2>결과 3. 역량 유지, 그리고 처음 공개된 구축 비용</h2>
+      <p class="dek">공유 정책 하나로 합쳤을 때 두 역할의 능력이 유지되는지, 그리고 이 모든 게 얼마나 드는지.</p>
+
+      <div class="tablewrap" style="margin-bottom:16px">
+        <table>
+          <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">표 3. 학습 단계별 역량 변화. Δ는 Joint RL 빼기 특화 모델</caption>
+          <thead><tr><th>지표</th><th>Joint SFT</th><th>특화 모델</th><th>BUILD 이후</th><th>Joint RL</th><th>Δ (95% CI)</th><th>Holm p</th></tr></thead>
+          <tbody>
+            <tr><td>Navigator AC ↑</td><td>58.2</td><td>60.4</td><td>59.7</td><td class="win">60.8</td><td>+0.4 [+0.08, +0.73]</td><td>0.034</td></tr>
+            <tr><td>증거 완전 확보 ↑</td><td>66.8</td><td>76.1</td><td>74.5</td><td>75.9</td><td>—</td><td>—</td></tr>
+            <tr><td>조기 종료 ↓</td><td>18.9</td><td>11.1</td><td>12.5</td><td class="win">10.9</td><td>—</td><td>—</td></tr>
+            <tr><td>Builder held-out ΔU ↑</td><td>0.026</td><td>0.084</td><td>—</td><td>0.081</td><td>−0.003 [−0.008, +0.002]</td><td>0.231</td></tr>
+            <tr class="hero"><td>전체 AC ↑</td><td>58.2</td><td>62.2</td><td>—</td><td>62.6</td><td>+0.4 [+0.12, +0.69]</td><td>0.018</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">역량 유지</span>
+          <p class="small">Navigator와 전체 성능은 특화 모델 대비 <b>0.4점씩 올랐고 신뢰구간이 0을 포함하지 않는다</b>. Builder 효용은 0.084에서 0.081로 내려갔지만 신뢰구간이 0을 걸쳐 있어 차이라고 말할 수 없다(p=0.231).</p>
+          <p class="small">즉 두 모델을 따로 들고 있을 이유가 없다. 하나로 합쳐도 잃는 게 없다.</p>
+        </div>
+        <div class="card">
+          <span class="tag" style="color:var(--link)">LLM-Wiki가 빠뜨렸던 숫자</span>
+          <p class="small"><a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p16">원 논문의 가장 큰 공백</a>이 컴파일 비용 미보고였다. WikiLoop 보충 자료가 이를 채운다.</p>
+          <div class="stats" style="margin:12px 0 0">
+            <div class="stat"><span class="lab">위키 전체 구축</span><span class="val">185.15<span class="u">M</span></span><span class="sub">LLM-Wiki base 194.00M 토큰</span></div>
+            <div class="stat"><span class="lab">질문당 지연</span><span class="val">15.76<span class="u">초</span></span><span class="sub">LLM-Wiki base 16.90초</span></div>
+          </div>
+        </div>
+      </div>
+
+      <p class="note"><b>비용 수치를 어떻게 읽어야 하나.</b> AuthTrace 코퍼스(860편) 위키를 짓는 데 <b>약 1.9억 토큰</b>이 든다. 문서 한 편당 대략 22만 토큰인 셈이다. 이것이 질의당 15~17초짜리 질문 몇 번으로 회수되는지는 여전히 계산되지 않았지만, 최소한 <b>이제 자릿수는 알 수 있다</b>. 그리고 WikiLoop이 LLM-Wiki보다 성능은 6.3점 높으면서 구축 토큰은 4.6% 적고 지연도 6.7% 낮다는 점은, 학습된 Builder가 <b>더 적게 쓰면서 더 쓸모 있는 위키</b>를 만든다는 뜻이다.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-transfer</p>
+      <h2>결과 4. 다른 데이터셋과 더 큰 모델로 옮겨가는가</h2>
+      <p class="dek">AuthTrace로만 학습하고 보정했으므로, 학습에 전혀 참여하지 않은 두 벤치마크로 zero-shot 전이를 확인한다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">HotpotQA · MuSiQue zero-shot 전이 (Qwen3.5-9B 통제 비교)</p>
+        <div class="legend"><span><i class="s1"></i>WikiLoop</span><span><i class="sn"></i>LLM-Wiki base</span></div>
+        <div class="grid g2">
+          <div>
+            <p class="fig-sub" style="margin-bottom:8px"><b>HotpotQA</b></p>
+            <div class="bars">
+              <div class="bar-row is-hero"><span class="bar-name">WikiLoop F1</span><div class="bar-track"><div class="bar s1" style="--w:77.7%"></div></div><span class="bar-val">.777</span></div>
+              <div class="bar-row"><span class="bar-name">LLM-Wiki F1</span><div class="bar-track"><div class="bar" style="--w:75.2%"></div></div><span class="bar-val">.752</span></div>
+              <div class="bar-row is-hero"><span class="bar-name">WikiLoop EM</span><div class="bar-track"><div class="bar s1" style="--w:61.8%"></div></div><span class="bar-val">.618</span></div>
+              <div class="bar-row"><span class="bar-name">LLM-Wiki EM</span><div class="bar-track"><div class="bar" style="--w:58.4%"></div></div><span class="bar-val">.584</span></div>
+            </div>
+            <div class="bar-axis"><div class="ticks"><span>0</span><span>.25</span><span>.50</span><span>.75</span><span>1</span></div></div>
+          </div>
+          <div>
+            <p class="fig-sub" style="margin-bottom:8px"><b>MuSiQue</b></p>
+            <div class="bars">
+              <div class="bar-row is-hero"><span class="bar-name">WikiLoop F1</span><div class="bar-track"><div class="bar s1" style="--w:61.4%"></div></div><span class="bar-val">.614</span></div>
+              <div class="bar-row"><span class="bar-name">LLM-Wiki F1</span><div class="bar-track"><div class="bar" style="--w:57.9%"></div></div><span class="bar-val">.579</span></div>
+              <div class="bar-row is-hero"><span class="bar-name">WikiLoop EM</span><div class="bar-track"><div class="bar s1" style="--w:48.2%"></div></div><span class="bar-val">.482</span></div>
+              <div class="bar-row"><span class="bar-name">LLM-Wiki EM</span><div class="bar-track"><div class="bar" style="--w:43.8%"></div></div><span class="bar-val">.438</span></div>
+            </div>
+            <div class="bar-axis"><div class="ticks"><span>0</span><span>.25</span><span>.50</span><span>.75</span><span>1</span></div></div>
+          </div>
+        </div>
+        <figcaption>표 4B(논문). 네 지표 모두 개선됐다. 상대 향상은 HotpotQA 3.3%/5.8%, MuSiQue 6.0%/10.0%로 <b>더 어려운 MuSiQue에서 더 크다</b>. 학습된 편집 정책이 특정 코퍼스에만 맞춰진 게 아니라는 근거다.</figcaption>
+      </figure>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">모델 크기 전이</span>
+          <p class="small">Qwen3.5-9B에서 Qwen3.5-35B-A3B로 키우면 Joint SFT는 58.2 → 60.7, WikiLoop은 62.6 → 64.8이 된다. 중요한 건 <b>WikiLoop이 지도학습 초기값 대비 갖는 우위가 두 크기에서 유지된다</b>는 점이다(9B에서 +4.4, 35B에서 +4.1).</p>
+          <p class="small">그리고 두 크기 모두 <b>여러 문서가 필요한 질문에서 우위가 더 크다</b>. 9B에서 2개/3개 이상 구간 +5.5/+7.7, 35B에서 +6.1/+7.2인 반면 1개 구간은 +3.3, +2.6에 그친다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">주의</span>
+          <p class="small">표 4에는 GLM-5.1로 돌린 참고 수치도 함께 실려 있는데, 논문은 이를 <b>맥락용이며 같은 백본 비교에 쓰지 말라</b>고 명시했다. 그 블록의 LLM-Wiki 0.839 / 0.739는 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p10">원 논문 표 1</a>의 값을 그대로 옮긴 것이다.</p>
+          <p class="small">전이 검증은 벤치마크 2개, 더 큰 백본 1개에 그친다. 논문도 &ldquo;더 넓은 모델 계열과 규모는 앞으로의 과제&rdquo;라고 적었다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>해석의 한계</h2>
+      <p class="dek">방법론 자체는 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM-Wiki</a>보다 훨씬 엄격하다. 신뢰구간, 다중 비교 보정, held-out 평가자, 채점자 3종 교차 확인이 모두 있다. 그래도 남는 문제가 넷 있다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag" style="color:var(--redlink)">1. 닫힌 고리가 아니다</span>
+          <p class="small">편집 후보는 위키 <b>사본</b>에 적용해 채점하고 버린다. 실제 위키에 반영되지 않는다. 논문이 한계로 직접 밝힌 대로, 편집과 이후 검색이 <b>하나의 궤적 안에서</b> 최적화되지는 않는다. 편집이 쌓이면서 서로 간섭하거나 오류가 전파되는 상황은 다루지 못한다. 이름은 Loop이지만 아직 고리가 닫히지 않았다.</p>
+        </div>
+        <div class="card">
+          <span class="tag" style="color:var(--redlink)">2. 지식베이스 수준에서 transductive</span>
+          <p class="small">질문과 주석은 엄격히 분리했지만, <b>학습과 평가가 같은 코퍼스와 같은 초기 위키를 공유한다</b>. 논문이 이 점을 명시한다. 완전히 새로운 코퍼스에서 위키를 처음부터 지었을 때도 같은 이득이 나오는지는 확인되지 않았다.</p>
+        </div>
+        <div class="card">
+          <span class="tag" style="color:var(--redlink)">3. 벤치마크가 여전히 자체 제작</span>
+          <p class="small">주 평가가 AuthTrace이고, <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p16">앞선 문서에서 지적한 대로</a> 같은 팀의 벤치마크다. 게다가 이번에는 <b>구간 정의까지 바꿔서</b>(Low=2, High≥3) 원 논문과 구간별 비교가 불가능하다. 전이 검증에 쓴 HotpotQA와 MuSiQue가 유일한 외부 척도다.</p>
+        </div>
+        <div class="card">
+          <span class="tag" style="color:var(--redlink)">4. 재현 불가</span>
+          <p class="small">코드, 학습 데이터, 보상 계수가 공개되지 않았다. 보상 함수의 정규화 상수와 계수는 모두 &ldquo;보충 자료 참조&rdquo;로 넘어간다. RL 학습은 하이퍼파라미터 민감도가 큰데, 이 상태로는 제3자가 같은 결과를 낼 수 있는지 확인할 방법이 없다.</p>
+        </div>
+      </div>
+
+      <p class="note">그럼에도 이 논문에는 <b>다른 상황에 옮겨 쓸 수 있는 결과가 두 개</b> 있다. 첫째, 검색 agent에 비용 페널티를 걸 때는 <b>증거를 다 모은 뒤에 걸어야 한다</b>. 그러지 않으면 조기 종료를 학습한다(24.2% 대 11.1%). 둘째, 지식베이스 편집을 학습시킬 때는 <b>결과 상태가 아니라 전후 차이로 채점해야 한다</b>(6.2 대 12.8). 둘 다 같은 시스템 안의 대조 실험이라 벤치마크 선택과 무관하게 성립한다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론</h2>
+      <p class="dek">LLM-Wiki의 결론이 &ldquo;컴파일과 순회는 세트로만 작동한다&rdquo;였다면, WikiLoop의 결론은 <b>&ldquo;그 세트를 사람이 설계하는 대신 학습시킬 수 있다&rdquo;</b>이다.</p>
+
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag">바뀐 것 1</span>
+          <h3>위키 편집이 처음으로 측정 가능해졌다</h3>
+          <p class="small">그동안 &ldquo;페이지를 어떻게 쪼개야 하나&rdquo;는 설계자의 감이었다. 이제 편집 전후로 검색을 돌려 차이를 재면 된다. 이 신호가 있으면 학습도 되고, 학습하지 않더라도 <b>사람이 만든 규칙을 검증하는 데</b> 쓸 수 있다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">바뀐 것 2</span>
+          <h3>비용의 자릿수를 알게 됐다</h3>
+          <p class="small">AuthTrace 코퍼스 860편 위키 구축에 <b>약 1.9억 토큰</b>. 문서당 22만 토큰꼴이다. <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p18">5월 시점에 계산할 수 없다고 적었던 손익분기</a>를, 이제 자기 워크로드에 대입해 어림잡을 수는 있다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">바뀌지 않은 것</span>
+          <h3>외부 검증은 여전히 없다</h3>
+          <p class="small">평가 방법은 훨씬 엄격해졌지만 <b>평가하는 주체는 그대로다</b>. 벤치마크도, 시스템도, 후속 연구도 전부 같은 팀에서 나온다. 코드 공개가 없어 재현 시도조차 어렵다.</p>
+        </div>
+      </div>
+
+      <p class="note"><b>도입 관점에서는.</b> WikiLoop은 RL 학습 파이프라인을 요구하므로 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p17">LLM-Wiki 도입 조건</a>보다 문턱이 훨씬 높다. 합성 학습 데이터 생성, 편집마다 위키 사본을 뜨고 Navigator를 두 번 돌리는 롤아웃, 역할별 배치 구성이 전부 필요하다. 반면 <b>sufficiency 게이팅은 학습 없이도 바로 쓸 수 있다.</b> 검색 agent의 도구 호출 예산을 다룰 때 &ldquo;증거가 충분해지기 전에는 비용을 재촉하지 않는다&rdquo;는 규칙 하나만 옮겨도 된다.</p>
+
+      <p class="note">같은 계보의 다른 문서: <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM-Wiki 논문 분석</a> · <a class="xref" href="../2026-08-05-wikikv-hierarchical-kb-storage/">WikiKV 논문 분석</a></p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처</h2>
+      <p class="dek">수치 출처는 arXiv HTML 원문의 표 1~4와 본문이다. 그림은 논문 내용을 바탕으로 다시 그린 것이다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">주 문헌</span>
+          <div class="src">
+            <span class="t">WikiLoop (초록)</span>
+            <a href="https://arxiv.org/abs/2607.26604">https://arxiv.org/abs/2607.26604</a>
+            <span class="t">WikiLoop (HTML 전문)</span>
+            <a href="https://arxiv.org/html/2607.26604v1">https://arxiv.org/html/2607.26604v1</a>
+          </div>
+        </div>
+        <div class="card">
+          <span class="tag">같은 계보</span>
+          <div class="src">
+            <span class="t">LLM-Wiki, 이 시스템의 기반</span>
+            <a href="https://arxiv.org/abs/2605.25480">https://arxiv.org/abs/2605.25480</a>
+            <span class="t">AuthTrace, 주 평가 벤치마크</span>
+            <a href="https://arxiv.org/abs/2605.25382">https://arxiv.org/abs/2605.25382</a>
+            <span class="t">WikiKV, 저장 계층</span>
+            <a href="https://arxiv.org/abs/2606.14275">https://arxiv.org/abs/2606.14275</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <span class="tag">인용된 방법론</span>
+        <p class="small">GRPO (Shao et al., 2024) · GSPO (Zheng et al., 2025) · ReAct (Yao et al., ICLR 2023) · IRCoT (Trivedi et al., ACL 2023) · Self-RAG (Asai et al., ICLR 2024) · Adaptive-RAG (Jeong et al., 2024) · SPARKLE (Fang et al., ACL 2026) · Agentic-R (Liu et al., 2026) · MemGPT (Packer et al., 2023) · A-Mem (Xu et al., 2025) · Memory-R1 (Yan et al., 2025) · HiMPO (Yan et al., 2026) · RoleRAG (Zhu et al., 2025) · MATPO (Mo et al., 2025) · HippoRAG 2 (Gutiérrez et al., ICML 2025) · LightRAG (Guo et al., EMNLP 2025) · RAPTOR (Sarthi et al., ICLR 2024)</p>
+      </div>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 14</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+# OS / 편집기
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# 작업 중 임시 파일
+*.tmp
+*.bak
+_scratch/
+scratch/
+
+# 문서 제작 과정에서만 쓰는 원본 (내보낸 결과물만 커밋한다)
+research/*/src/
+
+# node
+node_modules/
+npm-debug.log*

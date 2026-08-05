@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>fable22 research library</title>
+<meta name="description" content="fable22 리서치 문서 모음. 논문 분석, 주제 리서치, 기술 평가.">
+<link rel="stylesheet" href="assets/index.css">
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <p class="eyebrow">index</p>
+    <h1>research library</h1>
+    <p class="lede">fable22 에서 정리한 리서치 문서 모음입니다. 각 문서는 파일 하나로 완결되어 있어서 내려받아 오프라인에서도 그대로 열립니다.</p>
+  </header>
+
+  <main>
+    <p class="year">2026</p>
+    <ul class="list">
+      <li class="item">
+        <a class="title-link" href="research/2026-08-05-llm-wiki-retrieval-as-reasoning/">
+          <p class="meta"><span class="cat">논문 분석</span><span>2026-08-05</span><span>deck</span><span class="ser">agent-native wiki 연구 흐름</span></p>
+          <h2>Retrieval as Reasoning: LLM-Wiki 논문 분석</h2>
+          <p class="summary">문서를 마크다운 위키로 컴파일하고 agent가 직접 순회하게 한 검색 시스템. multi-hop QA 3종과 자체 벤치마크 결과, ablation 해석, 도입 조건을 19장으로 정리했다.</p>
+        </a>
+        <p class="tags"><span>RAG</span><span>knowledge base</span><span>retrieval</span><span>multi-hop QA</span><span>agent</span></p>
+        <p class="src">원문 <a href="https://arxiv.org/abs/2605.25480">arXiv:2605.25480</a></p>
+      </li>
+      <li class="item">
+        <a class="title-link" href="research/2026-08-05-wikikv-hierarchical-kb-storage/">
+          <p class="meta"><span class="cat">논문 분석</span><span>2026-08-05</span><span>deck</span><span class="ser">agent-native wiki 연구 흐름</span></p>
+          <h2>WikiKV: 계층형 지식베이스 저장 계층 논문 분석</h2>
+          <p class="summary">위키를 실제 서비스에서 굴리는 저장 계층. path-as-key 인코딩, 잠금 없는 일관성 프로토콜, 스키마 진화, 그리고 WeChat 공식계정 AI 어시스턴트 프로덕션 배포 데이터를 다룬다.</p>
+        </a>
+        <p class="tags"><span>RAG</span><span>knowledge base</span><span>storage</span><span>key-value</span><span>production</span></p>
+        <p class="src">원문 <a href="https://arxiv.org/abs/2606.14275">arXiv:2606.14275</a></p>
+      </li>
+      <li class="item">
+        <a class="title-link" href="research/2026-08-05-wikiloop-feedback-coupled-wiki/">
+          <p class="meta"><span class="cat">논문 분석</span><span>2026-08-05</span><span>deck</span><span class="ser">agent-native wiki 연구 흐름</span></p>
+          <h2>WikiLoop: 위키 구축과 순회를 함께 학습시키는 논문 분석</h2>
+          <p class="summary">편집이 나중의 검색 성능을 얼마나 바꾸는지를 보상으로 삼아, 위키 구축 정책을 강화학습으로 학습시킨다. LLM-Wiki가 빠뜨렸던 위키 구축 비용도 여기서 처음 공개된다.</p>
+        </a>
+        <p class="tags"><span>RAG</span><span>knowledge base</span><span>reinforcement learning</span><span>agent</span><span>multi-hop QA</span></p>
+        <p class="src">원문 <a href="https://arxiv.org/abs/2607.26604">arXiv:2607.26604</a></p>
+      </li>
+    </ul>
+  </main>
+
+  <footer>
+    문서를 추가하려면 <code>research/&lt;YYYY-MM-DD-slug&gt;/</code> 에 <code>index.html</code> 과 <code>meta.json</code> 을 넣고 <code>node scripts/build-index.mjs</code> 를 실행하세요. 자세한 규칙은 <a href="https://github.com/fable22/research-library#readme">README</a> 에 있습니다.
+  </footer>
+</div>
+</body>
+</html>

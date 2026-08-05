@@ -1,0 +1,958 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>WikiKV: 계층형 지식베이스 저장 계층 논문 분석</title>
+<meta name="description" content="위키를 실제 서비스에서 굴리는 저장 계층. path-as-key 인코딩, 잠금 없는 일관성 프로토콜, 스키마 진화, 그리고 WeChat 프로덕션 배포 데이터.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="WikiKV: 계층형 지식베이스 저장 계층 논문 분석">
+<meta property="og:description" content="위키를 실제 서비스에서 굴리는 저장 계층. path-as-key 인코딩, 잠금 없는 일관성 프로토콜, 스키마 진화, 그리고 WeChat 프로덕션 배포 데이터.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-05-wikikv-hierarchical-kb-storage/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+.bar { height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>계층과 질의 연산자</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>path-as-key</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>일관성 프로토콜</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>스키마 설계와 진화</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>탐색 가속</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>결과 1. 백엔드 지연</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>결과 2. 스키마 효과</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>결과 3. 프로덕션</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>결론</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <div class="lineage">
+        <span class="lg">연구 계보</span>
+        <span class="ext">AuthTrace 05-25</span><span class="arrow">→</span>
+        <a href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM-Wiki 05-25</a><span class="arrow">→</span>
+        <span class="self">WikiKV 06-12</span><span class="arrow">→</span>
+        <a href="../2026-08-05-wikiloop-feedback-coupled-wiki/">WikiLoop 07-29</a>
+      </div>
+      <h1>위키를 실제로 굴리려면<br>저장 계층이 필요하다</h1>
+      <p class="dek"><b>WikiKV: Schema-Evolving Path-Indexed Storage for Hierarchical Knowledge Navigation</b><br>
+      <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM-Wiki</a>가 검색 방법을 다뤘다면, WikiKV는 그 위키를 무엇에 담을 것인가를 다룬다. 페이지 경로를 그대로 키로 쓰는 KV 저장 모델, 잠금 없이 부분 읽기를 막는 일관성 프로토콜, 그리고 탐색 단계를 <i>d</i>에서 <i>O</i>(1)로 줄이는 질의 연산자. <b>WeChat 공식계정 AI 어시스턴트에 실제로 배포돼 있다.</b></p>
+
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag">저자 · 소속</span>
+          <p class="small">Feifei Li, Haoliang Ming, Zihan Li, Hang Liao, Xingyu Fan, Xiaoqing Wu, Chenggong Wang, Wenhui Que<br><b>WeChat, Tencent Inc.</b><br>LLM-Wiki 저자 4명 전원 포함</p>
+        </div>
+        <div class="card">
+          <span class="tag">출처</span>
+          <p class="small">arXiv:2606.14275<br>2026-06-12<br>코드 공개 없음</p>
+        </div>
+        <div class="card">
+          <span class="tag">성격이 다른 논문이다</span>
+          <p class="small">앞의 두 편이 NLP 논문이라면 이것은 <b>데이터 시스템 논문</b>이다. 정리, 증명, 백엔드 지연 벤치마크, 프로덕션 배포 통계가 나온다. 검색 방법 자체는 LLM-Wiki 것을 그대로 쓴다고 명시한다.</p>
+        </div>
+      </div>
+      <p class="note"><b>이동</b> 좌우 화살표 키, <kbd>Space</kbd>, 왼쪽 목차 클릭.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약</h2>
+      <p class="dek">이 계보에서 <b>유일하게 실제 서비스 데이터가 있는 논문</b>이다. 그리고 스키마 품질이 정확도를 10점씩 좌우한다는 것을 보여준다.</p>
+
+      <div class="stats">
+        <div class="stat hero"><span class="lab">AuthTrace 전체 AC</span><span class="val">63.2</span><span class="sub">RAPTOR 50.0, Dense-RAG 49.9</span></div>
+        <div class="stat"><span class="lab">프로덕션 위키 도구 지연</span><span class="val">0.432<span class="u">초</span></span><span class="sub">P99에서도 0.966초</span></div>
+        <div class="stat"><span class="lab">실사용 1,000건 사람 평가</span><span class="val">2.86<span class="u">/3</span></span><span class="sub">3인 블라인드, α=0.71</span></div>
+        <div class="stat bad"><span class="lab">스키마 진화를 끄면</span><span class="val">−10.7</span><span class="sub">AC 63.2 → 52.5</span></div>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">기여 세 가지</span>
+          <ul class="clean">
+            <li><span class="m">01</span><span><b>path-as-key 저장 모델.</b> 페이지 경로를 키로 삼고 디렉터리 레코드에 자식 목록을 함께 담아, 디렉터리 조회가 <b>스캔 없이 단일 점 조회</b>로 끝난다.</span></li>
+            <li><span class="m">02</span><span><b>parent-after-child 쓰기 + skip-on-miss 읽기.</b> 읽기 경로에 <b>잠금을 걸지 않고도</b> 부분 쓰기 상태가 관측되지 않음을 증명한다.</span></li>
+            <li><span class="m">03</span><span><b>데이터 기반 스키마 설계와 진화.</b> 코퍼스에서 디렉터리 구조를 유도하고, 접근 통계로 병합·분할하며, 비용 함수가 단조 감소함을 보인다.</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag">가장 실무적인 발견</span>
+          <p class="small">&ldquo;<b>재구조화 규율 없는 위키는 우리 배포 환경에서 KV 쌍 10⁴개를 넘기면 유지가 불가능하다.</b>&rdquo;</p>
+          <p class="small">논문이 든 세 가지 붕괴 양상: <b>폭 드리프트</b>(최상위 항목이 늘어 첫 홉 판별이 어려워짐), <b>깊이·밀도 드리프트</b>(페이지와 링크가 코퍼스에 비례해 늘어 디렉터리 조회가 감당 불가), <b>품질 드리프트</b>(오래된 내용과 한 번도 안 읽힌 항목이 검색 잡음을 올림).</p>
+          <p class="small"><a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p5">LLM-Wiki의 2Wiki 위키에서 people/ 디렉터리에 페이지의 56%가 몰렸던 것</a>이 바로 이 폭 드리프트의 사례다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>이 워크로드에 맞는 저장 모델이 없다</h2>
+      <p class="dek">계층형 위키의 접근 패턴은 문서 검색과도, 일반 그래프 처리와도 다르다. 논문은 세 가지 성질로 정리한다.</p>
+
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag">성질 1</span>
+          <h3>접근이 계층적이다</h3>
+          <p class="small">모든 읽기가 <span class="wl">Index → Dimension → Entity → Digest → Document</span> 고정 스키마를 따라 내려간다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">성질 2</span>
+          <h3>읽기와 쓰기가 비대칭이다</h3>
+          <p class="small">온라인 트래픽은 <b>읽기 전용</b>이고 지연 요구가 빡빡하다. 쓰기는 오프라인 파이프라인에 배치로 몰려 있다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">성질 3</span>
+          <h3>계속 바뀐다</h3>
+          <p class="small">코퍼스가 자라고 접근 통계가 오래된 내용을 드러내면서 페이지가 추가·병합·수정된다. <b>스키마 진화가 일급 기능</b>이어야 한다.</p>
+        </div>
+      </div>
+
+      <div class="tablewrap" style="margin-top:16px">
+        <table>
+          <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">기존 저장 모델이 어긋나는 지점</caption>
+          <thead><tr><th>저장 모델</th><th>어긋나는 부분</th></tr></thead>
+          <tbody>
+            <tr><td>관계형 DB</td><td style="text-align:left;font-family:var(--sans)">깊은 경로에 재귀 JOIN이나 CTE가 필요해 O(1) 탐색이 O(depth)가 된다. 고정 스키마가 다양한 위키 구조를 못 담는다.</td></tr>
+            <tr><td>그래프 DB</td><td style="text-align:left;font-family:var(--sans)">노드와 엣지는 모델링되지만 <b>디렉터리 나열</b> 원시 연산이 없다. 페이지를 읽고 자식을 열거하는 계약과 어긋나고 운영 부담이 크다.</td></tr>
+            <tr><td>평면 KV 저장소</td><td style="text-align:left;font-family:var(--sans)">O(1) 조회는 되지만 계층 의미가 없다. 열거하려면 스캔하거나 보조 인덱스를 따로 둬야 한다.</td></tr>
+            <tr><td>파일 시스템</td><td style="text-align:left;font-family:var(--sans)">구조는 맞지만 큰 순차 바이트 스트림에 최적화돼 있다. 디렉터리 나열이 <b>질의 가능한 일급 원시 연산이 아니라 불투명한 열거</b>다.</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note">그래서 현장에서는 벡터 인덱스와 관계형 메타데이터와 별도 캐시를 <b>임시로 쌓아 올린 스택</b>을 쓰는데, 어느 것도 계층 의미를 끝까지 담아내지 못한다는 것이 논문의 출발점이다.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">model</p>
+      <h2>5단계 트리와 4개의 질의 연산자</h2>
+      <p class="dek">위키를 정점 집합이 다섯 단계로 나뉜 순서 있는 루트 트리로 정의한다. 각 노드는 경로 <span class="wl">π(v)</span>, 내용 <span class="wl">c(v)</span>, 메타데이터 <span class="wl">m(v)</span>를 갖는다.</p>
+
+      <div class="grid g2">
+        <div>
+          <pre><span class="c">깊이 예산 D = 5</span>
+
+<b>Index</b>       "/"                        <span class="c">전역 인덱스 (루트)</span>
+ └ <b>Dimension</b> "/<i>d</i>"                      <span class="c">주제 디렉터리</span>
+    └ <b>Entity</b>  "/<i>d</i>/<i>e</i>"                    <span class="c">개체 페이지</span>
+
+<b>Digest</b>      "/sources/digests/<i>title</i>"   <span class="c">문단 요약</span>
+<b>Document</b>    "/sources/articles/<i>title</i>"  <span class="c">원문</span></pre>
+          <p class="note">Digest와 Document를 <b>Entity 아래에 넣지 않는다.</b> 한 원문이 여러 차원의 여러 개체를 뒷받침하는 경우가 흔해서, 참조하는 개체마다 복제하면 저장 바이트의 대부분이 중복된다. 공유 서브트리로 한 번만 실체화하고 개체 페이지는 <b>경로 링크만</b> 건다. <i>k</i>개 개체가 공유하는 원문이 <i>k</i>번이 아니라 한 번만 저장된다.</p>
+        </div>
+        <div>
+          <div class="card">
+            <span class="tag">질의 연산자 4개</span>
+            <ul class="clean">
+              <li><span class="m">Q1</span><span><b>Get(π)</b> 경로 조회. 해당 노드 반환.</span></li>
+              <li><span class="m">Q2</span><span><b>Ls(π)</b> 디렉터리 나열. 노드와 자식 경로 목록 반환.</span></li>
+              <li><span class="m">Q3</span><span><b>Nav(q, B)</b> 자연어 질의 <i>q</i>와 시간 예산 <i>B</i>를 받아 계층을 내려가며 결과를 순서대로 반환.</span></li>
+              <li><span class="m">Q4</span><span><b>Search(p)</b> 접두사 검색. Nav의 진입 단계를 가속한다.</span></li>
+            </ul>
+          </div>
+          <div class="card" style="margin-top:14px">
+            <span class="tag">Nav의 성질: 점진적 답변</span>
+            <p class="small">Nav가 <i>i</i>단계에서 중단되더라도 그때까지의 결과가 <b>더 거친 수준이지만 여전히 유효한 답</b>이다. 결과가 세밀도가 단조 증가하는 순서로 나오기 때문이다.</p>
+            <p class="small">예산을 늘리면 더 길고 세밀한 결과가 나오되, 짧은 예산에서 나온 앞부분을 무효화하지 않는다. 지연 SLA가 있는 온라인 서비스에서 <b>타임아웃이 곧 실패가 아니게</b> 만드는 설계다.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">path-as-key</p>
+      <h2>경로를 그대로 키로 쓴다</h2>
+      <p class="dek">다섯 단계 계층이 <b>하나의 자기 서술적 네임스페이스</b>로 접힌다. 별도 변환 테이블이 없다. 물리 키는 경로의 해시 <span class="wl">H(π(v))</span>인데, 고정 폭이고 구분자·문자셋에 무관해서 중국어 같은 비ASCII 경로에서 백엔드마다 바이트 길이와 정렬이 달라지는 문제를 피한다.</p>
+
+      <div class="grid g2">
+        <div>
+          <div class="card">
+            <span class="tag">디렉터리 레코드</span>
+            <pre style="margin:8px 0 0"><span class="k">type</span>: "dir"
+<span class="k">name</span>: 부모 기준 세그먼트
+<span class="k">sub_dirs</span>: [자식 디렉터리...]   <span class="c">← 함께 저장</span>
+<span class="k">files</span>:    [자식 리프...]      <span class="c">← 함께 저장</span>
+<span class="k">meta</span>: { updated_at, entry_count,
+        access_count }</pre>
+          </div>
+          <div class="card" style="margin-top:14px">
+            <span class="tag">파일 레코드</span>
+            <pre style="margin:8px 0 0"><span class="k">type</span>: "file"
+<span class="k">name</span>, <span class="k">payload</span>: UTF-8 본문
+<span class="k">meta</span>: { version, confidence [0,1],
+        sources[], last_verified,
+        access_count }</pre>
+          </div>
+        </div>
+        <div>
+          <div class="card">
+            <span class="tag">이 배치가 만드는 두 가지 결과</span>
+            <p class="small"><b>1. 디렉터리 나열이 점 조회가 된다.</b> 모든 디렉터리 레코드가 자식을 명시적으로 담고 있으므로 <span class="wl">Ls(π) ≡ Get(π)</span>다. 접두사 스캔도, 보조 인덱스도 필요 없다. 이것이 표 II에서 Q2가 가장 빠른 이유다.</p>
+            <p class="small"><b>2. 메타 카운터가 스키마 진화의 입력이 된다.</b> <span class="wl">access_count</span>, <span class="wl">confidence</span>, <span class="wl">last_verified</span>는 저장 연산자 자신은 쓰지 않지만, 다음 장의 병합·분할 연산자가 이 값만 보고 판단한다. <b>별도 분석 로그나 데이터 웨어하우스가 필요 없다.</b></p>
+          </div>
+          <p class="note">경로 정규화 규칙: 끝 슬래시 없음, 세그먼트 대소문자 구분, 세그먼트 안에 구분자 금지, 깊이는 D로 제한. 정규화를 해시 앞에 두어 경로가 <b>트리 주소이면서 동시에 저장 키</b>가 되게 한다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">consistency</p>
+      <h2>읽기에 잠금을 걸지 않고 부분 읽기를 막는다</h2>
+      <p class="dek">두 요구가 충돌한다. 새 페이지는 부모 디렉터리를 통해 <b>도달 가능</b>해야 하는데(R1), 오프라인 쓰기와 동시에 도는 읽기는 <b>쓰다 만 상태를 보면 안 된다</b>(R2). WikiKV는 쓰기 순서와 읽기 규칙 두 개로 이를 해결한다.</p>
+
+      <figure class="figure">
+        <div class="svgwrap">
+          <svg class="chart" viewBox="0 0 760 220" role="img" aria-label="일관성 프로토콜 도식. 쓰기는 자식 레코드를 먼저 쓰고 그다음 부모 디렉터리에 자식 이름을 추가한다. 읽기는 부모 디렉터리를 읽고 그 안에 적힌 자식 경로마다 조회를 보내는데, 없으면 조용히 건너뛴다. 두 규칙을 합치면 부분 쓰기 상태가 관측되지 않는다.">
+            <rect class="box" x="14" y="20" width="342" height="182" rx="9"/>
+            <text class="txt" x="34" y="46">쓰기 (오프라인, 단일 기록자)</text>
+            <rect class="box-hi" x="34" y="62" width="300" height="42" rx="7"/>
+            <text class="txt-s" x="50" y="80">1. Put(π(v), c(v))</text>
+            <text class="txt-s" x="50" y="95">자식 레코드를 먼저 저장한다</text>
+            <rect class="box-hi" x="34" y="118" width="300" height="42" rx="7"/>
+            <text class="txt-s" x="50" y="136">2. Update(π(parent(v)))</text>
+            <text class="txt-s" x="50" y="151">부모의 files 목록에 이름을 추가한다</text>
+            <text class="txt-s" x="34" y="182">2번이 실패하면 고아 레코드가 남지만</text>
+            <text class="txt-s" x="34" y="195">어느 디렉터리에서도 보이지 않는다</text>
+
+            <rect class="box" x="404" y="20" width="342" height="182" rx="9"/>
+            <text class="txt" x="424" y="46">읽기 (온라인, 잠금 없음)</text>
+            <rect class="box-hi" x="424" y="62" width="300" height="42" rx="7"/>
+            <text class="txt-s" x="440" y="80">1. 디렉터리 레코드를 가져온다</text>
+            <text class="txt-s" x="440" y="95">거기 적힌 자식 경로 목록을 얻는다</text>
+            <rect class="box-hi" x="424" y="118" width="300" height="42" rx="7"/>
+            <text class="txt-s" x="440" y="136">2. 자식마다 Get을 보낸다</text>
+            <text class="txt-s" x="440" y="151">없으면 결과에서 조용히 뺀다</text>
+            <text class="txt-s" x="424" y="182">부모에 이름이 있는데 자식이 아직 없는</text>
+            <text class="txt-s" x="424" y="195">순간은 원리적으로 생기지 않는다</text>
+
+            <g class="arw"><path d="M358 111 L400 111"/><path d="M393 106 L400 111 L393 116"/></g>
+          </svg>
+        </div>
+        <figcaption>자식을 먼저 쓰기 때문에, 부모 목록에 이름이 올라간 시점에는 자식이 이미 존재한다. 반대 순서였다면 읽는 쪽이 &ldquo;목록에는 있는데 열리지 않는&rdquo; 상태를 볼 수 있다.</figcaption>
+      </figure>
+
+      <div class="grid g3">
+        <div class="card"><span class="tag">R1</span><h3>쓰기 후 읽기 일관성</h3><p class="small">새 페이지가 들어오면 이후의 모든 디렉터리 나열에 그 경로가 포함돼야 한다. 탐색으로 도달 가능해야 하기 때문이다.</p></div>
+        <div class="card"><span class="tag">R2</span><h3>읽기·쓰기 비대칭 하의 동시성 안전</h3><p class="small">온라인은 읽기 전용, 구축 파이프라인이 유일한 기록자다. 읽는 쪽이 부분 쓰기 상태를 절대 보지 않아야 하며, <b>가능하면 잠금 없이</b> 그래야 한다.</p></div>
+        <div class="card"><span class="tag">R3</span><h3>제한된 지연</h3><p class="small">오프라인 쓰기가 끝나면 온라인 독자가 <b>유한한 시간 Δ 안에</b> 그 효과를 보게 된다.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">schema</p>
+      <h2>스키마를 사람이 정하지 않고 유도하고 진화시킨다</h2>
+      <p class="dek">스키마 설계를 <b>제약 최적화 문제</b>로 놓는다. 저장 크기, 접근 가중 탐색 깊이, 답변 정확도 세 항을 함께 다룬다.</p>
+
+      <figure class="figure">
+        <pre>C(S; W) = α·|V|  +  β·Σ<sub>v</sub> depth(v)·ρ(v)  −  γ·Q(S; W)
+          <span class="c">└ 저장 크기      └ 접근 가중 탐색 깊이      └ 답변 정확도</span>
+
+<span class="c">제약: depth(v) ≤ D,  |children(v)| ≤ k_max</span></pre>
+        <p class="fig-sub">전역 해는 초지수적이라 시도하지 않는다. 대신 콜드 스타트 스키마에서 출발해 국소 연산자를 반복 적용하는 탐욕 탐색을 쓴다.</p>
+      </figure>
+
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag">콜드 스타트 · IASI</span>
+          <h3>의도 기반 스키마 유도</h3>
+          <p class="small">코퍼스 표본에서 먼저 <b>위치 서술자</b> <span class="wl">&lt;focus, audience, ingestion-bias&gt;</span>를 뽑는다. 이 코퍼스가 무엇에 관한 것이고, 누구를 위한 것이고, 어떤 편향으로 문서가 들어오는지를 짧은 구조화 레코드로 적는다. 그다음 이 서술자와 표본으로 디렉터리 뼈대를 만든다.</p>
+          <p class="small">군집화도 벡터 검색도 임베딩 모델도 쓰지 않는다. LLM 호출만 쓴다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">진화 연산자 1</span>
+          <h3>DimensionMerge</h3>
+          <p class="small">형제 노드 두 개의 <b>질의 동시 접근에 대한 상호정보량</b>을 페이지에 이미 붙어 있는 <span class="wl">access_count</span>로 추정한다. 임계값을 넘으면 하나로 합친다.</p>
+          <p class="small">해석하면, 접근 패턴이 강하게 얽힌 두 형제는 <b>사용자 머릿속에서 한 개념</b>이라는 증거다. 떼어 두면 인덱스만 넓어지고 첫 홉 판별 부담만 커진다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">진화 연산자 2</span>
+          <h3>PageSplit</h3>
+          <p class="small">세 역할로 나눈다. <b>Architect</b>가 후보를 제안하고(길이 초과이거나 LLM이 분리 가능한 하위 트리가 있다고 판단할 때), <b>Critic</b>이 비용 변화를 추정하고, <b>Arbiter</b>가 비용이 줄고 안전 조건을 만족하는 것만 커밋한다. 안전 조건은 <b>기존에 도달 가능하던 개체가 계속 도달 가능할 것</b>이다.</p>
+        </div>
+      </div>
+
+      <p class="note"><b>정리 1(단조 개선).</b> 각 패스가 노드가 겹치지 않는 허용 연산자 집합만 커밋하면 비용 C는 비증가하고 수렴한다. 증명은 세 항이 모두 노드에 대한 합이고 품질 항이 서로소 지지집합에서 분해된다는 점에 기댄다. 실행 주기는 콜드 스타트 1회, 병합·분할은 <b>문서 30편마다</b>, Error Book은 배치마다다.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">nav</p>
+      <h2>탐색 단계를 d에서 O(1)로 줄인다</h2>
+      <p class="dek">Nav는 네 연산자 중 유일하게 단일 저장 원시 연산으로 매핑되지 않는다. 계층을 한 단계씩 내려가려면 매 단계마다 LLM이 어디로 갈지 판단해야 하고, 그것이 온라인 지연을 지배한다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">해법</span>
+          <h3>검색 가속 라우팅</h3>
+          <p class="small">1단계에서 <b>접두사 검색(Q4)</b>으로 목표 근처 경로를 바로 찾는다. 단일 목표 질의에 대해 LLM이 개입하는 하강 단계의 기댓값이 <b>깊이 d에서 O(1)로</b> 줄어든다. 계층을 한 칸씩 내려가는 대신 목적지로 점프한 뒤 필요한 만큼만 보정하는 방식이다.</p>
+          <p class="small">여기에 경로 키 기반 3단 캐시를 붙여 가장 자주 접근되는 네임스페이스 앞부분을 네트워크 경로에서 뺀다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">이게 실제로 얼마나 중요한가</span>
+          <p class="small">Lu Xun 단일 저자 코퍼스(AuthTrace에서 주제 밀도가 가장 높은 부분집합)에서 <b>검색 라우팅만 끄고</b> 층별 탐색으로 되돌리면:</p>
+          <ul class="clean" style="margin-top:10px">
+            <li><span class="m bad">▸</span><span>AC <b>65.6 → 40.2</b> (−25.4)</span></li>
+            <li><span class="m bad">▸</span><span>질문당 읽은 페이지 1.56 → <b>5.40</b> (3배 이상)</span></li>
+            <li><span class="m bad">▸</span><span>도구 호출 3.53 → 5.42 (+53%)</span></li>
+            <li><span class="m">▸</span><span>지연은 11.9초 → 15.1초로 완만하게만 오른다</span></li>
+          </ul>
+          <p class="note">논문의 표현대로, <b>진짜 대가는 속도가 아니라 정확도다.</b> 라우터가 무관한 가지를 쳐내지 못하면 탐색이 깊어지고 답이 무너진다.</p>
+        </div>
+      </div>
+
+      <p class="note">콜드 스타트 표본 추출도 같은 실험에서 검증된다. 표본 대신 <b>전체 문서를 스키마 유도에 밀어 넣으면</b> AC가 65.6에서 54.7로 떨어지고 지연은 24% 오른다. 프롬프트가 부풀고, 우연한 중복에서 과도하게 구체적인 주제가 뽑히며, 결과적으로 덜 판별적인 스키마가 나온다. 그러면 하류에서 navigator가 그 부실한 스키마를 <b>온라인에서 보정하느라</b> 더 많이 읽는다.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-latency</p>
+      <h2>결과 1. 저장 백엔드 지연 비교</h2>
+      <p class="dek">KV 쌍 약 2,000개 규모 위키에서 연산자별 P50 지연을 잰다. 경로 100개를 무작위로 뽑고 백엔드마다 200회 워밍업 후 1,000회 질의한다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">연산자별 P50 지연 (밀리초, 낮을수록 좋음)</p>
+        <div class="legend"><span><i class="s1"></i>WikiKV</span><span><i class="sn"></i>비교 백엔드</span></div>
+        <div class="grid g2">
+          <div>
+            <p class="fig-sub" style="margin-bottom:8px"><b>Q2 · 디렉터리 나열</b> 자식 목록을 함께 저장한 효과</p>
+            <div class="bars">
+              <div class="bar-row is-hero"><span class="bar-name">WikiKV</span><div class="bar-track g5"><div class="bar s1" style="--w:7.2%"></div></div><span class="bar-val">0.088</span></div>
+              <div class="bar-row"><span class="bar-name">PostgreSQL</span><div class="bar-track g5"><div class="bar" style="--w:9.5%"></div></div><span class="bar-val">0.117</span></div>
+              <div class="bar-row"><span class="bar-name">파일 시스템</span><div class="bar-track g5"><div class="bar" style="--w:35.4%"></div></div><span class="bar-val">0.436</span></div>
+              <div class="bar-row"><span class="bar-name">Neo4j</span><div class="bar-track g5"><div class="bar" style="--w:100%"></div></div><span class="bar-val">1.230</span></div>
+            </div>
+            <div class="bar-axis"><div class="ticks"><span>0</span><span>0.25</span><span>0.5</span><span>0.75</span><span>1.0</span><span>1.25</span></div></div>
+          </div>
+          <div>
+            <p class="fig-sub" style="margin-bottom:8px"><b>Q3 · 경로 탐색</b> WikiKV가 지는 유일한 연산자</p>
+            <div class="bars">
+              <div class="bar-row"><span class="bar-name">PostgreSQL</span><div class="bar-track g5"><div class="bar" style="--w:23.0%"></div></div><span class="bar-val">1.671</span></div>
+              <div class="bar-row is-hero"><span class="bar-name">WikiKV</span><div class="bar-track g5"><div class="bar s1" style="--w:74.6%"></div></div><span class="bar-val">5.411</span></div>
+              <div class="bar-row"><span class="bar-name">Neo4j</span><div class="bar-track g5"><div class="bar" style="--w:88.2%"></div></div><span class="bar-val">6.397</span></div>
+              <div class="bar-row"><span class="bar-name">파일 시스템</span><div class="bar-track g5"><div class="bar" style="--w:89.4%"></div></div><span class="bar-val">6.480</span></div>
+            </div>
+            <div class="bar-axis"><div class="ticks"><span>0</span><span>1.5</span><span>3</span><span>4.5</span><span>6</span><span>7.25</span></div></div>
+          </div>
+        </div>
+        <figcaption>표 II(논문). Q1 경로 조회는 WikiKV 0.017 / FS 0.021 / PostgreSQL 0.075 / Neo4j 2.494, Q4 접두사 검색은 WikiKV 0.085 / FS 0.091 / PostgreSQL 0.432 / Neo4j 1.686 밀리초다.</figcaption>
+      </figure>
+
+      <p class="note"><b>논문이 주장하지 않는 것을 명확히 해둘 필요가 있다.</b> 저자들은 &ldquo;path-as-key가 모든 연산자에서 가장 빠르다&rdquo;고 하지 않는다. 실제로 <b>Q3에서는 PostgreSQL이 3배 이상 빠르다</b>(1.671 대 5.411). 행이 2,000개뿐이라 인덱스와 테이블이 통째로 페이지 캐시에 들어가고, 단계마다의 SQL 상수가 작기 때문이다. 주장은 <b>네 연산자를 섞은 실제 워크로드에서 균형 잡힌 낮은 지연</b>을 낸다는 것이고, 다른 백엔드는 일부에서 빠른 대신 다른 데서 크게 손해 본다는 것이다.</p>
+
+      <p class="note warn">이 측정은 모두 <b>인메모리·인프로세스 환경</b>이다. WikiKV는 서비스 스택을 우회한 로컬 LevelDB 위에서 쟀다. 논문도 절대 수치가 프로덕션보다 낮다고 밝힌다. 백엔드 간 상대 비교로만 읽어야 한다.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-schema</p>
+      <h2>결과 2. 정확도를 결정하는 것은 스키마 크기가 아니라 품질</h2>
+      <p class="dek">저장 계층과 질의 계층은 그대로 두고 스키마 쪽만 바꿔가며 잰다. 그래서 차이는 전부 스키마 설계와 진화에서 온다.</p>
+
+      <div class="grid g2">
+        <div class="tablewrap">
+          <table>
+            <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">표 III. 콜드 스타트와 진화 연산자의 효과</caption>
+            <thead><tr><th>지표</th><th>WikiKV</th><th>고정 스키마</th><th>진화 정지</th></tr></thead>
+            <tbody>
+              <tr><td>페이지 수</td><td>2385</td><td class="lose">2672</td><td>2290</td></tr>
+              <tr><td>질문당 도구 호출</td><td>3.18</td><td>3.36</td><td>3.12</td></tr>
+              <tr><td>질문당 읽은 페이지</td><td>1.48</td><td>1.56</td><td>1.44</td></tr>
+              <tr><td>첫 토큰까지 (초)</td><td>11.7</td><td>12.7</td><td>11.7</td></tr>
+              <tr class="hero"><td>AC ↑</td><td>63.2</td><td>53.5</td><td>52.5</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div>
+          <p class="note"><b>가장 큰 스키마가 가장 부정확하다.</b> 고정 스키마는 페이지가 2,672개로 제일 많은데 AC는 53.5로 제일 낮다. 미리 정한 차원이 코퍼스를 <b>주제적으로 얄팍한 하위 트리로 과분할</b>하기 때문이다. 그 결과 인덱스가 넓어지고, navigator가 더 깊이 펼치고 더 많이 읽어야 해서 지연까지 1초 늘어난다.</p>
+          <p class="note"><b>가장 작은 스키마도 마찬가지로 부정확하다.</b> 진화를 끈 쪽은 페이지가 2,290개로 제일 적고 지연은 전체 시스템과 같지만 AC가 52.5다. 코퍼스가 두꺼워진 영역에서 새 주제를 만들지 못하고, 접근 분포가 하나로 취급하는 차원들을 합치지도 못한다.</p>
+          <p class="note"><b>즉 |V|를 줄이는 것만으로도, 팬아웃을 키우는 것만으로도 안 된다.</b> 비용 함수의 두 항을 함께 최적화해야 적정 크기의 네임스페이스와 최고 정확도가 같이 나온다.</p>
+        </div>
+      </div>
+
+      <div class="tablewrap" style="margin-top:16px">
+        <table>
+          <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">표 IV. AuthTrace end-to-end AC. 모든 방법이 같은 생성 모델(DeepSeek-V4-Flash)과 프롬프트를 쓴다</caption>
+          <thead><tr><th>방법</th><th>문서 1개</th><th>2개</th><th>3개 이상</th><th>전체</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>LLM-Wiki on WikiKV</td><td class="win">67.2</td><td class="win">60.9</td><td class="win">47.7</td><td class="win">63.2</td></tr>
+            <tr><td>RAPTOR</td><td>60.1</td><td>35.6</td><td>30.8</td><td>50.0</td></tr>
+            <tr><td>Dense-RAG</td><td>59.5</td><td>37.1</td><td>29.4</td><td>49.9</td></tr>
+            <tr><td>GraphRAG</td><td>52.2</td><td>33.8</td><td>27.6</td><td>44.3</td></tr>
+            <tr><td>No-RAG</td><td>9.9</td><td>16.4</td><td>16.1</td><td>12.4</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">문서 2개 구간에서 격차가 가장 크게 벌어진다(60.9 대 37.1). 세 베이스라인은 1개에서 3개 이상으로 갈 때 <b>20점 넘게 잃는데</b> WikiKV는 20점 미만으로 잃는다. 다만 <b>비교 대상이 앞선 두 논문보다 약하다.</b> HippoRAG 2와 LightRAG가 빠져 있는데, <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p13">LLM-Wiki 실험에서 HippoRAG 2는 가장 강한 베이스라인이었다.</a></p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-production</p>
+      <h2>결과 3. 실제 서비스에서의 숫자</h2>
+      <p class="dek">이 계보에서 유일하게 통제된 벤치마크 밖의 데이터가 나오는 부분이다. WeChat 공식계정 AI 어시스턴트에서 <b>실사용 질의 1,000건</b>을 표본으로 뽑아 전 구간(라우터 → 탐색 → 생성)을 측정했다.</p>
+
+      <div class="grid g2">
+        <div class="tablewrap">
+          <table>
+            <caption class="fig-sub" style="caption-side:top;text-align:left;padding:12px 12px 0">표 V. 실사용 1,000건 지연과 품질</caption>
+            <thead><tr><th>지표</th><th>평균</th><th>P50</th><th>P95</th><th>P99</th></tr></thead>
+            <tbody>
+              <tr><td>질문당 위키 도구 호출</td><td>2.2</td><td>2</td><td>3</td><td>4.6</td></tr>
+              <tr class="hero"><td>위키 도구 지연 (초)</td><td>0.432</td><td>0.411</td><td>0.554</td><td>0.966</td></tr>
+              <tr><td>첫 토큰까지 (초)</td><td>6.856</td><td>6.65</td><td>8.34</td><td>12.32</td></tr>
+              <tr><td>사람 평가 (1~3)</td><td>2.86</td><td>—</td><td>—</td><td>—</td></tr>
+            </tbody>
+          </table>
+          <p class="note"><b>검색이 병목이 아니다.</b> 위키 도구는 평균 0.432초, P99에서도 1초 미만이다. 전체 6.856초는 대부분 LLM 생성 시간이다. 저장 계층 설계가 온라인 경로에서 제 몫을 한다는 뜻이다.</p>
+        </div>
+        <div>
+          <div class="card">
+            <span class="tag">평가 방식</span>
+            <p class="small">1,000건을 실사용 로그에서 균등 표집해 비식별 처리했다. 3점 척도로 <b>3인이 시스템 구성을 모르는 상태로</b> 채점했고 Krippendorff α = 0.71로 상당한 일치를 보였다. 3점은 추가 추론 없이 바로 답이 되는 경우, 2점은 주제는 관련되지만 더 추론이 필요한 경우, 1점은 무관하거나 비어 있는 경우다.</p>
+            <p class="small">평균 2.86은 2와 3 사이에서 <b>3 쪽에 훨씬 가깝다</b>. 관련 자료를 보여주는 수준이 아니라 대체로 바로 쓸 수 있는 답을 낸다는 뜻이다.</p>
+          </div>
+          <div class="card" style="margin-top:14px">
+            <span class="tag">규모 확장</span>
+            <p class="small">질문 집합을 두 배로 늘리면 페이지 수는 약 1.4배가 되는데 평균 지연은 <b>12.2%</b>, P99는 <b>10.2%</b>만 오른다. 전체 코퍼스로 가면 거기서 1% 미만이 더 붙는다. <b>디렉터리 수는 거의 변하지 않고 페이지만 는다.</b> 깊이가 아니라 질량으로 자라기 때문에 지연이 꼬리에서 터지지 않고 분포의 몸통에서만 완만하게 움직인다.</p>
+          </div>
+          <p class="note warn">배포 규모는 &ldquo;페이지 수백만, KV 쌍 수천만, 저자 계정 수백&rdquo;이라고만 밝히고 <b>절대 수치는 영업 기밀로 공개하지 않았다.</b> 자릿수만 확인할 수 있다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>해석의 한계</h2>
+      <p class="dek">프로덕션 배포라는 강한 증거가 있지만, 그 증거가 무엇을 뒷받침하고 무엇을 뒷받침하지 않는지 구분해야 한다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag" style="color:var(--redlink)">1. 배포가 정확도의 증거는 아니다</span>
+          <p class="small">프로덕션 데이터는 <b>지연과 사용자 체감 품질</b>을 뒷받침한다. 하지만 대조군이 없다. 같은 트래픽을 Dense-RAG로 처리했을 때 사람 평가가 얼마였는지는 없다. 2.86이라는 수치는 &ldquo;쓸 만하다&rdquo;는 근거이지 &ldquo;다른 방식보다 낫다&rdquo;는 근거가 아니다.</p>
+        </div>
+        <div class="card">
+          <span class="tag" style="color:var(--redlink)">2. 베이스라인이 약하다</span>
+          <p class="small">표 IV에 <b>HippoRAG 2와 LightRAG가 없다.</b> 앞선 두 논문에서는 HippoRAG 2가 가장 강한 베이스라인이었고 AuthTrace에서 LLM-Wiki를 단일 문서 구간에서 이기기도 했다. 그 상대를 뺀 채로 &ldquo;여러 RAG 베이스라인을 넘어선다&rdquo;고 말하는 것은 앞선 실험보다 후퇴한 비교다.</p>
+        </div>
+        <div class="card">
+          <span class="tag" style="color:var(--redlink)">3. 지연 비교의 조건</span>
+          <p class="small">표 II는 전부 인메모리·인프로세스이고 WikiKV만 서비스 스택을 우회한 로컬 엔진에서 쟀다. 논문이 밝히긴 하지만, <b>프로덕션에서 다른 백엔드를 썼을 때의 비교는 아니다.</b> 게다가 규모가 KV 쌍 2,000개로 작아서, 정작 논문이 위험하다고 지목한 10⁴개 이상 구간이 아니다.</p>
+        </div>
+        <div class="card">
+          <span class="tag" style="color:var(--redlink)">4. 구간 정의가 앞 논문과 다르다</span>
+          <p class="small">AuthTrace 원 논문은 저다중을 2~3개, 고다중을 4개 이상으로 정의했다. WikiKV는 &ldquo;그 구간을 그대로 쓴다&rdquo;고 하면서 2개 / 3개 이상으로 적었다. <a class="xref" href="../2026-08-05-wikiloop-feedback-coupled-wiki/#p8">WikiLoop도 같은 정의를 쓴다.</a> 같은 팀 논문들 사이에 정의가 어긋나 있어 <b>구간별 수치를 논문 간에 비교하면 안 된다.</b></p>
+        </div>
+      </div>
+
+      <p class="note">한편 <b>이 논문에서 가장 옮겨 쓸 만한 결과</b>는 스키마 실험이다. 저장 계층과 질의 계층을 고정한 채 스키마만 바꿔서 AC가 63.2에서 52.5까지 떨어진다는 것은, 위키 기반 시스템을 만들 때 <b>디렉터리 구조를 사람이 정하고 고정해 두는 흔한 선택이 10점짜리 실수</b>라는 뜻이다. 이것은 저장소 구현이나 배포 규모와 무관하게 성립한다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론</h2>
+      <p class="dek">WikiKV의 기여는 &ldquo;위키가 낫다&rdquo;를 한 번 더 말하는 게 아니라, <b>그 위키를 실제로 운영할 때 무엇이 무너지는지</b>를 보여주는 데 있다.</p>
+
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag">발견 1</span>
+          <h3>스키마는 고정해 두면 안 된다</h3>
+          <p class="small">디렉터리 구조를 사람이 정하거나(53.5), 처음 유도한 뒤 얼려 두면(52.5) 전체 시스템(63.2) 대비 <b>10점씩 잃는다.</b> 저장 계층과 질의 계층이 같은데도 그렇다. 접근 통계로 병합하고 분할하는 과정이 정확도 여유분의 대부분을 만든다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">발견 2</span>
+          <h3>10⁴ 규모가 분기점이다</h3>
+          <p class="small">재구조화 규율 없는 위키는 KV 쌍 10⁴개를 넘기면 유지가 불가능하다는 것이 배포 경험이다. <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/#p16">LLM-Wiki가 한계로만 적고 실험하지 않았던 확장성 문제</a>에 대한 첫 실측이다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">발견 3</span>
+          <h3>검색은 병목이 아니다</h3>
+          <p class="small">프로덕션에서 위키 도구는 평균 0.432초, P99 0.966초다. 전체 6.856초의 대부분은 LLM 생성이다. 구조를 잘 잡아 두면 <b>탐색 자체는 싸다.</b></p>
+        </div>
+      </div>
+
+      <p class="note"><b>계보 전체에서 이 논문의 자리.</b> <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM-Wiki</a>가 &ldquo;컴파일과 순회는 세트로 작동한다&rdquo;를 보였고, <a class="xref" href="../2026-08-05-wikiloop-feedback-coupled-wiki/">WikiLoop</a>이 &ldquo;그 세트를 학습시킬 수 있다&rdquo;를 보였다면, WikiKV는 <b>&ldquo;그것을 실제 트래픽에서 굴릴 수 있고, 그때 무너지는 것은 스키마다&rdquo;</b>를 보인다. 세 편 중 도입을 검토하는 사람이 가장 먼저 읽어야 할 것은 아마 이 논문이다. 나머지 둘은 정확도를 다루지만 이 논문만 운영 비용과 실패 지점을 다룬다.</p>
+
+      <p class="note warn">다만 이 계보 전체의 제약은 그대로 남는다. <b>벤치마크도 시스템도 후속 연구도 전부 같은 팀에서 나오고, 코드는 공개되지 않았으며, 외부 재현은 아직 없다.</b> 프로덕션 배포는 이 시스템이 실제로 돌아간다는 강한 증거이지만, 다른 조직에서 같은 결과가 나온다는 증거는 아니다.</p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처</h2>
+      <p class="dek">수치 출처는 arXiv HTML 원문의 표 II~VI과 본문이다. 그림은 논문 내용을 바탕으로 다시 그린 것이다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">주 문헌</span>
+          <div class="src">
+            <span class="t">WikiKV (초록)</span>
+            <a href="https://arxiv.org/abs/2606.14275">https://arxiv.org/abs/2606.14275</a>
+            <span class="t">WikiKV (HTML 전문)</span>
+            <a href="https://arxiv.org/html/2606.14275v1">https://arxiv.org/html/2606.14275v1</a>
+          </div>
+        </div>
+        <div class="card">
+          <span class="tag">같은 계보</span>
+          <div class="src">
+            <span class="t">LLM-Wiki, 검색 방법의 출처</span>
+            <a href="https://arxiv.org/abs/2605.25480">https://arxiv.org/abs/2605.25480</a>
+            <span class="t">AuthTrace, 평가 벤치마크</span>
+            <a href="https://arxiv.org/abs/2605.25382">https://arxiv.org/abs/2605.25382</a>
+            <span class="t">WikiLoop, 구축 정책 학습</span>
+            <a href="https://arxiv.org/abs/2607.26604">https://arxiv.org/abs/2607.26604</a>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <span class="tag">비교 대상 시스템</span>
+        <p class="small">PostgreSQL ltree · Neo4j · LevelDB · Redis Cluster · TableKV (WeChat의 LSM 트리 기반 분산 KV, PaxosStore 합의) · GraphRAG (Edge et al., arXiv:2404.16130) · RAPTOR (Sarthi et al., ICLR 2024) · Wikidata · DBpedia · Freebase</p>
+      </div>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 14</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
