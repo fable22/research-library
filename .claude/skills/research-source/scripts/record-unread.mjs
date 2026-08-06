@@ -50,6 +50,7 @@ if (argv.includes('--help') || argv.includes('-h')) {
   console.log('  --transcript <file>        세션 기록을 직접 지정 (여러 번 가능)');
   console.log('  --evidence <path>          .research/<slug> 가 아닌 곳에 쓴다');
   console.log('  --print                    파일로 쓰지 않고 화면에만 출력');
+  console.log('  --no-rollup                미확인 디렉터리를 접지 않고 전부 나열');
   console.log('\n기본 세션 기록: ~/.claude/projects/<현재 경로>/ 의 모든 .jsonl');
   console.log('\n파일을 읽었다고 인정하는 조건:');
   console.log('  Read/Edit/Write 의 file_path 가 체크아웃 안을 가리킬 때');
@@ -63,6 +64,7 @@ const repoOverride = new Map();
 const transcripts = [];
 let evidenceDir = null;
 let printOnly = false;
+let noRollup = false;
 let target = null;
 
 for (let i = 0; i < argv.length; i++) {
@@ -79,6 +81,8 @@ for (let i = 0; i < argv.length; i++) {
     evidenceDir = resolve(argv[++i]);
   } else if (a === '--print') {
     printOnly = true;
+  } else if (a === '--no-rollup') {
+    noRollup = true;
   } else if (!a.startsWith('-')) {
     target = a;
   }
@@ -287,6 +291,39 @@ const lines = [
   '# 필요한 것만 읽고 무엇을 안 봤는지 밝히는 편이, 다 읽고 컨텍스트를 태우는 것보다 낫다.',
 ];
 
+// 목록이 길다고 문서가 부실한 건 아니지만, 너무 길면 공시가 아니라 노이즈가 된다.
+// paseo(3,682 파일) 실측에서 미확인 디렉터리가 359개 나왔다. 373행짜리 목록은
+// 아무도 안 읽으므로 아무것도 공시하지 못한다. 항목 수가 임계를 넘으면 상위
+// 경로로 접는다. 접어도 파일 수는 합쳐서 보존하므로 규모 정보는 남는다.
+const ROLLUP_MAX = 40;
+
+function rollUp(dirs, allDirs) {
+  if (noRollup) return dirs.map((d) => `${d === '.' ? './' : d + '/'}    # 파일 ${allDirs.get(d)}개`);
+  const fmt = (d, n, kids) =>
+    `${d === '.' ? './' : d + '/'}    # 파일 ${n}개${kids ? `, 하위 디렉터리 ${kids}개` : ''}`;
+  if (dirs.length <= ROLLUP_MAX) return dirs.map((d) => fmt(d, allDirs.get(d)));
+
+  for (let depth = 1; depth <= 6; depth++) {
+    const grouped = new Map();
+    for (const d of dirs) {
+      const key = d.split('/').slice(0, depth).join('/') || '.';
+      const g = grouped.get(key) || { files: 0, kids: 0 };
+      g.files += allDirs.get(d) || 0;
+      g.kids += 1;
+      grouped.set(key, g);
+    }
+    if (grouped.size <= ROLLUP_MAX || depth === 6) {
+      const out = [...grouped.entries()].sort(([a], [b]) => a.localeCompare(b))
+        .map(([d, g]) => fmt(d, g.files, g.kids > 1 ? g.kids : 0));
+      out.push('');
+      out.push(`# 미확인 디렉터리 ${dirs.length}개를 ${depth}단계 경로로 접었다.`);
+      out.push('# 더 좁혀 보려면 --no-rollup 을 쓸 것.');
+      return out;
+    }
+  }
+  return dirs.map((d) => fmt(d, allDirs.get(d)));
+}
+
 for (const r of report) {
   const pct = r.files.length ? Math.round((r.touched.size / r.files.length) * 100) : 0;
   lines.push('#');
@@ -294,9 +331,7 @@ for (const r of report) {
   lines.push(`#   파일 ${r.files.length}개 중 ${r.touched.size}개 확인 (${pct}%), 디렉터리 ${r.allDirs.size}개 중 ${r.unreadDirs.length}개 미확인`);
   if (r.src.shallow) lines.push('#   shallow clone 이다. 이력에 기반한 서술은 할 수 없다.');
   lines.push('');
-  for (const d of r.unreadDirs) {
-    lines.push(`${d === '.' ? './' : d + '/'}    # 파일 ${r.allDirs.get(d)}개`);
-  }
+  for (const line of rollUp(r.unreadDirs, r.allDirs)) lines.push(line);
 }
 const out = lines.join('\n') + '\n';
 
