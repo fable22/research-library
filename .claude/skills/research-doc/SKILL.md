@@ -87,19 +87,17 @@ usually a slide that overclaimed.
 
 ## Compression subagents
 
-Some sources do not fit. One request path through paseo touches:
+Some sources do not fit. In a mature TypeScript monorepo a single request path can run
+through four files of 150–250 KB each, so the trace you need costs several hundred KB
+before you have written a sentence. Measure before you open anything:
 
-```
-packages/server/src/server/session.ts     242 KB   6,934 lines   104 imports
-packages/protocol/src/messages.ts         211 KB   6,045 lines
-packages/client/src/daemon-client.ts      190 KB   6,078 lines
-packages/server/.../agent-manager.ts      146 KB   4,602 lines
-                                          ~790 KB ≈ 220K tokens
+```bash
+git -C <checkout> ls-tree -r -l <commit> -- <paths> | awk '{s+=$4} END {print s}'
 ```
 
-Loading that whole thing leaves nothing to write with. Even in a 1M context it lands in
-the middle, where recall is worst, and every later citation is drawn from the weakest
-part of the window.
+Loading all of it leaves nothing to write with. Even in a 1M context it lands in the
+middle, where recall is worst, and every later citation is drawn from the weakest part of
+the window.
 
 So hand it to a subagent:
 
@@ -151,10 +149,12 @@ has no line to cite, so the evidence has to be the search that came back empty.
 
 ### README against code
 
-Check them against each other and report the gap when there is one. paseo's GitHub API
-returns `license: NOASSERTION`, the README badges say nothing, and the `LICENSE` file is
-**AGPLv3**. That difference decides adoption at most companies, and no secondary source
-carries it.
+Check them against each other and report the gap when there is one. Licensing is the
+usual place it bites: a GitHub API field of `NOASSERTION` or "Other" is not an absence of
+a license, it is the API failing to classify a `LICENSE` file that carries a preamble
+before the license text. Read the file. The preamble is often where a carve-out lives,
+and "which parts are under which license" is the question adoption actually turns on. No
+secondary source carries that.
 
 Do not turn this into a sweep. Asked bluntly whether docs match code, models flag over
 90% of everything. DocPrism (PACMSE/ISSTA 2026) got the flag rate from 98% to 14% and F1

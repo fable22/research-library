@@ -40,11 +40,12 @@ compression subagent per hop and stitch them together yourself.
 
 ## Chapter ⑩: what a developer actually checks
 
-- **License.** Read the `LICENSE` file. Not the badge, not the GitHub API field. paseo's
-  API says `NOASSERTION`, and the file turns out to be AGPLv3 **with a third-party carve-out**
-  declared in a preamble before the license text (`LICENSE:3-9`) — which is exactly why the
-  API cannot classify it. An AGPL-family license changes the decision at most companies, and
-  "which parts are AGPL" is the real question, so read the whole file, not just the header.
+- **License.** Read the `LICENSE` file, not the badge and not the GitHub API field. An API
+  value of `NOASSERTION` or "Other" does not mean unlicensed; it usually means the file
+  carries a preamble the classifier could not parse, and the preamble is where carve-outs
+  live ("third-party components keep their original license, everything else is AGPLv3").
+  So the answer is rarely a single SPDX id. "Which parts are under which license" is what
+  adoption turns on, and only the whole file answers it.
 - **Maintenance vitality.** Commit frequency, contributor spread, issue response time. If
   the clone was shallow, **these numbers do not exist in your checkout** and asserting
   them is invention. `check-claims.mjs` blocks them when `history_available` is false.
