@@ -28,22 +28,42 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 ├── CLAUDE.md                       # 문서를 만들 때 따를 작업 지침
 ├── index.html                      # Pages 목록 페이지 (스크립트가 생성)
 ├── assets/index.css                # 목록 페이지 스타일
-├── scripts/
+├── scripts/                        # 발행 인프라. skill 없이도 돌아간다
 │   ├── build-index.mjs             # meta.json 을 모아 index.html 과 위 표를 생성
-│   └── check-doc.mjs               # 문서가 규칙을 지키는지 검사
-└── research/
+│   └── check-doc.mjs               # 문서가 형식과 규약을 지키는지 검사
+├── .claude/skills/                 # 조사와 문서화 skill
+│   ├── research-source/            # 코퍼스를 이식 가능한 신원으로 고정
+│   │   └── scripts/record-unread.mjs   # 세션 기록에서 읽지 않은 범위를 유도
+│   ├── research-doc/               # 문서 작성
+│   │   └── references/             # prose-ko.md, paper.md, oss.md
+│   └── research-verify/            # 초고 적대적 검토
+│       ├── references/             # 렌즈 3개
+│       └── scripts/check-claims.mjs    # 주장이 고정된 원문에 근거하는지 검사
+├── research/                       # 발행물만
+│   └── 2026-08-05-llm-wiki-retrieval-as-reasoning/
+│       ├── index.html              # 문서 본문 (자체 완결)
+│       └── meta.json               # 목록에 표시할 정보
+└── .research/                      # 조사 작업 산출물 (git 에 올라가지 않음)
     └── 2026-08-05-llm-wiki-retrieval-as-reasoning/
-        ├── index.html              # 문서 본문 (자체 완결)
-        └── meta.json               # 목록에 표시할 정보
+        ├── sources.jsonl           # 무엇을 읽었는가 (repo+commit, arxiv_id+version)
+        ├── claims.jsonl            # 어떤 주장을 어디에 근거했는가
+        └── unread.txt              # 무엇을 읽지 않았는가
 ```
+
+`research/` 와 `.research/` 는 **같은 디렉터리 이름**을 씁니다. 그래야 `check-claims.mjs research/<slug>` 한 줄로 근거를 찾을 수 있고, 매핑 파일이나 작업 경로가 발행물에 새어 들어가지 않습니다.
+
+스크립트가 두 곳에 나뉜 기준은 **누가 돌리는가**입니다. `scripts/` 는 발행물을 검사하고 목록을 만드는 저장소 게이트라서 skill 이 없어도 사람이 그대로 돌립니다. skill 안의 스크립트는 `.research/` 의 작업 산출물만 다루므로 그 skill 의 절차 밖에서는 쓸 일이 없습니다.
 
 세 파일의 역할이 다릅니다.
 
 | 파일 | 대상 | 내용 |
 |---|---|---|
-| `README.md` | GitHub 에 들어온 사람 | 저장소가 무엇인지, 구조, 추가 절차 |
-| `CLAUDE.md` | 문서를 만드는 사람과 에이전트 | 조사 방법, 작성 규칙, 검증 절차, 하지 말 것 |
+| `README.md` | GitHub 에 들어온 사람 | 저장소가 무엇인지, 구조, 추가 절차, `meta.json` 필드 |
+| `CLAUDE.md` | 에이전트 세션 | 어디에 무엇을 두는지, 어떤 skill 을 쓰는지, 명령, 함정 |
+| `.claude/skills/` | 에이전트 세션 | 조사 방법, 12장 골격, 문안 규칙, 검토 절차 |
 | `index.html` | Pages 방문자 | 발행된 문서 목록 |
+
+`CLAUDE.md` 는 매 세션 전부 로드되므로 **항상 필요한 것만** 둡니다. 문서를 쓸 때만 필요한 규칙은 skill 에 있고, 필요할 때만 읽힙니다. 같은 규칙을 두 곳에 적으면 한쪽이 낡아도 알 수 없습니다.
 
 문서 목록을 `README.md` 에 손으로 관리하지 않는 이유는 금방 실제와 어긋나기 때문입니다. 목록은 `meta.json` 하나만 보고 두 곳에 동시에 생성됩니다.
 
@@ -54,10 +74,9 @@ mkdir -p research/YYYY-MM-DD-slug
 # index.html 과 meta.json 작성
 node scripts/check-doc.mjs research/YYYY-MM-DD-slug
 node scripts/build-index.mjs
-git add -A && git commit -m "..." && git push
 ```
 
-푸시하고 1~2분이면 Pages 에 반영됩니다.
+커밋과 푸시는 이 절차에 넣지 않습니다. 푸시하면 1~2분 뒤 Pages 에 반영됩니다.
 
 디렉터리 이름은 `YYYY-MM-DD-slug` 형식으로 씁니다. 날짜가 앞에 있어서 파일 목록이 그대로 시간순이 되고, URL 만 봐도 언제 무엇인지 알 수 있습니다.
 
@@ -94,12 +113,33 @@ git add -A && git commit -m "..." && git push
 
 ## 검사 스크립트
 
+발행물을 검사하는 스크립트입니다.
+
 ```bash
 node scripts/check-doc.mjs                    # 전체 문서
 node scripts/check-doc.mjs research/2026-...  # 특정 문서
+node scripts/check-doc.mjs --help             # 규칙 목록
 ```
 
-doctype, charset, lang, viewport, 태그 균형, 외부 리소스 로드, 다크 테마 대응, `img` alt, `meta.json` 필수 필드, 파일 크기를 확인합니다. 정적 검사이므로 통과했더라도 브라우저에서 화면을 한 번 열어보는 편이 좋습니다.
+문서 형식과 저장소 규약을 확인합니다. doctype, charset, lang, viewport, 태그 균형, 외부 리소스, 다크 테마, `img` alt 같은 HTML 기본 사항에 더해 덱 구조(슬라이드 수와 목차 수 일치, 스크립트 중복), 문서 간 링크(`#pN` 앵커 범위, 계보 링크, 같은 `series` 상호 링크), 문안 규칙(em dash, 제작 과정 서술)을 봅니다. 전체 목록은 `--help` 가 알려줍니다.
+
+**경고 등급은 없습니다.** 걸리면 종료 코드 1 입니다. 예외가 필요하면 `--allow=size` 처럼 규칙 id 를 명시해야 하고, 넘긴 항목은 출력에 남습니다. 경고 등급을 두면 전부 경고로 흘러가고 아무도 고치지 않기 때문입니다.
+
+정적 검사이므로 통과했더라도 브라우저에서 화면을 한 번 열어보는 편이 좋습니다.
+
+나머지 둘은 skill 안에 있습니다. `.research/` 의 작업 산출물을 다루기 때문에 그 절차 밖에서는 쓸 일이 없고, 발행물만 보는 위 게이트와 섞이면 어느 쪽이 저장소 규약인지 흐려집니다.
+
+```bash
+node .claude/skills/research-verify/scripts/check-claims.mjs research/2026-...
+```
+
+문서의 주장이 고정된 원문에 실제로 근거하는지 확인합니다. `.research/<slug>/` 의 `sources.jsonl` 과 `claims.jsonl` 을 읽고, 인용문이 그 커밋의 해당 위치에 실제로 있는지 대조합니다. 파일이 있고 줄 번호가 범위 안이라는 것만으로는 통과하지 않습니다.
+
+```bash
+node .claude/skills/research-source/scripts/record-unread.mjs research/2026-...
+```
+
+세션 기록에 남은 파일 접근을 훑어 `unread.txt` 를 만듭니다. 이 파일을 손으로 쓰면 안 됩니다. "비어 있지 않으면 통과"는 강제하려는 성질과 반대로 유인이 걸리기 때문입니다. `node_modules/` 한 줄이면 통과하고, 정직하게 다 적으면 문서가 얕아 보입니다. 판정은 보수적이라 glob 으로 읽은 파일은 잡히지 않고 안 읽은 쪽으로 기웁니다.
 
 ## 왜 정적 HTML 인가
 
