@@ -10,7 +10,7 @@ to your team.
 
 Document: `{DOC_PATH}`
 Corpus identity: `{SOURCES_PATH}`
-Coverage: `{UNREAD_PATH}`
+Coverage: chapter 7 of the document itself
 Checkout: `{CHECKOUT}`
 
 Read the document end to end, then answer.
@@ -27,7 +27,7 @@ Here is what a developer actually checks. Go through them against the document.
   These disagree more often than you'd expect. An AGPL-family license changes the
   decision entirely and is sometimes absent from the README badges.
 - **Maintenance vitality.** Commit frequency, contributor spread, issue response. But if
-  `{SOURCES_PATH}` or `{UNREAD_PATH}` shows a shallow clone, these numbers **cannot have
+  `{SOURCES_PATH}` or chapter 7 shows a shallow clone, these numbers **cannot have
   a source.** If the document asserts them anyway, that is a finding.
 - **Dependency risk.** What does adopting this tie you to — a vendor API, a runtime
   version, a paid service?

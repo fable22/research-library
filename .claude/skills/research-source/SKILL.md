@@ -113,21 +113,28 @@ says which was which. This happens often enough to be worth checking rather than
 
 ## 6. Coverage is disclosed, not required
 
-`unread.txt` is generated, never authored:
+Before writing, list what the corpus actually contains and compare it against what you
+opened:
 
 ```bash
-node .claude/skills/research-source/scripts/record-unread.mjs research/<slug> \
-  --repo <owner/name>=<path>
+git -C <checkout> ls-tree -r --name-only <commit> | awk -F/ '{print $1"/"$2}' | sort | uniq -c | sort -rn
 ```
 
-It derives what you touched from the session transcripts, including Bash commands and
-subagent transcripts, because in practice most files get read through `git show`, `grep`,
-and `sed` rather than the Read tool.
+Chapter 7 then states the commit, roughly how much you read, and **which directories you
+did not open and what that costs the document**. That last clause is the part with value:
+"I did not read `references/`, so the comparison in chapter 5 is shallower than it looks"
+tells a reader something. A bare ratio does not.
 
 **A long unread list is not a defect.** Reading 12 of 65 files and writing an accurate
-document beats reading 200, burning the context budget, and writing a vague one. This
-exists so the reader knows the shape of what was examined. Do not go open more files to
-make the list shorter; that trades real document quality for a cosmetic number.
+document beats reading 200, burning the context budget, and writing a vague one. Do not
+open files you do not need in order to make the list shorter.
+
+This used to be generated from session transcripts by a script. That was removed: the
+count it produced was a known undercount (reads through globs and pipes were invisible),
+so it published a number that looked verified and was not, in a document whose whole
+premise is verifiability. Its failure mode was also silent. Lens A in `research-verify`
+audits this chapter instead, and in practice it caught an accounting gap the script did
+not.
 
 ## Hand off
 

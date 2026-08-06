@@ -53,11 +53,6 @@ Run from the repo root:
 ```bash
 ls research/<slug>/index.html          # the draft
 ls .research/<slug>/sources.jsonl      # corpus identity (may be absent)
-
-# regenerate coverage — reading continues during authoring, so the copy from
-# research-source is stale by now. This script belongs to that skill.
-node .claude/skills/research-source/scripts/record-unread.mjs research/<slug> \
-  --repo <owner/name>=<path>
 ```
 
 `sources.jsonl` fixes what the numbers are checked against: `repo` + `commit` for code,
@@ -78,13 +73,12 @@ before this harness existed do not have one.
 When the review is reduced, say what was skipped at the top of the report, before the
 findings.
 
-`unread.txt` is generated, not written. `record-unread.mjs` derives it from session
-transcripts. "Non-empty passes" would push the wrong way: `node_modules/` alone would
-pass, while an honest 250-line list makes the document's coverage chapter look thin.
+Chapter 7 states what was read and what was not. It is written by the author, so **lens A
+audits it**: check the stated numbers against each other and against `sources.jsonl`. A
+document claiming 23 of 65 files with four unread directories totalling 34 has eight files
+unaccounted for, and that is a finding.
 
-Note that this is disclosure, not a coverage requirement. Reading 12 of 65 files and
-writing an accurate document beats reading 200 and burning the context budget. A long
-unread list is not a defect. Do not go read more files to shorten it.
+Coverage is disclosure, not a requirement. A long unread list is not a defect.
 
 ### 2. Extract claims from the shipped sentences
 
@@ -132,7 +126,7 @@ all in the same message so none of them sees another's work.
 | C | `references/lens-prose.md` | Repo writing rules, repetition, internal references, accessibility |
 
 Each lens needs: the document path, `sources.jsonl`, the corpus checkout location, and
-`unread.txt`. Lens B has to reopen the source itself, so without a checkout or a
+the coverage chapter. Lens B has to reopen the source itself, so without a checkout or a
 retrievable paper it cannot work.
 
 Each lens writes its findings in Korean.
@@ -172,7 +166,7 @@ Merge the three lenses and the script output into one Korean report. Follow
 
 ## 검증하지 못한 것
 - 부재 주장 3건에 재실행 가능한 검색 명령이 없어 확인 불가.
-- references/ 12개 파일 미확인 (unread.txt).
+- references/ 12개 파일 미확인 (7장).
 ```
 
 **Always include what could not be verified.** A report listing only findings reads as

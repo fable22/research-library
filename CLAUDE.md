@@ -13,7 +13,7 @@ Technical terms stay English (RAG, embedding, corpus, ablation, tool call, F1, m
 | Path | Contents | git |
 |---|---|---|
 | `research/<slug>/` | The publication. `index.html` and `meta.json` only | committed |
-| `.research/<slug>/` | Working artifacts. `sources.jsonl`, `claims.jsonl`, `unread.txt`, `notes/` | ignored |
+| `.research/<slug>/` | Working artifacts. `sources.jsonl`, `claims.jsonl`, `notes/` | ignored |
 
 The two trees always use the **same directory name**. There is no mapping file, so a
 mismatch means the document and its evidence can no longer be connected. Directory names
@@ -47,15 +47,15 @@ node scripts/check-doc.mjs research/<slug>       # gate on the publication
 node scripts/build-index.mjs                     # regenerate the listing
 
 node .claude/skills/research-verify/scripts/check-claims.mjs research/<slug>
-node .claude/skills/research-source/scripts/record-unread.mjs research/<slug>
 ```
 
 Never move a document directory by hand. The slug is usually settled only after the
 research is done, and `rename` is what keeps the two trees aligned, rewrites `og:url`, and
 follows the links other documents point at it with.
 
-The two in `scripts/` operate on the publication, so a person runs them whether or not any
-skill is loaded. The two inside skills only touch `.research/` working artifacts.
+The three in `scripts/` operate on the publication, so a person runs them whether or not any
+skill is loaded. `check-claims.mjs` only touches `.research/` working artifacts, so it lives
+with the skill that uses it.
 
 **Each script's `--help` lists its rules.** Copying that list into this file guarantees it
 goes stale when the code changes.

@@ -11,7 +11,7 @@ are the numbers the source has.
 Document: `{DOC_PATH}`
 Corpus identity: `{SOURCES_PATH}`
 Checkout: `{CHECKOUT}`
-Coverage: `{UNREAD_PATH}`
+Coverage: chapter 7 of the document itself
 
 **Reopen the source.** Never treat the document's own explanation as evidence. For code,
 pull from the pinned commit with `git -C {CHECKOUT} show <commit>:<file>`. For papers,

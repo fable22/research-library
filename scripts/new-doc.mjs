@@ -157,7 +157,7 @@ async function create(slug, kind, opts) {
   console.log(`research/${slug}/          index.html, meta.json`);
   console.log(`.research/${slug}/         sources.jsonl, claims.jsonl, notes/`);
   console.log(`\n${chapters.length}장 골격 (${kind}). eyebrow 는 내용을 가리키는 이름으로 바꿔 쓸 것.`);
-  console.log('unread.txt 는 record-unread.mjs 가 만든다. 손으로 쓰지 않는다.');
+  console.log('읽은 범위는 조사를 마친 뒤 ⑦장에 직접 적는다.');
 }
 
 // ---- rename ----

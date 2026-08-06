@@ -7,7 +7,7 @@
 // research-verify skill 의 도구다. 발행물이 아니라 .research/ 의 작업 산출물을 읽으므로
 // 저장소 게이트(scripts/check-doc.mjs)와 달리 skill 안에 둔다.
 //
-// 읽는 것: .research/<slug>/sources.jsonl, claims.jsonl, unread.txt
+// 읽는 것: .research/<slug>/sources.jsonl, claims.jsonl
 // research/ 는 발행물만 담고, 근거는 같은 이름의 .research/<slug>/ 에 있다.
 //
 // 핵심은 locator 가 존재하는지가 아니라 그 자리에 무엇이 있는지다.
@@ -50,8 +50,6 @@ const RULES = {
   'absence-search': 'kind=absence 주장에 재실행 가능한 검색 명령이 있는가',
   'behavioral-limits': 'kind=behavioral 주장에 확인하지 못한 것이 적혀 있는가',
   'history-claim': 'kind=history 주장의 source 에 이력이 실제로 있는가',
-  'unread-file': 'unread.txt 가 있는가',
-  'unread-authored': 'unread.txt 가 기계 생성 표식을 갖고 있는가 (손으로 쓰면 안 된다)',
 };
 
 const KINDS = ['code', 'numeric', 'absence', 'behavioral', 'history', 'doc', 'web'];
@@ -142,22 +140,6 @@ async function readJsonl(path, rule) {
 
 const sources = await readJsonl(join(evidenceDir, 'sources.jsonl'), 'sources-file');
 const claims = await readJsonl(join(evidenceDir, 'claims.jsonl'), 'claims-file');
-
-// ---- unread.txt ----
-
-try {
-  const unread = await readFile(join(evidenceDir, 'unread.txt'), 'utf8');
-  const body = unread.split('\n').filter((l) => l.trim() && !l.startsWith('#'));
-  // 목록이 비는 것은 정당할 수 있다. 작은 코퍼스를 전부 읽으면 미확인이 0이다.
-  // 그러니 "비었다"가 아니라 "생성되지 않았다"를 막는다. 생성기가 헤더에 통계를
-  // 남기므로, 헤더만 있고 목록이 비면 실제로 다 읽은 것이다.
-  if (!/^#\s*generated-by:/m.test(unread)) {
-    add('unread-authored',
-      'unread.txt 에 "# generated-by:" 표식이 없다. 손으로 쓰면 node_modules/ 한 줄로 통과시킬 수 있다. tool 로그에서 생성할 것');
-  }
-} catch {
-  add('unread-file', 'unread.txt 가 없다. 읽지 않은 범위를 기록할 것');
-}
 
 // ---- source 검사 ----
 

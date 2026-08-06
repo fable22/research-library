@@ -37,7 +37,6 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 │   └── new-doc.mjs                 # 문서 골격과 작업 공간을 함께 생성·이동
 ├── .claude/skills/                 # 조사와 문서화 skill
 │   ├── research-source/            # 코퍼스를 이식 가능한 신원으로 고정
-│   │   └── scripts/record-unread.mjs   # 세션 기록에서 읽지 않은 범위를 유도
 │   ├── research-doc/               # 문서 작성
 │   │   └── references/             # prose-ko.md, paper.md, oss.md
 │   └── research-verify/            # 초고 적대적 검토
@@ -50,8 +49,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 └── .research/                      # 조사 작업 산출물 (git 에 올라가지 않음)
     └── 2026-08-05-llm-wiki-retrieval-as-reasoning/
         ├── sources.jsonl           # 무엇을 읽었는가 (repo+commit, arxiv_id+version)
-        ├── claims.jsonl            # 어떤 주장을 어디에 근거했는가
-        └── unread.txt              # 무엇을 읽지 않았는가
+        └── claims.jsonl            # 어떤 주장을 어디에 근거했는가
 ```
 
 `research/` 와 `.research/` 는 **같은 디렉터리 이름**을 씁니다. 그래야 `check-claims.mjs research/<slug>` 한 줄로 근거를 찾을 수 있고, 매핑 파일이나 작업 경로가 발행물에 새어 들어가지 않습니다.
@@ -143,19 +141,13 @@ node scripts/check-doc.mjs --help             # 규칙 목록
 
 정적 검사이므로 통과했더라도 브라우저에서 화면을 한 번 열어보는 편이 좋습니다.
 
-나머지 둘은 skill 안에 있습니다. `.research/` 의 작업 산출물을 다루기 때문에 그 절차 밖에서는 쓸 일이 없고, 발행물만 보는 위 게이트와 섞이면 어느 쪽이 저장소 규약인지 흐려집니다.
+나머지 하나는 skill 안에 있습니다. `.research/` 의 작업 산출물을 다루기 때문에 그 절차 밖에서는 쓸 일이 없고, 발행물만 보는 위 게이트와 섞이면 어느 쪽이 저장소 규약인지 흐려집니다.
 
 ```bash
 node .claude/skills/research-verify/scripts/check-claims.mjs research/2026-...
 ```
 
 문서의 주장이 고정된 원문에 실제로 근거하는지 확인합니다. `.research/<slug>/` 의 `sources.jsonl` 과 `claims.jsonl` 을 읽고, 인용문이 그 커밋의 해당 위치에 실제로 있는지 대조합니다. 파일이 있고 줄 번호가 범위 안이라는 것만으로는 통과하지 않습니다.
-
-```bash
-node .claude/skills/research-source/scripts/record-unread.mjs research/2026-...
-```
-
-세션 기록에 남은 파일 접근을 훑어 `unread.txt` 를 만듭니다. 이 파일을 손으로 쓰면 안 됩니다. "비어 있지 않으면 통과"는 강제하려는 성질과 반대로 유인이 걸리기 때문입니다. `node_modules/` 한 줄이면 통과하고, 정직하게 다 적으면 문서가 얕아 보입니다. 판정은 보수적이라 glob 으로 읽은 파일은 잡히지 않고 안 읽은 쪽으로 기웁니다.
 
 ## 왜 정적 HTML 인가
 
