@@ -1,0 +1,830 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>insane-search: 실패를 종료 상태로 인정하지 않는 웹 접근 엔진</title>
+<meta name="description" content="차단된 웹을 뚫는 엔진의 값은 우회 기법이 아니라 실패 보고 방식에 있다. SUSPECT_OK 판정과 R6 실패 게이트를 코드에서 추적하고, 설치가 전역 settings.json 을 고치는 방식까지 도입 관점으로 정리했다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="insane-search: 실패를 종료 상태로 인정하지 않는 웹 접근 엔진">
+<meta property="og:description" content="차단된 웹을 뚫는 엔진의 값은 우회 기법이 아니라 실패 보고 방식에 있다. SUSPECT_OK 판정과 R6 실패 게이트를 코드에서 추적하고, 설치가 전역 settings.json 을 고치는 방식까지 도입 관점으로 정리했다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-07-insane-search-nonterminal-failure/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+.bar { height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>구조</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>WebFetch 와 비교</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>요청 경로 추적</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>결과 1. 판정</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>결과 2. R6 게이트</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>도입 판단</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>결론</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>insane-search: 실패를 종료 상태로 인정하지 않는 웹 접근 엔진</h1>
+      <p class="dek">차단된 페이지를 가져오는 도구는 많다. 이 프로젝트가 다른 지점은 <b>가져오지 못했을 때 무엇을 보고하는가</b>에 있다. 엔진은 포기하면서 아직 안 해본 경로의 목록과 <code>must_invoke_playwright_mcp</code> 플래그를 함께 돌려주고, 애매한 응답은 성공으로도 실패로도 세지 않는다. 코드를 읽어 그 구조를 추적하고, 도입할 때 무엇을 감수해야 하는지 정리했다.</p>
+
+      <div class="stats">
+        <div class="stat"><span class="val">3,715</span><span class="sub">engine 최상위 .py 행수. tests·templates 를 넣으면 6,109</span></div>
+        <div class="stat"><span class="val">9</span><span class="sub">응답 판정 종류. 성공 2, 종료성 실패 3, 나머지 4</span></div>
+        <div class="stat"><span class="val">23 / 65</span><span class="sub">읽은 파일 수. 나머지는 7장에 적었다</span></div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <span class="tag">코퍼스 고정</span>
+        <p class="small"><b>fivetaku/insane-search</b> 커밋 <code>019ee16bbf471595f9b67b164e4a92208183af2d</code>, 태그 <code>v0.14.0</code>. MIT. 아래 모든 <code>파일:행</code> 은 이 커밋 기준이고, shallow clone 이라 이력에 기반한 서술은 하지 않았다.</p>
+      </div>
+
+      <p class="note">코드를 읽어 쓴 문서다. 엔진을 실행하거나 테스트를 돌리지 않았으므로, 런타임 동작이 아니라 코드가 그렇게 쓰여 있다는 것까지만 확인된 내용이다.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>포기를 "다 해봤다"로 오해하지 못하게 만드는 것이 이 엔진의 설계 중심이다</h2>
+      <p class="dek">일반적인 fetch 라이브러리는 성공 아니면 실패를 돌려준다. 이 엔진은 실패에 <b>왜 여기서 멈췄고 무엇이 남았는지</b>를 붙인다. 그 결정이 판정 체계와 제어 흐름 양쪽에 박혀 있다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <tbody>
+            <tr><td><b>애매함이 종료가 아니다</b></td><td style="text-align:left;white-space:normal"><code>SUSPECT_OK</code> 판정은 성공 집합에도 실패 집합에도 없다. 보관만 하고 격자를 계속 돈다</td></tr>
+            <tr><td><b>포기에 목록이 붙는다</b></td><td style="text-align:left;white-space:normal"><code>_untried_routes()</code> 가 아직 안 해본 경로를 문자열로 반환하고, CLI 는 <code>⛔ NOT EXHAUSTED</code> 를 stderr 로 낸다</td></tr>
+            <tr><td><b>예산 절단과 전수 소진을 구분한다</b></td><td style="text-align:left;white-space:normal"><code>grid_exhausted</code> 플래그로 나뉜다. 예산 때문에 멈춘 것을 벽에 부딪힌 것으로 보고하지 않는다</td></tr>
+            <tr><td><b>에이전트 재량을 코드로 옮겼다</b></td><td style="text-align:left;white-space:normal">공식 API 시도가 skill 지시문에서 엔진 안으로 들어왔다. 주석이 그 이유를 직접 적는다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note">도입 판단은 11장에 있다. 결론만 먼저 적으면, 개인 개발 환경에서는 쓸 만하고 공용 환경에서는 설치 스크립트가 전역 <code>settings.json</code> 을 건드리는 방식 때문에 검토가 필요하다.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>에이전트가 "차단됐다"고 말할 때, 실제로는 한 가지만 해본 경우가 많다</h2>
+      <p class="dek">이 프로젝트가 없앤 수작업은 헤더를 바꿔가며 curl 을 다시 치는 일이 아니다. <b>어디까지 시도했는지 사람이 기억하는 일</b>이다. 판단을 에이전트에게 맡겨두면 건너뛴다는 것이, 코드 주석에 사례로 남아 있다.</p>
+
+      <figure class="figure">
+        <pre><code># old agent-driven SKILL snippets — the agent can no longer skip it, which
+# is what made Reddit/X look "blocked" (grid 403'd .json; nobody tried .rss)</code></pre>
+        <figcaption>skills/insane-search/engine/fetch_chain.py:900-901</figcaption>
+      </figure>
+
+      <p>같은 URL 에 <code>.json</code> 과 <code>.rss</code> 두 경로가 있는데 앞의 것만 403 을 받고 뒤의 것은 시도되지 않았다. 결과는 "Reddit 은 차단됨"이라는 잘못된 결론이다. 지시문에 "공식 API 를 먼저 써라"라고 적어두는 방식이 실패한 자리이고, 그래서 그 단계가 파이썬 코드 안으로 옮겨졌다.</p>
+
+      <p>두 번째 문제는 판정이다. HTTP 200 은 성공의 증거가 아니다. WAF 챌린지 페이지도 200 으로 온다. skill 문서가 이걸 규칙으로 못박는다.</p>
+
+      <figure class="figure">
+        <pre><code>**R2 — 첫 200에서 탈출 금지**: HTTP 200은 **검사 시작 조건**이지 성공이 아니다.
+`validate()`의 4-계층 검증을 통과해야 성공 선언. CLI는 이미 강제한다.</code></pre>
+        <figcaption>skills/insane-search/SKILL.md:45 · 원문 그대로. <code>**</code> 는 markdown 강조</figcaption>
+      </figure>
+
+      <p class="note">두 문제 모두 "도구가 약해서"가 아니라 "언제 멈출지를 누가 정하는가"의 문제다. 4장부터는 그 결정이 코드 어디에 있는지 본다.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">architecture</p>
+      <h2>단일 진입점 하나에 4개 Phase 가 순서대로 붙어 있다</h2>
+      <p class="dek">호출자가 보는 것은 <code>fetch(url)</code> 하나다. 그 안에서 공식 API, probe, 격자 순회, 브라우저 폴백이 차례로 시도되고, 각 단계는 앞 단계가 실패했을 때만 돈다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Phase</th><th>하는 일</th><th>위치</th></tr></thead>
+          <tbody>
+            <tr><td>0</td><td>인식된 플랫폼의 공식 무인증 엔드포인트</td><td><code>fetch_chain.py:897</code></td></tr>
+            <tr><td>1</td><td>probe. curl_cffi 로 첫 요청, root warmup 포함</td><td><code>fetch_chain.py:933</code></td></tr>
+            <tr><td>2</td><td>WAF 탐지 → 후보 격자 생성 → 전수 순회</td><td><code>fetch_chain.py:981</code></td></tr>
+            <tr><td>3</td><td>Playwright 폴백</td><td><code>fetch_chain.py:1031</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="fig-sub" style="margin-top:8px">4개 Phase 는 <code>_fetch_core()</code> 안의 주석 구분선이다. 표는 그 행 번호를 옮긴 것이고 원문에 이런 표는 없다.</p>
+
+      <p>모듈 크기는 고르지 않다. <code>fetch_chain.py</code> 1,276행이 최상위 3,715행의 3분의 1이고 제어 흐름 전체를 들고 있다. 나머지는 <code>validators.py</code> 349, <code>executor.py</code> 347, <code>transport.py</code> 310, <code>phase0.py</code> 273 순이다.</p>
+
+      <p>판정은 <code>Verdict</code> enum 9종이다. 이 중 성공으로 세는 것은 <code>STRONG_OK</code> 와 <code>WEAK_OK</code> 둘뿐이고, 격자를 멈추는 종료성 실패는 <code>AUTH_REQUIRED</code>, <code>NOT_FOUND</code>, <code>RATE_LIMITED</code> 셋이다. 나머지 넷은 어느 쪽도 아니다. 8장이 이 빈자리를 다룬다.</p>
+
+      <p class="note"><code>transport.py</code> 와 <code>executor.py</code> 는 홉의 존재만 확인했고 내부를 읽지 않았다. 격자 후보가 실제로 어떻게 생성되는지(<code>_plan_for_profile</code>, <code>fetch_chain.py:638</code>)는 확인하지 못했다.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">compare</p>
+      <h2>WebFetch 한 번과 비교하면 차이는 시도 횟수가 아니라 보고 형식이다</h2>
+      <p class="dek">이 엔진이 없으면 에이전트는 <code>WebFetch</code> 를 부르고 403 을 받고 사용자에게 "차단됐다"고 말한다. 그 문장에는 무엇을 해봤는지가 없다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th></th><th>WebFetch 단독</th><th>insane-search</th></tr></thead>
+          <tbody>
+            <tr><td>성공 판정</td><td>HTTP 상태 코드</td><td>4계층 검증. 200 이어도 챌린지면 실패</td></tr>
+            <tr><td>애매한 응답</td><td>구분 없음</td><td><code>SUSPECT_OK</code>. 보관하고 계속 시도</td></tr>
+            <tr><td>실패 시 반환</td><td>오류 메시지</td><td>미시도 경로 목록 + <code>grid_exhausted</code> + MCP 플래그</td></tr>
+            <tr><td>재시도 정책</td><td>호출자 몫</td><td>probe 에서만 백오프. 격자는 재시도 안 함</td></tr>
+            <tr><td>학습</td><td>없음</td><td>host 별 성공 경로 저장. TTL 30일, 최대 500개</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="fig-sub" style="margin-top:8px">비교 대상은 Claude Code 내장 <code>WebFetch</code> 다. 저장소가 이 비교표를 제공하지는 않는다.</p>
+
+      <p>격자를 재시도하지 않는 것은 의도된 절충이다. 후보마다 백오프를 걸면 실패 경로가 수십 초로 불어난다고 주석이 밝힌다.</p>
+
+      <figure class="figure">
+        <pre><code># Transient-status retry fires on the PROBE only: retrying each of the
+# dozens of grid candidates as well would multiply backoff sleeps into a
+# tens-of-seconds failure path.</code></pre>
+        <figcaption>skills/insane-search/engine/fetch_chain.py:955-957</figcaption>
+      </figure>
+
+      <p class="note">이 표는 기능 대조이지 성능 비교가 아니다. 두 방식의 성공률을 측정한 자료는 이 문서에 없다. 저장소에 <code>tests/coverage_battery.py</code> 와 <code>live_benchmark/bench.py</code> 가 있지만 실행하지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">trace</p>
+      <h2>fetch(url) 한 번이 지나는 경로를 끝까지 따라간다</h2>
+      <p class="dek">한 프로세스 안에서 끝나는 경로다. 아래 각 홉은 커밋 <code>019ee16</code> 의 실제 행을 가리킨다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <tbody>
+            <tr><td><b>홉 0 · 학습 조회</b></td><td style="text-align:left;white-space:normal"><code>priority = learning.lookup(url, device_class)</code> 를 네트워크 접촉 전에 부른다. 찾은 route 는 probe 신원이자 격자의 맨 앞이 된다 <code>fetch_chain.py:806</code></td></tr>
+            <tr><td><b>홉 1 · Phase 0</b></td><td style="text-align:left;white-space:normal">인식된 플랫폼이면 공식 엔드포인트 먼저. 성공하면 즉시 반환, 실패하면 포기하지 않고 격자로 떨어진다 <code>:902-931</code></td></tr>
+            <tr><td><b>홉 2 · root warmup</b></td><td style="text-align:left;white-space:normal">깊은 URL 이면 루트를 먼저 쳐서 WAF 센서가 쿠키를 심게 한다. 대상이 루트면 건너뛴다 <code>:942-952</code></td></tr>
+            <tr><td><b>홉 3 · probe</b></td><td style="text-align:left;white-space:normal">첫 실요청. 성공이면 반환, 애매하면 <code>best_suspect</code> 에 보관, 종료성 실패면 포기 <code>:958-979</code></td></tr>
+            <tr><td><b>홉 4 · detect → plan</b></td><td style="text-align:left;white-space:normal">probe 응답으로 WAF 프로파일을 맞춘다. 응답 자체가 없으면 <code>unknown_challenge</code> 를 confidence 0.1 로 꽂고 진행 <code>:983-990</code></td></tr>
+            <tr><td><b>홉 5 · 격자 순회</b></td><td style="text-align:left;white-space:normal">후보마다 시도. 비종료성 실패에서만 jitter. 다 돌면 <code>grid_exhausted = True</code> <code>:995-1024</code></td></tr>
+            <tr><td><b>홉 6 · Playwright</b></td><td style="text-align:left;white-space:normal">429 는 벽이 아니므로 건너뛰지 않는다. <code>playwright_mcp</code> 는 파이썬에서 못 돌리므로 stub 만 남기고 브라우저 예산을 소비하지 않는다 <code>:1032-1092</code></td></tr>
+            <tr><td><b>홉 7 · 포기</b></td><td style="text-align:left;white-space:normal"><code>_give_up()</code> 이 미시도 경로를 붙여 반환 <code>:1095-1097</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>홉 6 의 stub 처리에는 구체적인 사고 사례가 주석으로 남아 있다. MCP 항목을 브라우저 예산으로 세면, <code>cloudflare_turnstile</code> 프로파일의 폴백 순서에서 진짜 Chrome 에 닿기 전에 슬롯 2개를 다 태운다.</p>
+
+      <figure class="figure">
+        <pre><code># browser budget slot: otherwise, e.g. cloudflare_turnstile's
+# [playwright_mcp, protocol_stealth_chrome, playwright_real_chrome]
+# would burn both max_browser_attempts=2 slots before the real
+# Chrome executor is ever reached.</code></pre>
+        <figcaption>skills/insane-search/engine/fetch_chain.py:1045-1048</figcaption>
+      </figure>
+
+      <p class="note">이 추적은 코드를 읽어 만든 것이다. 실제로 요청을 보내 각 홉을 관측하지 않았으므로, "429 를 만나면 백오프한다"가 아니라 "백오프 코드가 이 자리에 있다"까지가 확인된 내용이다.</p>
+    </div>
+  </section>
+
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>65개 파일 중 23개를 열었고, 무엇을 열지 않았는지 적는다</h2>
+      <p class="dek">읽은 범위를 밝히지 않으면 읽는 사람이 이 문서의 빈자리를 알 수 없다. 아래 목록은 세션 기록에서 기계적으로 유도한 것이고, 판정은 보수적이라 glob 이나 파이프로 읽은 파일은 미확인으로 남는다.</p>
+
+      <div class="stats">
+        <div class="stat"><span class="val">019ee16</span><span class="sub">고정 커밋. 태그 v0.14.0</span></div>
+        <div class="stat"><span class="val">23 / 65</span><span class="sub">확인한 파일 (35%)</span></div>
+        <div class="stat"><span class="val">shallow</span><span class="sub">커밋 1개. 이력 서술 불가</span></div>
+      </div>
+
+      <div class="tablewrap" style="margin-top:14px">
+        <table>
+          <thead><tr><th>열지 않은 디렉터리</th><th>파일</th><th>이 문서에 미치는 영향</th></tr></thead>
+          <tbody>
+            <tr><td><code>skills/insane-search/references/</code></td><td>12</td><td>플랫폼별 접근 방법 문서. 5장의 기능 비교가 얕아진다</td></tr>
+            <tr><td><code>skills/insane-search/engine/tests/</code></td><td>14</td><td>실행도 안 했다. 10장에서 다시 다룬다</td></tr>
+            <tr><td><code>skills/insane-search/engine/templates/</code></td><td>6</td><td>Playwright 실행 템플릿. 홉 6 의 내부가 미확인</td></tr>
+            <tr><td><code>assets/</code></td><td>2</td><td>없음. 코퍼스에서 명시적으로 제외했다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>읽은 쪽은 제어 흐름에 몰려 있다. <code>fetch_chain.py</code>, <code>validators.py</code>, <code>learning.py</code>, <code>observations_log.py</code>, <code>content_safety.py</code>, <code>bias_check.py</code>, <code>setup/setup.sh</code>, <code>setup/gptaku-update-check.cjs</code>, 그리고 문서 4종이다. 6장의 추적과 11장의 도입 판단이 이 범위 위에 서 있다.</p>
+
+      <p>미확인 42개 중 위 디렉터리가 34개이고, 나머지 8개는 최상위에 흩어져 있다. <code>waf_profiles.yaml</code>, <code>phase0.py</code>, <code>transport.py</code>, <code>waf_detector.py</code>, <code>url_transforms.py</code>, 번역 README 3종이다. 디렉터리 단위로만 적으면 이 8개가 가려진다.</p>
+
+      <p class="note"><code>references/</code> 12개와 <code>waf_profiles.yaml</code> 을 읽지 않은 것이 이 문서의 가장 큰 빈자리다. 앞의 것은 5장의 비교를, 뒤의 것은 확장 지점 판단을 얕게 만든다.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-verdict</p>
+      <h2>결과 1. 판정 체계에 "애매함"이 독립된 자리를 갖는다</h2>
+      <p class="dek">대부분의 fetch 코드는 성공 아니면 실패다. 여기서는 응답이 성공처럼 보이지만 확신할 수 없는 상태에 이름이 붙어 있고, 그 이름이 제어 흐름을 바꾼다.</p>
+
+      <figure class="figure">
+        <pre><code>SUSPECT_OK = "suspect_ok"      # ambiguous (abck unresolved / soft) → NON-terminal</code></pre>
+        <figcaption>skills/insane-search/engine/validators.py:79</figcaption>
+      </figure>
+
+      <p>같은 파일의 <code>ok</code> 프로퍼티가 이걸 성공에서 명시적으로 뺀다.</p>
+
+      <figure class="figure">
+        <pre><code>"""Terminal success only. SUSPECT_OK is intentionally excluded."""</code></pre>
+        <figcaption>skills/insane-search/engine/validators.py:104</figcaption>
+      </figure>
+
+      <p>동시에 격자를 멈추는 집합에도 없다. <code>TERMINAL_NONSUCCESS</code> 는 <code>AUTH_REQUIRED</code>, <code>NOT_FOUND</code>, <code>RATE_LIMITED</code> 셋뿐이다(<code>validators.py:89-91</code>). 그래서 <code>SUSPECT_OK</code> 를 만나면 반환하지도, 중단하지도 않고 보관만 한 뒤 계속 간다.</p>
+
+      <figure class="figure">
+        <pre><code>if probe_attempt.verdict == Verdict.SUSPECT_OK.value:
+    best_suspect = (probe_resp, probe_attempt)</code></pre>
+        <figcaption>skills/insane-search/engine/fetch_chain.py:974-975</figcaption>
+      </figure>
+
+      <p>격자 안에서도 같은 처리인데 <code>and best_suspect is None</code> 조건이 붙어 <b>처음 만난 것만</b> 남긴다(<code>:1015</code>). 뒤에 더 나은 후보가 나와도 교체하지 않는다.</p>
+
+      <p class="note">이 설계의 값은 마지막에 드러난다. 전부 실패해도 손에 남은 <code>best_suspect</code> 를 돌려줄 수 있으므로, 빈손과 "확신은 없지만 이건 받았다"가 구분된다.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-gate</p>
+      <h2>결과 2. 포기할 때 아직 안 해본 경로를 이름으로 돌려준다</h2>
+      <p class="dek">R6 게이트다. 함수의 docstring 이 목적을 직접 적는데, 이 문서에서 가장 인용할 만한 두 줄이다.</p>
+
+      <figure class="figure">
+        <pre><code>"""Failure gate (R6): name the escalation routes the engine itself could not
+perform, so the caller never mistakes give-up for "everything was tried".</code></pre>
+        <figcaption>skills/insane-search/engine/fetch_chain.py:1101-1102</figcaption>
+      </figure>
+
+      <p>반환값은 <code>(untried_routes, must_invoke_playwright_mcp)</code> 두 개다. 판단은 <code>stop_reason</code> 과 <code>grid_exhausted</code> 로 갈린다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>멈춘 이유</th><th>반환</th><th>근거</th></tr></thead>
+          <tbody>
+            <tr><td>404 · 410 · 401 · 407</td><td>빈 목록, MCP 불필요</td><td>진짜 벽이므로 더 해볼 것이 없다 <code>:1112-1114</code></td></tr>
+            <tr><td>429</td><td>백오프 후 재시도 안내 + MCP</td><td>일시적이므로 terminal 에서 제외 <code>:1110, :1116-1117</code></td></tr>
+            <tr><td>예산 절단 또는 격자 미소진</td><td><code>max_attempts=None</code> 재호출 안내</td><td>격자 자체가 안 끝났다 <code>:1119-1120</code></td></tr>
+            <tr><td>격자 전수 소진</td><td>MCP + user_hint 재시도</td><td>MCP 는 구조적으로 미시도 <code>:1126-1132</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="fig-sub" style="margin-top:8px">표는 <code>_untried_routes()</code> 의 분기를 정리한 것이다. 저장소에 이런 표는 없다.</p>
+
+      <p>MCP 가 항상 미시도로 남는 이유가 구조적이다. 엔진은 로컬 Node Chrome 만 띄울 수 있고, Cloudflare 급 챌린지는 그걸 탐지한다. 그래서 terminal 이 아닌 모든 포기에서 <code>must_mcp = True</code> 다(<code>:1126</code>).</p>
+
+      <figure class="figure">
+        <pre><code># A gated page that survived the curl grid → the real browser is the next</code></pre>
+        <figcaption>skills/insane-search/engine/fetch_chain.py:1122</figcaption>
+      </figure>
+
+      <p class="note">이 게이트는 이 문서를 만드는 과정에서 한 번 실제로 관측됐다. 다른 작업 중 논문 PDF 를 받으려다 18개 경로를 소진하고 <code>⛔ NOT EXHAUSTED</code> 블록이 나왔다. 다만 그건 이 문서를 위해 통제한 실행이 아니므로 재현 가능한 측정으로 취급하지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>해석의 한계</h2>
+      <p class="dek">위 서술은 전부 코드를 읽어 얻은 것이다. 무엇이 확인되지 않았는지와, 문서가 코드보다 앞서 나간 자리를 구분해 적는다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <tbody>
+            <tr><td><b>런타임 미검증</b></td><td style="text-align:left;white-space:normal">엔진을 실행하지 않았다. 테스트 14개도 돌리지 않았다. 제어 흐름이 그렇게 <b>쓰여 있다</b>는 것까지만 성립한다</td></tr>
+            <tr><td><b>CI 게이트가 이 저장소에 없다</b></td><td style="text-align:left;white-space:normal"><code>SKILL.md:47</code> 이 <code>bias_check.py</code> 를 "CI 게이트"라고 단정하는데, 커밋 <code>019ee16</code> 에 <code>.github/</code> 도 workflow yaml 도 pre-commit 설정도 Makefile 도 없다. 다른 곳에서 돌 가능성은 배제하지 못한다</td></tr>
+            <tr><td><b>bias_check 자신이 불완전을 선언</b></td><td style="text-align:left;white-space:normal"><code>bias_check.py:22</code> 가 "non-exhaustive deny list" 라고 적는다. 브랜드 목록과 허용 호스트 목록이 둘 다 손으로 관리된다</td></tr>
+            <tr><td><b>그 둘을 검사하는 테스트가 없다</b></td><td style="text-align:left;white-space:normal"><code>grep -rln "observations_log\|bias_check"</code> 를 테스트 디렉터리 둘에 돌려 0건</td></tr>
+            <tr><td><b>이력이 없다. 원인이 다르다</b></td><td style="text-align:left;white-space:normal">shallow clone 이기도 하지만, 고정 커밋의 메시지 자체가 <code>refactor: reset public history at 0.14.0</code> 이다. 상류가 공개 이력을 지웠을 가능성이 높다. 커밋 빈도와 기여자 분포는 말할 수 없다. <b>릴리스 주기는 다르다</b>. <code>CHANGELOG.md</code> 28KB 가 0.4.0(2026-04-22)부터 0.14.0(2026-08-06)까지 날짜와 함께 있다</td></tr>
+            <tr><td><b>읽은 코드가 하루 전에 잘려나간 상태다</b></td><td style="text-align:left;white-space:normal"><code>CHANGELOG.md:5-9</code> 에 따르면 v0.14.0(2026-08-06)은 <code>scripts/endpoint_miner.py</code>, <code>engine/auto_forge.py</code>, <code>engine/recipe_loader.py</code>, <code>recipes/</code> 를 전면 제거하고 fetch 체인의 Phase 0.5 와 Phase 4, SKILL.md 의 R7 도 함께 지웠다. 규칙이 R1~R6 과 R8 로 끝나고 R7 만 없는 이유가 이것이다. 같은 릴리스에서 "보안장치를 절대 우회하지 않는다"류 문구를 README 와 DISCLAIMER 에서 뺐다. <b>도입자는 이 프로젝트가 방금 무엇을 포기했는지 보고 판단해야 한다</b></td></tr>
+            <tr><td><b>references/ 12개 미확인</b></td><td style="text-align:left;white-space:normal">55KB. 플랫폼별 접근 방법이 여기 있으므로 5장의 비교가 실제보다 얕다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>설치 경로는 하나가 아니다. <code>executor.py:90</code> 의 <code>INSANE_AUTO_INSTALL</code> opt-in 은 <code>:131</code> 에서만 불리고 대상이 <code>nodriver</code> 와 <code>patchright</code> 뿐이다. README 가 이름을 든 <code>curl_cffi</code> 와 <code>yt-dlp</code> 는 이 경로를 타지 않고, <code>SKILL.md:232-234</code> 가 에이전트에게 조건 없이 <code>pip install</code> 을 실행시킨다. 두 경로를 겹쳐 보면 README 가 코드와 어긋나 보이지만 실제로는 어긋나지 않는다.</p>
+
+      <p>같은 SKILL.md 안에서 수동 개입 단계가 Phase 2(<code>:213</code>)와 Phase 3(<code>:153</code>) 두 이름으로 불린다. 미디어 사이트 수는 표기가 셋이지만 값은 하나다. <code>PLATFORMS.md:28</code> 의 <code>+1,853 others</code> 는 앞에 이름을 든 5개를 더해 1,858 이고, <code>README.md:63</code> 의 <code>1,800+</code> 는 같은 값의 내림이다. 다만 셋 다 자체 보고이고 출처 링크가 없다.</p>
+
+      <p class="note">위 항목 중 CI 부재와 자동 설치는 <b>저자가 주장하는 것</b>이고, 나머지는 프로젝트 문서나 코드가 스스로 밝힌 것이다. bias_check 의 불완전성은 파일 자신이 적었다.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adopt</p>
+      <h2>도입 판단: 개인 환경은 trial, 공용 환경은 설치 방식 때문에 assess</h2>
+      <p class="dek">엔진 자체와 설치 절차의 위험이 다르다. 엔진은 MIT 이고 경계가 잘 잡혀 있는데, <code>setup.sh</code> 가 전역 설정을 건드린다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>항목</th><th>확인 결과</th></tr></thead>
+          <tbody>
+            <tr><td>라이선스</td><td><b>MIT</b>. 실물 <code>LICENSE:1</code> 을 읽었다. <code>plugin.json:11</code> 과 일치. <code>DISCLAIMER.md:7</code> 이 라이선스를 수정하지 않는다고 명시</td></tr>
+            <tr><td>설정 파일 변경</td><td>전역 <code>settings.json</code> 에 SessionStart 훅 주입 <code>setup/setup.sh:120</code></td></tr>
+            <tr><td>되돌리기</td><td><b>제거 경로 없음.</b> <code>grep -rn "uninstall\|remove_hook"</code> 0건</td></tr>
+            <tr><td>외부 호출</td><td>주입된 훅이 24시간 캐시로 <code>git ls-remote</code> <code>gptaku-update-check.cjs:103</code></td></tr>
+            <tr><td>읽는 것</td><td>세션 트랜스크립트. 최근 20파일·400메시지·user 턴만, 언어 코드만 보관 <code>setup.sh:38-70</code></td></tr>
+            <tr><td>남기는 것</td><td>fetch 마다 <b>전체 URL</b> 기록. <b>TTL·rotate 없음</b> <code>observations_log.py:35</code></td></tr>
+            <tr><td>학습 저장소</td><td>TTL 30일, 최대 500개, 키는 host+device <code>learning.py:30-31, :63</code></td></tr>
+            <tr><td>자동 설치</td><td>기본 꺼짐. <code>INSANE_AUTO_INSTALL</code> opt-in</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>가장 주의할 자리는 설치 스크립트의 파싱 실패 분기다. 훅 주입은 인라인 node 프로그램이 <code>settings.json</code> 을 읽어 객체로 만든 뒤 다시 쓰는 방식인데, 파싱에 실패하면 빈 객체에서 시작한다.</p>
+
+      <figure class="figure">
+        <pre><code>let d={}; try{d=JSON.parse(fs.readFileSync(p,"utf8"))}catch{}</code></pre>
+        <figcaption>setup/setup.sh:114</figcaption>
+      </figure>
+
+      <p><code>d</code> 가 <code>{}</code> 면 훅이 없으므로 주입 조건이 참이 되고, 121행이 그 객체를 그대로 파일에 쓴다. <b>깨진 <code>settings.json</code> 은 훅만 남은 파일로 교체된다.</b> 백업을 뜨지 않고 쓰기 실패도 <code>catch{}</code> 로 삼킨다. 유효한 JSON 이면 병합되므로 정상 경로에서는 문제가 없다.</p>
+
+      <p>반대 방향으로 세어야 할 것도 있다. <code>engine/safety.py</code> 가 SSRF 와 리다이렉트 가드를 들고 있다. private, loopback, link-local, 그리고 클라우드 메타데이터 주소(<code>169.254.169.254</code>)를 기본 차단하고, 매 홉을 검증하며 DNS rebinding 도 본다. 파일 머리말이 "공식 문서에 내장 가드가 없다"는 것을 이유로 적는다. <code>test_u7.py</code> 가 이걸 오프라인으로 검사한다. 적대적 페이지가 내부망으로 리다이렉트를 유도하는 경로는 막혀 있다.</p>
+
+      <p>정리하면 이렇다. 개인 개발 머신에서 <b>trial</b>. 설치 전에 <code>settings.json</code> 을 백업하고, 관측 로그가 무한히 쌓이는 것을 감수할 수 있으면 된다. 팀 공용 환경이나 CI 러너에서는 <b>assess</b>. 전역 설정 변경과 제거 경로 부재, 그리고 세션 트랜스크립트를 읽는다는 사실을 각자 정책에 비춰 판단해야 한다.</p>
+
+      <p class="note">엔진만 쓰는 선택지가 있다. <code>python3 -m engine &lt;URL&gt;</code> 은 <code>SKILL.md:40</code>, <code>:68</code>, <code>:263</code> 과 <code>engine/__main__.py</code> 에 문서화돼 있고 <code>setup.sh</code> 없이 돈다. 대신 플러그인 설치를 포기하는 것이므로 skill 트리거, 업데이트 경로, <code>references/</code> 를 잃고 의존성을 직접 깔아야 한다.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론</h2>
+      <p class="dek">이 프로젝트에서 가져갈 만한 것은 접근 기법이 아니라 실패를 다루는 방식이다.</p>
+
+      <p>차단을 우회하는 개별 수법은 새롭지 않다. TLS 지문 위장, 모바일 URL 변환, 헤드리스 브라우저는 모두 알려진 것이다. 이 엔진이 다른 자리는 <b>그 수법들을 다 써보고도 실패했을 때 무엇을 말하는가</b>에 있다. 아직 안 해본 경로를 이름으로 돌려주고, 예산 때문에 멈춘 것과 벽에 부딪힌 것을 구분하고, 애매한 응답을 성공으로도 실패로도 세지 않는다.</p>
+
+      <p>그 설계가 나온 계기가 코드 주석에 남아 있다는 점도 같이 볼 만하다. 공식 API 를 먼저 쓰라는 <b>지시</b>는 지켜지지 않았고, 그래서 그 단계가 엔진 안으로 들어왔다. 에이전트에게 규율을 문서로 요구하는 것과 코드로 강제하는 것의 차이를 보여주는 사례다.</p>
+
+      <p>한계도 그만큼 분명하다. CI 게이트라고 적힌 것이 이 저장소에 없고, 손으로 관리하는 denylist 를 검사하는 테스트도 없다. 관측 로그는 전체 URL 을 경계 없이 쌓는다. 설치 스크립트는 전역 설정을 고치면서 되돌리는 경로를 주지 않는다. 도구를 쓸지 말지보다 <b>어느 환경에 설치할지</b>가 실제 판단 지점이다.</p>
+
+      <p>다른 프로젝트로 옮길 만한 것을 하나 고르라면 <code>_untried_routes()</code> 의 형태다. 실패 반환값에 "무엇이 남았는가"를 담는 것은 도메인과 무관하게 성립하고, 호출자가 사람이든 에이전트든 조기 포기를 막는다.</p>
+
+      <p class="note">이 문서는 코드를 읽어 쓴 것이고 런타임을 확인하지 않았다. 실행 검증이 붙으면 8장과 9장의 서술이 달라질 수 있다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처</h2>
+      <p class="dek">본문의 모든 <code>파일:행</code> 은 아래 커밋 기준이다.</p>
+
+      <div class="card">
+        <span class="tag">코퍼스</span>
+        <p class="small"><b>fivetaku/insane-search</b><br>
+        커밋 <code>019ee16bbf471595f9b67b164e4a92208183af2d</code> · 태그 <code>v0.14.0</code> · MIT<br>
+        <a href="https://github.com/fivetaku/insane-search">github.com/fivetaku/insane-search</a><br>
+        shallow clone (커밋 1개). 이력 기반 서술 없음. <code>assets/</code> 는 범위에서 제외.</p>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <span class="tag">읽은 파일</span>
+        <p class="small"><b>엔진</b> <code>fetch_chain.py</code>, <code>validators.py</code>, <code>learning.py</code>, <code>observations_log.py</code>, <code>content_safety.py</code>, <code>bias_check.py</code>, <code>executor.py</code>(일부)<br>
+        <b>설치</b> <code>setup/setup.sh</code>, <code>setup/gptaku-update-check.cjs</code>, <code>.claude-plugin/plugin.json</code><br>
+        <b>문서</b> <code>SKILL.md</code>, <code>README.md</code>, <code>PLATFORMS.md</code>, <code>DISCLAIMER.md</code>, <code>LICENSE</code>, <code>CHANGELOG.md</code>(0.14.0 항목만)<br>
+        전체 65개 중 23개. 열지 않은 디렉터리는 7장에 있다.</p>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <span class="tag">확인 방법</span>
+        <p class="small">인용문은 <code>git show &lt;commit&gt;:&lt;path&gt;</code> 로 고정 커밋에서 직접 꺼내 대조했다. 저장소를 받아 같은 커밋을 체크아웃하면 같은 행에서 같은 문장을 볼 수 있다.</p>
+        <pre style="margin-top:8px"><code>git clone https://github.com/fivetaku/insane-search
+git -C insane-search checkout 019ee16</code></pre>
+      </div>
+
+      <p class="note">4장과 9장의 표는 원문에 없는 정리다. 각 표의 캡션에 그렇게 적었다.</p>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 13</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
