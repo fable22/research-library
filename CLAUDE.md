@@ -41,12 +41,18 @@ reasoning. Self-review confirms what it already believes.
 ## Commands
 
 ```bash
+node scripts/new-doc.mjs <slug> <paper|oss>      # scaffold both trees
+node scripts/new-doc.mjs rename <old> <new>      # move both trees together
 node scripts/check-doc.mjs research/<slug>       # gate on the publication
 node scripts/build-index.mjs                     # regenerate the listing
 
 node .claude/skills/research-verify/scripts/check-claims.mjs research/<slug>
 node .claude/skills/research-source/scripts/record-unread.mjs research/<slug>
 ```
+
+Never move a document directory by hand. The slug is usually settled only after the
+research is done, and `rename` is what keeps the two trees aligned, rewrites `og:url`, and
+follows the links other documents point at it with.
 
 The two in `scripts/` operate on the publication, so a person runs them whether or not any
 skill is loaded. The two inside skills only touch `.research/` working artifacts.

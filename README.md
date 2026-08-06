@@ -25,12 +25,15 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 ```
 .
 ├── README.md                       # 저장소 소개 (이 파일)
-├── CLAUDE.md                       # 문서를 만들 때 따를 작업 지침
+├── CLAUDE.md                       # 세션이 매번 알아야 할 것 (작성 규칙은 skill 에)
 ├── index.html                      # Pages 목록 페이지 (스크립트가 생성)
-├── assets/index.css                # 목록 페이지 스타일
+├── assets/
+│   ├── index.css                   # 목록 페이지 스타일
+│   └── deck-shell.html             # 문서 덱의 CSS·JS 셸 (new-doc.mjs 가 찍어낸다)
 ├── scripts/                        # 발행 인프라. skill 없이도 돌아간다
 │   ├── build-index.mjs             # meta.json 을 모아 index.html 과 위 표를 생성
-│   └── check-doc.mjs               # 문서가 형식과 규약을 지키는지 검사
+│   ├── check-doc.mjs               # 문서가 형식과 규약을 지키는지 검사
+│   └── new-doc.mjs                 # 문서 골격과 작업 공간을 함께 생성·이동
 ├── .claude/skills/                 # 조사와 문서화 skill
 │   ├── research-source/            # 코퍼스를 이식 가능한 신원으로 고정
 │   │   └── scripts/record-unread.mjs   # 세션 기록에서 읽지 않은 범위를 유도
@@ -70,11 +73,23 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 ## 문서 추가하기
 
 ```bash
-mkdir -p research/YYYY-MM-DD-slug
-# index.html 과 meta.json 작성
+node scripts/new-doc.mjs YYYY-MM-DD-slug paper --title "제목" --summary "한 줄 설명"
+# 내용을 채운 뒤
 node scripts/check-doc.mjs research/YYYY-MM-DD-slug
 node scripts/build-index.mjs
 ```
+
+`new-doc.mjs` 가 12장 골격이 들어간 `index.html` 과 `meta.json`, 그리고 `.research/<slug>/` 의 작업 파일을 함께 만듭니다. 유형은 `paper` 와 `oss` 두 가지이고 장 구성이 조금 다릅니다. 만든 직후 `check-doc.mjs` 를 통과합니다.
+
+덱의 CSS 와 JS 는 `assets/deck-shell.html` 에 있습니다. 기존 세 문서의 CSS 블록 md5 가 완전히 같고 JS 도 같아서, 어차피 복붙되던 것을 파일 하나로 모았습니다.
+
+이름은 조사가 끝나야 정해지는 경우가 많습니다. 바꿀 때는 직접 옮기지 말고 `rename` 을 쓰세요.
+
+```bash
+node scripts/new-doc.mjs rename <old-slug> <new-slug>
+```
+
+두 트리를 함께 옮기고, `og:url` 과 다른 문서가 걸어둔 링크까지 고칩니다. 손으로 옮기면 `research/` 와 `.research/` 가 어긋나 근거를 찾을 수 없게 됩니다.
 
 커밋과 푸시는 이 절차에 넣지 않습니다. 푸시하면 1~2분 뒤 Pages 에 반영됩니다.
 
