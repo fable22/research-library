@@ -28,6 +28,13 @@ commit. `check-claims.mjs` confirms the quote actually appears within ±15 lines
 locator. Checking only that the file exists and the line number is in range passes almost
 any fabricated citation, because a 6,934-line file accommodates nearly any number.
 
+**Locators are relative to the repository root, always.** Verification runs
+`git show <commit>:<path>`, so a path relative to wherever you happened to be reading
+resolves to nothing. This is easy to get wrong in a repo where the interesting code sits
+several levels down: reading inside `skills/insane-search/` makes
+`engine/fetch_chain.py:806` feel natural, but the locator has to be
+`skills/insane-search/engine/fetch_chain.py:806` or nobody else can resolve it.
+
 Pick a path that ends inside **one process boundary**. Across packages, run one
 compression subagent per hop and stitch them together yourself.
 

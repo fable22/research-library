@@ -72,6 +72,16 @@ function stripCode(html) {
     .replace(/<!--[\s\S]*?-->/g, '');
 }
 
+// 문안 규칙은 문서가 스스로 쓴 문장에만 적용한다. <pre> 와 <code> 안은 원문 인용이라
+// 손대면 안 되는 자리다. 코드 주석에 em dash 가 있다고 인용을 고치면 그건 인용이
+// 아니게 된다. 그래서 문안 검사에서만 인용 구간을 뺀다. 태그 균형 검사는 그대로
+// 전체를 본다.
+function stripQuoted(html) {
+  return stripCode(html)
+    .replace(/<pre[\s\S]*?<\/pre>/gi, '')
+    .replace(/<code[\s\S]*?<\/code>/gi, '');
+}
+
 function checkTagBalance(html) {
   const body = stripCode(html).replace(/<!doctype[^>]*>/gi, '');
   const stack = [];
@@ -246,7 +256,7 @@ function checkDoc(doc, byslug) {
   }
 
   // --- 문안 ---
-  const prose = stripCode(html);
+  const prose = stripQuoted(html);
   const emIdx = prose.indexOf('—');
   if (emIdx >= 0) {
     const around = prose.slice(Math.max(0, emIdx - 40), emIdx + 40).replace(/\s+/g, ' ');
