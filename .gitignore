@@ -14,6 +14,10 @@ scratch/
 # 문서 제작 과정에서만 쓰는 원본 (내보낸 결과물만 커밋한다)
 research/*/src/
 
+# 조사 작업 산출물 (근거, 주장, 읽은 범위). research/ 는 발행물만 담는다.
+# 디렉터리 이름은 research/<slug> 와 항상 같게 유지한다.
+.research/
+
 # node
 node_modules/
 npm-debug.log*
