@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 // 문서의 주장이 고정된 원문에 실제로 근거하는지 검사한다.
-//   node scripts/check-claims.mjs research/2026-08-07-slug
-//   node scripts/check-claims.mjs research/<slug> --repo owner/name=/path/to/checkout
-//   node scripts/check-claims.mjs --help
+//   node .claude/skills/research-verify/scripts/check-claims.mjs research/2026-08-07-slug
+//   ... research/<slug> --repo owner/name=/path/to/checkout
+//   ... --help
+//
+// research-verify skill 의 도구다. 발행물이 아니라 .research/ 의 작업 산출물을 읽으므로
+// 저장소 게이트(scripts/check-doc.mjs)와 달리 skill 안에 둔다.
 //
 // 읽는 것: .research/<slug>/sources.jsonl, claims.jsonl, unread.txt
 // research/ 는 발행물만 담고, 근거는 같은 이름의 .research/<slug>/ 에 있다.
@@ -12,11 +15,23 @@
 // 그래서 quote 를 고정 커밋에서 직접 꺼내 대조한다.
 
 import { readFile, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
 import { join, dirname, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
 
-const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
+// 스크립트가 skill 안으로 옮겨졌으므로 자기 위치에서 몇 단계 위인지 세지 않는다.
+// .git 을 찾을 때까지 올라간다. 어디에 두든 같은 저장소 루트를 가리킨다.
+function findRoot(from) {
+  let dir = from;
+  for (;;) {
+    if (existsSync(join(dir, '.git'))) return dir;
+    const up = dirname(dir);
+    if (up === dir) return process.cwd();
+    dir = up;
+  }
+}
+const ROOT = findRoot(dirname(fileURLToPath(import.meta.url)));
 
 const QUOTE_MIN = 40;   // 이보다 짧으면 우연히 맞을 수 있다
 const LINE_SLACK = 15;  // locator 앞뒤로 이만큼 안에 있으면 통과
@@ -35,8 +50,8 @@ const RULES = {
   'absence-search': 'kind=absence 주장에 재실행 가능한 검색 명령이 있는가',
   'behavioral-limits': 'kind=behavioral 주장에 확인하지 못한 것이 적혀 있는가',
   'history-claim': 'kind=history 주장의 source 에 이력이 실제로 있는가',
-  'unread-file': 'unread.txt 가 있고 비어 있지 않은가',
-  'unread-authored': 'unread.txt 가 기계 생성 표식을 갖고 있는가',
+  'unread-file': 'unread.txt 가 있는가',
+  'unread-authored': 'unread.txt 가 기계 생성 표식을 갖고 있는가 (손으로 쓰면 안 된다)',
 };
 
 const KINDS = ['code', 'numeric', 'absence', 'behavioral', 'history', 'doc', 'web'];
@@ -46,7 +61,7 @@ const KINDS = ['code', 'numeric', 'absence', 'behavioral', 'history', 'doc', 'we
 const argv = process.argv.slice(2);
 
 if (argv.includes('--help') || argv.includes('-h')) {
-  console.log('사용법: node scripts/check-claims.mjs research/<slug> [옵션]\n');
+  console.log('사용법: node .claude/skills/research-verify/scripts/check-claims.mjs research/<slug> [옵션]\n');
   console.log('옵션:');
   console.log('  --repo owner/name=<path>   체크아웃 위치를 직접 지정 (여러 번 가능)');
   console.log('  --evidence <path>          .research/<slug> 가 아닌 곳에서 근거를 읽는다');
@@ -93,7 +108,7 @@ if (evIdx >= 0 && argv[evIdx + 1]) evidenceDir = resolve(argv[evIdx + 1]);
 
 const target = argv.find((a, i) => !a.startsWith('-') && argv[i - 1] !== '--evidence' && argv[i - 1] !== '--repo');
 if (!target) {
-  console.error('검사할 문서를 지정할 것: node scripts/check-claims.mjs research/<slug>');
+  console.error('검사할 문서를 지정할 것: node .claude/skills/research-verify/scripts/check-claims.mjs research/<slug>');
   process.exit(2);
 }
 const slug = target.replace(/\/+$/, '').split('/').pop();
@@ -133,9 +148,9 @@ const claims = await readJsonl(join(evidenceDir, 'claims.jsonl'), 'claims-file')
 try {
   const unread = await readFile(join(evidenceDir, 'unread.txt'), 'utf8');
   const body = unread.split('\n').filter((l) => l.trim() && !l.startsWith('#'));
-  if (!body.length) {
-    add('unread-file', 'unread.txt 가 비어 있다. 무엇을 안 읽었는지 적지 않으면 ⑦장을 쓸 수 없다');
-  }
+  // 목록이 비는 것은 정당할 수 있다. 작은 코퍼스를 전부 읽으면 미확인이 0이다.
+  // 그러니 "비었다"가 아니라 "생성되지 않았다"를 막는다. 생성기가 헤더에 통계를
+  // 남기므로, 헤더만 있고 목록이 비면 실제로 다 읽은 것이다.
   if (!/^#\s*generated-by:/m.test(unread)) {
     add('unread-authored',
       'unread.txt 에 "# generated-by:" 표식이 없다. 손으로 쓰면 node_modules/ 한 줄로 통과시킬 수 있다. tool 로그에서 생성할 것');
