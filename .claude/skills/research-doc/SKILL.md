@@ -58,10 +58,10 @@ Requests map onto this rather than adding chapters. Overview lands in ①②, me
 on the open web, has almost no verification surface, and goes stale fastest. Fold what
 survives into ⑤.
 
-Identity is read out of structure, never guessed. For insane-search: MIT license, a
-`bias_check.py` CI gate, the No-Site-Name Rule, and a dual-use disclaimer together say
-the project is positioning as a general access engine rather than a bypass tool for
-particular sites. Each of those is a file you can point at.
+Identity is read out of structure, never guessed. What a project is trying to be shows up
+in its license, its CI gates, the rules it writes for its own contributors, and what it
+refuses to do. Every one of those is a file you can point at; if you cannot point at one,
+you are speculating.
 
 **⑦ is the strongest chapter and is easy to skip.** It is what separates this from a
 summary someone wrote off an abstract. Include it every time.
@@ -107,9 +107,10 @@ out   notes/mechanism.md, roughly 4K
       each hop described, with a verbatim quote of 40+ chars and a file:line locator
 ```
 
-The subagent reads and compresses. It makes no judgments, so there is nothing for it to
-disagree with you about. This is the compression step Cognition's multi-agent write-up
-prescribes, not the decision-splitting it argues against.
+**Give it no judgment to make.** Ask for extraction and quotes, never for a conclusion.
+A subcontractor that reports "the README contradicts the code" hands you a finding you
+did not verify and will probably ship; one that reports quotes and locators hands you
+material you can check. The first kind is where fabricated findings enter.
 
 **You are not locked out of the source.** Write ⑥ from the notes, and reopen the file
 whenever a sentence needs more than the notes hold. That freedom is the whole difference
@@ -120,14 +121,9 @@ between this and a pipeline handoff.
 Pick a path that **ends inside one process boundary.** Crossing packages means one
 subagent per hop, stitched together by you.
 
-Without this rule the outcome is one of two failures, both of which pass every gate. Too
-narrow gives a single-function trace that satisfies the structure and teaches nothing.
-Too wide gives a grand traversal with invented middle steps, which is worse, because it
-is confidently wrong.
-
-The twelve-chapter skeleton is proven on **papers** (commit `7252386`). No code document
-exists in this repo yet, so ⑥ on a codebase is the part most likely to need adjusting.
-Treat the rule as provisional and note what broke.
+Both failure modes pass every gate. Too narrow is a single-function trace that satisfies
+the structure and teaches nothing. Too wide is a grand traversal with invented middle
+steps, which is worse, because it is confidently wrong.
 
 ## Claims that reading cannot establish
 
@@ -149,17 +145,12 @@ has no line to cite, so the evidence has to be the search that came back empty.
 
 ### README against code
 
-Check them against each other and report the gap when there is one. Licensing is the
-usual place it bites: a GitHub API field of `NOASSERTION` or "Other" is not an absence of
-a license, it is the API failing to classify a `LICENSE` file that carries a preamble
-before the license text. Read the file. The preamble is often where a carve-out lives,
-and "which parts are under which license" is the question adoption actually turns on. No
-secondary source carries that.
+Check them against each other and report the gap when there is one. `references/oss.md`
+lists the specific places this bites.
 
-Do not turn this into a sweep. Asked bluntly whether docs match code, models flag over
-90% of everything. DocPrism (PACMSE/ISSTA 2026) got the flag rate from 98% to 14% and F1
-from 0.22 to 0.77 by fixing the subtask, constraining output to a schema, and filtering
-afterward without an LLM. Check the specific things adoption rests on.
+Do not turn this into a sweep. Asked in general whether docs match code you will flag
+nearly everything, and a report that flags everything says nothing. Name the specific
+things adoption rests on and check only those.
 
 ## Calculations the source did not make
 
@@ -174,13 +165,12 @@ source.
 
 ## Producing the file
 
-The three existing documents share a byte-identical CSS block (17,909 B) and the same
-deck script. Copy the shell from an existing document rather than reconstructing it, and
-check that you copied the script **once** — a duplicated deck script survived five
-commits in the LLM-Wiki document before `dup-script` existed to catch it.
+`new-doc.mjs` stamps the shell from `assets/deck-shell.html`. If you assemble one by hand
+instead, confirm the deck script appears **exactly once** — a duplicate renders fine and
+breaks navigation silently.
 
-Output runs 68 to 105 KB of HTML, 23K to 38K tokens. Write it **chapter by chapter**
-rather than in one call; a single 38K write risks truncation.
+Write the document **chapter by chapter**. A finished deck is large enough that a single
+write risks truncation.
 
 Constraints the gate enforces, so build them in rather than repairing them later:
 

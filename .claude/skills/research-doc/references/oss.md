@@ -24,16 +24,12 @@ Anyone can restate a README. A traced request path is what a reader cannot get w
 opening the repo themselves.
 
 Each hop needs a verbatim quote of 40+ characters and a `file:line` locator at the pinned
-commit. `check-claims.mjs` confirms the quote actually appears within ±15 lines of the
-locator. Checking only that the file exists and the line number is in range passes almost
-any fabricated citation, because a 6,934-line file accommodates nearly any number.
+commit. `check-claims.mjs` confirms the quote appears within ±15 lines of the locator.
 
 **Locators are relative to the repository root, always.** Verification runs
-`git show <commit>:<path>`, so a path relative to wherever you happened to be reading
-resolves to nothing. This is easy to get wrong in a repo where the interesting code sits
-several levels down: reading inside `skills/insane-search/` makes
-`engine/fetch_chain.py:806` feel natural, but the locator has to be
-`skills/insane-search/engine/fetch_chain.py:806` or nobody else can resolve it.
+`git show <commit>:<path>`. When the interesting code sits several levels down, the path
+you have been reading is not the path that resolves — `sub/pkg/src/thing.ts:806`, not
+`src/thing.ts:806`. Rewrite them from the root before they reach the document.
 
 Pick a path that ends inside **one process boundary**. Across packages, run one
 compression subagent per hop and stitch them together yourself.
@@ -54,9 +50,9 @@ compression subagent per hop and stitch them together yourself.
 - **Extension points.** When requirements drift slightly, where do you have to cut?
 - **Tests and release discipline.** Do tests exist, what do they cover, are releases
   regular?
-- **What installing it leaves behind.** Config file edits, hook injection, dependency
-  installs, outbound calls. insane-search injects a hook into `settings.json` on first
-  run and reads session transcripts. Both are defensible and both belong in the document.
+- **What installing it leaves behind.** Config files edited, hooks injected, dependencies
+  installed, outbound calls made, files written outside the repo, and whether anything
+  removes them again. A defensible side effect still belongs in the document.
 - **Reversibility.** What does backing out require?
 
 A document missing these cannot support an adoption decision no matter how well it
@@ -64,11 +60,10 @@ explains the architecture.
 
 ## Identity comes out of structure
 
-Do not speculate about a project's intent. Read it off artifacts and cite them.
-
-insane-search: MIT license, a `bias_check.py` CI gate, the No-Site-Name Rule, and a
-dual-use disclaimer. Together those say the project is positioning as a general access
-engine rather than a bypass tool aimed at particular sites. Every piece of that is a file.
+Do not speculate about a project's intent. Read it off artifacts and cite them: the
+license, the CI gates, the rules it writes for its own contributors, the disclaimers, and
+what it explicitly refuses to do. Those together say what it is trying to be, and each one
+is a file. A claim about intent with no file behind it is a guess.
 
 ## Limits specific to reading code
 
@@ -81,10 +76,9 @@ you could not check:
   이 경로의 테스트는 찾지 못했다 (grep -rn 'reconnect' **/*.test.ts → 0건)
 ```
 
-**Claims that depend on code you did not open.** In the DocPrism error analysis
-(PACMSE/ISSTA 2026), 35% of surviving false positives came from assuming an API does not
-implement a behavior that it does, because the callee body was never in the prompt. When
-a claim leans on what a function does, open that function.
+**Claims that depend on code you did not open.** The common failure is assuming a callee
+lacks a behavior it actually implements, because you only read the caller. When a claim
+leans on what another function does, open that function.
 
 **Absence claims have no locator.** "This is not configurable", "there is no retry path"
 cannot cite a line. The evidence is the search that came back empty, recorded as a
@@ -92,20 +86,21 @@ command someone else can re-run.
 
 ## README against code
 
-Report discrepancies where adoption rests on them. Do not run a general sweep: asked
-bluntly whether documentation matches code, models flag over 90% of everything. DocPrism
-brought the flag rate from 98% to 14% and F1 from 0.22 to 0.77 with a fixed subtask, a
-JSON schema, and non-LLM post-filtering. Its full four-language evaluation still sat at
-17% flag rate and 0.63 precision, so even the constrained version is noisy. Check the
+Report discrepancies where adoption rests on them. **Do not sweep.** Asked in general
+whether the docs match the code, you will flag nearly everything and the report becomes
+worthless. Name the handful of things the decision turns on and check only those. Check the
 handful of things the decision depends on.
 
 ## Chapter ⑦ for a repository
 
 ```
-커밋 019ee16 기준. 65개 파일 중 23개를 열었다.
-engine/tests/ 와 assets/ 는 열지 않았다.
+커밋 <sha> 기준. <N>개 파일 중 <M>개를 열었다.
+<디렉터리> 와 <디렉터리> 는 열지 않았다. 그래서 <몇 장>이 얕다.
 shallow clone 이라 커밋 이력은 확인할 수 없다.
 ```
+
+The third clause of the second line is the one that carries information. Naming an unread
+directory without saying what it costs the document is filler.
 
 Check the stated numbers against each other before shipping: files read plus files in the
 unread directories has to account for the total. A long unread list is not a defect and

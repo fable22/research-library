@@ -13,36 +13,16 @@ when_to_use: After finishing or editing a draft under research/<slug>/, before c
 The report you produce is Korean. These instructions are English; the product is not.
 Read `../research-doc/references/prose-ko.md` before writing the report.
 
-## Why review the finished draft, not the working notes
+## Two rules that shape everything below
 
-Commit `7252386` in this repo records the procedure that actually worked. Three
-reviewers each read a completed document from a different angle and found six errors:
+**Review the draft, not the working notes.** A reversed direction, a misread unit, a
+claim repeated six times, an anchor pointing at the wrong slide — none of these exist
+until sentences do. So `claims.jsonl` is extracted **from the draft** rather than carried
+forward from research, and the verifier reads the same text the reader will.
 
-- Table 9 gaps **narrow** (7.5/12.8/9.6 → 5.1/10.5/16.9); the document said they widen,
-  and had an interpretation built on top of the wrong direction
-- 2.5–3.9 was pages read per query, not tool calls; a rebuttal rested on the misreading
-- the traversal ablation also cut the budget, so it does not escape the budget-asymmetry
-  objection the document claimed it escaped
-- the compilation-cost gap was stated six times across the document
-- the reading path pointed at the ablation slide while both stops linked the conclusion
-
-Every one of these is visible only once sentences exist. Inspecting intermediate
-research artifacts catches none of them. So verification runs after the draft, on the
-draft.
-
-For the same reason `claims.jsonl` is produced **from the draft**, not carried forward
-from the research phase. Extracting from the sentences that will ship means nothing is
-lost in transcription, and the verifier and the reader are looking at the same text.
-
-## Why separate contexts
-
-Run the three lenses as **separate subagents**. The reason is independence, not context
-economy. The context that wrote the document knows why it wrote each sentence, so it
-reaches the same conclusions from the same reasoning. Self-review confirms what it
-already believes.
-
-The lenses also do not see each other's results. If one says a section is fine, another
-would stop looking there.
+**Run the three lenses as separate subagents, and do not let them see each other.** A
+context that wrote a sentence knows why, and re-reading it reaches the same conclusion by
+the same route. If one lens reports a section is fine, another stops looking there.
 
 ## Procedure
 
@@ -104,11 +84,9 @@ conditional behavior claims.
 
 **Skip:** background, term definitions, navigation text, common knowledge.
 
-This selection step carries the pipeline. In the Claimify ablation (ACL 2025), removing
-it drops element-level coverage macro F1 from 83.7 to 54.4, while entailment barely
-moves (99.0 → 98.0). The gain comes from choosing what is worth checking, not from the
-checking. When a sentence is too ambiguous to pin down, drop it rather than downgrading
-its confidence.
+**Choosing well matters more than checking hard.** A verifier that checks the wrong
+sentences carefully is worse than one that checks the right sentences plainly. When a
+sentence is too ambiguous to pin down, drop it rather than downgrading its confidence.
 
 Do not shred sentences into minimal units. Each verifier has an atomicity where its
 confidence peaks, and going finer makes verification worse. One sentence, one claim is
@@ -139,13 +117,8 @@ node .claude/skills/research-verify/scripts/check-claims.mjs research/<slug> \
 node scripts/check-doc.mjs research/<slug>
 ```
 
-`check-doc.mjs` sits in the repo's `scripts/`, not here, because it gates the published
-document and has to run whether or not this skill is loaded. `check-claims.mjs` only ever
-reads `.research/` working artifacts, so it lives with the skill that uses it.
-
-`check-claims.mjs` confirms each quote appears at its locator in the pinned commit.
-Existence of the file and a line number inside the file's range is not enough; in a
-6,000-line file that check passes almost any fabricated line number.
+`check-claims.mjs` confirms each quote appears at its locator in the pinned commit, which
+is stricter than confirming the file exists and the line number is in range.
 
 Both scripts are pass/fail. `--help` lists their rules, so do not restate the rules
 here — they change with the code.
@@ -188,27 +161,21 @@ source is checking the README against the README. There is no execution step her
 only "the code is written this way" is established. That is why `kind:"behavioral"`
 requires a `limits` field.
 
-**Claims that depend on unread code.** In the DocPrism error analysis (PACMSE/ISSTA
-2026), 35% of surviving false positives were the model assuming an API does not
-implement a behavior that it does, because the callee body was not in the prompt.
-Catching these means following the symbols a claim leans on and opening them.
+**Claims that depend on unread code.** A claim about what a function does, written from
+the caller alone, is a guess about the callee. Catching these means following the symbols
+a claim leans on and opening them.
 
-**Domain transfer.** Claimify and SAFE both evaluate natural-language long-form against
-web search. Carrying them over to `file:line` code analysis is an extrapolation no paper
-in this area has made. Use the procedure; do not oversell its results.
+**The method itself is unvalidated here.** Claim extraction and quote checking come from
+fact-checking natural-language prose against web sources. Nobody has shown they work for
+`file:line` code analysis. Use the procedure; do not report its output as if the procedure
+were proven.
 
 ## Do not
 
-**Do not introduce a warning tier.** In one reported deployment a fact-check gate
-produced 38.4% pass, 61.6% warn, 0 fail, and every warn shipped. "Let's just warn for
-now" is functionally the same as not checking. Split findings into must-fix and
-needs-judgment only.
+**Do not introduce a warning tier.** Everything drains into warnings and every warning
+ships. Split findings into must-fix and needs-judgment only.
 
-**Do not merge the lenses.** In `7252386` the errors sorted cleanly by lens: direction
-and unit errors were B, the argument-level rebuttal was A, the repetition and anchor
-mismatch were C. Merged, the perspectives blur and none goes deep. (Whether split lenses
-beat running the same prompt three times has not been measured; that commit is the only
-evidence.)
+**Do not merge the lenses.** Merged, the perspectives blur and none goes deep.
 
 **Do not let the reviewer edit the document.** Lenses find; the author fixes. When the
 finder is also the fixer, the review ends at "close enough".
