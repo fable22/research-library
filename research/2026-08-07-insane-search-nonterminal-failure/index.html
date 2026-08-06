@@ -382,7 +382,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
 
       <div class="card" style="margin-top:14px">
         <span class="tag">코퍼스 고정</span>
-        <p class="small"><b>fivetaku/insane-search</b> 커밋 <code>019ee16bbf471595f9b67b164e4a92208183af2d</code>, 태그 <code>v0.14.0</code>. MIT. 아래 모든 <code>파일:행</code> 은 이 커밋 기준이고, shallow clone 이라 이력에 기반한 서술은 하지 않았다.</p>
+        <p class="small"><b>fivetaku/insane-search</b> 커밋 <code>019ee16bbf471595f9b67b164e4a92208183af2d</code>, 태그 <code>v0.14.0</code>. MIT. 아래 모든 <code>파일:행</code> 은 이 커밋 기준이다. 읽은 범위는 7장, 확인하지 못한 것은 10장에 있다.</p>
       </div>
 
       <p class="note">엔진을 실행하지 않고 코드만 읽었다. 무엇이 확인되지 않았는지는 10장에 모아 두었다.</p>
@@ -479,7 +479,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
           <tbody>
             <tr><td>성공 판정</td><td>HTTP 상태 코드</td><td>4계층 검증. 200 이어도 챌린지면 실패</td></tr>
             <tr><td>애매한 응답</td><td>구분 없음</td><td><code>SUSPECT_OK</code>. 보관하고 계속 시도</td></tr>
-            <tr><td>실패 시 반환</td><td>오류 메시지</td><td>미시도 경로 목록 + <code>grid_exhausted</code> + MCP 플래그</td></tr>
+            <tr><td>실패 시 반환</td><td>오류 메시지</td><td>아직 시도하지 않은 경로 목록 + <code>grid_exhausted</code> + MCP 플래그</td></tr>
             <tr><td>재시도 정책</td><td>호출자 몫</td><td>probe 에서만 백오프. grid는 재시도 안 함</td></tr>
             <tr><td>학습</td><td>없음</td><td>host 별 성공 경로 저장. TTL 30일, 최대 500개</td></tr>
           </tbody>
@@ -517,7 +517,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
             <tr><td><b>hop 4 · detect → plan</b></td><td style="text-align:left;white-space:normal">probe 응답으로 WAF 프로파일을 맞춘다. 응답 자체가 없으면 <code>unknown_challenge</code> 를 confidence 0.1 로 넣고 진행 <code>:983-990</code></td></tr>
             <tr><td><b>hop 5 · grid 순회</b></td><td style="text-align:left;white-space:normal">후보마다 시도. terminal 이 아닐 때만 jitter. 다 돌면 <code>grid_exhausted = True</code> <code>:995-1024</code></td></tr>
             <tr><td><b>hop 6 · Playwright</b></td><td style="text-align:left;white-space:normal">429 는 terminal 이 아니므로 건너뛰지 않는다. <code>playwright_mcp</code> 는 파이썬에서 못 돌리므로 stub 만 남기고 브라우저 예산을 소비하지 않는다 <code>:1032-1092</code></td></tr>
-            <tr><td><b>hop 7 · 포기</b></td><td style="text-align:left;white-space:normal"><code>_give_up()</code> 이 미시도 경로를 붙여 반환 <code>:1095-1097</code></td></tr>
+            <tr><td><b>hop 7 · 포기</b></td><td style="text-align:left;white-space:normal"><code>_give_up()</code> 이 아직 시도하지 않은 경로를 붙여 반환 <code>:1095-1097</code></td></tr>
           </tbody>
         </table>
       </div>
@@ -566,7 +566,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
 
       <p>미확인 42개 중 위 디렉터리가 34개이고, 나머지 8개는 최상위에 흩어져 있다. <code>waf_profiles.yaml</code>, <code>phase0.py</code>, <code>transport.py</code>, <code>waf_detector.py</code>, <code>url_transforms.py</code>, 번역 README 3종이다. 디렉터리 단위로만 적으면 이 8개가 가려진다.</p>
 
-      <p class="note"><code>references/</code> 12개와 <code>waf_profiles.yaml</code> 을 읽지 않은 것이 이 문서에서 가장 크게 비어 있는 부분이다. 앞의 것은 5장의 비교를, 뒤의 것은 확장 지점 판단을 얕게 만든다.</p>
+      <p class="note">그중 <code>waf_profiles.yaml</code> 을 못 본 것이 특히 아프다. WAF 프로파일이 어떻게 생겼는지가 확장 지점 판단의 근거인데, 이 문서는 그걸 다루지 못한다.</p>
     </div>
   </section>
 
@@ -631,7 +631,7 @@ perform, so the caller never mistakes give-up for "everything was tried".</code>
       </div>
       <p class="fig-sub" style="margin-top:8px">표는 <code>_untried_routes()</code> 의 분기를 정리한 것이다. 저장소에 이런 표는 없다.</p>
 
-      <p>MCP 가 항상 미시도로 남는 이유가 구조적이다. 엔진은 로컬 Node Chrome 만 띄울 수 있고, Cloudflare 급 챌린지는 그걸 탐지한다. 그래서 terminal 이 아닌 모든 포기에서 <code>must_mcp = True</code> 다(<code>:1126</code>).</p>
+      <p>MCP 가 항상 남는 이유는 구조적이다. 엔진은 로컬 Node Chrome 만 띄울 수 있고, Cloudflare 급 챌린지는 그걸 탐지한다. 그래서 terminal 이 아닌 모든 포기에서 <code>must_mcp = True</code> 다(<code>:1126</code>).</p>
 
       <figure class="figure">
         <pre><code># A gated page that survived the curl grid → the real browser is the next</code></pre>
