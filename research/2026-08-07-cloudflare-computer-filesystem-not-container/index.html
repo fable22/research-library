@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>에이전트에게 컴퓨터를 준다는 것</title>
+<title>Cloudflare computer: 에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다</title>
 <meta name="description" content="Cloudflare computer: 아이솔레이트와 컨테이너 위에 하나의 파일시스템을 얹은 에이전트 런타임">
 <meta property="og:type" content="article">
-<meta property="og:title" content="에이전트에게 컴퓨터를 준다는 것">
+<meta property="og:title" content="Cloudflare computer: 에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다">
 <meta property="og:description" content="Cloudflare computer: 아이솔레이트와 컨테이너 위에 하나의 파일시스템을 얹은 에이전트 런타임">
 <meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-07-cloudflare-computer-filesystem-not-container/">
 <meta name="twitter:card" content="summary">
@@ -377,7 +377,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <section class="slide" data-active="true">
     <div class="slide-inner">
       <p class="eyebrow">index</p>
-      <h1>에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다</h1>
+      <h1>Cloudflare computer: 에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다</h1>
       <p class="dek">Cloudflare 가 2026년 8월 3일 공개한 <span class="wl">@cloudflare/computer</span> 는 에이전트에게 컴퓨터를 준다고 말한다. 저장소를 커밋 <span class="wl">c7bdfcb</span> 에서 열면 실제로 배포되는 것은 Durable Object 안의 SQLite 가상 파일시스템 하나와, 그 위에 갈아 끼우는 실행 백엔드 셋이다. 컨테이너는 그중 하나이고, 기본값 자리에서 내려왔다.</p>
 
       <div class="lineage">

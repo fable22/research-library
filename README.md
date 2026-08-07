@@ -12,7 +12,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 
 | 날짜 | 문서 | 분류 |
 |---|---|---|
-| 2026-08-07 | [에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다](https://fable22.github.io/research-library/research/2026-08-07-cloudflare-computer-filesystem-not-container/) | 주제 리서치 |
+| 2026-08-07 | [Cloudflare computer: 에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다](https://fable22.github.io/research-library/research/2026-08-07-cloudflare-computer-filesystem-not-container/) | 주제 리서치 |
 | 2026-08-07 | [TencentDB Agent Memory: 기억을 자산으로 등록하고 agent 에게 장착시키는 층](https://fable22.github.io/research-library/research/2026-08-07-tencentdb-agent-memory-asset-layer/) | oss |
 | 2026-08-07 | [LoopX: 에이전트 루프가 할 일을 잊지 않게 만드는 결정론적 제어 평면](https://fable22.github.io/research-library/research/2026-08-07-loopx-deterministic-loop-harness/) | 주제 리서치 |
 | 2026-08-07 | [insane-search: 실패를 종료 상태로 인정하지 않는 웹 접근 엔진](https://fable22.github.io/research-library/research/2026-08-07-insane-search-nonterminal-failure/) | 주제 리서치 |
