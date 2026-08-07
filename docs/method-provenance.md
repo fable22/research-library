@@ -17,6 +17,7 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | Name the ways a reader could disagree before reading | `research-source` | STORM perspective-guided question asking, which measured most of its coverage gain at the pre-writing stage |
 | `swhid` alongside `repo`+`commit` | `research-source` | SWHID, ISO 18670 — an intrinsic hash stays verifiable after the origin is gone |
 | No chapter count; six required eyebrows | `research-doc`, `check-doc.mjs` | the gate, which checks nothing else about structure |
+| The lineage bar only where succession is documented | `research-doc` | the arrow reads as a slot to fill, and filling it chained unrelated projects and ended at work nobody built |
 | Slide density, figure anatomy, aria-label first | `references/visual.md` | see the eval below |
 
 ## What the visualization rules were measured against

@@ -48,7 +48,7 @@ their content (`nav-reward`, `result-cost`) rather than numbered:
 
 | # | eyebrow | Holds |
 |---|---|---|
-| ① | **`index`** | Cover, lineage bar, reading path |
+| ① | **`index`** | Cover, reading path, a lineage bar when one is earned |
 | ② | **`tl-dr`** | The finding, in the first two sentences |
 | ③ | **`problem`** | What was failing before this existed |
 | ④ | (topical) | Mechanism and structure. How it actually works |
@@ -60,6 +60,10 @@ their content (`nav-reward`, `result-cost`) rather than numbered:
 | ⑩ | (topical) | Adoption call |
 | ⑪ | **`conclusion`** | Conclusion |
 | ⑫ | **`sources`** | Sources |
+
+**A lineage bar has to name a relation the document backs, and an arrow in it claims
+succession.** Chain with arrows only along a `series`; an adjacent project or an unbuilt
+piece gets a prose cross-reference instead.
 
 Split whenever a slide carries two claims, because neither gets checked while they share
 one. A mechanism with three separable parts is entitled to three slides; two result
