@@ -39,6 +39,8 @@ const PROCESS_NARRATION = [
 const RULES = {
   'meta-json': 'meta.json 을 읽을 수 있고 title 과 date 가 있는가',
   'meta-date': 'meta.json 의 date 가 YYYY-MM-DD 인가',
+  'meta-seq': 'meta.json 의 seq 가 1 이상의 정수인가 (같은 날짜 안의 목록 순서)',
+  'seq-unique': 'seq 를 다른 문서와 겹쳐 쓰지 않는가',
   'meta-summary': 'meta.json 에 summary 가 있는가 (목록 설명이 비면 안 된다)',
   'dir-name': '디렉터리 이름이 YYYY-MM-DD-slug 인가',
   'dir-date': '디렉터리 날짜와 meta.json date 가 같은가',
@@ -144,6 +146,20 @@ function checkDoc(doc, byslug) {
     }
     if (meta.date && !/^\d{4}-\d{2}-\d{2}$/.test(meta.date)) {
       add('meta-date', `date 형식이 YYYY-MM-DD 가 아님: ${meta.date}`);
+    }
+    // date 는 하루 단위라 같은 날 넣은 문서를 구분하지 못한다. seq 가 없으면 목록
+    // 순서가 slug 알파벳순으로 밀리고, 그건 아무도 정하지 않은 순서다.
+    if (meta.seq === undefined) {
+      add('meta-seq', 'meta.json 에 seq 없음. 기존 최댓값 + 1 을 넣을 것');
+    } else if (!Number.isInteger(meta.seq) || meta.seq < 1) {
+      add('meta-seq', `seq 는 1 이상의 정수여야 한다: ${JSON.stringify(meta.seq)}`);
+    } else {
+      const clash = [...byslug.values()]
+        .filter((o) => o.slug !== doc.slug && o.meta?.seq === meta.seq)
+        .map((o) => o.slug);
+      if (clash.length) {
+        add('seq-unique', `seq ${meta.seq} 를 ${clash.join(', ')} 와 함께 쓴다. 순서가 정해지지 않는다`);
+      }
     }
     if (!meta.summary) add('meta-summary', 'meta.json 에 summary 없음');
   }

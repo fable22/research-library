@@ -105,6 +105,30 @@ function buildSlides(chapters, { title, summary }) {
 
 // ---- create ----
 
+// seq 는 저장소 전체에서 하나씩 올라가는 정수다. 같은 날짜 안의 목록 순서를 정하고,
+// 이걸 손으로 넣게 하면 반드시 빠지거나 겹친다. 중간이 비어도 상관없다. 크기 비교만
+// 하므로 문서를 지워도 나머지를 다시 매기지 않는다.
+async function nextSeq() {
+  const dir = join(ROOT, 'research');
+  let names;
+  try {
+    names = await readdir(dir);
+  } catch {
+    return 1;
+  }
+  let max = 0;
+  for (const n of names) {
+    if (n.startsWith('.')) continue;
+    try {
+      const meta = JSON.parse(await readFile(join(dir, n, 'meta.json'), 'utf8'));
+      if (Number.isInteger(meta.seq) && meta.seq > max) max = meta.seq;
+    } catch {
+      // meta.json 이 없거나 깨진 디렉터리는 check-doc 이 잡는다. 여기서는 건너뛴다.
+    }
+  }
+  return max + 1;
+}
+
 async function create(slug, kind, opts) {
   if (!CHAPTERS[kind]) {
     console.error(`유형은 paper 또는 oss 다: ${kind}`);
@@ -139,9 +163,11 @@ async function create(slug, kind, opts) {
 
   await mkdir(docDir, { recursive: true });
   await writeFile(join(docDir, 'index.html'), html);
+  const seq = await nextSeq();
   await writeFile(join(docDir, 'meta.json'), JSON.stringify({
     title,
     date,
+    seq,
     summary,
     category: kind === 'paper' ? 'paper' : 'topic',
   }, null, 2) + '\n');
@@ -155,7 +181,7 @@ async function create(slug, kind, opts) {
   await writeFile(join(workDir, 'claims.jsonl'),
     '// 초고가 나온 뒤 실린 문장에서 추출한다. 조사 단계에서 미리 쓰지 않는다.\n');
 
-  console.log(`research/${slug}/          index.html, meta.json`);
+  console.log(`research/${slug}/          index.html, meta.json (seq ${seq})`);
   console.log(`.research/${slug}/         sources.jsonl, claims.jsonl, notes/`);
   console.log(`\n출발용 ${chapters.length}장 (${kind}). eyebrow 는 내용을 가리키는 이름으로 바꾸고, 장은 필요한 만큼 늘린다.`);
   console.log('읽은 범위는 조사를 마친 뒤 ⑦장에 직접 적는다.');
