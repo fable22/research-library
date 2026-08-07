@@ -2,6 +2,7 @@
   "title": "WikiLoop: 위키 구축과 순회를 함께 학습시키는 논문 분석",
   "summary": "편집이 나중의 검색 성능을 얼마나 바꾸는지를 보상으로 삼아, 위키 구축 정책을 강화학습으로 학습시킨다. LLM-Wiki가 빠뜨렸던 위키 구축 비용도 여기서 처음 공개된다.",
   "date": "2026-08-05",
+  "seq": 3,
   "category": "paper",
   "format": "deck",
   "series": "agent-native-wiki",

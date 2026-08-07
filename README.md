@@ -13,12 +13,12 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 | 날짜 | 문서 | 분류 |
 |---|---|---|
 | 2026-08-07 | [에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다](https://fable22.github.io/research-library/research/2026-08-07-cloudflare-computer-filesystem-not-container/) | 주제 리서치 |
-| 2026-08-07 | [insane-search: 실패를 종료 상태로 인정하지 않는 웹 접근 엔진](https://fable22.github.io/research-library/research/2026-08-07-insane-search-nonterminal-failure/) | 주제 리서치 |
-| 2026-08-07 | [LoopX: 에이전트 루프가 할 일을 잊지 않게 만드는 결정론적 제어 평면](https://fable22.github.io/research-library/research/2026-08-07-loopx-deterministic-loop-harness/) | 주제 리서치 |
 | 2026-08-07 | [TencentDB Agent Memory: 기억을 자산으로 등록하고 agent 에게 장착시키는 층](https://fable22.github.io/research-library/research/2026-08-07-tencentdb-agent-memory-asset-layer/) | oss |
-| 2026-08-05 | [Retrieval as Reasoning: LLM-Wiki 논문 분석](https://fable22.github.io/research-library/research/2026-08-05-llm-wiki-retrieval-as-reasoning/) | 논문 분석 |
-| 2026-08-05 | [WikiKV: 계층형 지식베이스 저장 계층 논문 분석](https://fable22.github.io/research-library/research/2026-08-05-wikikv-hierarchical-kb-storage/) | 논문 분석 |
+| 2026-08-07 | [LoopX: 에이전트 루프가 할 일을 잊지 않게 만드는 결정론적 제어 평면](https://fable22.github.io/research-library/research/2026-08-07-loopx-deterministic-loop-harness/) | 주제 리서치 |
+| 2026-08-07 | [insane-search: 실패를 종료 상태로 인정하지 않는 웹 접근 엔진](https://fable22.github.io/research-library/research/2026-08-07-insane-search-nonterminal-failure/) | 주제 리서치 |
 | 2026-08-05 | [WikiLoop: 위키 구축과 순회를 함께 학습시키는 논문 분석](https://fable22.github.io/research-library/research/2026-08-05-wikiloop-feedback-coupled-wiki/) | 논문 분석 |
+| 2026-08-05 | [WikiKV: 계층형 지식베이스 저장 계층 논문 분석](https://fable22.github.io/research-library/research/2026-08-05-wikikv-hierarchical-kb-storage/) | 논문 분석 |
+| 2026-08-05 | [Retrieval as Reasoning: LLM-Wiki 논문 분석](https://fable22.github.io/research-library/research/2026-08-05-llm-wiki-retrieval-as-reasoning/) | 논문 분석 |
 
 <!-- docs:end -->
 
@@ -105,6 +105,7 @@ node scripts/new-doc.mjs rename <old-slug> <new-slug>
   "title": "문서 제목",
   "summary": "목록에 한두 문장으로 보일 설명",
   "date": "2026-08-05",
+  "seq": 1,
   "category": "paper",
   "format": "deck",
   "series": "agent-native-wiki",
@@ -118,8 +119,9 @@ node scripts/new-doc.mjs rename <old-slug> <new-slug>
 
 | 필드 | 필수 | 설명 |
 |---|---|---|
-| `title` | 예 | 목록에 표시할 제목 |
-| `date` | 예 | `YYYY-MM-DD`. 목록 정렬과 연도 묶음의 기준 |
+| `title` | 예 | 목록에 표시할 제목. 라이브러리·시스템·논문 이름을 반드시 담는다 (아래) |
+| `date` | 예 | `YYYY-MM-DD`. 목록 정렬 1순위이자 연도 묶음의 기준 |
+| `seq` | 예 | 1 이상의 정수. 문서를 추가한 순서이고 같은 날짜 안의 정렬 2순위다 (아래) |
 | `summary` | 아니오 | 한두 문장 설명 |
 | `category` | 아니오 | `paper`, `topic`, `eval`, `note`. 새 값을 쓰려면 `scripts/build-index.mjs` 의 `CATEGORY_LABEL` 에 추가 |
 | `format` | 아니오 | `deck`, `report`, `dashboard` 등 문서 형태 |
@@ -128,6 +130,27 @@ node scripts/new-doc.mjs rename <old-slug> <new-slug>
 | `source` | 아니오 | 원문 링크. `label` 과 `url` |
 
 `meta.json` 이나 `index.html` 이 없는 디렉터리는 목록에서 빠집니다. 빌드할 때 무엇을 건너뛰었는지 출력되니 확인하세요.
+
+#### 목록 순서와 `seq`
+
+목록은 `date` 내림차순, 같은 날짜 안에서는 `seq` 내림차순입니다. **나중에 추가한 문서가 위에 옵니다.**
+
+`date` 는 하루 단위라 같은 날 넣은 문서를 구분하지 못합니다. 예전에는 그럴 때 slug 알파벳순으로 밀렸는데, 그러면 목록의 순서가 제목 첫 글자라는 아무 의미 없는 값으로 정해집니다. 그렇다고 `date` 에 시·분·초를 붙이면, 목록에 보이지도 않고 아무도 확인할 수 없는 값을 문서마다 관리하게 됩니다.
+
+`seq` 는 그 사이입니다. 저장소 전체에서 하나씩 올라가는 정수이고, 보이는 것은 여전히 날짜뿐입니다.
+
+`new-doc.mjs` 가 만들 때 자동으로 넣으므로 직접 쓸 일은 없습니다. 손으로 정할 때만 기존 최댓값 + 1 을 쓰세요. 빠졌거나 겹치면 `check-doc.mjs` 가 막습니다. 번호가 중간에 비어도 됩니다. 크기 비교만 하므로 문서를 지워도 나머지를 다시 매길 필요가 없습니다.
+
+#### 제목에는 대상 이름이 들어갑니다
+
+`title` 은 목록에서 한 줄로 읽힙니다. 여기에 라이브러리·시스템·논문 이름이 없으면 무엇에 관한 문서인지 열어보기 전에는 알 수 없습니다.
+
+```
+✗ 에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다
+✓ Cloudflare computer: 에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다
+```
+
+`check-doc.mjs` 의 `title-subject` 가 slug 의 주제어와 대조합니다. slug 에 이미 대상 이름이 들어 있으므로 별도 필드를 두지 않습니다. 제목의 나머지 절반은 그대로 주장 문장이면 됩니다.
 
 ## 검사 스크립트
 

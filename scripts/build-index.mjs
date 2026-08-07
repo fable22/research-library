@@ -69,9 +69,16 @@ async function collect() {
     entries.push({ ...meta, slug: name });
   }
 
-  // 날짜 내림차순. 같은 날짜는 slug 오름차순으로 고정해 빌드 결과가 흔들리지 않게 한다.
+  // 날짜 내림차순, 같은 날짜 안에서는 seq 내림차순이다. 날짜는 하루 단위라 같은 날
+  // 추가한 문서를 구분하지 못하고, 예전처럼 slug 로 정렬하면 목록 순서가 제목의
+  // 알파벳이라는 뜻 없는 값으로 정해진다. seq 는 추가한 순서라서 나중에 넣은 문서가
+  // 위로 온다. 시각을 적지 않고도 순서가 정해지는 이유가 이것이다.
+  // seq 가 없으면 맨 뒤로 보내고 slug 로 고정해 빌드 결과가 흔들리지 않게 한다.
   return entries.sort((a, b) => {
     if (a.date !== b.date) return a.date < b.date ? 1 : -1;
+    const as = Number.isInteger(a.seq) ? a.seq : -Infinity;
+    const bs = Number.isInteger(b.seq) ? b.seq : -Infinity;
+    if (as !== bs) return bs - as;
     return a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0;
   });
 }

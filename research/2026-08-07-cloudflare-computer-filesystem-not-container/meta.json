@@ -1,6 +1,7 @@
 {
   "title": "에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다",
   "date": "2026-08-07",
+  "seq": 7,
   "summary": "Cloudflare computer 는 Durable Object 의 SQLite 를 파일시스템의 유일한 진실로 놓고 컨테이너를 그 미러로 강등한다. 실행기 선택은 라우터가 아니라 tool description 에 적힌 세 문장이 한다. 512 KiB 청크 동기화, 마지막 push 가 이기는 충돌 처리, 문서에 미구현이라 적힌 mount 가 실제로는 도는 자리까지 코드에서 확인했다.",
   "category": "topic",
   "format": "deck",
