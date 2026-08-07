@@ -443,26 +443,79 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     <div class="slide-inner">
       <p class="eyebrow">architecture</p>
       <h2>진입점은 하나이고 그 안에 4개 Phase 가 순서대로 붙어 있다</h2>
-      <p class="dek">호출자가 보는 것은 <code>fetch(url)</code> 하나다. 그 안에서 공식 API, probe, grid 순회, 브라우저 폴백이 차례로 시도되고, 각 단계는 앞 단계가 실패했을 때만 돈다.</p>
+      <p class="dek">호출자가 보는 것은 <code>fetch(url)</code> 하나다. 그 안에서 공식 API, probe, grid 순회, 브라우저 폴백이 차례로 시도되고, 각 단계는 앞 단계가 실패했을 때만 돈다.
+      단계마다 빠져나가는 출구가 둘인데, 그 둘이 서로 다르게 동작하는 것이 이 엔진의 핵심이다.</p>
 
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>Phase</th><th>하는 일</th><th>위치</th></tr></thead>
-          <tbody>
-            <tr><td>0</td><td>인식된 플랫폼의 공식 무인증 엔드포인트</td><td><code>fetch_chain.py:897</code></td></tr>
-            <tr><td>1</td><td>probe. curl_cffi 로 첫 요청, root warmup 포함</td><td><code>fetch_chain.py:933</code></td></tr>
-            <tr><td>2</td><td>WAF 탐지 → 후보 grid 생성 → 전수 순회</td><td><code>fetch_chain.py:981</code></td></tr>
-            <tr><td>3</td><td>Playwright 폴백</td><td><code>fetch_chain.py:1031</code></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="fig-sub" style="margin-top:8px">4개 Phase 는 <code>_fetch_core()</code> 안의 주석 구분선이다. 표는 그 행 번호를 옮긴 것이고 원문에 이런 표는 없다.</p>
+      <figure class="figure">
+        <p class="fig-title">한 번의 <code>fetch(url)</code> 이 지나는 4단계와 두 종류의 출구</p>
+        <p class="fig-sub"><code>_fetch_core()</code> 안의 주석 구분선을 그린 것. 저장소에 이런 그림은 없다</p>
+        <div class="svgwrap">
+          <svg class="chart" viewBox="0 0 780 300" role="img" aria-label="fetch(url) 한 번이 지나는 4단계 하강. Phase 0 공식 API, Phase 1 probe, Phase 2 grid 전수 순회, Phase 3 Playwright 폴백이 왼쪽에서 오른쪽으로 이어지고, 각 단계는 앞 단계가 실패했을 때만 돈다. 각 단계에는 출구가 둘이다. STRONG_OK 나 WEAK_OK 가 나오면 위쪽 즉시 반환으로 빠져나가 뒤 단계를 돌지 않는다. SUSPECT_OK 가 나오면 아래쪽 best_suspect 보관함에 처음 한 번만 남긴 채 다음 단계로 계속 내려간다. 네 단계가 모두 실패하면 오른쪽 끝의 R6 실패 게이트에 도달해, 아직 시도하지 않은 경로 목록과 grid_exhausted 플래그를 돌려준다. 보관함에 남아 있던 SUSPECT_OK 응답도 이때 함께 반환될 수 있다.">
+            <rect class="box-hi" x="8" y="106" width="150" height="58" rx="8"/>
+            <text class="txt" x="22" y="130">fetch(url)</text>
+            <text class="txt-s" x="22" y="148">호출자가 보는 전부</text>
 
-      <p>모듈 크기는 고르지 않다. <code>fetch_chain.py</code> 1,276행이 최상위 3,715행의 3분의 1이고 제어 흐름 전체를 들고 있다. 나머지는 <code>validators.py</code> 349, <code>executor.py</code> 347, <code>transport.py</code> 310, <code>phase0.py</code> 273 순이다.</p>
+            <path class="arw" d="M158 135 L186 135"/><path class="arw" d="M179 130 L186 135 L179 140"/>
 
-      <p>판정은 <code>Verdict</code> enum 9종이다. 이 중 성공으로 세는 것은 <code>STRONG_OK</code> 와 <code>WEAK_OK</code> 둘뿐이고, grid를 멈추는 terminal 로 분류돼 grid 를 멈추는 것은 <code>AUTH_REQUIRED</code>, <code>NOT_FOUND</code>, <code>RATE_LIMITED</code> 셋이다. 나머지 넷은 어느 쪽도 아니다. 그 넷을 8장에서 다룬다.</p>
+            <rect class="box" x="188" y="106" width="120" height="58" rx="8"/>
+            <text class="txt" x="200" y="128">Phase 0 · 1</text>
+            <text class="txt-s" x="200" y="145">공식 API → probe</text>
+            <text class="txt-s" x="200" y="159">:897 · :933</text>
 
-      <p class="note"><code>transport.py</code> 와 <code>executor.py</code> 는 hop 의 존재만 확인했고 내부를 읽지 않았다. grid 후보가 실제로 어떻게 생성되는지(<code>_plan_for_profile</code>, <code>fetch_chain.py:638</code>)는 확인하지 못했다.</p>
+            <path class="arw" d="M308 135 L336 135"/><path class="arw" d="M329 130 L336 135 L329 140"/>
+
+            <rect class="box" x="338" y="106" width="130" height="58" rx="8"/>
+            <text class="txt" x="350" y="128">Phase 2</text>
+            <text class="txt-s" x="350" y="145">WAF 탐지 → grid 순회</text>
+            <text class="txt-s" x="350" y="159">:981</text>
+
+            <path class="arw" d="M468 135 L496 135"/><path class="arw" d="M489 130 L496 135 L489 140"/>
+
+            <rect class="box" x="498" y="106" width="120" height="58" rx="8"/>
+            <text class="txt" x="510" y="128">Phase 3</text>
+            <text class="txt-s" x="510" y="145">Playwright 폴백</text>
+            <text class="txt-s" x="510" y="159">:1031</text>
+
+            <path class="arw" d="M618 135 L646 135"/><path class="arw" d="M639 130 L646 135 L639 140"/>
+
+            <rect class="box" x="648" y="100" width="124" height="70" rx="8" style="stroke:var(--redlink)"/>
+            <text class="txt" x="660" y="124">R6 실패 게이트</text>
+            <text class="txt-s" x="660" y="141">미시도 경로 목록</text>
+            <text class="txt-s" x="660" y="156">+ grid_exhausted</text>
+
+            <path class="arw" style="stroke:var(--link)" d="M248 106 L248 48 L724 48"/>
+            <path class="arw" style="stroke:var(--link)" d="M398 106 L398 68 L724 68"/>
+            <path class="arw" style="stroke:var(--link)" d="M558 106 L558 88 L724 88"/>
+            <path class="arw" style="stroke:var(--link)" d="M724 48 L724 88"/>
+            <path class="arw" style="stroke:var(--link)" d="M724 48 L710 48"/>
+            <path class="arw" style="stroke:var(--link)" d="M717 43 L710 48 L717 53"/>
+            <rect class="box-hi" x="636" y="34" width="72" height="28" rx="6"/>
+            <text class="txt-s" x="654" y="52">반환</text>
+            <text class="txt-s" x="188" y="26" style="fill:var(--link)">출구 A · STRONG_OK / WEAK_OK 면 즉시 반환. 뒤 단계를 돌지 않는다</text>
+
+            <path class="arw" d="M248 164 L248 212 L332 212"/>
+            <path class="arw" d="M398 164 L398 212"/>
+            <path class="arw" d="M558 164 L558 212 L468 212"/>
+            <rect class="box" x="332" y="192" width="136" height="42" rx="8"/>
+            <text class="txt-s" x="344" y="210">best_suspect 보관함</text>
+            <text class="txt-s" x="344" y="226">처음 하나만 남긴다</text>
+            <path class="arw" d="M468 213 L646 213 L646 172"/>
+            <path class="arw" d="M641 179 L646 172 L651 179"/>
+            <text class="txt-s" x="18" y="200">출구 B · SUSPECT_OK</text>
+            <text class="txt-s" x="18" y="216">멈추지도 반환하지도 않는다</text>
+            <text class="txt-s" x="332" y="256">전부 실패해도 보관함에 든 응답은 게이트가 함께 돌려준다</text>
+          </svg>
+        </div>
+        <figcaption>파란 화살표가 출구 A 다. 세 단계 어디서든 확실한 성공이 나오면 나머지를 건너뛴다.
+        아래쪽 회색 경로가 출구 B 이고, 이쪽이 이 엔진에서 드문 부분이다. 애매한 응답을 성공으로도 실패로도 세지 않고
+        보관만 한 채 계속 내려간다. 두 출구의 판정 기준은 ⑧ 에서, 오른쪽 끝 게이트의 반환 내용은 ⑨ 에서 다룬다.
+        Phase 0 과 1 은 한 상자로 묶었다. 코드에서는 별개 구간이지만 둘 다 단발 요청이라 구조가 같다.</figcaption>
+      </figure>
+
+      <p class="note">모듈 크기는 고르지 않다. <code>fetch_chain.py</code> 1,276행이 최상위 3,715행의 3분의 1이고 제어 흐름 전체를 들고 있다.
+      나머지는 <code>validators.py</code> 349, <code>executor.py</code> 347, <code>transport.py</code> 310, <code>phase0.py</code> 273 순이다.
+      그중 <code>transport.py</code> 와 <code>executor.py</code> 는 hop 의 존재만 확인했고 내부를 읽지 않았다.
+      grid 후보가 실제로 어떻게 생성되는지(<code>_plan_for_profile</code>, <code>fetch_chain.py:638</code>)도 확인하지 못했다.</p>
     </div>
   </section>
 
@@ -470,7 +523,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">compare</p>
-      <h2>WebFetch 한 번과 다른 것은 시도 횟수가 아니라 성공을 판정하고 실패를 보고하는 방식이다</h2>
+      <h2>WebFetch 한 번과 갈리는 지점은 성공을 판정하는 방식과 실패를 보고하는 방식이다</h2>
       <p class="dek">이 엔진이 없으면 에이전트는 <code>WebFetch</code> 를 부르고 403 을 받고 사용자에게 "차단됐다"고 말한다. 그 문장에는 무엇을 해봤는지가 없다.</p>
 
       <div class="tablewrap">
@@ -646,7 +699,7 @@ perform, so the caller never mistakes give-up for "everything was tried".</code>
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">critique</p>
-      <h2>해석의 한계</h2>
+      <h2>해석의 한계. SKILL.md 가 CI 게이트라고 부르는 것이 이 저장소에 없다</h2>
       <p class="dek">위 서술은 전부 코드를 읽어 얻은 것이다. 무엇이 확인되지 않았는지, 그리고 이 문서가 코드보다 앞서 나간 대목이 어디인지 구분해 적는다.</p>
 
       <div class="tablewrap">
@@ -715,8 +768,8 @@ perform, so the caller never mistakes give-up for "everything was tried".</code>
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">conclusion</p>
-      <h2>결론</h2>
-      <p class="dek">이 프로젝트에서 가져갈 만한 것은 접근 기법이 아니라 실패를 다루는 방식이다. 우회 수법은 알려진 것들의 조합이고, 새로운 쪽은 그것들이 전부 실패한 뒤에 무엇을 남기느냐다.</p>
+      <h2>결론. 가져갈 만한 것은 실패 반환값의 형태다</h2>
+      <p class="dek">이 프로젝트에서 가져갈 만한 것은 실패를 다루는 방식이다. 우회 수법 자체는 알려진 것들의 조합이고, 새로운 쪽은 그것들이 전부 실패한 뒤에 무엇을 남기느냐다.</p>
 
       <p>차단을 우회하는 개별 수법은 새롭지 않다. TLS 지문 위장, 모바일 URL 변환, 헤드리스 브라우저는 모두 알려진 것이다. 이 엔진이 다른 점은 <b>그 수법들을 다 써보고도 실패했을 때 무엇을 말하는가</b>에 있다. 아직 시도하지 않은 경로를 이름으로 돌려주고, 예산이 끊은 것과 terminal 에 닿은 것을 구분하고, 애매한 응답을 성공으로도 실패로도 세지 않는다.</p>
 
@@ -734,7 +787,7 @@ perform, so the caller never mistakes give-up for "everything was tried".</code>
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">sources</p>
-      <h2>출처</h2>
+      <h2>출처. 커밋 하나에 전부 고정되어 있다</h2>
       <p class="dek">본문의 모든 <code>파일:행</code> 은 아래 커밋 기준이다. 저장소를 받아 같은 커밋을 체크아웃하면 같은 행에서 같은 문장을 볼 수 있다.</p>
 
       <div class="card">
