@@ -42,6 +42,7 @@ const RULES = {
   'meta-seq': 'meta.json 의 seq 가 1 이상의 정수인가 (같은 날짜 안의 목록 순서)',
   'seq-unique': 'seq 를 다른 문서와 겹쳐 쓰지 않는가',
   'meta-summary': 'meta.json 에 summary 가 있는가 (목록 설명이 비면 안 된다)',
+  'title-subject': 'title 이 대상 이름을 담고 있는가 (slug 의 주제어와 대조한다)',
   'dir-name': '디렉터리 이름이 YYYY-MM-DD-slug 인가',
   'dir-date': '디렉터리 날짜와 meta.json date 가 같은가',
   'index-html': 'index.html 이 있는가',
@@ -66,6 +67,17 @@ const RULES = {
   'em-dash': '본문에 em dash 가 없는가',
   'process-narration': '문서를 어떻게 만들었는지 쓰지 않았는가',
 };
+
+// 제목은 목록에서 한 줄로 읽힌다. 라이브러리나 시스템 이름이 없으면 무엇에 관한
+// 문서인지 열어보기 전에는 알 수 없다. slug 에 이미 대상 이름이 들어 있으므로
+// 별도 필드를 두지 않고 slug 와 대조한다.
+//
+// 네 글자 미만은 뺀다. as, of, kv 같은 조각이 우연히 제목에 섞여 통과시키는 것을
+// 막기 위해서다. 통과했다고 좋은 제목이라는 뜻은 아니다. 이건 바닥이고, 제목을
+// 어떻게 쓰는지는 research-doc skill 에 있다.
+function subjectTokens(slug) {
+  return slug.replace(/^\d{4}-\d{2}-\d{2}-/, '').split('-').filter((t) => t.length >= 4);
+}
 
 function stripCode(html) {
   return html
@@ -162,6 +174,15 @@ function checkDoc(doc, byslug) {
       }
     }
     if (!meta.summary) add('meta-summary', 'meta.json 에 summary 없음');
+
+    if (meta.title) {
+      const want = subjectTokens(doc.slug);
+      const lower = meta.title.toLowerCase();
+      if (want.length && !want.some((t) => lower.includes(t))) {
+        add('title-subject',
+          `title 에 대상 이름이 없다: "${meta.title}". slug 의 ${want.join(', ')} 중 하나는 들어가야 한다`);
+      }
+    }
   }
 
   if (!/^\d{4}-\d{2}-\d{2}-[a-z0-9-]+$/.test(doc.slug)) {

@@ -78,6 +78,23 @@ you are speculating.
 **⑦ is the strongest chapter and is easy to skip.** It is what separates this from a
 summary someone wrote off an abstract. Include it every time.
 
+## The title has to name what it is about
+
+The title is read in the listing next to twenty others, with nothing around it. A claim
+alone does not survive there, because the reader cannot tell what the claim is about:
+
+```
+✗ 에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다
+✓ Cloudflare computer: 에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다
+```
+
+Lead with the library, system, or paper name, then the claim. The name is the part a
+reader is scanning for; the claim is what makes them open it. Keep both.
+
+The same string goes in four places and they must agree: `meta.json` `title`, `<title>`,
+`og:title`, and the cover `h1`. `check-doc.mjs` blocks a title that shares no word with
+the slug, which catches the missing name but cannot tell you the title is dull.
+
 ## Slide grammar
 
 Five elements, in order:
