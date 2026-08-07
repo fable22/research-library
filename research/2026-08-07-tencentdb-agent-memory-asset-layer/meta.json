@@ -1,6 +1,6 @@
 {
   "title": "TencentDB Agent Memory: 기억을 자산으로 등록하고 agent 에게 장착시키는 층",
-  "summary": "Chat Memory·Skill·Wiki·CodeGraph 네 종류를 한 자산 테이블에 등록하는 구조, team/user/agent 세 축의 identity, 공유 판정이 사람 경로와 agent 경로로 갈려 restricted 등급이 양쪽에서 막히는 지점, 대규모를 인스턴스 증식으로 푸는 방식을 코드에서 확인한다. Karpathy 의 LLM Wiki gist 와 Wiki 층 구현을 대조하고, 원클릭 배포가 게이트웨이 인증을 꺼 놓는다는 점까지 도입 관점으로 정리했다.",
+  "summary": "Chat Memory·Skill·Wiki·CodeGraph 네 종류를 한 자산 테이블에 등록하는 구조, team/user/agent 세 축의 identity, 공유 판정이 사람 경로와 agent 경로로 갈려 restricted 등급이 양쪽에서 막히는 지점, 대규모를 인스턴스 증식으로 푸는 방식을 코드에서 확인한다. Karpathy 의 LLM Wiki gist 와 Wiki 층 구현을 대조하고, 같은 gist 에서 갈라진 LLM-Wiki 논문 갈래와는 코드 계보가 이어지지 않는다는 것, 원클릭 배포가 게이트웨이 인증을 꺼 놓는다는 점까지 도입 관점으로 정리했다.",
   "date": "2026-08-07",
   "seq": 6,
   "category": "oss",

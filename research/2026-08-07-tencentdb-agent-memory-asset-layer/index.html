@@ -359,16 +359,17 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     <button class="rail-item" data-go="6"><span class="n">07</span><span>공유의 두 경로</span></button>
     <button class="rail-item" data-go="7"><span class="n">08</span><span>가시성 다섯 등급</span></button>
     <button class="rail-item" data-go="8"><span class="n">09</span><span>Wiki · gist 대조</span></button>
-    <button class="rail-item" data-go="9"><span class="n">10</span><span>Wiki · 인덱스 저장</span></button>
-    <button class="rail-item" data-go="10"><span class="n">11</span><span>대규모의 단위</span></button>
-    <button class="rail-item" data-go="11"><span class="n">12</span><span>요청 경로 추적</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>논문 갈래와의 거리</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>Wiki · 인덱스 저장</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>대규모의 단위</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>요청 경로 추적</span></button>
     <div class="rail-sep"></div>
-    <button class="rail-item" data-go="12"><span class="n">13</span><span>읽은 범위</span></button>
-    <button class="rail-item" data-go="13"><span class="n">14</span><span>동작</span></button>
-    <button class="rail-item" data-go="14"><span class="n">15</span><span>해석의 한계</span></button>
-    <button class="rail-item" data-go="15"><span class="n">16</span><span>도입 판단</span></button>
-    <button class="rail-item" data-go="16"><span class="n">17</span><span>결론</span></button>
-    <button class="rail-item" data-go="17"><span class="n">18</span><span>출처</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>동작</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>도입 판단</span></button>
+    <button class="rail-item" data-go="17"><span class="n">18</span><span>결론</span></button>
+    <button class="rail-item" data-go="18"><span class="n">19</span><span>출처</span></button>
   </nav>
 
   <main class="stage" id="stage">
@@ -383,14 +384,13 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       공유와 대규모를 무엇이 실제로 떠받치고 있는지, 그리고 어디가 아직 비어 있는지를 코드에서 확인했다.</p>
 
       <div class="lineage">
-        <span class="lg">wiki line</span>
-        <a href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM-Wiki 논문</a>
-        <span class="arrow">→</span>
+        <span class="lg">Karpathy gist 에서 갈라진 두 갈래</span>
+        <span class="self">이 문서 · 저장소 (MIT)</span>
+        <span class="arrow">│</span>
+        <a href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM-Wiki</a>
         <a href="../2026-08-05-wikikv-hierarchical-kb-storage/">WikiKV</a>
-        <span class="arrow">→</span>
         <a href="../2026-08-05-wikiloop-feedback-coupled-wiki/">WikiLoop</a>
-        <span class="arrow">→</span>
-        <span class="self">이 문서 (구현체)</span>
+        <span class="ext">논문 · 코드 비공개 · 상호 참조 없음</span>
       </div>
 
       <div class="grid g2">
@@ -843,7 +843,7 @@ export type AssetVisibility = "private" | "team" | "restricted" | "agent" | <spa
               <tr><td>the wiki (LLM 소유)</td><td><code>wiki/**.md</code> + frontmatter</td><td><code>locked: true</code> 로 사람이 잠글 수 있다</td></tr>
               <tr class="hero"><td>the schema (CLAUDE.md)</td><td><code>wiki/purpose.md</code> + <code>wiki/schema.md</code></td><td>둘로 쪼개 system prompt 에 그대로 붙인다</td></tr>
               <tr><td>Ingest</td><td><code>ingest-v2/index.ts</code></td><td>분석과 생성 2단계로 나눴다</td></tr>
-              <tr><td>Query</td><td><code>manager.ts</code> + <code>tools.ts</code></td><td>BM25 에 link graph BFS 를 얹었다</td></tr>
+              <tr><td>Query</td><td><code>manager.ts</code> + <code>graph-search.ts</code></td><td>BM25 에 link graph BFS 를 얹었다. agent 에 노출되는 도구 넷은 이 디렉터리 밖 <code>MemoryKnowledge/src/mcp/tools.ts</code> 에 선언된다</td></tr>
               <tr class="hero"><td>Lint</td><td class="lose">없음</td><td class="lose">모순 검출, 고아 페이지 점검이 구현되지 않았다</td></tr>
               <tr><td>index.md</td><td><code>index-builder.ts</code></td><td>매 ingest 후 재생성</td></tr>
               <tr><td>log.md</td><td><code>log-writer.ts</code></td><td>LLM 없이 순수 텍스트로 append</td></tr>
@@ -859,11 +859,58 @@ export type AssetVisibility = "private" | "team" | "restricted" | "agent" | <spa
 
       <p class="note">gist 는 <code>~100 sources, ~hundreds of pages</code> 규모까지는 index.md 만으로 충분하고
       embedding 기반 RAG 가 필요 없다고 적는다. 이 저장소는 그 규모를 넘길 것을 전제로 FTS5 인덱스를 붙였다.
-      그 결정의 대가가 다음 장이다.</p>
+      그 결정의 대가가 「Wiki · 인덱스 저장」에 있다.</p>
     </div>
   </section>
 
   <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">paper-line</p>
+      <h2>위키의 모양은 gist 에서 같이 받았고, 그 위에 무엇을 얹었는지에서 갈린다</h2>
+      <p class="dek">이 저장소를 LLM-Wiki 논문 갈래의 구현체로 읽고 싶어지는데, 그렇게 볼 근거가 없다.
+      저장소는 논문 셋을 한 번도 가리키지 않고, 논문 셋은 코드를 공개한 적이 없다.
+      둘이 닮은 부분은 전부 같은 조상인 gist 로 설명된다.</p>
+
+      <div class="figure">
+        <p class="fig-title">논문 갈래와 이 저장소가 공유하는 것과 갈라지는 것</p>
+        <p class="fig-sub">저장소는 커밋 <code>fe3230f</code>. 논문 쪽 열은 「출처」가 링크한 세 편의 분석 문서에서 가져왔고, 대조 자체는 양쪽 어디에도 없다</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>항목</th><th>논문 갈래 (LLM-Wiki · WikiKV · WikiLoop)</th><th>이 저장소</th></tr></thead>
+            <tbody>
+              <tr><td>LLM 이 위키 페이지를 만들고 증분 갱신한다</td><td>있음</td><td>있음 · <code>ingest-v2/index.ts</code></td></tr>
+              <tr><td>진입점 인덱스 페이지를 둔다</td><td>있음</td><td>있음 · <code>ingest-v2/index-builder.ts</code></td></tr>
+              <tr><td>agent 가 페이지를 읽고 링크를 따라간다</td><td>있음</td><td>있음 · <code>wiki_read</code> <code>wiki_list</code> <code>wiki_graph</code></td></tr>
+              <tr class="hero"><td>검색을 무엇으로 하는가</td><td>순회 자체가 embedding RAG 를 대체한다</td><td>FTS5 BM25 에 BFS 를 얹었다. Wiki 엔진에 embedding 0건</td></tr>
+              <tr class="hero"><td>위키를 어디에 저장하는가</td><td>WikiKV · path-as-key 로 인코딩한 KV</td><td>디스크 <code>.md</code> + 위키당 SQLite <code>index.db</code></td></tr>
+              <tr class="hero"><td>구축 정책을 학습시키는가</td><td>WikiLoop · 검색 성과를 보상으로 RL</td><td class="lose">없음</td></tr>
+              <tr class="hero"><td>무엇을 최적화하는가</td><td>multi-hop QA 정확도</td><td>소유권 · 가시성 · 바인딩</td></tr>
+              <tr><td>코드</td><td class="lose">셋 다 비공개</td><td>MIT</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>위의 세 행은 gist 가 제안한 것이라 양쪽에 다 있는 게 당연하다.
+        <b>실제로 갈리는 것은 파란 네 행이고, 방향이 서로 다르다.</b>
+        논문 갈래는 위키 위에 검색 정확도를 쌓았고, 이 저장소는 위키를 자산 한 종류로 내려놓고
+        그 위에 소유권과 인가를 쌓았다. 그래서 이 저장소에는 위키가 넷 중 하나로만 들어간다.</figcaption>
+      </div>
+
+      <p class="note"><b>없다고 말한 근거.</b> 커밋 <code>fe3230f</code> 의 트리 전체에서 대소문자를 무시하고 찾았을 때
+      <code>WikiKV</code>, <code>WikiLoop</code>, <code>AuthTrace</code>, <code>Retrieval-as-Reasoning</code>,
+      <code>path.as.key</code>, <code>error.?book</code>, <code>reinforcement learning</code> 이 모두 0건이다.
+      <code>arxiv</code> 는 토큰 추정 벤치마크의 샘플 파일명 <code>en_arxiv.txt</code> 한 건이 전부고 인용이 아니다.
+      저장소가 출처로 밝힌 것은 <code>README.md:277</code> 의 gist 하나이며, 표현도 구현이 아니라
+      <code>directly informed how our Wiki layer is built</code> 다.</p>
+
+      <p class="note">소속은 논문 셋이 WeChat, Tencent Inc. 이고 이 저장소는 TencentCloud 다.
+      같은 회사 우산 아래인 것은 맞지만 그것으로 계보를 말할 수는 없다.
+      확인되는 데까지만 적으면, <b>한 회사 안에서 코드 비공개 논문 갈래와 MIT 저장소가
+      서로를 인용하지 않은 채 같은 gist 를 각자 구현했다.</b></p>
+    </div>
+  </section>
+
+  <!-- 11 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">wiki-index</p>
@@ -945,7 +992,7 @@ export type AssetVisibility = "private" | "team" | "restricted" | "agent" | <spa
     </div>
   </section>
 
-  <!-- 11 -->
+  <!-- 12 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">scale</p>
@@ -994,7 +1041,7 @@ export const DEFAULT_METADATA_QUOTA_LIMITS: MetadataQuotaLimits = {
     </div>
   </section>
 
-  <!-- 12 -->
+  <!-- 13 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">trace</p>
@@ -1060,7 +1107,7 @@ await deps.notifyPipeline(auth.serviceId, session_id, rounds, iso?.teamId, iso?.
     </div>
   </section>
 
-  <!-- 13 -->
+  <!-- 14 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">setup</p>
@@ -1090,6 +1137,12 @@ await deps.notifyPipeline(auth.serviceId, session_id, rounds, iso?.teamId, iso?.
       「공유의 두 경로」의 사람 경로 서술이 README 와 MemoryCore 쪽 코드에만 기대고 있어서,
       Panel 이 실제로 어떤 순서로 인가를 요청하는지는 확인하지 못했다.</div>
 
+      <p class="note"><b>위 표는 첫 통독의 기록이다.</b> 「논문 갈래와의 거리」를 쓰면서
+      <code>MemoryKnowledge/src/mcp/tools.ts</code> 의 도구 선언부와
+      <code>engines/wiki/graph-search.ts</code> 의 헤더를 더 열었다. 표의 숫자는 그 둘을 세지 않은 값이다.
+      그 장의 나머지 근거는 트리 전체 문자열 검색이고, 논문 쪽 열은 「출처」가 링크한 세 편의 분석 문서에서 가져왔다.
+      논문 원문을 다시 열어 대조하지는 않았다.</p>
+
       <p class="note">공개 트리에 <code>docs/</code> 가 거의 없다. 코드 주석이 참조하는
       <code>MemoryKnowledge/docs/data-flow.md</code>, <code>MemoryProxy/docs/design/</code>,
       <code>team-memory-control/docs/architecture/08-metadata-migration-and-permission-design.md</code> 가 모두 없고,
@@ -1097,7 +1150,7 @@ await deps.notifyPipeline(auth.serviceId, session_id, rounds, iso?.teamId, iso?.
     </div>
   </section>
 
-  <!-- 14 -->
+  <!-- 15 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">result</p>
@@ -1180,7 +1233,7 @@ await deps.notifyPipeline(auth.serviceId, session_id, rounds, iso?.teamId, iso?.
     </div>
   </section>
 
-  <!-- 15 -->
+  <!-- 16 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">critique</p>
@@ -1243,7 +1296,7 @@ await deps.notifyPipeline(auth.serviceId, session_id, rounds, iso?.teamId, iso?.
     </div>
   </section>
 
-  <!-- 16 -->
+  <!-- 17 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">adopt</p>
@@ -1310,7 +1363,7 @@ await deps.notifyPipeline(auth.serviceId, session_id, rounds, iso?.teamId, iso?.
     </div>
   </section>
 
-  <!-- 17 -->
+  <!-- 18 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">conclusion</p>
@@ -1343,7 +1396,7 @@ await deps.notifyPipeline(auth.serviceId, session_id, rounds, iso?.teamId, iso?.
     </div>
   </section>
 
-  <!-- 18 -->
+  <!-- 19 -->
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">sources</p>
@@ -1367,12 +1420,13 @@ await deps.notifyPipeline(auth.serviceId, session_id, rounds, iso?.teamId, iso?.
         생성 2026-04-07, 마지막 push 2026-08-06, 기본 브랜치 <code>feat/server_team</code>.
         문서가 쓰는 것은 이 셋뿐이다. star 와 fork 수는 회수해 두었지만 쓰지 않았다</span></p>
 
-        <p><b>같은 연구 라인의 문서</b><br>
+        <p><b>같은 gist 에서 갈라진 다른 갈래의 문서</b><br>
         <a href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">Retrieval as Reasoning: LLM-Wiki 논문 분석</a> ·
         <a href="../2026-08-05-wikikv-hierarchical-kb-storage/">WikiKV: 계층형 지식베이스 저장 계층</a> ·
         <a href="../2026-08-05-wikiloop-feedback-coupled-wiki/">WikiLoop: 구축과 순회를 함께 학습</a><br>
-        <span class="t">앞의 셋은 논문이고 이 문서는 구현체다. 위키를 agent 가 유지하는 아이디어를
-        논문 쪽에서 먼저 본 뒤 이 문서를 읽으면 무엇이 실제로 만들어졌는지 대조하기 쉽다</span></p>
+        <span class="t">셋 다 g1 의 gist 에서 출발한 논문이지만 이 저장소의 상류는 아니다.
+        근거는 「논문 갈래와의 거리」에 있다. 같은 조상에서 출발한 두 갈래가
+        무엇을 갈라 가졌는지 보려면 함께 읽을 만하다</span></p>
       </div>
 
       <div class="note"><b>대상 저장소 안의 agent 지시문에 대하여.</b>
