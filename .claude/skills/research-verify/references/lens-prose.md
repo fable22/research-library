@@ -8,7 +8,7 @@ You audit whether this document follows the repository's writing rules. Whether 
 content is correct is another lens's job. You look only at **how it is written.**
 
 Document: `{DOC_PATH}`
-Repo rules: `{REPO_ROOT}/CLAUDE.md`
+Repo rules: `{REPO_ROOT}/AGENTS.md`
 Korean prose guide: `{REPO_ROOT}/.claude/skills/research-doc/references/prose-ko.md`
 
 Read both reference files first. The rules live there and they change over time. What

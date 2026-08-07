@@ -50,9 +50,19 @@ const RULES = {
   'absence-search': 'kind=absence 주장에 재실행 가능한 검색 명령이 있는가',
   'behavioral-limits': 'kind=behavioral 주장에 확인하지 못한 것이 적혀 있는가',
   'history-claim': 'kind=history 주장의 source 에 이력이 실제로 있는가',
+  'claim-kind-source': 'kind=code 주장이 구현 파일을 근거로 삼는가 (문서 파일이면 kind=doc)',
 };
 
 const KINDS = ['code', 'numeric', 'absence', 'behavioral', 'history', 'doc', 'web'];
+
+// 프로젝트가 자기 문서에 써 둔 것과 구현이 그렇게 돼 있는 것은 다른 사실이다.
+// quote-match 는 둘을 구별하지 못한다 (문서 파일에도 그 줄은 실재하므로).
+const DOC_FILE = [
+  /\.(md|mdx|rst|txt|adoc|org)$/i,
+  /(^|\/)(docs?|documentation|adr|rfcs?)\//i,
+  /(^|\/)(readme|changelog|contributing|agents|claude|license|notice)[^/]*$/i,
+];
+const looksLikeDoc = (file) => DOC_FILE.some((re) => re.test(file));
 
 // ---- 인자 ----
 
@@ -285,6 +295,11 @@ for (const c of claims || []) {
     }
     const [, file, lineStr] = m;
     const line = Number(lineStr);
+
+    if (c.kind === 'code' && looksLikeDoc(file)) {
+      add('claim-kind-source',
+        `${id}: kind=code 인데 근거가 문서 파일이다 (${file}). 구현이 그렇다는 것과 프로젝트가 자기 문서에 그렇게 썼다는 것은 다른 사실이다. kind 를 "doc" 으로 바꾸거나 구현 파일에서 같은 사실을 확인할 것`);
+    }
 
     const checkout = resolveCheckout(src);
     if (!checkout) continue;

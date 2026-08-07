@@ -76,6 +76,11 @@ One claim per line:
 
 `kind` is one of `code`, `numeric`, `absence`, `behavioral`, `history`, `doc`, `web`.
 
+`code` means the implementation does this. A claim whose evidence is the project's own
+README or `docs/` is `doc` — what the maintainers wrote, which may or may not match the
+code. `check-claims.mjs` blocks the mislabel, because a quote check cannot tell the two
+apart on its own.
+
 Deciding what to extract is the judgment call that matters most.
 
 **Extract:** numbers, comparisons, causal claims, anything an adoption decision rests
