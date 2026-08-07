@@ -1,0 +1,1049 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EviGraph: 리서치 에이전트의 작업 상태를 파이프라인 대신 근거 그래프로 둔다</title>
+<meta name="description" content="자율 연구 에이전트가 근거 없는 주장을 쓰는 문제를 모델이 아니라 아키텍처의 문제로 진단하고, 타입이 붙은 근거 그래프를 에이전트의 작업 상태로 삼는다. Claim Support Rate 는 27% 에서 37.85% 로 오르지만 ablation 이 없다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="EviGraph: 리서치 에이전트의 작업 상태를 파이프라인 대신 근거 그래프로 둔다">
+<meta property="og:description" content="자율 연구 에이전트가 근거 없는 주장을 쓰는 문제를 모델이 아니라 아키텍처의 문제로 진단하고, 타입이 붙은 근거 그래프를 에이전트의 작업 상태로 삼는다. Claim Support Rate 는 27% 에서 37.85% 로 오르지만 ablation 이 없다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-07-evigraph-evidence-graph-agent/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+.bar { height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>상태로서의 그래프</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>관계마다의 통과 조건</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>검사와 수리 루프</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>판정의 경계</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>집필 게이트</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>기존 방식과의 비교</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>사례 추적</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>결과: 성능</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>결과: 신뢰성</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>도입 판단</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>결론</span></button>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>EviGraph: 리서치 에이전트의 작업 상태를 파이프라인 대신 근거 그래프로 둔다</h1>
+      <p class="dek">자율 연구 에이전트는 논문을 끝까지 써낸다. 그런데 그 논문의 주장이 실제로 돌린 실험에서 나온 것인지는 아무도 보증하지 않는다. EviGraph 의 진단은 이게 모델의 문제가 아니라 <b>아키텍처의 문제</b>라는 것이다. 단계를 순서대로 실행하는 파이프라인에는 "이 실험이 지금의 가설을 검증하는가"를 적어 둘 자리가 없다.</p>
+
+      <div class="stats">
+        <div class="stat"><span class="val">6 + 5</span><span class="sub">노드 타입 6종, 관계 타입 5종. 그래프에 들어갈 수 있는 것은 이게 전부다</span></div>
+        <div class="stat hero"><span class="val">86.45<span class="u">%</span></span><span class="sub">ARC-Bench-ML Overall. 가장 센 비교 대상은 60.37%</span></div>
+        <div class="stat"><span class="val">37.85<span class="u">%</span></span><span class="sub">Claim Support Rate. 최고 baseline 은 27%. 절대값으로는 주장의 62%가 여전히 근거로 안 이어진다</span></div>
+        <div class="stat bad"><span class="val">0</span><span class="sub">ablation 실험 수. 논문 5절이 하지 않았다고 밝힌다</span></div>
+      </div>
+
+      <div class="card" style="margin-top:14px">
+        <span class="tag">코퍼스 고정</span>
+        <p class="small">arXiv <b>2608.04738</b>, <b>v2</b> (2026-08-05 투고, 2026-08-06 개정). Zhenjiang Ren 외 5인, Institute of Automation, Chinese Academy of Sciences 등. 심사를 거치지 않은 preprint 이고 공개된 코드는 없다.</p>
+      </div>
+
+      <div class="card" style="margin-top:12px">
+        <span class="tag">가까운 문서</span>
+        <p class="small">에이전트 루프의 진행 판정을 코드로 넘긴 사례는 <a class="xref" href="../2026-08-07-loopx-deterministic-loop-harness/">LoopX</a>, 실행 사이에 상태를 남기는 저장 계층은 <a class="xref" href="../2026-08-07-tencentdb-agent-memory-asset-layer/">TencentDB 에이전트 메모리</a>에 있다. EviGraph 는 두 문제를 한 그래프 위에서 같이 다룬다.</p>
+      </div>
+
+      <p class="note">EviGraph 를 설치해서 돌리지 않았다. 논문만 읽었다. 그림 2장은 PDF 렌더러가 없어 이미지로 보지 못하고 내부 텍스트 라벨만 뽑아 읽었으므로, 그림에서 온 서술에는 그 사실을 붙여 두었다. 읽은 범위는 11장, 확인하지 못한 것은 14장에 있다.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>그래프를 사후 기록이 아니라 에이전트가 붙들고 있는 작업 상태로 만들었다</h2>
+      <p class="dek">연구 과정을 Problem, Gap, Hypothesis, Experiment, Finding, Claim 여섯 타입의 노드와 다섯 관계로 표현한다. 이 그래프는 매 순간 검사되고 수리된다. 집필은 그 상태가 조건을 만족할 때만 시작되고, 조건을 못 채운 채 예산이 끝나면 논문 대신 <code>Incomplete</code> 가 나온다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <tbody>
+            <tr><td><b>그래프가 곧 상태다</b></td><td style="text-align:left;white-space:normal">초기화 이후 모든 컴포넌트가 이 그래프 하나를 읽고 쓴다. 계속할지 말지를 정할 때 들여다보는 대상도 이것이다</td></tr>
+            <tr><td><b>고칠 지점을 관계에서 찾는다</b></td><td style="text-align:left;white-space:normal">노드 <code>v</code> 가 약하다는 판정은 연결된 <code>u</code> 와의 <b>엣지 타입이 요구하는 의미 제약</b>을 어겼을 때 내려진다. 노드 하나만 보고는 내릴 수 없는 판정이다</td></tr>
+            <tr><td><b>고치면 아래가 전부 다시 만들어진다</b></td><td style="text-align:left;white-space:normal">약한 노드 <code>w</code> 와 그 내용에 의존하는 하위 노드를 묶어 repair group 을 만들고, 의존 순서대로 재생성한다. 그럴듯해 보여도 다시 만든다</td></tr>
+            <tr><td><b>수리가 개선인지는 코드가 판정한다</b></td><td style="text-align:left;white-space:normal">약한 노드 수가 늘거나 이전에 유효했던 근거 사슬이 사라지면 열화로 보고 checkpoint 로 되돌린다. 이 비교에 모델이 개입하지 않는다</td></tr>
+            <tr><td><b>집필이 상태에 걸려 있다</b></td><td style="text-align:left;white-space:normal">retained 된 Claim 전부가 약한 노드 없는 완전한 근거 사슬을 가질 때만 Paper Writer 가 호출된다. 예산이 끝나면 논문 대신 <code>Incomplete</code> 를 반환한다</td></tr>
+            <tr><td><b>인과는 아직 확립되지 않았다</b></td><td style="text-align:left;white-space:normal">컴포넌트를 떼어내는 ablation 이 없다. 논문 5절이 이유를 밝히고 정성적 대응표로 대체했다. 14장에서 다룬다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note">도입 판단은 15장에 있다. 결론만 먼저 적으면, 설계 결정을 옮겨 쓰는 데는 지금 바로 쓸 만하고, 시스템 자체를 도입하는 판단은 코드도 비용도 실행 횟수도 공개되지 않아 지금 내릴 수 없다.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>파이프라인은 다음에 무엇을 할지는 알지만, 방금 한 것이 여전히 유효한지는 모른다</h2>
+      <p class="dek">기존 자율 연구 시스템은 아이디어 생성에서 실험, 분석, 집필로 출력이 넘어가는 순차 파이프라인이다. 각 단계는 앞 단계의 결과물을 입력으로 받지만, 둘 사이의 <b>근거 관계</b>는 어디에도 기록되지 않는다. 기록이 없으니 검사할 것도 없고, 어긋남은 몇 단계를 지나 최종 원고에서야 드러난다.</p>
+
+      <p>논문이 드는 세 가지 어긋남은 전부 "단계는 성공했는데 관계가 깨진" 경우다. 가설이 그것을 요구했던 research gap 과 어긋나고, 실험이 개정 이후의 가설을 더 이상 검증하지 않게 되고, 원고의 주장이 기록된 finding 이 지지하는 범위를 넘어선다. 세 경우 모두 각 단계의 출력만 보면 정상이다.</p>
+
+      <div class="figure">
+        <p class="fig-title">완주율은 이미 만점이다. 문제는 완주가 아니다</p>
+        <p class="fig-sub">표 3(논문)의 NanoResearch-20 end-to-end completion 열. 세 시스템 전부 100%다</p>
+        <div class="bars">
+          <div class="bar-row"><span class="bar-name">NanoResearch</span><span class="bar-track"><span class="bar" style="--w:100%"></span></span><span class="bar-val">100%</span></div>
+          <div class="bar-row"><span class="bar-name">AutoResearchClaw</span><span class="bar-track"><span class="bar" style="--w:100%"></span></span><span class="bar-val">100%</span></div>
+          <div class="bar-row is-hero"><span class="bar-name">EviGraph</span><span class="bar-track"><span class="bar s1" style="--w:100%"></span></span><span class="bar-val">100%</span></div>
+        </div>
+        <div class="bar-axis"><div class="ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100%</span></div></div>
+        <figcaption>표 4(논문)의 Claim Support Rate 는 같은 세 시스템에서 14.4%, 27%, 37.85% 로 갈린다. 완주와 근거 준비는 서로 다른 것을 재고, 완주 쪽은 세 시스템이 전부 100% 라 더 이상 시스템을 구분하지 못한다. 두 지표의 모집단은 다르다. E2E 는 NanoResearch-20 의 20개 과제에서만 나오고, CSR 은 두 벤치마크 45개 과제를 합친 micro-average 다.</figcaption>
+      </div>
+
+      <p>EviGraph 가 이 자리에 넣은 구분이 <b>pipeline completion 대 evidence readiness</b> 다. 앞의 것은 실행할 단계가 남지 않았다는 뜻이고, 뒤의 것은 남아 있는 모든 주장이 근거로 이어진다는 뜻이다. 논문 5.2절이 사례 하나를 두고 이렇게 정리한다. 초기 연구 객체가 전부 성공적으로 생성되어도, 그래프를 검사해 영향받은 subgraph 를 수리하기 전까지 단계 간 관계는 유효하지 않은 채로 남는다.</p>
+
+      <p class="note">여기서 말하는 "근거 없는 주장"은 사실이 틀렸다는 뜻이 아니다. 실행 기록까지 되짚어 갈 경로가 없다는 뜻이다. 참인데 이어지지 않는 주장도 Claim Support Rate 에서는 실패로 계산된다.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">state</p>
+      <h2>그래프에 들어갈 수 있는 것을 여섯 타입과 다섯 관계로 잘라 놓았다</h2>
+      <p class="dek">연구 그래프는 <code>G = (V, E, τ, ρ, α)</code> 다. <code>τ</code> 가 노드에 타입을, <code>ρ</code> 가 엣지에 관계 타입을, <code>α</code> 가 타입별 구조화 속성을 붙인다. 표현할 수 있는 것을 좁힌 게 이 설계의 핵심이다. 자유 형식 메모라면 "이 실험이 저 가설을 검증한다"가 문장으로만 존재하지만, <code>tested-by</code> 엣지라면 통과 조건을 걸 수 있는 대상이 된다.</p>
+
+      <div class="figure">
+        <p class="fig-title">Problem 에서 Claim 까지, 다섯 관계가 한 줄로 이어진다</p>
+        <p class="fig-sub">표 1과 3.2절(논문). 허용된 관계는 이 다섯 개뿐이고, 각 관계의 양 끝 노드 타입도 고정돼 있다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 1000 236" role="img" aria-label="연구 그래프의 여섯 노드 타입이 한 줄로 이어진 그림. Problem(과제 경계, objective 와 scope)이 identifies 로 Gap(선행 연구의 한계, 문헌 ID 필수)을, Gap 이 motivates 로 Hypothesis(검증 가능한 제안, 반증 조건 필수)를, Hypothesis 가 tested-by 로 Experiment(프로토콜과 구현, 실행 기록 ID)를, Experiment 가 produces 로 Finding(실행에서 나온 결과, 값과 조건)을, Finding 이 supports 로 Claim(원고 수준의 주장, retained 플래그)을 가리킨다. 아래쪽에 두 개의 괄호가 있다. 왼쪽 괄호는 Problem 과 Gap 을 묶어 초기화 anchor 라고 표시하며, 여기가 어긋나면 수리가 아니라 재초기화 경로로 간다. 오른쪽 괄호는 Hypothesis 부터 Claim 까지를 묶어 evidence chain 이라고 표시하며, 이 구간이 완전하고 유효해야 Claim 이 retained 되고, 여러 Experiment 나 Finding 이 한 Claim 을 함께 받칠 수 있다.">
+          <text class="txt-s" x="156" y="30" text-anchor="middle">identifies</text>
+          <text class="txt-s" x="328" y="30" text-anchor="middle">motivates</text>
+          <text class="txt-s" x="500" y="30" text-anchor="middle">tested-by</text>
+          <text class="txt-s" x="672" y="30" text-anchor="middle">produces</text>
+          <text class="txt-s" x="844" y="30" text-anchor="middle">supports</text>
+
+          <rect class="box" x="0" y="44" width="140" height="76" rx="8"/>
+          <text class="txt" x="12" y="68">Problem</text>
+          <text class="txt-s" x="12" y="88">과제 경계</text>
+          <text class="txt-s" x="12" y="105">objective, scope</text>
+
+          <rect class="box" x="172" y="44" width="140" height="76" rx="8"/>
+          <text class="txt" x="184" y="68">Gap</text>
+          <text class="txt-s" x="184" y="88">선행 연구의 한계</text>
+          <text class="txt-s" x="184" y="105">문헌 ID 필수</text>
+
+          <rect class="box-hi" x="344" y="44" width="140" height="76" rx="8"/>
+          <text class="txt" x="356" y="68">Hypothesis</text>
+          <text class="txt-s" x="356" y="88">검증 가능한 제안</text>
+          <text class="txt-s" x="356" y="105">반증 조건 필수</text>
+
+          <rect class="box-hi" x="516" y="44" width="140" height="76" rx="8"/>
+          <text class="txt" x="528" y="68">Experiment</text>
+          <text class="txt-s" x="528" y="88">프로토콜과 구현</text>
+          <text class="txt-s" x="528" y="105">실행 기록 ID</text>
+
+          <rect class="box-hi" x="688" y="44" width="140" height="76" rx="8"/>
+          <text class="txt" x="700" y="68">Finding</text>
+          <text class="txt-s" x="700" y="88">실행에서 나온 결과</text>
+          <text class="txt-s" x="700" y="105">값과 조건</text>
+
+          <rect class="box-hi" x="860" y="44" width="140" height="76" rx="8"/>
+          <text class="txt" x="872" y="68">Claim</text>
+          <text class="txt-s" x="872" y="88">원고 수준의 주장</text>
+          <text class="txt-s" x="872" y="105">retained 플래그</text>
+
+          <path class="arw" d="M140 82 L172 82"/><path class="arw" d="M165 77 L172 82 L165 87"/>
+          <path class="arw" d="M312 82 L344 82"/><path class="arw" d="M337 77 L344 82 L337 87"/>
+          <path class="arw" d="M484 82 L516 82"/><path class="arw" d="M509 77 L516 82 L509 87"/>
+          <path class="arw" d="M656 82 L688 82"/><path class="arw" d="M681 77 L688 82 L681 87"/>
+          <path class="arw" d="M828 82 L860 82"/><path class="arw" d="M853 77 L860 82 L853 87"/>
+
+          <path class="arw" d="M2 134 L2 146 L310 146 L310 134"/>
+          <text class="txt" x="156" y="172" text-anchor="middle">초기화 anchor</text>
+          <text class="txt-s" x="156" y="192" text-anchor="middle">여기가 어긋나면 수리가 아니라</text>
+          <text class="txt-s" x="156" y="209" text-anchor="middle">REINITIALIZE 경로로 간다</text>
+
+          <path class="arw" d="M346 134 L346 146 L998 146 L998 134"/>
+          <text class="txt" x="672" y="172" text-anchor="middle">evidence chain</text>
+          <text class="txt-s" x="672" y="192" text-anchor="middle">이 구간이 완전하고 유효해야 Claim 이 retained 된다</text>
+          <text class="txt-s" x="672" y="209" text-anchor="middle">여러 Experiment 나 Finding 이 한 Claim 을 함께 받칠 수 있다</text>
+        </svg>
+        </div>
+        <figcaption>표 1(논문)의 다섯 관계를 그대로 그린 것이고, 아래 두 괄호는 3.2절과 부록 D 의 서술을 겹쳐 표시한 것으로 논문에는 이 그림이 없다. 선형으로 그렸지만 그래프는 분기하고 합류한다. 가설 하나를 여러 실험이 평가할 수 있고, 여러 finding 이 한 주장을 함께 지지하거나 제한할 수 있다.</figcaption>
+      </div>
+
+      <p>노드마다 필수 속성이 정해져 있고, 그래프 validator 가 이걸 강제한다(부록 B.5). <code>Hypothesis</code> 는 <code>statement</code>, <code>mechanism</code>, <code>falsifiable_prediction</code>, <code>boundary_conditions</code> 를 다 채워야 하고, <code>Experiment</code> 는 <code>execution_status</code> 와 <code>execution_record_refs</code> 를, <code>Finding</code> 도 <code>execution_record_refs</code> 를 문다. <code>Claim</code> 만 예외적으로 <code>retained</code> 와 <code>retention_reason</code> 을 들고 있다. 버릴 주장도 그래프에 남되 버렸다는 표시와 이유를 달고 남는다.</p>
+
+      <p>validator 는 dangling edge, 중복 노드 ID, 잘못된 양 끝 타입, 필수 속성 누락, 입력에서 해소되지 않는 provenance 참조, 그리고 다섯 관계로 이루어진 의존 subgraph 안의 cycle 을 거부한다. <code>Problem</code> 과 <code>Gap</code> 은 일반 수리 루프 동안 불변 anchor 로 취급되고, 잘못된 anchor 는 하위 에이전트가 조용히 고치는 대신 <code>G0</code> 자체를 다시 만들게 한다.</p>
+
+      <p class="note">타입과 관계가 이 여섯 개, 다섯 개로 충분한지는 논문이 논증하지 않는다. 이론적 근거 없이 자율 연구 워크플로에서 관찰되는 객체를 나열한 것에 가깝고, 예를 들어 재현 실패나 반증된 가설을 어디에 놓을지는 <code>Finding</code> 과 <code>Claim</code> 의 서술 안에 흡수돼 있다.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">check</p>
+      <h2>관계마다 통과 조건이 붙어 있고, 약한 노드는 그 조건을 어긴 지점에서 정의된다</h2>
+      <p class="dek">노드 <code>v</code> 가 약하다는 판정은 <code>v</code> 만 봐서는 내릴 수 없다. 연결된 <code>u</code> 와의 속성이 그 엣지의 관계 타입 <code>ρ((u,v))</code> 가 요구하는 의미 제약을 만족하지 못할 때 <code>v</code> 가 약해진다. 이게 파이프라인이 못 하는 일이다. 단계 하나만 보면 산출물은 다 정상이다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>관계</th><th style="text-align:left">통과 조건</th><th style="text-align:left">깨졌을 때의 issue type</th></tr></thead>
+          <tbody>
+            <tr><td><code>identifies</code></td><td style="text-align:left;white-space:normal">근거가 붙은 한계가 Problem 의 범위 안에 있고 관련이 있다</td><td style="text-align:left;white-space:normal"><code>CONSTRUCTION_ERROR</code></td></tr>
+            <tr><td><code>motivates</code></td><td style="text-align:left;white-space:normal">제안이 그 Gap 을 직접 겨냥하고, 명시된 범위 안에서 반증 가능하다</td><td style="text-align:left;white-space:normal"><code>GAP_MISALIGNMENT</code></td></tr>
+            <tr><td><code>tested-by</code></td><td style="text-align:left;white-space:normal">프로토콜이 예측된 결과와 반증 조건을 <b>구분해 낼 수 있다</b></td><td style="text-align:left;white-space:normal"><code>HYPOTHESIS_EXPERIMENT_MISALIGNMENT</code>, <code>EXECUTION_FAILURE</code></td></tr>
+            <tr><td><code>produces</code></td><td style="text-align:left;white-space:normal">Finding 이 식별 가능한 유효 실행에서 나왔고, 보고된 설정과 값이 기록과 일치한다</td><td style="text-align:left;white-space:normal"><code>DATA_INCONSISTENCY</code></td></tr>
+            <tr><td><code>supports</code></td><td style="text-align:left;white-space:normal">Claim 이 Finding 의 조건을 넘거나 뒤집거나 빠뜨리지 않는다</td><td style="text-align:left;white-space:normal"><code>UNSUPPORTED_CLAIM</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">통과 조건은 부록 C.1 표 7, issue type 은 부록 C.2 의 Graph Inspector 출력 스키마다. 두 열을 짝지은 것은 이 문서이고 논문에는 이 대응표가 없다. 나머지 두 issue type 은 관계가 아니라 그래프 전체에 붙는다. 노드나 엣지가 아예 없으면 <code>MISSING_DEPENDENCY</code>, 남길 주장이 하나도 없으면 <code>NO_RETAINED_CLAIM</code> 이다.</p>
+
+      <p style="margin-top:16px">이 표에서 제일 강한 조건은 <code>tested-by</code> 다. 요구 사항이 "실험이 가설과 관련 있다"에서 멈추지 않고 "프로토콜이 예측된 결과를 반증 조건으로부터 구분해 낼 수 있다"까지 간다. 가설을 지지하는 쪽으로만 설계된 실험은 이 조건에서 걸린다. 반대로 검사기가 명시적으로 넘어가야 하는 것도 하나 있다. <b>기록된 음성 결과는 가설과 모순된다는 이유만으로 약해지지 않는다</b>. Finding 으로 보존하고, 범위를 제한한 음성 Claim 을 만들거나 가설을 unsupported 로 표시하라고 프롬프트에 적혀 있다(부록 C.2 규칙 8).</p>
+
+      <p>구조 검사가 의미 검사보다 먼저다. 양 끝 노드가 존재하는지, 타입이 관계 스키마와 맞는지, 필수 속성과 provenance 가 있는지를 통과한 다음에야 의미 제약을 본다. 없는 엣지 위에서 의미 불일치를 보고하는 대신 <code>MISSING_DEPENDENCY</code> 로 분류하기 위해서다.</p>
+
+      <p class="note">통과 조건 자체는 LLM 이 판정한다. Graph Inspector 가 그래프와 실행 기록을 받아 JSON 으로 판정을 돌려주고, orchestration 코드는 그 JSON 이 스키마에 맞는지만 검사한다. 즉 "가설이 gap 에서 표류했다"는 판정의 신뢰도는 backbone 모델의 판단력을 넘지 못한다. 이 경계가 어디에 그어져 있는지는 7장에 있다.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">repair</p>
+      <h2>약한 노드 하나를 고치면 그 내용에 의존하던 하위 노드가 전부 다시 만들어진다</h2>
+      <p class="dek">검사기는 약한 노드 <code>w</code> 와, 내용이 <code>w</code> 의 현재 상태에 의존하는 하위 노드를 묶어 repair group <code>S_w</code> 를 낸다. 수리는 <code>w</code> 를 먼저 고치고, <code>S_w \ {w}</code> 를 <b>지운 다음</b> 의존 순서대로 재생성한다. 옛 내용이 그럴듯해 보여도 다시 만들라고 Repair Planner 프롬프트 규칙 7이 못 박는다.</p>
+
+      <div class="figure">
+        <p class="fig-title">루프는 검사기로 두 갈래로 되돌아온다</p>
+        <p class="fig-sub">Algorithm 1(논문)과 부록 D. 되돌아오는 경로가 두 개다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 1000 272" role="img" aria-label="검사와 수리 루프 그림. 위쪽에 출구 상자가 있고 Graph Inspector 에서 위로 화살표가 연결된다. 출구는 status 가 READY 일 때만 열리며 Paper Writer 로 나가는 유일한 출구다. 가운데 줄에는 왼쪽부터 네 상자가 화살표로 이어진다. Graph Inspector 는 약한 노드와 repair group 을 내고, Repair Planner 는 삭제와 재생성 순서를 잡고, Repair Agents 는 노드별로 하나씩 재생성하며 checkpoint 를 적립하고, 마지막 열화 판정은 코드가 계산하며 모델을 부르지 않는다. Inspector 에서 Planner 로 가는 화살표에는 status 가 REPAIRABLE 이라는 조건이 붙어 있다. 열화 판정에서 Inspector 로 되돌아오는 경로가 두 개다. 안쪽 경로는 열화하지 않은 경우로 후보 그래프를 채택하고, 바깥쪽 경로는 열화하거나 blocked 인 경우로 RollbackToBest 를 거쳐 되돌린다.">
+          <rect class="box" x="0" y="4" width="300" height="42" rx="8"/>
+          <text class="txt" x="14" y="24">status = READY</text>
+          <text class="txt-s" x="14" y="39">Paper Writer 로 나가는 유일한 출구</text>
+          <path class="arw" d="M96 68 L96 46"/><path class="arw" d="M91 53 L96 46 L101 53"/>
+
+          <rect class="box-hi" x="0" y="68" width="196" height="64" rx="8"/>
+          <text class="txt" x="14" y="92">Graph Inspector</text>
+          <text class="txt-s" x="14" y="112">약한 노드와 repair</text>
+          <text class="txt-s" x="14" y="127">group 을 낸다</text>
+
+          <rect class="box" x="264" y="68" width="196" height="64" rx="8"/>
+          <text class="txt" x="278" y="92">Repair Planner</text>
+          <text class="txt-s" x="278" y="112">삭제와 재생성 순서를</text>
+          <text class="txt-s" x="278" y="127">잡는다</text>
+
+          <rect class="box" x="528" y="68" width="196" height="64" rx="8"/>
+          <text class="txt" x="542" y="92">Repair Agents</text>
+          <text class="txt-s" x="542" y="112">노드별로 하나씩</text>
+          <text class="txt-s" x="542" y="127">재생성, checkpoint 적립</text>
+
+          <rect class="box" x="792" y="68" width="196" height="64" rx="8"/>
+          <text class="txt" x="806" y="92">열화 판정</text>
+          <text class="txt-s" x="806" y="112">코드가 계산한다</text>
+          <text class="txt-s" x="806" y="127">모델을 부르지 않는다</text>
+
+          <text class="txt-s" x="230" y="94" text-anchor="middle">REPAIRABLE</text>
+          <path class="arw" d="M196 106 L264 106"/><path class="arw" d="M257 101 L264 106 L257 111"/>
+          <path class="arw" d="M460 106 L528 106"/><path class="arw" d="M453 101 L460 106 L453 111"/>
+          <path class="arw" d="M724 106 L792 106"/><path class="arw" d="M717 101 L724 106 L717 111"/>
+
+          <text class="txt-s" x="500" y="176" text-anchor="middle">열화하지 않았다 → 후보 그래프를 채택한다</text>
+          <path class="arw" d="M860 132 L860 186 L120 186 L120 132"/><path class="arw" d="M115 139 L120 132 L125 139"/>
+
+          <text class="txt-s" x="500" y="228" text-anchor="middle">열화했거나 blocked → RollbackToBest 로 되돌린다</text>
+          <path class="arw" d="M920 132 L920 238 L60 238 L60 132"/><path class="arw" d="M55 139 L60 132 L65 139"/>
+        </svg>
+        </div>
+        <figcaption>Algorithm 1(논문)의 while 루프를 그린 것이다. 그림에 없는 출구가 둘 더 있다. Problem 이나 Gap anchor 가 잘못됐으면 <code>REINITIALIZE</code> 로 <code>G0</code> 를 다시 만들고, 남은 근거 의무를 예산 안에서 고칠 방법이 없으면 <code>INCOMPLETE</code> 로 원고 없이 끝난다.</figcaption>
+      </div>
+
+      <p>어느 group 부터 고칠지는 코드가 정한다. blocking 이슈를 먼저 잡고, 그다음은 <code>Problem → Gap → Hypothesis → Experiment → Finding → Claim</code> 타입 순서에서 깊이가 얕은 root 를, 마지막은 안정적인 노드 ID 순서다(부록 D). 위쪽 노드를 먼저 고치는 이유는 명확하다. 가설이 틀린 채로 그 아래 실험과 주장을 고쳐 봐야 다음 검사에서 다시 걸린다.</p>
+
+      <p>Repair Planner 는 노드 타입에 따라 담당 에이전트를 배정한다. Hypothesis 는 Hypothesis Agent 로, Experiment 의 프로토콜이나 코드는 Experiment Agent 로, Finding 과 Claim 은 Analysis Agent 로 간다. 각 액션에는 필요한 선행 노드, 실행 기록, 실패 피드백, 해당 제약만 준다. <code>S_w</code> 바깥의 객체는 전부 보존하고 관련 없는 편집은 아예 일정에 넣지 않는다.</p>
+
+      <p class="note">실제 실행에서 Repair Planner 가 하위 노드 집합을 정확히 잡는지, 재생성이 몇 번 만에 수렴하는지, 45개 과제 전체에서 rollback 과 <code>REINITIALIZE</code> 가 각각 몇 번 발동했는지는 논문에 수치가 없다. 루프가 실제로 여러 바퀴 도는지 대부분의 실행이 한 번의 수리로 끝나는지에 따라 이 구조를 도입할 이유의 크기가 달라지는데, 그 값이 없다.</p>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">boundary</p>
+      <h2>모델은 제안하고, 그래프를 실제로 바꾸는 판정은 코드가 한다</h2>
+      <p class="dek">부록 A 가 컴포넌트를 두 부류로 갈라 놓는다. 프롬프트를 받는 쪽과 orchestration 코드가 도는 쪽이다. 이 선이 어디 그어져 있는지가 EviGraph 에서 제일 실질적인 설계 결정이고, 논문의 주장 대부분이 여기에 걸려 있다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>단계</th><th style="text-align:left">LLM 이 하는 일</th><th style="text-align:left">orchestration 이 하는 일</th></tr></thead>
+          <tbody>
+            <tr><td>초기화</td><td style="text-align:left;white-space:normal">Task Analyzer, Hypothesis Generator, Hypothesis Filter, 그래프 이전 Experiment / Analysis Agent, Graph Builder</td><td style="text-align:left;white-space:normal">문헌 검색, pilot 및 full-scale 실행, contract validation</td></tr>
+            <tr class="hero"><td>검사</td><td style="text-align:left;white-space:normal">Graph Inspector</td><td style="text-align:left;white-space:normal">관계 검사, descendant closure, readiness guard</td></tr>
+            <tr class="hero"><td>수리</td><td style="text-align:left;white-space:normal">Repair Planner, 노드별 Repair Agent</td><td style="text-align:left;white-space:normal">트랜잭션 방식 그래프 갱신, checkpoint, 열화 판정, rollback</td></tr>
+            <tr><td>집필</td><td style="text-align:left;white-space:normal">Paper Writer, Paper Reviewer</td><td style="text-align:left;white-space:normal">provenance map 검증, 리뷰 루프 제어</td></tr>
+            <tr><td>평가</td><td style="text-align:left;white-space:normal">주장 및 값 추출기, membership 판정기</td><td style="text-align:left;white-space:normal">blinding, indexing, 고정된 매칭 정책, 비율 계산</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">표 6(논문)을 옮긴 것이다. 논문은 오른쪽 열을 "deterministic" 이 아니라 "orchestrated" 라고 부르는데, 문헌 검색과 실험 실행이 외부 서비스와 벤치마크 환경에 의존하기 때문이라고 밝혀 놓았다. 두 그래프 라이브러리는 프롬프트 받는 에이전트가 아니라 데이터 저장소다.</p>
+
+      <div class="card" style="margin-top:16px">
+        <span class="tag">열화 판정</span>
+        <p class="small" style="margin-bottom:8px">수리가 개선인지 아닌지를 정하는 식은 부록 D 에 산술로 적혀 있다. 둘 중 하나라도 참이면 열화다.</p>
+        <pre style="margin:0"><span class="c">// W(G) 는 검사가 낸 약한 root 집합, P_valid(G) 는 완전하고 유효한 근거 사슬 ID 집합</span>
+Degrading(G_cand, G_base) =
+    |W(G_cand)| &gt; |W(G_base)|          <span class="c">// 약한 노드가 늘었거나</span>
+  <span class="k">or</span>  P_valid(G_base) ⊄ P_valid(G_cand)   <span class="c">// 이미 유효하던 사슬이 사라졌거나</span></pre>
+        <p class="small" style="margin:8px 0 0">되돌릴 때는 <code>G_base</code> 에서 파생됐고 <code>G_base</code> 의 유효 사슬을 전부 보존하는 checkpoint 중에서 약한 root 수가 최소인 것을 고른다. 동점이면 가장 최근 것. <code>G_base</code> 를 엄밀히 개선하지 못하면 <code>G_base</code> 원본으로 정확히 되돌아간다.</p>
+      </div>
+
+      <p style="margin-top:16px">이 식이 하는 일은 하나다. <b>유창하지만 근거 없는 하위 재작성이 이미 검증된 근거를 밀어내지 못하게 막는 것</b>이다. 모델에게 "이 수리가 나아졌나?"를 묻는 대신 두 그래프의 약한 root 수와 유효 사슬 집합을 비교한다. 같은 이유로 트랜잭션 절차는 <code>S_w</code> 바깥으로의 쓰기, dangling 엣지, 타입이 틀린 엣지, 해소되지 않는 provenance, cycle, 기록에 없는 값을 전부 거부한다.</p>
+
+      <p>실행에도 같은 선이 그어져 있다. Experiment Agent 는 도구 실행을 요청할 수 있지만 도구가 기록을 돌려주기 전에 성공이나 결과를 보고할 수 없다. 그럴 때는 <code>needs_execution</code> 과 <code>tool_request</code> 를 반환해야 하고, 이 응답은 그래프를 바꾸지 않는다. orchestrator 가 sandbox 에서 실행해 불변 record ID 로 저장한 뒤 같은 액션을 그 기록과 함께 다시 부른다. 실험 결과를 지어내는 경로가 구조적으로 막혀 있다.</p>
+
+      <p>이 식에는 대가가 하나 붙는다. 오른쪽 조건은 "이전에 유효했던 사슬이 하나라도 사라지면 열화"이므로 <b>단조 증가만 허용한다</b>. 과대 주장을 발견해 Claim 을 정당하게 철회하는 수리도 형식상 같은 모양이 된다. 논문은 <code>P_valid</code> 를 "완전하고 유효한 근거 사슬의 식별자 집합"으로만 정의하고, <code>retained</code> 가 거짓으로 바뀐 Claim 의 사슬이 이 집합에서 어떻게 되는지는 규정하지 않는다. 철회가 열화로 잡히는지 아닌지가 명세에서 결정되지 않은 채 남아 있다. 이건 이 문서의 읽기이고 논문이 다루는 논점이 아니다.</p>
+
+      <p class="note">막힌 것은 <b>지어내기</b>이고, 막히지 않은 것은 <b>잘못 판정하기</b>다. 어떤 실행 기록이 어떤 Finding 을 뒷받침하는지, 가설이 gap 에서 표류했는지는 여전히 LLM 이 판단한다. 코드가 하는 것은 그 판단의 형식을 강제하고, 판단 사이의 산술을 대신하는 데까지다.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">gate</p>
+      <h2>논문을 쓸지 말지가 그래프 상태의 함수다</h2>
+      <p class="dek">파이프라인에서 집필은 마지막 단계라서 시작된다. EviGraph 에서 집필은 <code>Ready(G)</code> 가 참이 되어야 시작된다. 예산이 먼저 끝나면 원고를 내는 대신 <code>Incomplete</code> 를 반환하고, Paper Writer 는 아예 호출되지 않는다.</p>
+
+      <pre><span class="k">Ready(G)</span> 가 참이려면 넷을 다 만족해야 한다
+  1. schema 가 유효하다
+  2. retained 된 Claim 이 <b>적어도 하나</b> 있다
+  3. 과제 맥락이 요구한 empirical deliverable 을 덮는다
+  4. retained 된 <b>모든</b> Claim 이 약한 노드 없는 완전 유효 근거 사슬을 적어도 하나 가진다
+
+<span class="k">원고 배포</span> 조건은 따로 둘이다
+  5. Paper Reviewer 가 <span class="k">ready=true</span> 와 빈 이슈 목록을 반환한다
+  6. provenance map validator 가 모든 실질적 주장과 보고된 값을 해소한다
+  <span class="r">→ 재시도 상한 안에 못 넘기면 미해결 draft 를 내는 대신 Incomplete</span></pre>
+
+      <p>2번 조건이 이 정의에서 가장 눈에 안 띄면서 중요한 자리다. 4번은 "retained 된 모든 Claim 에 대하여"라는 전칭 명제라서, retained Claim 이 하나도 없으면 <b>공허하게 참</b>이 된다. 주장을 전부 버린 그래프가 만점짜리 근거 상태로 통과할 수 있다는 뜻이다. 부록 A 가 이 구멍을 명시적으로 막는다. 실행이 방어 가능한 주장을 하나도 내놓지 못하면 그 실행은 <code>Incomplete</code> 로 끝난다.</p>
+
+      <p>Paper Writer 는 세 모드로 나뉜다. <code>SKELETON</code> 은 산문을 쓰지 않고 문단마다 어느 노드 ID, Claim ID, artifact ID, 인용 ID, 필수 qualifier 를 쓸지만 반환한다. 근거가 없어 뺀 내용은 <code>omitted_content</code> 에 이유와 함께 남긴다. <code>DRAFT</code> 는 승인된 skeleton 을 펼치되 실질적 주장을 추가할 수 없고, 문장 span 마다 <code>provenance_map</code> 을 함께 낸다. <code>REVISION</code> 은 리뷰 이슈마다 가장 작은 변경을 적용하고 <code>edit_log</code> 를 남긴다.</p>
+
+      <p>Paper Reviewer 는 네 기준만 본다. 구조 일관성, novelty 서술이 주어진 Gap 과 문헌의 범위를 넘지 않는가, 인용이 실제로 존재하고 그 명제를 뒷받침하는가, 그리고 <code>GRAPH_FAITHFULNESS</code>. 마지막 것이 그래프와 원고를 잇는 마지막 검사다. 모든 실질적 주장이 retained Claim 의 범위와 qualifier 를 보존하고 완전한 사슬을 가지는지, 모든 실험 서술과 값이 artifact 와 일치하는지를 본다.</p>
+
+      <p class="note">이 게이트는 논문이 안 나올 수 있다는 것을 정상 결과로 만든다. 그러면 거부율이 이 아키텍처의 가격표가 되는데 그 값이 논문에 없다. 표 3 의 E2E 100% 를 근거로 쓸 수는 없다. E2E 는 NanoResearch-20 이 자기 하네스로 재는 workflow 완주 지표이고, ARC-Bench-ML 쪽에는 그 열이 아예 없으며, EviGraph 의 <code>Incomplete</code> 반환을 그 지표가 실패로 계상한다고 논문이 적은 적도 없다. 부록 F.1 표 8 은 <code>Incomplete outcomes</code> 를 별도 감사 항목으로 남겨 둔다.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">compare</p>
+      <h2>세 시스템의 차이는 신뢰성 검사를 어디에 놓았느냐다</h2>
+      <p class="dek">비교 대상은 둘이다. <b>AutoResearchClaw</b> 는 전 단계 파이프라인에 엄격한 출력 평가를 붙인 시스템으로, full-auto 설정으로 돌렸다. <b>NanoResearch</b> 는 실행 간 진화와 시뮬레이션된 과학자 피드백으로 여러 라운드에 걸쳐 자기 개선을 하는 시스템이다. 셋 다 <code>qwen-3.6-plus</code> 백본에 같은 sandbox, 같은 실험당 시간 예산으로 돌렸다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>시스템</th><th style="text-align:left">검사가 붙는 자리</th><th style="text-align:left">검사가 못 잡는 것</th></tr></thead>
+          <tbody>
+            <tr><td>AutoResearchClaw</td><td style="text-align:left;white-space:normal">각 단계의 <b>출력</b>. 산출물 하나가 기준을 만족하는지 본다</td><td style="text-align:left;white-space:normal">두 단계 사이의 관계. 실험도 정상이고 주장도 정상인데 서로 안 맞는 경우</td></tr>
+            <tr><td>NanoResearch</td><td style="text-align:left;white-space:normal">실행과 실행 <b>사이</b>. 이전 실행의 궤적에서 배워 다음 실행을 고친다</td><td style="text-align:left;white-space:normal">지금 이 실행 안에서 이미 어긋나 버린 것. 다음 실행까지 기다려야 한다</td></tr>
+            <tr class="hero"><td>EviGraph</td><td style="text-align:left;white-space:normal">한 실행 안에서 <b>단계 사이의 관계</b>. 엣지의 통과 조건을 본다</td><td style="text-align:left;white-space:normal">관계 판정 자체의 오류. 검사기가 LLM 이라 놓치거나 잘못 잡을 수 있다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">가운데와 오른쪽 열은 4.1절의 시스템 설명과 각 시스템의 논문 제목에서 읽어 이 문서가 정리한 것으로, 논문에는 이 표가 없다. AutoResearchClaw 는 <a href="https://arxiv.org/abs/2605.20025">arXiv 2605.20025</a>, NanoResearch 는 <a href="https://arxiv.org/abs/2605.10813">arXiv 2605.10813</a> 이다. 둘의 원논문은 초록만 확인했으므로, 위 요약은 EviGraph 가 제시한 설명에 기대고 있다.</p>
+
+      <p style="margin-top:16px">벤치마크도 이 두 시스템에서 왔다. <b>ARC-Bench-ML</b> 은 AutoResearchClaw 가 만든 25개 머신러닝 연구 주제로, 주제마다 연구 질문과 대상 데이터셋과 기대 산출물을 지정한다. <b>NanoResearch-20</b> 은 NLP, computer vision, multimodal, tabular, time series, graph learning, audio 일곱 영역에 걸친 20개 과제이고, LLM 이 연기하는 과학자의 다중 라운드 피드백 아래에서 전체 워크플로를 평가한다. 두 벤치마크 모두 비교 대상이 자기 벤치마크에서 평가받는 구조다.</p>
+
+      <p>선행 연구 위치는 두 갈래로 잡는다. 자율 연구 시스템 쪽에는 AI Scientist 계열이 있고, 과학 지식 그래프 쪽에는 ORKG, micropublications, nanopublications 가 있다. EviGraph 가 자기 자리를 잡는 문장은 후자에 대해서다. 기존 구조화 표현이 연구 객체와 provenance 를 <b>표현</b>했다면, EviGraph 는 그래프를 연구 중에 계속 갱신되면서 불일치가 발견되면 새 과학 행동을 지시하는 <b>능동적 제어 구조</b>로 만든다.</p>
+
+      <p class="note">이 위치 설정은 논문의 related work 절에서 온 것이다. 자기 기여를 가장 유리하게 서술할 유인이 가장 강한 부분이라, 여기 적힌 대비를 그대로 받아들이면 안 된다. ORKG 나 nanopublication 쪽 문헌은 이번에 열어보지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">trace</p>
+      <h2>실험이 성공적으로 돌았는데도 가설이 약한 노드로 잡힌다</h2>
+      <p class="dek">논문이 끝까지 따라간 실행 하나는 ARC-Bench-ML 의 <i>Lightweight Short-Text Classification via Frozen PLM Representation Calibration</i> 과제다. 장기 그래프 라이브러리에 관련 기록이 없는 cold start 실행이라, 이전 실행에서 넘어온 것 없이 이번 실행 안에서만 벌어진 일이다.</p>
+
+      <pre><span class="c">// 5.2절과 부록 G 표 10. 왼쪽은 orchestration 연산, 화살표 뒤는 상태 전이</span>
+0  Retrieve      ARC-Bench-ML 단문 분류 과제, 관련 장기 기록 없음
+                 → R = ∅, cold start 로 시작한다
+1  Generate      후보 가설 3개
+                 → 임시 후보 기록일 뿐 아직 그래프 노드가 아니다
+2  Group/pilot   방향 2개로 묶고 그룹마다 AG News 10건으로 pilot
+                 → 등록된 pilot 기록 2건이 실행된다
+3  Select        Group 1(H1 포함)이 더 강한 경험적 지지를 받는다
+                 → H1 이 H* 에 남아 full-scale 평가로 간다
+4  Build         full-scale 기록과 현재 실행 맥락
+                 → G0 에 여섯 노드 타입이 전부 들어간다
+<b>5  Inspect       G1 은 과잉 설계된 분류 헤드를 다루는데</b>
+<b>                 H1 은 [CLS] attention entropy 와 pre-training alignment threshold 를 다룬다</b>
+                 <span class="r">→ blocking GAP_MISALIGNMENT, 약한 root 는 H1</span>
+6  Plan          하위 노드의 내용이 H1 에 의존한다
+                 → S_H1 = {H1, E1, F1, C1}, 순서는 H1 → E1 → F1 → C1
+7  Repair        노드별 연산이 전부 성공
+                 → M_S 에 중간 버전 적립. S_H1 밖 객체는 그대로 둔다
+8  Validate      새 blocking 이슈 없음, 첫 수리는 비열화
+                 <span class="k">→ rollback 미발동, Ready(G) 가 참이 된다</span>
+9  Write/review  검증된 그래프와 artifact
+                 → 근거로 게이팅된 skeleton, 원고, 리뷰 루프가 돈다</pre>
+
+      <p>5번이 이 아키텍처가 겨냥한 지점이다. <b>H1 은 구문적으로 G1 에 연결돼 있었고, 딸린 실험은 성공적으로 실행됐다.</b> 단계 완료만 보는 검사로는 여기서 걸릴 게 없다. E1 은 돌았고 F1 은 로그와 맞고 C1 은 F1 을 인용한다. 걸린 것은 <code>motivates</code> 엣지의 통과 조건, 즉 "이 가설이 그 gap 을 직접 겨냥하는가"였고, 그 질문은 노드 두 개를 나란히 놓아야만 던질 수 있다.</p>
+
+      <p>수리 범위도 관계에서 나온다. H1 이 바뀌면 그 위에 세워진 실험 프로토콜과 결과 해석과 주장이 전부 근거를 잃으므로, <code>S_H1</code> 은 H1 하나가 아니라 <code>{H1, E1, F1, C1}</code> 이 된다. 그래프 밖에서 보면 "가설 문장 하나를 고쳤다"지만 실제로는 실험을 다시 설계하고 다시 돌리고 다시 분석한다. 이 사례에서 첫 수리 시퀀스가 바로 성공해 rollback 이 돌지 않았다.</p>
+
+      <p class="note">부록 G 가 명시한다. 이 트레이스는 weak-root 위치 파악과 하위 재생성은 보여주지만 <b>rollback 도 장기 라이브러리 검색도 실증하지 않는다</b>. 첫 수리가 성공했고 M_L 이 비어 있었기 때문이고, 논문은 이 미관측 분기를 추가 사례 결과로 제시하지 않는다. 여기에 더해 한 가지를 덧붙이면, 그림 2 의 PDF 내부 텍스트를 뽑아 보면 재생성된 H1 의 claim 이 "Adaptive Spectral-Convolutional" 로 시작한다. 그림 안의 JSON 이 잘려 있고 그림을 이미지로 확인하지 못했으므로, 고쳐진 H1 이 G1 의 "과잉 설계된 분류 헤드"에 실제로 정렬되는지는 논문만으로 판정할 수 없다. 이건 이 문서의 관찰이지 논문의 서술이 아니다.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>부록 1,557행 중 385행은 열지 않았다</h2>
+      <p class="dek">코퍼스는 <code>arxiv.org/e-print/2608.04738v2</code> 로 받은 LaTeX 원본이다. <code>main_arXiv.tex</code> 573행, <code>appendix_arXiv.tex</code> 1,557행, <code>refs.bib</code>, 그림 PDF 2개. 이 문서의 수치는 그 표 소스에서 읽은 것이고 HTML 변환본을 거치지 않았다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">읽은 것</span>
+          <p class="small">본문 1장부터 6장까지 전부, 표 1부터 5까지, Algorithm 1. 부록은 A(LLM 인터페이스 경계, 표 6), B.1 / B.2 / B.3 앞부분 / B.5(Graph Builder 프롬프트와 스키마), C 전체(관계 검사 표 7, Inspector, Repair Planner, Repair Agent 프롬프트), D 전체(트랜잭션 절차, 열화 판정, rollback 규칙), E 전체(Writer, Reviewer), F.1(재현 계약 표 8), F.2 와 F.3 의 산문 부분(수치 매칭 표 9 포함), G 전체(표 10).</p>
+        </div>
+        <div class="card">
+          <span class="tag">열지 않은 것과 그 대가</span>
+          <p class="small"><b>B.3 뒷부분과 B.4</b>(331행부터 535행). pilot 평가 프롬프트와 그래프 이전 실험 설계·분석 프롬프트다. 그래서 <code>G0</code> 에 처음 들어가는 Finding 의 품질이 어디서 결정되는지를 이 문서는 프롬프트 수준으로 못 짚는다. 이 문서 6장의 수리 루프 서술은 그래프 생성 이후만 다룬다. 재구현하는 쪽이 가장 먼저 필요한 자리가 여기이므로, 15장의 "설계를 떼어 쓰라"는 권고도 이 범위만큼 얕다.<br><br><b>F 의 추출기와 판정기 프롬프트 4개</b>(1258행부터 1353행, 1411행부터 1494행). 그래서 13장의 CSR 과 EDC 를 산문 설명과 표 9 로만 안다. 판정기가 어떤 문장을 <code>SUPPORTED</code> 로 보는지는 직접 확인하지 못했다.</p>
+        </div>
+      </div>
+
+      <div class="tablewrap" style="margin-top:16px">
+        <table>
+          <thead><tr><th>비교 조건</th><th style="text-align:left">맞췄는가</th></tr></thead>
+          <tbody>
+            <tr><td>LLM 백본</td><td style="text-align:left;white-space:normal" class="win">세 시스템 모두 <code>qwen-3.6-plus</code>. 모델 능력 차이라는 대안 설명이 이걸로 배제된다</td></tr>
+            <tr><td>실행 환경</td><td style="text-align:left;white-space:normal" class="win">같은 sandbox, 같은 실험당 시간 예산</td></tr>
+            <tr><td>예산 회계</td><td style="text-align:left;white-space:normal" class="win">계획, 모델 호출, 도구 실행, 재시도를 세 시스템 동일 정책으로 계상한다고 부록 D 가 적는다</td></tr>
+            <tr><td>CSR, EDC 의 blinding</td><td style="text-align:left;white-space:normal" class="win">시스템 이름과 프레임워크 고유 필드명을 중립 ID 로 치환한다. EviGraph 의 엣지 라벨만으로는 근거로 인정하지 않는다. <b>단 이 규정은 신뢰성 지표 전용이다.</b> 부록 F 가 두 벤치마크의 native 점수는 각자의 공식 하네스에 맡기고 분리한다고 못 박으므로, 표 3 의 86.45 대 60.37 에는 이 blinding 이 걸려 있지 않다</td></tr>
+            <tr><td>EDC 매칭 규칙</td><td style="text-align:left;white-space:normal" class="win">출력을 보기 전에 동결한다. 반올림은 표시 자릿수 기준, 추가 허용오차는 사전 선언 없이 금지</td></tr>
+            <tr><td>seed, 실행 횟수, 하드웨어, 디코딩 파라미터, timeout</td><td style="text-align:left;white-space:normal" class="lose">논문에 없다. 표 8 이 이것들을 run manifest 에 기록되어야 할 감사 항목으로 나열하고, 부록은 명시되지 않은 값을 추정하지 않는다고 밝힌다. manifest 는 공개되지 않았다</td></tr>
+            <tr><td>벤치마크 실행 시의 <code>M_L</code> 상태</td><td style="text-align:left;white-space:normal" class="lose">부록 D 는 사례 연구만 cold start 로 특정하고 벤치마크 실행의 라이브러리 상태는 밝히지 않는다. 86.45% 가 빈 라이브러리에서 나온 값인지 이전 과제가 쌓인 상태에서 나온 값인지 모른다</td></tr>
+            <tr><td>CSR, EDC 판정 모델</td><td style="text-align:left;white-space:normal" class="lose">부록 F.2 는 extractor 의 model revision 을 evaluation manifest 에 동결한다고만 하고 모델명을 적지 않는다. 판정자가 <code>qwen-3.6-plus</code> 와 같은 모델이면 27% 대 37.85% 는 자기 채점에 가까워지는데, 같은지 다른지를 알 수 없다</td></tr>
+            <tr><td>baseline 재실행 설정</td><td style="text-align:left;white-space:normal" class="lose">표 8 은 baseline 의 code revision, configuration, 허용된 호환성 변경을 감사 기록 항목으로만 남긴다. 벤치마크 과제는 남의 것이지만 baseline 을 어떤 설정으로 다시 돌렸는지는 저자의 결정이고 공개되지 않았다</td></tr>
+            <tr><td>원시 카운트</td><td style="text-align:left;white-space:normal" class="lose">부록 F.3 이 <code>|C|, |S|, |F|, |K|</code> 를 모든 집계에 동반한다고 적었으나 논문에는 없다. 13장에서 다룬다</td></tr>
+            <tr><td>토큰, 벽시계 시간, 수리 반복 횟수</td><td style="text-align:left;white-space:normal" class="lose">어디에도 없다. pilot 과 수리 재실행이 붙는 구조라 과제 하나가 몇 배 길어지는지가 파일럿을 돌려볼지 말지를 가르는데, 그 값이 없다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:16px">코드는 공개되지 않았다. <code>main_arXiv.tex</code> 113행부터 116행에 공개 링크 블록이 주석 처리된 채 남아 있고, "Uncomment once the code URL is available" 이라고 적혀 있다. 그림 2장은 PDF 렌더러가 없어 이미지로 보지 못했고, PDF 스트림에서 텍스트 라벨만 뽑아 읽었다. 이 출처에서 온 서술은 10장에 표시해 두었다.</p>
+
+      <p class="note">이 문서가 출발한 한국어 블로그 글을 논문과 대조하면 <b>한 건이 어긋난다.</b> 그 글은 "Result Analysis에서 62.2% → 79.4%로 크게 올라간 건"이라고 쓰는데, <b>62.2% 는 논문에 없는 값이다.</b> 표 3 의 RA 열은 NanoResearch 41.32%, AutoResearchClaw 44.2%, EviGraph 79.4% 이고 가장 센 baseline 은 44.2% 다. 이 문서는 79.4 대 41.32 를 쓴다. 같은 글의 "Claim Support Rate 40.19% 개선"은 상대 개선율이고, 절대 수치는 27% 에서 37.85% 다.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-perf</p>
+      <h2>격차의 4분의 3이 Result Analysis 한 칸에서 나온다</h2>
+      <p class="dek">ARC-Bench-ML 은 Code Development, Code Execution, Result Analysis 를 25:25:50 으로 가중해 Overall 을 낸다. EviGraph 는 네 지표 모두 앞서지만 앞선 정도가 균등하지 않다. 코드 작성 지표에서는 98.2% 대 99% 로 사실상 동률이고, 격차는 실행과 해석 두 칸에 몰려 있다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>시스템</th><th>CD</th><th>CE</th><th>RA</th><th>Overall</th><th>Align.</th><th>Novel.</th><th>E2E</th><th>Perf.</th><th>Writ.</th></tr></thead>
+          <tbody>
+            <tr><td>NanoResearch</td><td>98.2%</td><td>60.64%</td><td>41.32%</td><td>60.37%</td><td class="win">8.8</td><td>5.05</td><td>100%</td><td>64%</td><td>3.5</td></tr>
+            <tr><td>AutoResearchClaw</td><td>93.8%</td><td>56.2%</td><td>44.2%</td><td>59.6%</td><td>4.25</td><td>4.8</td><td>100%</td><td>23%</td><td>6.1</td></tr>
+            <tr class="hero"><td>EviGraph</td><td>99%</td><td>88%</td><td>79.4%</td><td>86.45%</td><td class="lose">6.6</td><td>5.9</td><td>100%</td><td>72.84%</td><td>7.5</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">표 3(논문). 왼쪽 넷은 ARC-Bench-ML, 오른쪽 다섯은 NanoResearch-20 이다. 강조된 행이 EviGraph 다. 파란 8.8 은 EviGraph 를 앞선 유일한 값이고, 빨간 6.6 이 EviGraph 가 뒤진 유일한 칸이다. E2E 는 세 시스템 동률이고 나머지 여덟 칸은 EviGraph 가 최고다. Alignment 는 원래 과제 서술을 얼마나 엄격히 지켰는지를 재는 지표다.</p>
+
+      <div class="figure" style="margin-top:18px">
+        <p class="fig-title">Overall 26.08점 격차를 세 지표가 나눠 가진 비율</p>
+        <p class="fig-sub">EviGraph 86.45% 대 NanoResearch 60.37%. 가중치 25:25:50 을 각 지표 차이에 곱해 분해했다</p>
+        <div class="bars">
+          <div class="bar-row is-hero"><span class="bar-name">Result Analysis</span><span class="bar-track"><span class="bar s1" style="--w:73%"></span></span><span class="bar-val two"><span>19.04점</span><span>73.0%</span></span></div>
+          <div class="bar-row"><span class="bar-name">Code Execution</span><span class="bar-track"><span class="bar" style="--w:26.2%"></span></span><span class="bar-val two"><span>6.84점</span><span>26.2%</span></span></div>
+          <div class="bar-row"><span class="bar-name">Code Development</span><span class="bar-track"><span class="bar" style="--w:0.8%"></span></span><span class="bar-val two"><span>0.20점</span><span>0.8%</span></span></div>
+        </div>
+        <div class="bar-axis"><div class="ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100%</span></div></div>
+        <figcaption><b>논문에는 이 분해가 없다.</b> 표 3 의 열 값과 4.1절이 밝힌 가중치 25:25:50 을 곱해 이 문서가 계산했다. 0.5 × (79.4 − 41.32) = 19.04, 0.25 × (88 − 60.64) = 6.84, 0.25 × (99 − 98.2) = 0.20 이고 합은 26.08 로 Overall 차이와 맞는다. 이 분해는 EviGraph 대 NanoResearch 한 쌍에만 해당하고, AutoResearchClaw 와의 비교에서는 다른 비율이 나온다.</figcaption>
+      </div>
+
+      <p>이 분해는 논문의 주장과 같은 방향을 가리킨다. Result Analysis 는 결론이 측정에 근거하는지, 가설에 명시적 판정이 내려졌는지, 한계가 제대로 보고됐는지를 본다. 근거 사슬을 유지하는 아키텍처가 차이를 만들 자리가 정확히 거기다.</p>
+
+      <p><b>다만 같은 수치를 다르게 읽을 수도 있다.</b> Result Analysis 의 채점 기준은 원고 텍스트를 보고 매기는 rubric 이고, EviGraph 의 Paper Writer 는 문단마다 근거 ID 를 달고 qualifier 를 보존하고 뺀 내용의 이유를 남기도록 프롬프트되어 있다(8장). 즉 "연구가 나아졌다"와 "원고가 rubric 이 요구하는 모양으로 쓰였다"가 같은 점수를 똑같이 설명한다. 이 대안 해석에 대한 반례는 표 안에 있다. Code Execution 88% 대 60.64% 는 원고 문체로 설명되지 않는 칸이고, 이 27.36 퍼센트포인트가 격차의 26.2%를 차지한다. 실행이 실제로 더 많이 성공했다는 뜻이다.</p>
+
+      <p>NanoResearch-20 에서는 Novelty(5.9), Performance(72.84%), Writing(7.5)에서 앞서고 E2E 는 100% 로 동률이다. Performance 는 최고 baseline 64% 대비 8.84 퍼센트포인트, Writing 은 6.1 대비 1.4점 위다. Alignment 만 6.6 대 8.8 로 뒤진다.</p>
+
+      <p class="note">표 3 의 가중 합은 세 시스템 모두 재계산하면 맞아떨어진다. EviGraph 0.25 × 99 + 0.25 × 88 + 0.5 × 79.4 = 86.45, NanoResearch 는 60.37, AutoResearchClaw 는 59.6 이다. 내부 일관성은 확인되지만, 각 열의 원점수가 어떻게 나왔는지는 두 벤치마크의 공식 평가 하네스에 달려 있고 논문이 그걸 재구성하지는 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-reliability</p>
+      <h2>주장을 근거로 잇는 비율은 올랐지만, 절대값은 아직 37.85%다</h2>
+      <p class="dek">신뢰성은 두 지표로 잰다. <b>Claim Support Rate</b> 는 원고에서 추출한 주장 중 해당 연구 실행으로 되짚어 갈 수 있는 것의 비율, <b>Experimental Data Consistency</b> 는 보고된 실험값 중 실행 기록과 일치하는 것의 비율이다. 두 지표가 서로 다른 방향을 가리킨다.</p>
+
+      <div class="figure">
+        <p class="fig-title">CSR 은 올랐고 EDC 는 1위를 내줬다</p>
+        <p class="fig-sub">표 4(논문). 두 벤치마크를 합쳐 낸 micro-average 다</p>
+        <div class="legend"><span><i class="s1"></i>Claim Support Rate</span><span><i class="sn"></i>Experimental Data Consistency</span></div>
+        <div class="bars">
+          <div class="bar-row"><span class="bar-name">NanoResearch</span><span class="bar-track"><span class="bar s1" style="--w:14.4%"></span></span><span class="bar-val">14.4%</span></div>
+          <div class="bar-row"><span class="bar-name"></span><span class="bar-track"><span class="bar" style="--w:96.15%"></span></span><span class="bar-val">96.15%</span></div>
+          <div class="bar-row"><span class="bar-name">AutoResearchClaw</span><span class="bar-track"><span class="bar s1" style="--w:27%"></span></span><span class="bar-val">27%</span></div>
+          <div class="bar-row"><span class="bar-name"></span><span class="bar-track"><span class="bar" style="--w:53%"></span></span><span class="bar-val">53%</span></div>
+          <div class="bar-row is-hero"><span class="bar-name">EviGraph</span><span class="bar-track"><span class="bar s1" style="--w:37.85%"></span></span><span class="bar-val">37.85%</span></div>
+          <div class="bar-row is-hero"><span class="bar-name"></span><span class="bar-track"><span class="bar" style="--w:87.73%"></span></span><span class="bar-val">87.73%</span></div>
+        </div>
+        <div class="bar-axis"><div class="ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100%</span></div></div>
+        <figcaption>두 지표 평균은 NanoResearch 55.28%, AutoResearchClaw 40%, EviGraph 62.79% 로 EviGraph 가 가장 높다. CSR 은 27% 에서 37.85% 로 최고 baseline 대비 상대 개선 40.19% 이고, 이건 (37.85 − 27) ÷ 27 로 재계산된다. EDC 는 NanoResearch 의 96.15% 에 8.42 퍼센트포인트 뒤진다.</figcaption>
+      </div>
+
+      <p>두 지표가 재는 것이 다르다는 점이 표를 읽는 열쇠다. EDC 는 원고에 적힌 값이 실행 기록의 값과 같은지를 보는 <b>국소 대조</b>다. 숫자를 옮겨 적는 성실성에 가깝다. CSR 은 주장이 가설, 실행된 실험, 기록된 finding 까지 이어지는지를 보는 <b>단계를 가로지르는 대조</b>다. NanoResearch 가 EDC 96.15% 로 1위이면서 CSR 14.4% 로 꼴찌라는 조합은, 숫자는 정확히 옮기는데 그 숫자로 무엇을 주장했는지는 되짚어지지 않는다는 뜻이다. EviGraph 가 겨냥한 건 뒤쪽이다.</p>
+
+      <p>절대값은 낮다. 37.85% 는 추출된 주장의 <b>62%가 여전히 근거로 안 이어진다</b>는 뜻이다. 논문이 이 숫자를 보수적이라고 선을 그으며 이유를 댄다. 추출이 stochastic 이라 집합 <code>C</code> 가 실행마다 달라지고, 암묵적이거나 광범위하거나 근거를 대기 어려운 주장이 섞여 분모만 키운다는 것이다. 사람이 정리한 주장 집합에서 재면 더 높게 나올 수 있다고 적는다.</p>
+
+      <p><b>이 숫자는 8장의 집필 게이트와 정면으로 어긋난다.</b> 게이트대로면 원고의 실질적 주장은 전부 retained Claim 에 대응하고 provenance map validator 를 통과해야 배포된다. 그러면 CSR 은 100% 에 가까워야 한다. 37.85% 라는 것은 <code>C</code> 의 대부분이 게이트의 사정권 밖 문장으로 채워져 있다는 뜻이고, 논문의 stochastic 방어도 같은 말을 다르게 한 것이다. 문제는 그다음이다. 개선분 10.85 퍼센트포인트가 그래프 메커니즘에서 왔는지, 아니면 게이트가 강요한 원고 문체(범위 제한, 단정 회피, qualifier 보존)에서 왔는지를 이 지표로는 가를 수 없다. 이건 이 문서의 읽기이고 논문이 제기하는 논점이 아니다.</p>
+
+      <p class="note">논문의 방어는 방향이 맞지만 검증할 수가 없다. 부록 F.3 이 <code>|C|, |S|, |F|, |K|</code> 원시 카운트를 모든 집계에 동반한다고 규정해 놓고 논문에는 싣지 않았다. 분모가 20개인지 2,000개인지 모르는 상태에서 37.85% 와 27% 의 차이가 얼마나 견고한지는 판단할 수 없다. 같은 stochastic 성질이 이 격차의 불확실성이기도 한데 표 4 는 단일 집계이고 분산도 반복 실행도 없다. 두 벤치마크를 합친 micro-average 라 벤치마크별 분해도 없다.</p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>아키텍처가 원인이라는 주장은 아직 실험으로 확립되지 않았다</h2>
+      <p class="dek">논문의 핵심 명제는 "이 문제는 부분적으로 아키텍처 문제다"이고, 이걸 확립하려면 아키텍처를 빼 보는 실험이 있어야 한다. 그게 없다. 아래 왼쪽은 논문이 스스로 밝힌 한계, 오른쪽은 이 문서가 원문을 읽고 주장하는 것이다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">논문이 명시한 한계</span>
+          <ul class="clean">
+            <li><span class="m">1</span><span><b>ablation 이 없다.</b> 컴포넌트가 공유 그래프로 강결합돼 있어 하나를 제거하면 나머지의 연구 상태와 동작 조건까지 바뀌어 해석이 어렵다는 이유다. 대신 표 5 가 컴포넌트와 평가 신호를 정성적으로 대응시킨다</span></li>
+            <li><span class="m">2</span><span><b>CSR 절대값은 보수적이다.</b> 추출이 stochastic 이라 분모가 실행마다 달라지고 근거 대기 어려운 주장이 섞인다</span></li>
+            <li><span class="m">3</span><span><b>Alignment 는 뒤진다.</b> 6.6 대 8.8. 원래 과제 서술을 엄격히 지키는 쪽에 개선 여지가 있다고 적는다</span></li>
+            <li><span class="m">4</span><span><b>사례가 rollback 과 장기 검색을 실증하지 않는다.</b> 첫 수리가 성공했고 <code>M_L</code> 이 비어 있었다. 미관측 분기를 결과로 제시하지 않고 명세된 제어 동작만 서술한다</span></li>
+            <li><span class="m">5</span><span><b>추정하지 않는다.</b> 하드웨어, 샘플링, seed, timeout 을 부록이 재구성하지 않고 run manifest 의 몫으로 남긴다</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag">이 문서가 주장하는 것</span>
+          <ul class="clean">
+            <li><span class="m bad">1</span><span><b>남은 대안 설명은 계산량이다.</b> 백본과 sandbox 와 시간 예산이 같으니 모델 능력 차이는 배제된다. 그런데 EviGraph 는 pilot 과 full-scale 과 수리 재실행을 한다. 부록 D 가 예산 회계를 세 시스템 동일 정책으로 한다고 적지만, 실제 소비된 토큰과 실행 횟수가 없어 "같은 예산에서 이겼다"를 확인할 방법이 없다. <b>가장 큰 구멍이 여기다</b></span></li>
+            <li><span class="m bad">2</span><span><b>재현에 필요한 값이 규정만 남고 빠졌다.</b> 원시 카운트(13장), 실행 횟수, 벤치마크 실행 시의 <code>M_L</code> 상태, 판정 모델명, baseline 재실행 설정. 표 8 이 전부 감사 항목으로 나열해 놓았고 manifest 는 공개되지 않았다(11장)</span></li>
+            <li><span class="m bad">3</span><span><b>코드가 없고 심사도 거치지 않았다.</b> 공개 링크 블록이 주석 처리된 채 나간 v2 preprint 다. 외부 재현 보고도 없다. 셋이 겹친 상태라는 것이 "기다린다"의 근거다</span></li>
+            <li><span class="m bad">4</span><span><b>뒤진 두 칸은 수리 루프의 예상 가능한 부작용으로 읽힌다.</b> Alignment 는 과제 준수를 재는데 수리 루프는 그래프 내부 제약을 맞추려고 가설과 실험을 재작성한다. EDC 는 보고값과 실행 기록의 일치인데 EviGraph 는 Finding 과 Claim 을 반복 재생성한다. 논문은 이 연결을 하지 않는다</span></li>
+            <li><span class="m bad">5</span><span><b>검사기의 신뢰성이 백본에 걸려 있다.</b> 원고를 쓰는 것도 관계를 판정하는 것도 같은 <code>qwen-3.6-plus</code> 다. 그 모델이 못 보는 종류의 표류는 이 아키텍처로도 안 걸리고, 다른 모델로 옮겼을 때 통과 조건 판정이 같은 품질로 나온다는 증거도 없다</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <p style="margin-top:16px">한 가지는 반대 방향으로 작동한다. 두 벤치마크 모두 EviGraph 팀이 만든 것이 아니라 비교 대상이 만든 것이다. ARC-Bench-ML 은 AutoResearchClaw 가, NanoResearch-20 은 NanoResearch 가 정의했고 평가도 각자의 공식 하네스를 쓴다. 자기 벤치마크를 들고 나와 이기는 구도가 아니라는 점은 이 결과를 강화한다. 다만 baseline 을 어떤 설정으로 다시 돌렸는지는 저자의 결정이고 공개되지 않았다.</p>
+
+      <p>ablation 없이도 남는 것이 있다. <b>타입 계약</b>(여섯 노드, 다섯 관계, 관계별 통과 조건), <b>열화 판정을 코드로 내리는 경계</b>, <b>집필을 상태로 게이팅하는 것</b>. 여기서 근거의 종류를 구분해야 한다. 논문이 강결합을 이유로 ablation 을 건너뛰었다면, <b>떼어낸 조각이 EviGraph 안에서 얼마나 기여했는지는 이 논문의 수치로 예측되지 않는다.</b> 15장의 권고가 기대는 것은 그쪽이 아니라, 각 조각이 무엇을 구조적으로 막는지가 설계만으로 판정된다는 쪽이다. 타입 계약이 없으면 관계를 검사할 자리가 없고, 열화 판정을 모델에게 물으면 유창한 재작성이 통과하고, 게이트가 없으면 근거 없는 원고가 나간다. 이 셋은 86.45% 와 무관하게 성립한다.</p>
+
+      <p class="note">CSR 을 재는 절차도 남는다. 원고를 chunk 로 쪼개 주장을 추출하고 실행 기록과 대조하는 파이프라인은 부록 F 의 서술만으로 만들 수 있고, 지금 돌리는 에이전트에 붙이면 나중에 무엇을 도입하든 비교 기준선이 이미 있는 상태가 된다.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adopt</p>
+      <h2>시스템을 도입할 근거는 아직 없고, 설계를 옮길 근거는 지금 있다</h2>
+      <p class="dek">코드도 비용도 실행 횟수도 공개되지 않았으므로 EviGraph 자체를 채택할지는 지금 판단할 수 없다. 반면 부록 A 부터 E 까지가 프롬프트와 출력 스키마와 트랜잭션 절차를 그대로 싣고 있어서, 설계 결정 단위로 떼어 쓸 재료는 대부분 있다. 그래프 생성 이전 단계의 프롬프트(부록 B.4)는 이 문서가 읽지 않은 자리다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>지금 처한 상황</th><th style="text-align:left">권하는 것</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td style="white-space:normal">자율 연구 또는 다단계 분석 에이전트를 만들고 있다</td><td style="text-align:left;white-space:normal">여섯 노드와 다섯 관계의 타입 계약, 그리고 관계별 통과 조건(5장)부터 옮긴다. 자유 형식 메모를 타입 있는 엣지로 바꾸는 것만으로 검사할 대상이 생긴다. 시스템 전체보다 훨씬 싸다</td></tr>
+            <tr><td style="white-space:normal">에이전트가 쓴 문서의 주장이 실제 실행과 어긋난다</td><td style="text-align:left;white-space:normal">집필을 두 모드로 쪼갠다. 산문 없이 문단마다 근거 ID 만 반환하는 skeleton 단계를 앞에 두고, 초안에서 span 마다 provenance map 을 받는다(8장). 모델을 바꾸지 않고 붙일 수 있다</td></tr>
+            <tr><td style="white-space:normal">긴 실행에서 자기 수정이 오히려 상태를 망가뜨린다</td><td style="text-align:left;white-space:normal">열화 판정을 코드로 내린다. 수정 전후의 미해결 문제 수와 이미 통과했던 검사 집합을 비교해 후자가 줄면 되돌린다(7장). 도메인이 연구가 아니어도 쓰이지만, 통과한 것을 취소할 수 없게 만드는 단조성이 같이 따라온다는 점은 7장 마지막 문단을 보고 정할 것</td></tr>
+            <tr><td style="white-space:normal">수리 루프까지 붙일지 정해야 한다</td><td style="text-align:left;white-space:normal">위험을 같이 계산한다. EviGraph 가 뒤진 두 칸(Alignment 6.6 대 8.8, EDC 87.73% 대 96.15%)이 둘 다 반복 재생성의 부작용으로 읽힌다(14장). 과제 준수와 값 충실도가 내려갈 수 있다는 뜻이고, 논문은 이 대가를 계산해 주지 않는다</td></tr>
+            <tr><td style="white-space:normal">백본이 qwen 계열이 아니다</td><td style="text-align:left;white-space:normal">이 문서만으로 정할 수 없다. 세 시스템 모두 <code>qwen-3.6-plus</code> 한 종류로만 돌았고, 관계 통과 조건 판정이 다른 모델에서 같은 품질로 나온다는 증거가 없다. 옮긴다면 Graph Inspector 판정의 재현성부터 자체 측정할 것</td></tr>
+            <tr><td style="white-space:normal">EviGraph 를 그대로 도입할지 정해야 한다</td><td style="text-align:left;white-space:normal">기다린다. 코드 공개, 원시 카운트, 그리고 최소한 그래프 검사를 끈 조건 하나를 비교한 실험이 나오기 전까지는 근거가 없다</td></tr>
+            <tr><td style="white-space:normal">비용이 감당되는지 알아야 한다</td><td style="text-align:left;white-space:normal">판단 근거가 아예 없다. 토큰, 실행 시간, 수리 반복 횟수 중 어느 것도 논문에 없다. pilot 과 수리 재실행이 붙는 구조상 단일 패스보다 비쌀 것은 분명하지만, 얼마나인지는 모른다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:16px">떼어 쓸 때 순서가 있다면 첫째가 타입 계약, 둘째가 집필 게이트, 셋째가 수리 루프다. 앞의 둘은 기존 파이프라인을 거의 건드리지 않고 붙고, 효과도 각각 독립적으로 확인된다. 수리 루프는 상태 되감기와 재실행이 필요해 실행 인프라를 바꿔야 하고, 위 표의 위험 두 개가 여기 붙어 있으므로 가장 나중이다.</p>
+
+      <p class="note">부록의 프롬프트 원문을 제품 코드에 그대로 복사할 생각이라면 라이선스를 먼저 확인할 것. 이 preprint 는 arXiv 의 기본 배포 라이선스(perpetual non-exclusive license 1.0)로 올라가 있고, 이건 arXiv 에 배포 권리를 준 것이지 읽는 쪽에 재사용 권리를 준 것이 아니다. CC 계열 표기가 없다. 설계를 참고해 다시 쓰는 것과 문자열을 복사하는 것은 다른 문제다.</p>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>목표를 상태의 술어로 옮겨 놓았다</h2>
+      <p class="dek">"근거 없는 주장을 줄인다"는 목표를 프롬프트로 옮기면 "근거 없는 주장을 하지 마라"가 되고, 그건 이미 다들 하고 있다. EviGraph 는 이걸 <b>상태의 술어</b>로 옮겼다. 남길 주장마다 약한 노드 없는 완전한 근거 사슬이 있어야 한다는 조건이고, 이 조건이 참이 될 때까지 집필 단계가 열리지 않는다.</p>
+
+      <p>이 번역이 성립하려면 세 가지가 먼저 있어야 했다. 근거 관계를 적어 둘 <b>자리</b>(여섯 타입과 다섯 관계), 그 자리가 채워졌는지 물을 수 있는 <b>질문</b>(관계별 통과 조건), 그리고 그 질문의 답이 나아졌는지 세는 <b>산술</b>(약한 root 수와 유효 사슬 집합). 파이프라인에는 첫 번째가 없어서 나머지 둘이 성립할 수 없었다. 아키텍처 문제라는 진단은 이 뜻이다.</p>
+
+      <p>측정된 결과는 방향은 맞고 크기는 확정되지 않았다. ARC-Bench-ML Overall 86.45% 대 60.37% 는 크고, 그 격차의 73%가 결과 해석 지표에서 온다는 분해도 아키텍처 서사와 맞아떨어진다. Claim Support Rate 는 27% 에서 37.85% 로 오르지만 절대값으로는 주장의 60% 이상이 여전히 안 이어지고, Experimental Data Consistency 는 87.73% 로 NanoResearch 의 96.15% 에 진다. ablation 이 없으므로 이 개선이 그래프 상태 유지에서 왔다는 것은 아직 주장이지 확립된 사실이 아니고, 남은 대안 설명인 계산량 차이는 논문에 비용 수치가 없어 배제되지 않는다.</p>
+
+      <p>그래도 이 논문에서 지금 가져갈 수 있는 것은 분명하다. 에이전트에게 무엇을 하라고 지시하는 대신 <b>무엇이 참이어야 다음 단계가 열리는지</b>를 코드로 적어 두는 방식, 그리고 그 판정을 모델에게 되묻지 않는 경계다. 이 둘은 연구 자동화 밖에서도 그대로 쓰인다.</p>
+
+      <p class="note">4장부터 8장까지의 아키텍처 서술은 전부 <b>명세</b>에 관한 것이다. 부록의 프롬프트, 출력 스키마, 트랜잭션 pseudocode 가 근거이므로, 구현이 그 명세대로 도는지에 대해서는 아무것도 말하지 않는다. 확인할 코드가 없다.</p>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>1차 자료는 논문 한 편이고, 비교 대상 두 편은 초록만 열었다</h2>
+      <p class="dek">수치의 출처는 arXiv e-print 로 받은 LaTeX 원본의 표다. 비교 대상 두 편은 벤치마크와 시스템의 신원을 확인하는 데만 썼고, 출발점이 된 블로그 글은 2차 자료로 대조에만 썼다.</p>
+
+      <div class="src">
+        <p><span class="t">1차 자료</span><br>
+        Zhenjiang Ren, Ruiji Li, Xujing Zhang, Ziliang Pang, Shuo Ren, Jiajun Zhang.<br>
+        <b>EviGraph: Evidence-Guided Autonomous Research Agents.</b> arXiv:2608.04738, <b>v2</b> (2026-08-05 투고, 2026-08-06 개정). cs.AI.<br>
+        <a href="https://arxiv.org/abs/2608.04738v2">arxiv.org/abs/2608.04738v2</a> · LaTeX 원본 <a href="https://arxiv.org/e-print/2608.04738v2">arxiv.org/e-print/2608.04738v2</a><br>
+        <span class="t">본문 1장부터 6장, 표 1부터 5, Algorithm 1, 부록 A, B(일부), C, D, E, F(일부), G. 읽지 않은 385행의 위치는 11장에 있다. 공개된 코드는 없다.</span></p>
+
+        <p><span class="t">비교 대상 (초록만 확인)</span><br>
+        Jiaqi Liu 외. <b>AutoResearchClaw: Self-Reinforcing Autonomous Research with Human-AI Collaboration.</b> arXiv:2605.20025. ARC-Bench-ML 의 출처다.<br>
+        <a href="https://arxiv.org/abs/2605.20025">arxiv.org/abs/2605.20025</a></p>
+
+        <p>Jinhang Xu 외. <b>NanoResearch: Co-Evolving Skills, Memory, and Policy for Personalized Research Automation.</b> arXiv:2605.10813. NanoResearch-20 의 출처다.<br>
+        <a href="https://arxiv.org/abs/2605.10813">arxiv.org/abs/2605.10813</a></p>
+
+        <p><span class="t">2차 자료</span><br>
+        코난쌤 블로그, <b>EviGraph 소개 글</b>. 이 논문을 가리킨 출발점이다. 인용 수치를 논문과 대조해 한 건이 어긋났다(11장).<br>
+        <a href="https://jkf87.github.io/posts/2026-08-07-evigraph-evidence-graph-autonomous-research-agents">jkf87.github.io/posts/2026-08-07-evigraph-evidence-graph-autonomous-research-agents</a></p>
+
+        <p><span class="t">같은 저장소의 관련 문서</span><br>
+        <a class="xref" href="../2026-08-07-loopx-deterministic-loop-harness/">LoopX: 에이전트 루프가 할 일을 잊지 않게 만드는 결정론적 제어 평면</a> · <a class="xref" href="../2026-08-07-tencentdb-agent-memory-asset-layer/">TencentDB 에이전트 메모리</a></p>
+      </div>
+
+      <p class="note">비교 대상 두 편은 초록만 열었으므로, 9장에서 두 시스템을 설명한 문장은 EviGraph 가 제시한 설명에 기대고 있다. 원논문이 자기 시스템을 어떻게 규정하는지, 자기 벤치마크에서 어떤 점수를 보고했는지는 대조하지 못했다. 표 3 과 표 4 의 baseline 점수는 EviGraph 가 같은 백본과 같은 sandbox 로 다시 돌려 얻은 값이므로 원논문의 자기 보고 점수와 다를 수 있다.</p>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 17</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
