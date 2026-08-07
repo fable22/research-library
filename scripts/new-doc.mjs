@@ -34,8 +34,9 @@ const ROOT = findRoot(dirname(fileURLToPath(import.meta.url)));
 
 // ---- 장 구성 ----
 //
-// 12장 골격이다. eyebrow 중 index/tl-dr/problem/critique/conclusion/sources 는
-// check-doc.mjs 가 필수로 검사한다. 나머지는 내용을 가리키는 이름으로 바꿔 쓴다.
+// 출발용 골격이다. 장 수는 정해져 있지 않고, eyebrow 중
+// index/tl-dr/problem/critique/conclusion/sources 만 check-doc.mjs 가 검사한다.
+// 나머지는 내용을 가리키는 이름으로 바꿔 쓰고, 필요하면 장을 더 넣는다.
 // paper 와 oss 가 다른 자리는 ③④⑥⑦⑨⑩ 여섯 개다.
 
 const CHAPTERS = {
@@ -156,7 +157,7 @@ async function create(slug, kind, opts) {
 
   console.log(`research/${slug}/          index.html, meta.json`);
   console.log(`.research/${slug}/         sources.jsonl, claims.jsonl, notes/`);
-  console.log(`\n${chapters.length}장 골격 (${kind}). eyebrow 는 내용을 가리키는 이름으로 바꿔 쓸 것.`);
+  console.log(`\n출발용 ${chapters.length}장 (${kind}). eyebrow 는 내용을 가리키는 이름으로 바꾸고, 장은 필요한 만큼 늘린다.`);
   console.log('읽은 범위는 조사를 마친 뒤 ⑦장에 직접 적는다.');
 }
 
@@ -226,7 +227,7 @@ if (!argv.length || argv.includes('--help') || argv.includes('-h')) {
   console.log('  --title <제목>       meta.json 과 표지에 들어간다');
   console.log('  --summary <설명>     목록과 og:description 에 들어간다\n');
   console.log('만드는 것:');
-  console.log('  research/<slug>/     index.html (12장 골격), meta.json');
+  console.log('  research/<slug>/     index.html (출발용 골격), meta.json');
   console.log('  .research/<slug>/    sources.jsonl, claims.jsonl, notes/\n');
   console.log('두 트리는 항상 같은 이름을 쓴다. 이름을 바꿀 때는 rename 을 쓸 것.');
   console.log('직접 옮기면 두 트리가 어긋나 문서와 근거를 이어붙일 수 없다.');

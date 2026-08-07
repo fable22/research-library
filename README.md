@@ -12,7 +12,10 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 
 | 날짜 | 문서 | 분류 |
 |---|---|---|
+| 2026-08-07 | [에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다](https://fable22.github.io/research-library/research/2026-08-07-cloudflare-computer-filesystem-not-container/) | 주제 리서치 |
 | 2026-08-07 | [insane-search: 실패를 종료 상태로 인정하지 않는 웹 접근 엔진](https://fable22.github.io/research-library/research/2026-08-07-insane-search-nonterminal-failure/) | 주제 리서치 |
+| 2026-08-07 | [LoopX: 에이전트 루프가 할 일을 잊지 않게 만드는 결정론적 제어 평면](https://fable22.github.io/research-library/research/2026-08-07-loopx-deterministic-loop-harness/) | 주제 리서치 |
+| 2026-08-07 | [TencentDB Agent Memory: 기억을 자산으로 등록하고 agent 에게 장착시키는 층](https://fable22.github.io/research-library/research/2026-08-07-tencentdb-agent-memory-asset-layer/) | oss |
 | 2026-08-05 | [Retrieval as Reasoning: LLM-Wiki 논문 분석](https://fable22.github.io/research-library/research/2026-08-05-llm-wiki-retrieval-as-reasoning/) | 논문 분석 |
 | 2026-08-05 | [WikiKV: 계층형 지식베이스 저장 계층 논문 분석](https://fable22.github.io/research-library/research/2026-08-05-wikikv-hierarchical-kb-storage/) | 논문 분석 |
 | 2026-08-05 | [WikiLoop: 위키 구축과 순회를 함께 학습시키는 논문 분석](https://fable22.github.io/research-library/research/2026-08-05-wikiloop-feedback-coupled-wiki/) | 논문 분석 |
@@ -26,7 +29,8 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 ```
 .
 ├── README.md                       # 저장소 소개 (이 파일)
-├── CLAUDE.md                       # 세션이 매번 알아야 할 것 (작성 규칙은 skill 에)
+├── AGENTS.md                       # 세션이 매번 알아야 할 것 (작성 규칙은 skill 에)
+├── CLAUDE.md                       # @AGENTS.md import + Claude Code 전용 한 절
 ├── index.html                      # Pages 목록 페이지 (스크립트가 생성)
 ├── assets/
 │   ├── index.css                   # 목록 페이지 스타일
@@ -61,11 +65,11 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 | 파일 | 대상 | 내용 |
 |---|---|---|
 | `README.md` | GitHub 에 들어온 사람 | 저장소가 무엇인지, 구조, 추가 절차, `meta.json` 필드 |
-| `CLAUDE.md` | 에이전트 세션 | 어디에 무엇을 두는지, 어떤 skill 을 쓰는지, 명령, 함정 |
-| `.claude/skills/` | 에이전트 세션 | 조사 방법, 12장 골격, 문안 규칙, 검토 절차 |
+| `AGENTS.md` | 에이전트 세션 | 어디에 무엇을 두는지, 어떤 skill 을 쓰는지, 명령, 함정. `CLAUDE.md` 가 이걸 import 한다 |
+| `.claude/skills/` | 에이전트 세션 | 조사 방법, 장 골격, 시각화, 문안 규칙, 검토 절차 |
 | `index.html` | Pages 방문자 | 발행된 문서 목록 |
 
-`CLAUDE.md` 는 매 세션 전부 로드되므로 **항상 필요한 것만** 둡니다. 문서를 쓸 때만 필요한 규칙은 skill 에 있고, 필요할 때만 읽힙니다. 같은 규칙을 두 곳에 적으면 한쪽이 낡아도 알 수 없습니다.
+`AGENTS.md` 는 매 세션 전부 로드되므로 **항상 필요한 것만** 둡니다. 문서를 쓸 때만 필요한 규칙은 skill 에 있고, 필요할 때만 읽힙니다. 같은 규칙을 두 곳에 적으면 한쪽이 낡아도 알 수 없습니다.
 
 문서 목록을 `README.md` 에 손으로 관리하지 않는 이유는 금방 실제와 어긋나기 때문입니다. 목록은 `meta.json` 하나만 보고 두 곳에 동시에 생성됩니다.
 
@@ -78,7 +82,7 @@ node scripts/check-doc.mjs research/YYYY-MM-DD-slug
 node scripts/build-index.mjs
 ```
 
-`new-doc.mjs` 가 12장 골격이 들어간 `index.html` 과 `meta.json`, 그리고 `.research/<slug>/` 의 작업 파일을 함께 만듭니다. 유형은 `paper` 와 `oss` 두 가지이고 장 구성이 조금 다릅니다. 만든 직후 `check-doc.mjs` 를 통과합니다.
+`new-doc.mjs` 가 출발용 골격이 들어간 `index.html` 과 `meta.json`, 그리고 `.research/<slug>/` 의 작업 파일을 함께 만듭니다. 유형은 `paper` 와 `oss` 두 가지이고 장 구성이 조금 다릅니다. 만든 직후 `check-doc.mjs` 를 통과합니다. 장 수는 늘리든 줄이든 상관없습니다. 게이트가 검사하는 것은 필수 eyebrow 여섯 개뿐입니다.
 
 덱의 CSS 와 JS 는 `assets/deck-shell.html` 에 있습니다. 기존 세 문서의 CSS 블록 md5 가 완전히 같고 JS 도 같아서, 어차피 복붙되던 것을 파일 하나로 모았습니다.
 
