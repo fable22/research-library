@@ -1,0 +1,26 @@
+{
+  "skill_name": "research-doc",
+  "evals": [
+    {
+      "id": 0,
+      "name": "flow-diagram-slide",
+      "prompt": "research-library 저장소에서 작업 중이야. LoopX 문서(research/2026-08-07-loopx-deterministic-loop-harness/)에 슬라이드를 하나 더 넣으려고 해. 내용은 이거야: 커널이 상태 전이를 커밋하기 전에 capability 가 provider 영수증을 검증한다. 관측이 들어오면 → capability 검증 → 통과하면 커널이 커밋, 실패하면 관측 단계로 되돌아가서 다시 받는다. 지금 이 내용이 4장에 글로만 있는데 읽어도 구조가 안 잡혀. 슬라이드 HTML 한 조각(<section class=\"slide\">...)으로 써줘.",
+      "expected_output": "eyebrow/h2/dek/body/note 를 갖춘 슬라이드 한 조각. 흐름이 inline SVG 다이어그램으로 그려져 있고 되돌아가는 실패 경로가 보인다.",
+      "files": []
+    },
+    {
+      "id": 1,
+      "name": "chapter-count-cap",
+      "prompt": "research-library 저장소야. 지금 쓰고 있는 문서가 12장인데, mechanism 부분이 세 개로 갈라져서(스케줄러 / 상태 저장 / 재시도 정책) 4장 하나에 다 안 들어가. 슬라이드가 너무 빽빽해졌어. 장을 더 늘려도 되는 거야? 된다면 어떻게 나누는 게 맞아?",
+      "expected_output": "장 수 상한이 없다는 것과 게이트가 eyebrow 6개만 본다는 것을 알려주고, 세 개로 쪼개면서 각각 topical eyebrow 를 붙이라고 안내한다.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "numbers-to-figure",
+      "prompt": "research-library 저장소에서 논문 문서 쓰는 중인데, 논문 표 1 숫자를 슬라이드에 올려야 해. 시스템 5개(Dense RAG 54.8, HippoRAG 2 62.0, LightRAG 81.9, GraphRAG 77.2, 우리 것 84.3)의 같은 지표 하나야. 표로 넣을까 차트로 넣을까? 넣을 마크업까지 만들어줘.",
+      "expected_output": "같은 지표 여러 시스템이므로 bar 를 권하고, .bar-row/.bar-track/.bar-val 마크업과 숫자 병기, 0 기준선, figure 캡션까지 준다.",
+      "files": []
+    }
+  ]
+}

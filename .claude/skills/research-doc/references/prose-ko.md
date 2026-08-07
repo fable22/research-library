@@ -2,7 +2,7 @@
 
 Everything the reader sees is Korean: the research documents and the review reports.
 The instructions are English, the product is Korean. This file covers how to write that
-Korean well. `CLAUDE.md` already bans metaphors, inflated headings, em dashes, and
+Korean well. `AGENTS.md` already bans metaphors, inflated headings, em dashes, and
 process narration; this file is about the failure modes those rules do not name.
 
 Keep technical terms in English. RAG, embedding, chunk, corpus, baseline, ablation,
@@ -45,6 +45,16 @@ evidence is weak, name what is missing. That is useful; vagueness is not.
 
 **Forced symmetry.** Three upsides do not obligate three downsides. Write what the
 evidence supports and stop.
+
+**`~가 아니라 ~다` as a default frame.** Doubles a sentence whose second half carries all
+the information, and the discarded half often smuggles in a claim nobody made.
+
+- ✗ 성능 문제가 아니라 정확도 문제다.
+- ✓ 정확도 문제다. 처리량은 두 방식이 같다.
+
+Keep it where the reader actually holds the wrong answer and the document is correcting
+it (`압축이 아니라 재작성이다. 원문 토큰을 하나도 재사용하지 않는다`). Once or twice per
+document, not per slide.
 
 ## Write Korean, not translated English
 

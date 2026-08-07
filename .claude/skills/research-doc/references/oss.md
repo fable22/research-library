@@ -1,7 +1,7 @@
 # Documenting an open-source project
 
-How the twelve chapters get filled when the corpus is a repository. Read
-`prose-ko.md` alongside this.
+How the chapters get filled when the corpus is a repository. Read `prose-ko.md` and
+`visual.md` alongside this.
 
 The reader is deciding whether to adopt. Everything below serves that.
 

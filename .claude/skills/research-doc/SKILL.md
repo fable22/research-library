@@ -1,11 +1,13 @@
 ---
 name: research-doc
 description: Writes a single-file HTML research document in Korean from a corpus pinned
-  by research-source. Covers the twelve-chapter deck skeleton, slide grammar, compression
+  by research-source. Covers the chapter spine, slide grammar, drawing mechanisms as
+  inline SVG flow and cycle diagrams, CSS charts and figure captions, compression
   subagents for sources too large to load, how to phrase claims that reading alone cannot
   establish, and Korean prose that is not translated English.
 when_to_use: Writing or substantially rewriting research/<slug>/index.html, turning a
-  paper or an open-source project into a document, or adding chapters to an existing one.
+  paper or an open-source project into a document, adding chapters or slides to an
+  existing one, or adding a diagram, chart, figure, or trace to one.
 ---
 
 # Writing a research document
@@ -17,6 +19,9 @@ multi-hop), as do quotes, code, and identifiers.
 Read before writing:
 
 - `references/prose-ko.md` — always. This is where Korean output quality is decided.
+- `references/visual.md` — whenever the document has a mechanism, an architecture, a
+  loop, or a comparison in it, which is nearly always. Half of what a reader takes away
+  from these documents comes from the figures.
 - `references/paper.md` or `references/oss.md` — pick by what the corpus is.
 
 The reader is a developer deciding whether to use this thing next week. Not a general
@@ -32,31 +37,38 @@ and what survives is a summary, which is exactly where invented detail creeps in
 
 The one place a subagent helps is compression, below.
 
-## The twelve chapters
+## The spine, and what you build on it
+
+`check-doc.mjs` requires six eyebrows and checks nothing else about structure. **There is
+no chapter count and no length limit** — the only size rule is a 1 MB file cap, and that
+one is about embedded images.
+
+A usual shape. **Bold** eyebrows are the six the gate requires; the rest are named after
+their content (`nav-reward`, `result-cost`) rather than numbered:
 
 | # | eyebrow | Holds |
 |---|---|---|
-| ① | `index` | Cover, lineage bar, reading path |
-| ② | `tl-dr` | The finding, in the first two sentences |
-| ③ | `problem` | What was failing before this existed |
+| ① | **`index`** | Cover, lineage bar, reading path |
+| ② | **`tl-dr`** | The finding, in the first two sentences |
+| ③ | **`problem`** | What was failing before this existed |
 | ④ | (topical) | Mechanism and structure. How it actually works |
 | ⑤ | (topical) | Comparison with the existing approach |
 | ⑥ | (topical) | One case traced end to end |
 | ⑦ | `setup` | What was read, and what was not |
 | ⑧ | `result-*` | Results |
-| ⑨ | `critique` | Limits, with attribution |
+| ⑨ | **`critique`** | Limits, with attribution |
 | ⑩ | (topical) | Adoption call |
-| ⑪ | `conclusion` | Conclusion |
-| ⑫ | `sources` | Sources |
+| ⑪ | **`conclusion`** | Conclusion |
+| ⑫ | **`sources`** | Sources |
 
-`check-doc.mjs` enforces the presence of `index`, `tl-dr`, `problem`, `critique`,
-`conclusion`, `sources`. The rest take topical eyebrows naming their content
-(`nav-reward`, `result-cost`), not chapter numbers.
+Split whenever a slide carries two claims, because neither gets checked while they share
+one. A mechanism with three separable parts is entitled to three slides; two result
+families get `result-cost` and `result-quality`. `references/visual.md` covers how to tell
+you are over budget and what to do besides splitting. The failure on the other side is
+padding — a chapter added because the outline had a slot for it reads as filler.
 
-Requests map onto this rather than adding chapters. Overview lands in ①②, mechanism in
-⑥, architecture in ④, identity in ③④⑩. **Trend gets no chapter of its own** — it depends
-on the open web, has almost no verification surface, and goes stale fastest. Fold what
-survives into ⑤.
+**Trend gets no chapter of its own.** It depends on the open web, has almost no
+verification surface, and goes stale fastest. Fold what survives into ⑤.
 
 Identity is read out of structure, never guessed. What a project is trying to be shows up
 in its license, its CI gates, the rules it writes for its own contributors, and what it
@@ -74,7 +86,7 @@ Five elements, in order:
 .eyebrow   short topical label
 h2         a claim sentence, not a noun label
 .dek       2 to 4 sentences setting up what follows
-body       table, chart, code, prose
+body       figure, table, chart, trace, code, prose — references/visual.md
 .note      the qualifier that closes the slide
 ```
 
@@ -148,6 +160,9 @@ has no line to cite, so the evidence has to be the search that came back empty.
 Check them against each other and report the gap when there is one. `references/oss.md`
 lists the specific places this bites.
 
+A sentence sourced from the project's own docs is a claim about what the maintainers
+wrote. Write it that way, or go open the implementation and source it there.
+
 Do not turn this into a sweep. Asked in general whether docs match code you will flag
 nearly everything, and a report that flags everything says nothing. Name the specific
 things adoption rests on and check only those.
@@ -184,13 +199,14 @@ Constraints the gate enforces, so build them in rather than repairing them later
   custom properties and have components reference only the tokens.
 - `overflow-x: auto` on anything wide (tables, code blocks, charts). The page body must
   never scroll sideways.
-- `alt` on every image, describing what the figure shows rather than labeling it "그림 1".
-  `role="img"` and a descriptive `aria-label` on every `<svg>`.
+- `alt` on every image, `role="img"` and a descriptive `aria-label` on every `<svg>`,
+  describing what the figure shows rather than labeling it "그림 1". `visual.md` treats
+  writing that label first as the test of whether the figure is worth drawing.
 - No `.stat` without a `.sub`, no em dashes, one `.rail-item` per slide, 1 MB total.
 
-Compress images before embedding. base64 adds about 33%, and a document that crosses 1 MB
-makes the repository heavy fast. Anything you can draw yourself belongs in inline SVG
-instead.
+Draw rather than embed. Anything you can build in inline SVG or CSS costs a few hundred
+bytes, scales, and follows the theme; a raster image does none of that and base64 adds
+another 33% on top. Compress the ones you genuinely need.
 
 ## Gates
 

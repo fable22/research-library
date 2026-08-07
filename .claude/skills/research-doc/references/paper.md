@@ -1,7 +1,7 @@
 # Documenting a paper
 
-How the twelve chapters get filled when the corpus is a paper. Read
-`prose-ko.md` alongside this.
+How the chapters get filled when the corpus is a paper. Read `prose-ko.md` and
+`visual.md` alongside this.
 
 ## Chapter contents
 
@@ -20,6 +20,10 @@ How the twelve chapters get filled when the corpus is a paper. Read
 
 Read them out of the tables, not out of the text, and not out of a summarizer's output.
 Papers restate their own numbers loosely in prose and the table is what got reviewed.
+
+Read the table from `arxiv.org/e-print/<id>`, the LaTeX the HTML was built from. Rendered
+conversions drop cells, merge columns, and reflow multi-row headers, so a number taken
+only from HTML is one you have not confirmed.
 
 Four things go wrong, in roughly this order of frequency.
 
