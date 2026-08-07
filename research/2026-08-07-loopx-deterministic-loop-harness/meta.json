@@ -1,0 +1,18 @@
+{
+  "title": "LoopX: 에이전트 루프가 할 일을 잊지 않게 만드는 결정론적 제어 평면",
+  "date": "2026-08-07",
+  "summary": "루프가 표류하는 이유는 기억이 아니라 회계다. LoopX 는 LLM 없이 7단계 트랜잭션과 quota 로 턴을 승인하고, 성과 없는 턴이 진행으로 계상되지 않게 막는다. 표류 방지 장치 여섯 개를 코드에서 추적하고, 벤치마크 실증이 아직 통과 1건이라는 것까지 정리했다.",
+  "category": "topic",
+  "format": "deck",
+  "tags": [
+    "OSS",
+    "agent-harness",
+    "long-running-agents",
+    "control-plane",
+    "loop-engineering"
+  ],
+  "source": {
+    "label": "huangruiteng/loopx @ v0.4.2 (c94e188)",
+    "url": "https://github.com/huangruiteng/loopx"
+  }
+}
