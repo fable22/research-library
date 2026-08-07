@@ -1,0 +1,1452 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>TencentDB Agent Memory: 기억을 자산으로 등록하고 agent 에게 장착시키는 층</title>
+<meta name="description" content="Chat Memory·Skill·Wiki·CodeGraph 네 종류를 한 자산 테이블에 등록하는 구조, 공유 판정이 사람 경로와 agent 경로로 갈려 restricted 등급이 양쪽에서 막히는 지점, 그리고 원클릭 배포가 게이트웨이 인증을 꺼 놓는다는 점까지 코드에서 확인한다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="TencentDB Agent Memory: 기억을 자산으로 등록하고 agent 에게 장착시키는 층">
+<meta property="og:description" content="Chat Memory·Skill·Wiki·CodeGraph 네 종류를 한 자산 테이블에 등록하는 구조, 공유 판정이 사람 경로와 agent 경로로 갈려 restricted 등급이 양쪽에서 막히는 지점, 그리고 원클릭 배포가 게이트웨이 인증을 꺼 놓는다는 점까지 코드에서 확인한다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-07-tencentdb-agent-memory-asset-layer/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+.bar { height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>자산 네 종류</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>컴포넌트 네 개</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>identity</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>공유의 두 경로</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>가시성 다섯 등급</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>Wiki · gist 대조</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>Wiki · 인덱스 저장</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>대규모의 단위</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>요청 경로 추적</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>동작</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>도입 판단</span></button>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>결론</span></button>
+    <button class="rail-item" data-go="17"><span class="n">18</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>TencentDB Agent Memory: 기억을 자산으로 등록하고 agent 에게 장착시키는 층</h1>
+      <p class="dek">Chat Memory, Skill, Wiki, CodeGraph 네 종류를 하나의 자산 테이블에 등록하고,
+      team / user / agent 세 축으로 격리한 뒤, agent 마다 다른 조합을 물려 주는 구조다.
+      공유와 대규모를 무엇이 실제로 떠받치고 있는지, 그리고 어디가 아직 비어 있는지를 코드에서 확인했다.</p>
+
+      <div class="lineage">
+        <span class="lg">wiki line</span>
+        <a href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM-Wiki 논문</a>
+        <span class="arrow">→</span>
+        <a href="../2026-08-05-wikikv-hierarchical-kb-storage/">WikiKV</a>
+        <span class="arrow">→</span>
+        <a href="../2026-08-05-wikiloop-feedback-coupled-wiki/">WikiLoop</a>
+        <span class="arrow">→</span>
+        <span class="self">이 문서 (구현체)</span>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">읽는 순서 · 구조가 궁금하면</span>
+          <p class="small">「자산 네 종류」 → 「컴포넌트 네 개」 → 「identity」 → 「요청 경로 추적」.
+          자산 등록이 어디서 일어나고 격리 필드가 어디서 채워지는지가 이 네 장에 다 들어 있다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">읽는 순서 · 도입을 판단하려면</span>
+          <p class="small">「요약」 → 「공유의 두 경로」 → 「대규모의 단위」 → 「해석의 한계」 → 「도입 판단」.
+          「공유의 두 경로」와 「해석의 한계」에 이 저장소를 그대로 켰을 때 열려 있는 것이 있다.</p>
+        </div>
+      </div>
+
+      <p class="note"><b>대상 커밋</b>은 <code>fe3230f</code> 하나다. 기본 브랜치가
+      <code>main</code> 이 아니라 <code>feat/server_team</code> 이라서, GitHub 웹에서 보이는 것과
+      <code>git clone</code> 이 받아오는 것이 같은 브랜치다. 여기서 읽은 것도 그 브랜치다.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약. 자산 등록은 끝까지 이어져 있고, 그 위의 두 방어선이 각각 다른 이유로 비어 있다</h2>
+      <p class="dek">기억을 <code>meta_assets</code> 한 테이블에 등록하고 agent 에 바인딩해 프롬프트로 밀어 넣는
+      경로는 끝까지 이어져 있다. 그 위에서 <code>restricted</code> 등급은 권한 판정 함수에 도달하기 전에 잘리고,
+      기본 배포는 게이트웨이 인증 자체를 꺼 놓는다.</p>
+
+      <div class="stats">
+        <div class="stat hero">
+          <span class="lab">자산 종류</span>
+          <span class="val">4<span class="u">종</span></span>
+          <span class="sub">코드의 union 타입 하나로 고정</span>
+        </div>
+        <div class="stat">
+          <span class="lab">가시성 등급</span>
+          <span class="val">5<span class="u">단계</span></span>
+          <span class="sub">README 는 4단계만 적는다</span>
+        </div>
+        <div class="stat bad">
+          <span class="lab">인스턴스당 사용자</span>
+          <span class="val">500<span class="u">명</span></span>
+          <span class="sub">팀은 100개. 코드 상수</span>
+        </div>
+        <div class="stat bad">
+          <span class="lab">기본 배포의 게이트웨이 인증</span>
+          <span class="val">꺼짐</span>
+          <span class="sub">키 기본값이 빈 문자열이다</span>
+        </div>
+        <div class="stat">
+          <span class="lab">공개 트리의 테스트</span>
+          <span class="val">0<span class="u">개</span></span>
+          <span class="sub">vitest 설정만 남아 있다</span>
+        </div>
+      </div>
+
+      <ul class="clean">
+        <li><span class="m">1</span><span><b>자산화의 실체는 결정론적 id 다.</b>
+        id 를 team 과 agent 로부터 계산하기 때문에 등록 경로에 재시도 로직도 분산 락도 없다.
+        어떻게 그렇게 되는지는 「identity」에 있다.</span></li>
+        <li><span class="m">2</span><span><b>agent 가 무엇을 볼 수 있는지는 ACL 이 아니라 고정 바인딩이 정한다.</b>
+        프롬프트 주입 경로는 <code>meta_agent_fixed_assets</code> 만 읽는다. 권한 판정 함수는
+        사람이 Panel 을 볼 때만 돈다.</span></li>
+        <li><span class="m bad">3</span><span><b><code>restricted</code> 는 비관리자에게 사실상 없는 등급이다.</b>
+        ACL 을 지연 로딩하는 최적화가 정확히 ACL 이 필요한 분기를 건너뛴다. 게다가 바인딩 검증 함수가
+        <code>restricted</code> 자산의 agent 장착을 거부한다. 「공유의 두 경로」에서 두 줄로 보인다.</span></li>
+        <li><span class="m">4</span><span><b>대규모의 단위는 인스턴스다.</b>
+        인스턴스당 사용자 500명이라는 상한이 천장으로 읽히지 않는 이유가 여기 있다. 분할 단위다.</span></li>
+        <li><span class="m bad">5</span><span><b>도입 판단을 가르는 것은 코드 품질이 아니라 배포 기본값이다.</b>
+        원클릭 배포는 게이트웨이 Bearer 인증을 꺼 놓고 <code>0.0.0.0</code> 에 바인딩한 뒤 포트를 호스트로 낸다.
+        프록시가 Bearer 를 보내지 않아서 켜는 것도 지금은 막혀 있다. 「도입 판단」이 이 사실 위에 서 있다.</span></li>
+      </ul>
+
+      <p class="note">이 문서는 코드와 배포 스크립트를 읽어 쓴 것이고 실행해 확인한 것은 없다.
+      그래서 성립하는 것은 "그렇게 쓰여 있다"까지다. 이 단서는 여기 한 번만 적고 뒤에서는 반복하지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>문제 정의. 세션이 끝나면 무엇이 남을지를 정하는 자리가 없었다</h2>
+      <p class="dek">agent 를 쓰다 보면 같은 설명을 매 세션 다시 한다. RAG 는 무엇을 찾을 수 있는지까지만 답한다.
+      무엇을 찾을 수 있는지는 답하지만, 누가 그걸 쓸 수 있는지와 어느 버전이 유효한지는 답하지 않는다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">이전에 사람이 하던 일</span>
+          <p class="small">새 세션마다 프로젝트 맥락을 다시 붙여 넣는다.
+          팀에 새 agent 를 만들면 다시 처음부터 학습시킨다.
+          한 번 통한 작업 절차는 개인 메모에 남고 팀에는 남지 않는다.
+          문서를 읽히려면 매번 파일 목록부터 훑게 한다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">저장소가 정의하는 문제</span>
+          <blockquote class="q" style="font-size:15px; margin:0;">
+            Any information that helps the next Agent avoid reinventing the wheel should be saved, organized, and reused.
+            <cite>README.md:59</cite>
+          </blockquote>
+        </div>
+      </div>
+
+      <div class="figure">
+        <p class="fig-title">RAG 가 답하지 않는 세 가지를 자산 테이블의 컬럼으로 바꿨다</p>
+        <p class="fig-sub">README.md:170 의 대비를 <code>meta_assets</code> 스키마(sqlite-adapter.ts:223)와 맞춰 본 것. 저장소에는 이 대조표가 없다</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>질문</th><th>표준 RAG</th><th>이 저장소의 대응</th></tr></thead>
+            <tbody>
+              <tr><td>무엇을 찾을 수 있는가</td><td>chunk 검색</td><td>FTS5 BM25 + link graph</td></tr>
+              <tr class="hero"><td>누가 쓸 수 있는가</td><td>없음</td><td>visibility + owner_user_id + ACL</td></tr>
+              <tr class="hero"><td>어느 버전이 유효한가</td><td>없음</td><td>version + status</td></tr>
+              <tr class="hero"><td>어느 agent 에게 줄 것인가</td><td>없음</td><td>meta_agent_fixed_assets</td></tr>
+              <tr><td>최근에 쓰이긴 했는가</td><td>없음</td><td>usage_count + last_used_at</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>파란 행이 이 저장소가 RAG 위에 얹은 부분이다. 세 행 모두 검색 품질과 무관하고,
+        전부 소유와 배포에 관한 컬럼이다. 이 문서가 뒤에서 계속 확인하는 것도 그 세 행이 실제로 동작하는지다.</figcaption>
+      </div>
+
+      <p class="note">벤치마크로 검색 품질이 올랐다는 주장은 저장소에 PersonaMem 한 줄뿐이고, 재현 자료가 없다.
+      「동작」 장에서 자체 보고로 표시해 둔다. 이 장이 다루는 것은 무엇을 관리 대상으로 삼았는가까지다.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">asset-model</p>
+      <h2>자산 네 종류는 코드의 union 타입 한 줄로 고정되어 있다</h2>
+      <p class="dek">Chat Memory, Skill, Wiki, CodeGraph 는 타입 선언 한 줄이다.
+      네 종류가 같은 테이블에 같은 컬럼으로 들어가고, 내용은 다른 곳에 산다.
+      이 분리가 이 저장소의 설계에서 가장 큰 결정이다.</p>
+
+      <pre><span class="c">// MemoryCore/src/metadata/types.ts:24</span>
+export type AssetType = <b>"skill" | "llm_wiki" | "code_graph" | "chat_memory"</b>;
+export type AssetVisibility = "private" | "team" | "restricted" | "agent" | <span class="r">"task"</span>;
+
+<span class="c">// 같은 파일 399행</span>
+  asset_id: string;   <span class="c">// 이 모듈이 만들지 않는다. 호출자가 준다</span></pre>
+
+      <figure class="figure">
+      <p class="fig-title">네 종류가 같은 테이블에 등록되고, 내용은 각자 다른 곳에 산다</p>
+      <p class="fig-sub"><code>meta_assets</code> 스키마(<code>sqlite-adapter.ts:223</code>)와 네 자산의 저장 위치를 겹쳐 그린 것</p>
+      <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 780 268" role="img" aria-label="자산 평면과 내용 평면의 분리. 위쪽 meta_assets 한 테이블에 skill, llm_wiki, code_graph, chat_memory 네 행이 같은 컬럼으로 들어간다. 각 행의 content_ref 가 아래쪽의 서로 다른 저장소를 가리킨다. skill 은 MemoryCore 의 skill 테이블, llm_wiki 와 code_graph 는 MemoryKnowledge 의 파일과 index.db, chat_memory 는 MemoryCore 의 L0에서 L3 테이블이다. asset_id 는 아래쪽 시스템이 만들어 위로 올려 주며, 위쪽은 기록과 인가만 한다.">
+          <rect class="box-hi" x="150" y="12" width="480" height="52" rx="8"/>
+          <text class="txt" x="166" y="34">meta_assets · 자산 평면</text>
+          <text class="txt-s" x="166" y="52">asset_id · team_id · owner_user_id · visibility · status · version · content_ref</text>
+
+          <path class="arw" d="M240 64 L120 116"/><path class="arw" d="M126 106 L120 116 L131 118"/>
+          <path class="arw" d="M340 64 L300 116"/><path class="arw" d="M303 106 L300 116 L311 116"/>
+          <path class="arw" d="M440 64 L480 116"/><path class="arw" d="M470 116 L480 116 L477 106"/>
+          <path class="arw" d="M540 64 L660 116"/><path class="arw" d="M649 118 L660 116 L654 106"/>
+
+          <rect class="box" x="8" y="118" width="184" height="66" rx="8"/>
+          <text class="txt" x="22" y="140">skill</text>
+          <text class="txt-s" x="22" y="158">MemoryCore skill 테이블</text>
+          <text class="txt-s" x="22" y="174">+ 리소스 파일</text>
+
+          <rect class="box" x="200" y="118" width="184" height="66" rx="8"/>
+          <text class="txt" x="214" y="140">llm_wiki</text>
+          <text class="txt-s" x="214" y="158">MemoryKnowledge</text>
+          <text class="txt-s" x="214" y="174">wiki/*.md + index.db</text>
+
+          <rect class="box" x="392" y="118" width="184" height="66" rx="8"/>
+          <text class="txt" x="406" y="140">code_graph</text>
+          <text class="txt-s" x="406" y="158">MemoryKnowledge</text>
+          <text class="txt-s" x="406" y="174">codegraph 인덱스</text>
+
+          <rect class="box" x="584" y="118" width="188" height="66" rx="8"/>
+          <text class="txt" x="598" y="140">chat_memory</text>
+          <text class="txt-s" x="598" y="158">MemoryCore</text>
+          <text class="txt-s" x="598" y="174">L0 / L1 / L2 / L3</text>
+
+          <path class="arw" d="M120 186 L120 212 L390 212 L390 200"/>
+          <path class="arw" d="M300 186 L300 212"/>
+          <path class="arw" d="M480 186 L480 212"/>
+          <path class="arw" d="M666 186 L666 212 L392 212"/>
+          <path class="arw" d="M385 205 L390 200 L395 205"/>
+          <text class="txt-s" x="400" y="234">asset_id 는 아래에서 만들어 올라온다. 위는 기록과 인가만 한다</text>
+          <text class="txt-s" x="8" y="234">내용 평면</text>
+        </svg>
+      </div>
+      <figcaption>위쪽 한 상자가 자산 평면이고 아래 네 상자가 내용 평면이다.
+      화살표 방향이 중요하다. <code>asset_id</code> 는 위에서 발급하지 않고 아래에서 만들어 올라온다.
+      그래서 새 자산 종류를 붙일 때 위쪽 스키마를 고칠 필요가 없다.
+      이 그림은 등록 관계만 그린 것이고, 어느 자산이 어느 agent 에게 가는지는 「공유의 두 경로」에 있다.</figcaption>
+      </figure>
+
+      <p class="note">네 종류의 출신이 다르다. CodeGraph 는 <code>@colbymchenry/codegraph</code> npm 패키지 위의
+      200줄짜리 브리지고(<code>MemoryKnowledge/src/engines/code/bridge.ts</code>), Skill 은 README 가 Hermes Agent 코드를
+      일부 썼다고 밝힌다. Wiki 는 Karpathy 의 gist 를 구현한 것이고, L0에서 L3 까지의 Chat Memory 만 온전히 자체 설계다.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">components</p>
+      <h2>컴포넌트 네 개의 경계는 상태를 누가 들고 있느냐로 갈린다</h2>
+      <p class="dek">MemoryCore 만 저장하고, 나머지 셋은 저장하지 않는다.
+      MemoryKnowledge 만 예외적으로 자기 파일과 index.db 를 들고 있다.
+      아래 네 행 중 두 행은 코드에서, 두 행은 각 컴포넌트의 README 에서 온 것이라 근거의 무게가 다르다.</p>
+
+      <div class="figure">
+        <p class="fig-title">상태를 어디에 두느냐로 나눈 네 컴포넌트</p>
+        <p class="fig-sub">포트는 <code>deploy/global-images/README.md:9-11</code>, 8421 만 <code>MemoryKnowledge/Dockerfile:78</code>. 역할과 상태는 근거 열 참조</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>컴포넌트</th><th>기본 포트</th><th>역할</th><th>상태를 갖는가</th><th>근거</th></tr></thead>
+            <tbody>
+              <tr class="hero"><td>MemoryCore</td><td>8420</td><td>L0~L3 · Skill · 메타데이터 · 인증</td><td>SQLite 또는 MongoDB</td><td>코드</td></tr>
+              <tr class="hero"><td>MemoryKnowledge</td><td>8421 (배포 시 8424)</td><td>Wiki ingest · CodeGraph · tools</td><td>wiki 파일 + index.db</td><td>코드</td></tr>
+              <tr><td>MemoryPanel</td><td>8125</td><td>웹 콘솔 · 인가 요청 전달</td><td>없음</td><td>README</td></tr>
+              <tr><td>MemoryProxy</td><td>8096</td><td>LLM 요청 투명 프록시 · 주입 · 회수</td><td>캐시만 (COS/SQLite/FS/Memory)</td><td>README</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>파란 두 행은 저장 코드를 직접 열어서 확인했다.
+        아래 두 행은 각 컴포넌트가 자기 README 에 그렇게 썼다는 것까지만 확인한 것이고,
+        Panel 과 Proxy 의 소스는 「읽은 범위」에 적은 대로 거의 열지 않았다.
+        무상태라는 서술이 실제로 지켜지는지는 이 문서가 답하지 못한다.</figcaption>
+      </div>
+
+      <div class="grid g2" style="margin-top:16px;">
+        <div class="card">
+          <span class="tag">Panel · README 가 쓴 것</span>
+          <p class="small"><code>MemoryPanel/README.md:14</code> 는 Panel 이 서버 측 로그인 세션도
+          로컬 사용자 DB 도 갖지 않는다고 적는다. 팀과 사용자 관리 화면이지만 사용자 테이블은
+          MemoryCore 에 있다는 뜻이다. 이 서술이 맞다면 Panel 을 통째로 날려도 데이터는 남는다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">Proxy · README 가 쓴 것</span>
+          <p class="small"><code>MemoryProxy/README.md:7</code> 은
+          <code>The proxy itself persists no memory data</code> 라고 적는다.
+          OpenAI 와 Anthropic 프로토콜을 그대로 전달하면서 앞뒤로 세션 초기화, 주입, 회수, 과금만 끼운다는 설명이다.
+          coding agent 쪽 코드를 고치지 않아도 되는 대신, 프록시가 죽으면 주입도 같이 죽는 구조가 된다.</p>
+        </div>
+      </div>
+
+      <p class="note">L2 와 L3 은 프롬프트에 직접 넣고, L0 과 L1 은 도구로 노출한다.
+      README 는 그 이유를 upstream KV-cache 무효화 회피라고 적는다(<code>MemoryProxy/README.md:28</code>).
+      매 턴 바뀌는 내용을 시스템 프롬프트 앞쪽에 넣으면 캐시가 매번 깨진다는 설명이고,
+      주입 코드에서 확인한 것은 <code>&lt;knowledge_tools&gt;</code> 블록이 실제로 그렇게 렌더된다는 것까지다.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">identity</p>
+      <h2>identity 는 세 축이고, 소유자는 두 군데에 따로 적힌다</h2>
+      <p class="dek">기억 한 줄이 어디에 속하는지는 team, user, agent 세 축으로 정한다.
+      session 은 네 번째 축이지만 선택이다. 그런데 소유자 개념은 평면마다 다르다.
+      자산 평면은 user 를 소유자로 보고, Skill 데이터 평면은 agent 를 소유자로 본다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">데이터 평면 · isolation.ts:25</span>
+          <pre style="margin:0;">export interface IsolationContext {
+  teamId?: string;
+  <b>userId: string;</b>
+  <b>agentId: string;</b>
+  <b>sessionId: string;</b>
+  taskId?: string;
+  sessionKey?: string;
+}</pre>
+          <p class="small" style="margin-top:8px;">L0 과 L1 의 모든 쓰기가 이 셋을 들고 간다.
+          <code>/v3</code> 는 team, agent, user 셋을 필수로 보고 session 은 선택으로 둔다.
+          session 을 안 주면 agent 단위로 가로질러 집계한다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">두 개의 소유자</span>
+          <p class="small"><b>자산 평면</b>: <code>AssetEntity.owner_user_id</code>.
+          권한 판정의 첫 분기가 이걸 본다. 소유자면 무조건 통과한다.</p>
+          <p class="small"><b>Skill 데이터 평면</b>: <code>Skill.owner_agent_id</code>.
+          <code>assertOwner</code> 가 <code>(team_id, agent_id)</code> 쌍으로 판정한다.
+          같은 Skill 을 두 평면이 서로 다른 주체의 것으로 본다.</p>
+          <p class="small">자동 등록 시점에 <code>agent.owner_user_id</code> 를 읽어 자산 쪽 소유자로 복사한다.
+          그래서 agent 의 소유자가 바뀌면 두 값이 갈라진다. 동기화하는 코드는 찾지 못했다
+          (<code>grep -rn 'owner_user_id' MemoryCore/src/core/skill/</code> → 0건).</p>
+        </div>
+      </div>
+
+      <div class="figure" style="margin-top:16px;">
+        <p class="fig-title">id 규칙이 세 가지 서로 다른 방식으로 만들어진다</p>
+        <p class="fig-sub"><code>MemoryCore/src/metadata/utils/id-generator.ts</code> 와 <code>utils/chat-memory-asset.ts</code></p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>대상</th><th>형식</th><th>충돌 대응</th></tr></thead>
+            <tbody>
+              <tr><td>주체 엔티티 (usr, team, agt, task, ast, uky)</td><td>prefix + base36 타임스탬프 4자 + 난수 6자</td><td>없음. 기본키 제약에 맡긴다</td></tr>
+              <tr><td>관계 테이블 행</td><td>UUID v4</td><td>충돌 시 재시도. 첫 삽입 포함 총 3회</td></tr>
+              <tr class="hero"><td>chat_memory 자산</td><td><code>chat_memory-{team_id}-{agent_id}</code></td><td>충돌이 곧 정답. 되읽어서 반환</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>파란 행이 이 저장소의 자산화 방식을 가장 잘 보여 준다.
+        id 를 무작위로 뽑는 대신 team 과 agent 로부터 계산하면, 같은 조합에 대한 두 번째 등록 시도는
+        기본키 충돌로 실패하고 코드는 그걸 정상 경로로 처리한다. 재시도 로직도 분산 락도 필요 없어진다.
+        난수 6자 base36 은 36<sup>6</sup>, 약 21.8억 가지다(이 곱셈은 문서가 한 것이고 코드에 없다). <code>Math.random()</code> 을 쓰므로 암호학적 난수는 아니다.</figcaption>
+      </div>
+
+      <p class="note">타임스탬프 부분은 base36 네 자리라 36<sup>4</sup>초, 약 19.4일마다 한 바퀴 돈다(이 환산도 문서가 한 것이다).
+      id 가 시간순으로 정렬되지 않는다는 뜻이다. 정렬은 <code>created_at</code> 컬럼이 따로 맡는다.</p>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">share</p>
+      <h2>공유는 두 갈래로 갈리고, 사람 쪽 갈래에 닿지 않는 등급이 하나 있다</h2>
+      <p class="dek">사람이 Panel 에서 자산을 볼 때는 권한 판정 함수가 돈다.
+      agent 가 프롬프트로 자산을 받을 때는 고정 바인딩 테이블만 읽는다.
+      두 경로가 합쳐지지 않아서, ACL 로만 열리는 <code>restricted</code> 등급은 agent 에게 절대 도달하지 못한다.</p>
+
+      <figure class="figure">
+      <p class="fig-title">사람이 지나는 판정과 agent 가 지나는 판정이 서로 만나지 않는다</p>
+      <p class="fig-sub">왼쪽은 <code>metadata-service.ts:1344</code>, 오른쪽은 <code>MemoryProxy/src/injection/injectors/tdai-fixed-asset.ts</code></p>
+      <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 780 300" role="img" aria-label="공유 판정의 두 경로. 왼쪽은 사람이 Panel 에서 자산을 열 때로, checkAssetPermission 이 소유자, 팀 멤버십, visibility, 역할 기본권한, ACL 순으로 판정한다. 오른쪽은 agent 가 프롬프트로 자산을 받을 때로, MemoryProxy 가 meta_agent_fixed_assets 만 읽고 권한 판정을 거치지 않는다. 가운데 아래에 restricted 등급 상자가 있고, 왼쪽 경로에서는 ACL 지연 로딩 때문에, 오른쪽 경로에서는 canBindAsset 이 false 를 돌려주기 때문에 양쪽 모두에서 막힌다는 것을 붉은 선으로 표시했다.">
+          <rect class="box" x="20" y="14" width="320" height="44" rx="8"/>
+          <text class="txt" x="36" y="34">사람 · Panel 에서 자산 열람</text>
+          <text class="txt-s" x="36" y="50">checkAssetPermission(user, asset, action)</text>
+
+          <rect class="box" x="424" y="14" width="336" height="44" rx="8"/>
+          <text class="txt" x="440" y="34">agent · 프롬프트 주입</text>
+          <text class="txt-s" x="440" y="50">MemoryProxy → agent-fixed-asset/list-with-detail</text>
+
+          <path class="arw" d="M180 58 L180 78"/><path class="arw" d="M175 71 L180 78 L185 71"/>
+          <path class="arw" d="M592 58 L592 78"/><path class="arw" d="M587 71 L592 78 L597 71"/>
+
+          <rect class="box" x="20" y="80" width="320" height="112" rx="8"/>
+          <text class="txt-s" x="36" y="100">1. owner 면 통과</text>
+          <text class="txt-s" x="36" y="118">2. 팀 멤버가 아니면 거부</text>
+          <text class="txt-s" x="36" y="136">3. visibility 분기</text>
+          <text class="txt-s" x="36" y="154">4. 역할 기본권한 (admin: rwas / member: r)</text>
+          <text class="txt-s" x="36" y="172">5. ACL 조회 (여기까지 와야 돈다)</text>
+
+          <rect class="box" x="424" y="80" width="336" height="112" rx="8"/>
+          <text class="txt-s" x="440" y="100">1. agent_id 로 바인딩 목록 조회</text>
+          <text class="txt-s" x="440" y="118">2. asset_type 으로 필터</text>
+          <text class="txt-s" x="440" y="136">3. 블록으로 렌더해 시스템 프롬프트에 삽입</text>
+          <text class="txt-s" x="440" y="162">권한 판정 함수를 호출하는 지점은 없다</text>
+
+          <rect class="box-hi" x="230" y="216" width="320" height="60" rx="8"/>
+          <text class="txt" x="248" y="240">visibility = "restricted"</text>
+          <text class="txt-s" x="248" y="260">ACL 로만 열리도록 설계된 등급</text>
+
+          <path class="arw" style="stroke:var(--redlink)" d="M180 192 L180 246 L228 246"/>
+          <path class="arw" style="stroke:var(--redlink)" d="M221 241 L228 246 L221 251"/>
+          <text class="txt-s" x="36" y="212" style="fill:var(--redlink)">5번에 닿기 전에 끊긴다</text>
+
+          <path class="arw" style="stroke:var(--redlink)" d="M592 192 L592 246 L552 246"/>
+          <path class="arw" style="stroke:var(--redlink)" d="M559 241 L552 246 L559 251"/>
+          <text class="txt-s" x="440" y="212" style="fill:var(--redlink)">canBindAsset 이 false 를 준다</text>
+        </svg>
+      </div>
+      <figcaption>두 세로 기둥이 서로 참조하지 않는다는 것이 이 그림의 요지다.
+      오른쪽 경로에는 권한 판정 함수를 부르는 지점이 없고, 왼쪽 경로의 5번은 <code>restricted</code> 자산에 대해 실행되지 않는다.
+      붉은 화살표 둘은 같은 등급이 서로 다른 이유로 막힌다는 뜻이지 같은 코드 경로라는 뜻이 아니다.
+      이 그림은 읽기 판정만 그렸다. 쓰기·삭제·공유 동작의 판정은 같은 함수를 타지만 역할 기본권한이 달라진다.</figcaption>
+      </figure>
+
+      <p class="note warn"><b>왼쪽이 끊기는 이유.</b> ACL 조회는 비싸서 지연 로딩한다.
+      먼저 빈 ACL 로 한 번 돌리고, 결과가 <code>no_permission</code> 일 때만 진짜 ACL 을 읽어 다시 판정한다.
+      그런데 <code>restricted</code> 분기는 빈 ACL 로 돌면 <code>visibility_restricted</code> 를 돌려준다.
+      <code>no_permission</code> 이 아니므로 두 번째 판정이 일어나지 않는다.
+      <code>metadata-service.ts:1372</code> 의 <code>if (fast.reason !== "no_permission") return fast;</code> 한 줄이다.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">share-detail</p>
+      <h2>다섯 등급 중 agent 에 실제로 장착되는 것은 셋뿐이다</h2>
+      <p class="dek">README 는 네 등급을 적고 코드는 다섯을 선언한다.
+      agent 장착은 <code>private</code>·<code>team</code>·<code>agent</code> 셋만 통과한다.
+      사람 열람은 누가 보느냐로 갈린다. 팀 admin 은 <code>private</code> 을 뺀 넷을 읽고,
+      일반 member 는 <code>team</code>·<code>agent</code>·<code>task</code> 셋만 읽는다.</p>
+
+      <div class="figure">
+        <p class="fig-title">등급별로 사람 경로와 agent 경로가 각각 어디까지 가는가</p>
+        <p class="fig-sub"><code>permission-checker.ts:66-114</code>(사람)와 <code>permission-checker.ts:158-172</code>(agent 바인딩)를 겹쳐 본 것. 저장소에는 이 대조가 없다</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>visibility</th><th>README 에 있는가</th><th>사람이 읽을 수 있는가</th><th>agent 에 장착되는가</th></tr></thead>
+            <tbody>
+              <tr><td>private</td><td>있음</td><td class="win">owner 만. 팀 admin 도 불가</td><td class="win">같은 owner + 같은 team 이면 가능</td></tr>
+              <tr><td>team</td><td>있음</td><td class="win">팀 멤버 읽기, admin 쓰기</td><td class="win">같은 team 이면 가능</td></tr>
+              <tr><td>agent</td><td>있음</td><td class="win">team 과 동일</td><td class="win">같은 team 이면 가능</td></tr>
+              <tr class="hero"><td>restricted</td><td>있음</td><td class="lose">admin 만. ACL 은 조회되지 않는다</td><td class="lose">불가 (false 고정)</td></tr>
+              <tr><td>task</td><td class="lose">없음</td><td>읽기는 멤버, 쓰기는 admin</td><td class="lose">불가 (false 고정)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>붉은 칸이 막히는 지점이다. <code>restricted</code> 행은 README 가
+        <code>precise access via User / Role / Agent ACLs</code>(README.md:110) 라고 설명하는 등급인데,
+        네 칸 중 두 칸이 막혀 있다. ACL 자체는 <code>team</code> 이나 <code>agent</code> 가시성 자산에 대해
+        역할 기본권한이 커버하지 않는 동작(예: member 의 write)을 열어 줄 때는 정상적으로 동작한다.</figcaption>
+      </div>
+
+      <div class="grid g2" style="margin-top:16px;">
+        <div class="card">
+          <span class="tag">deny 는 받아들여지지만 평가되지 않는다</span>
+          <p class="small">HTTP 스키마는 <code>z.enum(["allow", "deny"])</code> 로 deny 를 받는다
+          (<code>v3-meta-schemas.ts:18</code>). 판정 함수는 <code>acl.effect === "allow"</code> 인 것만 찾는다.
+          deny 를 넣으면 저장은 되고 아무 일도 하지 않는다.
+          타입 선언 옆 주석이 1기에는 allow 만 쓰고 deny 는 예약해 둔다고 밝히고 있으니
+          의도된 미구현이다(<code>types.ts:48</code>).</p>
+        </div>
+        <div class="card">
+          <span class="tag">reviewer 역할도 같은 상태다</span>
+          <p class="small">팀 역할은 <code>admin | member | reviewer</code> 셋인데
+          판정 함수는 <code>role === "admin"</code> 인지만 본다. reviewer 는 member 와 똑같이 읽기만 된다.
+          UI 쪽에서만 구분한다. <code>ConsoleLayout.tsx:108</code> 이 reviewer 에게 멤버 관리 메뉴를 감춘다.</p>
+        </div>
+      </div>
+
+      <p class="note">이 경로의 테스트가 공개 트리에 없다
+      (<code>git ls-tree -r --name-only HEAD | grep -c 'permission.*test'</code> → 0).
+      판정 표를 재현해 볼 자료가 저장소 안에 없다는 뜻이다.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">wiki-gist</p>
+      <h2>Wiki 층은 Karpathy 의 gist 를 거의 그대로 구현하고, lint 하나만 빠뜨렸다</h2>
+      <p class="dek">README 가 출처로 밝힌 gist 는 세 층(raw sources / wiki / schema)과 세 연산(Ingest / Query / Lint),
+      그리고 특수 파일 둘(index.md / log.md)을 제안한다.
+      코드를 대조해 보면 schema 층이 파일 두 개로 쪼개졌고, Lint 는 없다.</p>
+
+      <div class="figure">
+        <p class="fig-title">gist 의 제안과 <code>MemoryKnowledge/src/engines/wiki/</code> 의 구현 대조</p>
+        <p class="fig-sub">gist 는 2026-08-07 회수본, 코드는 커밋 fe3230f. 이 대조표는 양쪽 어디에도 없다</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>gist 가 제안한 것</th><th>구현 위치</th><th>차이</th></tr></thead>
+            <tbody>
+              <tr><td>raw sources (불변)</td><td><code>raw/sources/</code> + <code>source</code> 테이블</td><td>SHA-256 으로 증분 판정을 붙였다</td></tr>
+              <tr><td>the wiki (LLM 소유)</td><td><code>wiki/**.md</code> + frontmatter</td><td><code>locked: true</code> 로 사람이 잠글 수 있다</td></tr>
+              <tr class="hero"><td>the schema (CLAUDE.md)</td><td><code>wiki/purpose.md</code> + <code>wiki/schema.md</code></td><td>둘로 쪼개 system prompt 에 그대로 붙인다</td></tr>
+              <tr><td>Ingest</td><td><code>ingest-v2/index.ts</code></td><td>분석과 생성 2단계로 나눴다</td></tr>
+              <tr><td>Query</td><td><code>manager.ts</code> + <code>tools.ts</code></td><td>BM25 에 link graph BFS 를 얹었다</td></tr>
+              <tr class="hero"><td>Lint</td><td class="lose">없음</td><td class="lose">모순 검출, 고아 페이지 점검이 구현되지 않았다</td></tr>
+              <tr><td>index.md</td><td><code>index-builder.ts</code></td><td>매 ingest 후 재생성</td></tr>
+              <tr><td>log.md</td><td><code>log-writer.ts</code></td><td>LLM 없이 순수 텍스트로 append</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>파란 행 둘이 차이가 큰 지점이다. schema 를 <code>purpose.md</code>(무엇을 위한 위키인가)와
+        <code>schema.md</code>(무엇을 어떻게 뽑을 것인가)로 쪼갠 것은 개인용 gist 를 여러 팀이 쓰는 서비스로
+        옮기면서 나온 선택으로 읽히지만, 그 결정을 적은 설계 문서가 공개 트리에 없어 확인하지 못했다.
+        결과만 놓고 보면 위키마다 다른 추출 규칙을 갖게 된다.
+        Lint 가 없다는 것은 <code>grep -rn -i 'lint' MemoryKnowledge/src/</code> 가 0건인 것으로 확인했다.</figcaption>
+      </div>
+
+      <p class="note">gist 는 <code>~100 sources, ~hundreds of pages</code> 규모까지는 index.md 만으로 충분하고
+      embedding 기반 RAG 가 필요 없다고 적는다. 이 저장소는 그 규모를 넘길 것을 전제로 FTS5 인덱스를 붙였다.
+      그 결정의 대가가 다음 장이다.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">wiki-index</p>
+      <h2>위키 인덱스를 메모리에서 걷어낸 이유가 코드 주석에 숫자로 남아 있다</h2>
+      <p class="dek">처음에는 MiniSearch 로 전부 메모리에 올렸다.
+      지금은 위키마다 SQLite 파일 하나를 두고 읽기 연결만 LRU 로 묶는다.
+      바꾼 이유가 <code>index-db.ts</code> 헤더에 그대로 적혀 있다.</p>
+
+      <blockquote class="q">
+        SQLite 는 연결을 여는 데 1밀리초가 안 걸리고 데이터를 page 단위로 지연 로딩한다.
+        열자마자 전부 메모리에 올리는 방식이 아니다. 그게 MiniSearch 의 20GB OOM 을 뿌리 뽑은 이유다.
+        <cite>index-db.ts:17 의 중국어 주석을 옮긴 것</cite>
+      </blockquote>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">위키 하나당 index.db 한 개 · 테이블 4개</span>
+          <p class="small"><code>wiki_fts</code> FTS5 역색인 · <code>page_meta</code> 페이지 메타 ·
+          <code>graph_edge</code> 유향 간선 · <code>source</code> 원본 파일 상태.
+          <b>본문은 DB 에 넣지 않는다.</b> 디스크의 <code>.md</code> 에 그대로 두고 메타와 snippet 만 색인한다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">메모리 상한을 위키 수와 분리한다</span>
+          <p class="small">읽기 연결 풀 상한 <code>POOL_MAX</code> 는 300, 연결당 page cache 는 2MB.
+          곱해서 약 600MB 로 고정된다. 위키가 3개든 3000개든 같다.
+          대신 WAL 이 연결당 fd 3개를 먹어서 900개가 필요하고,
+          주석은 <code>ulimit -n ≥ 2048</code> 을 권한다.</p>
+        </div>
+      </div>
+
+      <div class="figure" style="margin-top:16px;">
+        <p class="fig-title">읽기와 쓰기가 서로 다른 연결 전략을 쓴다</p>
+        <p class="fig-sub"><code>index-db.ts:12-20</code> 의 연결 전략 주석을 그림으로 옮긴 것</p>
+        <div class="svgwrap">
+          <svg class="chart" viewBox="0 0 760 210" role="img" aria-label="위키 인덱스의 읽기 쓰기 연결 전략. 왼쪽 search 와 graph 요청은 LRU 연결 풀을 거쳐 index.db 를 읽고, 풀에서 밀려난 연결은 WAL checkpoint 후 닫힌다. 오른쪽 ingest 와 sync 요청은 풀을 쓰지 않고 독립 연결을 열어 하나의 트랜잭션 안에서 세 테이블을 통째로 지우고 다시 채운 뒤 checkpoint 하고 즉시 닫는다. 쓰기 연결이 풀에 들어가지 않는 이유는 LRU 축출과 경쟁하지 않게 하려는 것이다.">
+            <rect class="box" x="8" y="16" width="150" height="48" rx="8"/>
+            <text class="txt" x="22" y="38">search / graph</text>
+            <text class="txt-s" x="22" y="55">읽기 요청</text>
+
+            <path class="arw" d="M158 40 L196 40"/><path class="arw" d="M189 35 L196 40 L189 45"/>
+
+            <rect class="box-hi" x="198" y="16" width="176" height="48" rx="8"/>
+            <text class="txt" x="212" y="38">LRU 읽기 연결 풀</text>
+            <text class="txt-s" x="212" y="55">max 300 · 연결당 2MB cache</text>
+
+            <path class="arw" d="M374 40 L462 40"/><path class="arw" d="M455 35 L462 40 L455 45"/>
+
+            <rect class="box" x="464" y="8" width="180" height="64" rx="8"/>
+            <text class="txt" x="478" y="30">index.db</text>
+            <text class="txt-s" x="478" y="47">wiki_fts · page_meta</text>
+            <text class="txt-s" x="478" y="63">graph_edge · source</text>
+
+            <path class="arw" d="M286 64 L286 92"/><path class="arw" d="M281 85 L286 92 L291 85"/>
+            <text class="txt-s" x="298" y="90">축출되면 checkpoint 후 close</text>
+
+            <rect class="box" x="8" y="128" width="150" height="48" rx="8"/>
+            <text class="txt" x="22" y="150">ingest / sync</text>
+            <text class="txt-s" x="22" y="167">쓰기 요청</text>
+
+            <path class="arw" d="M158 152 L196 152"/><path class="arw" d="M189 147 L196 152 L189 157"/>
+
+            <rect class="box" x="198" y="128" width="176" height="48" rx="8"/>
+            <text class="txt" x="212" y="150">독립 연결 · 풀 안 씀</text>
+            <text class="txt-s" x="212" y="167">DELETE 3표 → 재삽입 → close</text>
+
+            <path class="arw" d="M374 152 L462 100 L462 74"/><path class="arw" d="M457 82 L462 74 L468 81"/>
+            <text class="txt-s" x="386" y="192">쓰기가 풀에 들어가지 않으므로 LRU 축출과 경쟁하지 않는다</text>
+          </svg>
+        </div>
+        <figcaption>WAL 모드라 ingest 중에도 검색 읽기가 막히지 않는다.
+        다만 쓰기는 세 테이블을 통째로 지우고 다시 채운다(<code>manager.ts:346-348</code> 의
+        <code>DELETE FROM wiki_fts</code> 세 줄). 전면 재구축이라서, 소스 하나만 추가해도
+        그 위키의 전체 페이지를 다시 토큰화한다.</figcaption>
+      </div>
+
+      <p class="note">검색 자체는 FTS5 BM25 이고 제목 가중치가 본문의 5배다.
+      중국어는 JS 쪽에서 bigram 으로 미리 쪼개 넣고 FTS5 는 공백 단위로만 자른다.
+      link graph 확장은 기본값이 <code>hop = 0</code> 이라 꺼져 있고, 요청이 명시할 때만 켜진다.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">scale</p>
+      <h2>대규모의 단위는 인스턴스다. 늘려서 키우지, 키워서 늘리지 않는다</h2>
+      <p class="dek">메타데이터는 인스턴스마다 물리적으로 다른 DB 를 쓴다.
+      SQLite 면 파일 하나, MongoDB 면 데이터베이스 하나가 인스턴스마다 생긴다.
+      그래서 인스턴스당 사용자 500명이라는 상한이 설계와 모순되지 않는다.</p>
+
+      <pre><span class="c">// MemoryCore/src/metadata/store/factory.ts:17</span>
+<span class="c">// 주석: SQLite 백엔드의 루트 디렉터리. 인스턴스마다 아래 경로가 하나씩 생긴다</span>
+<span class="c">//   {baseDir}/<b>tdai_metadata_{instance_id}</b>/metadata.db</span>
+
+<span class="c">// 같은 파일 122행. service 모드는 Mongo 없이는 뜨지 않는다</span>
+if (!config.mongoUri?.trim()) {
+  errors.push("TDAI_METADATA_MONGO_URI is required when deployMode=service");
+}
+
+<span class="c">// metadata-service.ts:190</span>
+export const DEFAULT_METADATA_QUOTA_LIMITS: MetadataQuotaLimits = {
+  <b>maxUsersPerInstance: 500</b>,
+  <b>maxTeamsPerInstance: 100</b>,
+};</pre>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>층</th><th>대규모를 떠받치는 장치</th><th>한계가 나오는 지점</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>메타데이터</td><td>인스턴스별 DB + LRU 연결 캐시 128개</td><td>인스턴스 간 질의가 불가능하다</td></tr>
+            <tr><td>비동기 파이프라인</td><td>Redis ZSET 16샤드 · 리더 없이 전 pod 스캔 · Lua 원자 claim</td><td>Redis 없으면 단일 프로세스 타이머로 내려온다</td></tr>
+            <tr><td>워커</td><td>consumer group 경쟁 소비 · 세션 단위 분산 락 · 데드레터</td><td>락 TTL 4분이 LLM 타임아웃 2배에 묶여 있다</td></tr>
+            <tr><td>Wiki 인덱스</td><td>위키별 SQLite + 읽기 연결 LRU 300</td><td>fd 900개. ulimit 조정이 전제다</td></tr>
+            <tr><td>Proxy 상태</td><td>로컬 3단 강등 (SQLite → FS → Memory)</td><td>COS 는 강등 체인 밖이다. 실패하면 프로세스가 뜨지 않는다</td></tr>
+            <tr><td>CodeGraph 동기화</td><td>FIFO 큐 + 워커 3개 · Set 중복 제거</td><td>기본값이 꺼짐이다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note">첫 행이 이 저장소의 확장 전략을 요약한다.
+      테넌트를 <code>tenant_id</code> 컬럼으로 나누지 않고 DB 자체를 나눴다.
+      격리는 강해지지만 전체 통계 같은 것은 애플리케이션이 인스턴스를 돌면서 직접 모아야 한다.
+      연결 캐시는 128개까지만 살아 있고, 넘으면 오래된 것부터 닫는다.</div>
+
+      <p class="note">이 장의 숫자는 전부 기본값이다. <code>KNOWLEDGE_WIKI_POOL_MAX</code>,
+      <code>TDAI_METADATA_STORE_CACHE_MAX</code>, <code>TDAI_METADATA_MAX_USERS</code> 로 각각 덮을 수 있다.
+      실제 부하에서 이 값들이 어떻게 움직이는지는 확인하지 못했다. 벤치마크가 저장소에 없다.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">trace</p>
+      <h2>대화 한 번을 저장하는 경로에서 격리 검사 두 개가 모두 비활성이다</h2>
+      <p class="dek"><code>POST /v3/conversation/add</code> 한 요청을 MemoryCore 안에서 끝까지 따라간다.
+      격리 필드를 강제하는 코드가 두 군데 있는데, 하나는 환경변수가 꺼져 있고
+      다른 하나는 입력이 항상 <code>undefined</code> 라 실행되지 않는다.</p>
+
+      <pre><span class="c">[1] dispatch · v2-router.ts:587</span>
+const v3StrictEnabled = deps.v3StrictIsolation ?? true;
+if (isV3 &amp;&amp; !isV3Extra &amp;&amp; v3StrictEnabled) {
+  const v3Missing = collectV3Missing(...);        <span class="c">// team/agent/user 확인</span>
+  if (v3Missing.length &gt; 0) sendJson(res, 422, ...);
+}
+<span class="r">  ↳ v3StrictIsolation 은 server.ts:887 에서 resolveV3StrictIsolation() 로 채워진다.</span>
+<span class="r">    env-config.ts:161 · V3_STRICT_ISOLATION 이 "1|true|on|yes" 일 때만 true. 기본 false.</span>
+<span class="r">    이 변수는 deploy/ 어디에도, INSTALL.md 에도 없다.</span>
+
+<span class="c">[2] 격리 해석 · v2-schemas.ts:352</span>
+const ph = opts.legacyCompatMode ? (opts.legacyPlaceholder ?? DEFAULT_ISOLATION_ID) : DEFAULT_ISOLATION_ID;
+const ctx = { userId: userId || ph, agentId: agentId || ph, sessionId: sessionId || ph, ... };
+return { ok: true, ctx };
+<span class="r">  ↳ 항상 ok:true. 빠진 필드는 "default" 로 채운다. missing 배열은 계산만 하고 버린다.</span>
+
+<span class="c">[3] deps 조립 · v2-router.ts:612</span>
+requestIsolationMissing: <b>undefined</b>,
+
+<span class="c">[4] 핸들러의 두 번째 관문 · v2-router.ts:656</span>
+if (deps.isolationConfig?.enforce &amp;&amp; <b>deps.requestIsolationMissing</b> &amp;&amp; ...) {
+  return errorEnvelope(422, `Tenancy isolation required: missing ...`);
+}
+<span class="r">  ↳ [3] 이 유일한 대입 지점이라 이 분기는 어떤 요청에서도 참이 되지 않는다.</span>
+
+<span class="c">[5] 자산 자동 등록 · v2-router.ts:681</span>
+if (deps.getMetadataService &amp;&amp; iso?.teamId &amp;&amp; iso?.agentId) {
+  await metaSvc.ensureChatMemoryAsset({ team_id: iso.teamId, agent_id: iso.agentId });
+}                                     <span class="c">// 실패해도 warn 만 찍고 진행한다</span>
+
+<span class="c">[6] L0 기록 · v2-router.ts:703</span>
+const record: L0Record = { id, sessionId: session_id, <b>teamId: iso?.teamId</b>,
+  <b>userId: iso?.userId</b>, <b>agentId: iso?.agentId</b>, role: msg.role, ... };
+await store.upsertL0(record, emb);
+
+<span class="c">[7] 파이프라인 통지 · v2-router.ts:730</span>
+const rounds = messages.filter((m) =&gt; m.role === "user").length;
+await deps.notifyPipeline(auth.serviceId, session_id, rounds, iso?.teamId, iso?.agentId);
+<span class="c">// 5회마다, 또는 600초 idle 후 L1 추출 타이머가 발화한다 (tdai-gateway.yaml)</span></pre>
+
+      <p class="note warn"><b>앞단에 인증이 있을 거라고 기대하면 안 된다.</b>
+      기본 배포는 게이트웨이 Bearer 인증도 꺼 놓는다. <code>MEMORY_CORE_GATEWAY_API_KEY</code> 의 기본값이
+      빈 문자열이고(<code>start-memory-core.sh:25</code>, <code>.env.example:80</code>),
+      빈 값은 <code>config.ts:807</code> 의 <code>env()</code> 가 <code>undefined</code> 로 접는다.
+      그래서 서버가 뜰 때 <code>all routes except GET /health are open to anyone who can reach this port</code>
+      경고를 찍는다(<code>server.ts:700</code>). 같은 스크립트가 <code>TDAI_GATEWAY_HOST=0.0.0.0</code> 으로 바인딩하고
+      포트를 호스트로 내보낸다.</p>
+
+      <p class="note warn"><b>키를 채우는 것도 지금은 선택지가 아니다.</b>
+      스크립트가 비어 있지 않으면 경고를 띄우는데, 이유를 주석이 직접 적는다.
+      MemoryProxy 가 <code>/v3/meta/auth/verify</code> 를 부를 때 Bearer 헤더를 보내지 않아서
+      키를 켜면 프록시의 auth 와 sessionInit 이 깨진다(<code>start-memory-core.sh:22-24</code>,
+      <code>MemoryProxy/src/auth.ts:78-80</code>). 배포 스크립트가 생성하는 임의의 키는 게이트웨이 키가 아니라
+      admin <code>user_key</code>(<code>sk-mem-…</code>)다(<code>start-memory-core.sh:150-161</code>). 둘은 다른 것이다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>읽은 범위. 837개 파일 중 50개를 열었고, 프런트엔드와 SDK 는 통째로 열지 않았다</h2>
+      <p class="dek">커밋 <code>fe3230f176f1bf5832fee79d12494bbc2d19a8aa</code> 기준.
+      기본 브랜치 <code>feat/server_team</code> 을 <code>--depth 1 --filter=blob:none</code> 로 받았다.
+      shallow clone 이라 커밋 이력과 관련된 주장은 이 문서에 하나도 없다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>디렉터리</th><th>파일 수</th><th>열었는가</th><th>열지 않아서 얕아지는 곳</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>MemoryCore/src</td><td>261</td><td>22 · metadata 9 · core 7 · services 3 · gateway 2 · utils 1</td><td>offload 계열(L1.5, mermaid), CLI, 어댑터</td></tr>
+            <tr class="hero"><td>MemoryKnowledge/src</td><td>55</td><td>15 · wiki 엔진 8 · code 2 · 나머지 5</td><td>mcp/, source-fetcher/, db/, routes/wiki.ts 본문</td></tr>
+            <tr><td>MemoryProxy/src</td><td>136</td><td class="lose">2 (injector 둘)</td><td>세션 초기화, 과금, 관측 3채널. 「컴포넌트 네 개」의 Proxy 서술이 README 의존이다</td></tr>
+            <tr><td>MemoryPanel/web</td><td>134</td><td class="lose">0. grep 만 했다</td><td>Panel UI 의 권한 표현이 백엔드와 맞는지 확인하지 못했다</td></tr>
+            <tr><td>MemoryPanel/src</td><td>45</td><td class="lose">0. grep 만 했다</td><td>Panel 의 인가 전달 경로. 「공유의 두 경로」의 사람 경로가 MemoryCore 쪽 근거만 갖는다</td></tr>
+            <tr><td>sdk/memory-core</td><td>38</td><td class="lose">0</td><td>SDK 로 붙일 때의 인터페이스를 말할 수 없다</td></tr>
+            <tr><td>그 외 (각 컴포넌트의 scripts·bin·plugin 113, assets 22, deploy 17, .github 5, 루트 11)</td><td>168</td><td>11 · README 5 · deploy 2 · 설정 2 · CI 1 · LICENSE 1</td><td>마이그레이션 스크립트 3종, openclaw/hermes 플러그인, CHANGELOG</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="note"><b>합이 맞는지.</b> 261 + 55 + 136 + 134 + 45 + 38 + 168 = 837.
+      연 것이 50개, 나머지 787개는 열지 않았거나 grep 으로만 확인했다.
+      가장 크게 얕아지는 곳은 MemoryProxy 와 MemoryPanel 이다. 「컴포넌트 네 개」의 Proxy 서술과
+      「공유의 두 경로」의 사람 경로 서술이 README 와 MemoryCore 쪽 코드에만 기대고 있어서,
+      Panel 이 실제로 어떤 순서로 인가를 요청하는지는 확인하지 못했다.</div>
+
+      <p class="note">공개 트리에 <code>docs/</code> 가 거의 없다. 코드 주석이 참조하는
+      <code>MemoryKnowledge/docs/data-flow.md</code>, <code>MemoryProxy/docs/design/</code>,
+      <code>team-memory-control/docs/architecture/08-metadata-migration-and-permission-design.md</code> 가 모두 없고,
+      <code>MemoryProxy/gateway/</code> 도 없다. 설계 근거를 코드 주석 밖에서 확인할 방법이 없었다.</p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result</p>
+      <h2>동작. 파이프라인 임계값이 전부 설정 파일에 숫자로 적혀 있다</h2>
+      <p class="dek">기억이 언제 승급되는지는 <code>tdai-gateway.yaml</code> 의 숫자가 결정한다.
+      대화 5회마다 또는 600초 idle 이면 L1, L1 이 끝나고 90초 뒤 L2, 대화 50회마다 L3.
+      이 숫자들이 이 시스템의 비용과 지연을 대부분 결정한다.</p>
+
+      <div class="figure">
+        <p class="fig-title">L0 에서 L3 까지의 승급 조건</p>
+        <p class="fig-sub"><code>MemoryCore/tdai-gateway.yaml</code> 의 <code>memory.pipeline</code> 과 <code>memory.persona</code> 절</p>
+        <div class="svgwrap">
+          <svg class="chart" viewBox="0 0 760 236" role="img" aria-label="L0 에서 L3 로 이어지는 승급 흐름. L0 원문 대화가 5회 누적되거나 600초 유휴 상태가 되면 L1 원자 기억 추출이 발화한다. L1 이 끝나면 90초 뒤 L2 시나리오 블록 갱신이 예약되며, 최소 900초 최대 3600초 간격 제약을 받는다. L2 위에서 대화 50회마다 L3 페르소나가 재생성된다. L1 에서 L0 로 돌아가는 화살표는 없고, 대신 아래쪽에 회수 경로가 따로 그려져 있다. 회수 시에는 L2 와 L3 을 프롬프트에 직접 넣고 L0 과 L1 은 도구로 노출한다.">
+            <rect class="box" x="8" y="14" width="140" height="56" rx="8"/>
+            <text class="txt" x="22" y="36">L0 Conversation</text>
+            <text class="txt-s" x="22" y="54">원문. 매 턴 기록</text>
+
+            <path class="arw" d="M148 42 L206 42"/><path class="arw" d="M199 37 L206 42 L199 47"/>
+            <text class="txt-s" x="152" y="32">5회 or 600s idle</text>
+
+            <rect class="box" x="208" y="14" width="140" height="56" rx="8"/>
+            <text class="txt" x="222" y="36">L1 Atom</text>
+            <text class="txt-s" x="222" y="54">세션당 최대 20개</text>
+
+            <path class="arw" d="M348 42 L406 42"/><path class="arw" d="M399 37 L406 42 L399 47"/>
+            <text class="txt-s" x="352" y="32">+90s</text>
+
+            <rect class="box" x="408" y="14" width="150" height="56" rx="8"/>
+            <text class="txt" x="422" y="36">L2 Scenario</text>
+            <text class="txt-s" x="422" y="54">최대 15블록 · 900~3600s</text>
+
+            <path class="arw" d="M558 42 L616 42"/><path class="arw" d="M609 37 L616 42 L609 47"/>
+            <text class="txt-s" x="562" y="32">50회마다</text>
+
+            <rect class="box-hi" x="618" y="14" width="134" height="56" rx="8"/>
+            <text class="txt" x="632" y="36">L3 Persona</text>
+            <text class="txt-s" x="632" y="54">누적 프로필</text>
+
+            <text class="txt-s" x="8" y="112">회수 경로 (별도)</text>
+            <rect class="box" x="8" y="124" width="360" height="48" rx="8"/>
+            <text class="txt" x="22" y="146">L2 · L3 → 시스템 프롬프트에 직접 삽입</text>
+            <text class="txt-s" x="22" y="163">매 턴 앞쪽에 붙어 KV-cache 를 깨지 않는 위치</text>
+
+            <rect class="box" x="392" y="124" width="360" height="48" rx="8"/>
+            <text class="txt" x="406" y="146">L0 · L1 → 도구로 노출</text>
+            <text class="txt-s" x="406" y="163">모델이 필요할 때만 tdai_memory_tools 로 호출</text>
+
+            <path class="arw" d="M78 70 L78 118"/><path class="arw" d="M73 111 L78 118 L83 111"/>
+            <path class="arw" d="M278 70 L278 100 L470 100 L470 118"/><path class="arw" d="M465 111 L470 118 L475 111"/>
+            <path class="arw" d="M483 70 L483 90 L190 90 L190 118"/><path class="arw" d="M185 111 L190 118 L195 111"/>
+            <path class="arw" d="M685 70 L685 100 L300 100 L300 118"/><path class="arw" d="M295 111 L300 118 L305 111"/>
+          </svg>
+        </div>
+        <figcaption>승급은 단방향이고 회수는 두 갈래다. L2 승급에 최소 간격 900초가 걸려 있어서
+        L1 이 아무리 자주 끝나도 L2 는 15분에 한 번 이상 돌지 않는다. 최대 3600초는 반대 방향의 보장이다.
+        L2 는 LLM 이 <code>scene_blocks/</code> 안에서만 파일 도구를 쓰도록 샌드박스된 상태로 갱신한다
+        (<code>scene-extraction.ts:13</code>). Wiki 층과 같은 발상이다.</figcaption>
+      </div>
+
+      <div class="grid g2" style="margin-top:16px;">
+        <div class="card">
+          <span class="tag">기본값은 BM25 전용이다</span>
+          <p class="small"><code>embedding.provider: "none"</code> 이 기본이라 단일 노드에서는 벡터 검색이 꺼져 있다
+          (<code>tdai-gateway.yaml:78</code>). Skill 라우팅도 <code>mode: "bm25"</code> 다.
+          임베딩 없이 시작할 수 있다는 뜻이고, 다국어 검색 품질이 토크나이저에 달려 있다는 뜻이기도 하다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">저장소가 내건 유일한 수치</span>
+          <p class="small">PersonaMem 48% → 76%, 상대 개선 59%(README.md:250).
+          <b>표의 산술이 맞지 않는다.</b> 28/48 은 58.3% 다. 59% 는 README 표에 적힌 값 그대로 옮긴 것이다.
+          <b>자체 보고이고 재현 자료가 없다.</b> 모델, 프롬프트, 시드, 실행 횟수가 저장소에 없고
+          평가 스크립트도 없다(<code>git ls-tree -r --name-only HEAD | grep -i personamem</code> → 0건).
+          비교 대상이 무엇인지도 적혀 있지 않다.</p>
+        </div>
+      </div>
+
+      <p class="note">이 임계값은 두 곳에 같은 값으로 적혀 있다. <code>tdai-gateway.yaml</code> 기본 템플릿과,
+      원클릭 배포가 생성하는 설정 파일(<code>deploy/global-images/start-memory-core.sh:87-93</code>)이다.
+      배포 스크립트도 <code>pipeline</code> 절을 통째로 써넣으므로, 이미지 기본값에 맡기지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>해석의 한계. 검증 장치가 저장소에서 빠져 있어서 읽은 것 이상은 말할 수 없다</h2>
+      <p class="dek">공개 트리에 테스트 파일이 0개이고 PR CI 에는 타입 검사도 테스트 실행도 없다.
+      코드 주석이 참조하는 설계 문서도 대부분 빠져 있다.
+      그래서 이 문서의 주장은 전부 정적 읽기의 결과이고, 런타임 동작에 대한 것은 하나도 없다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">공개 트리에서 빠진 것</span>
+          <p class="small"><b>테스트 0개.</b>
+          <code>git ls-tree -r --name-only HEAD | grep -c '__tests__\|\.test\.ts\|\.spec\.ts'</code> → 0.
+          그런데 <code>vitest.config.ts</code> 는 네 곳에 있고, MemoryProxy README 는 서브모듈마다
+          <code>__tests__/</code> 가 있다고 설명한다(README.md:318). 내부 트리를 걸러서 공개한 것으로 보인다.</p>
+          <p class="small"><b>설계 문서 없음.</b> <code>MemoryCore/docs</code>, <code>MemoryProxy/docs</code>,
+          <code>MemoryKnowledge/docs</code> 가 모두 없다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">CI 가 검사하는 것</span>
+          <p class="small">잡 5개: 의존성 설치, <code>npm pack</code>, 플러그인 manifest 검증,
+          패키지 크기 2MB 가드, skill 큐 격리 가드.
+          <code>grep -in 'tsc|typecheck|vitest|npm test' .github/workflows/pr-ci.yml</code> → 0건.
+          작업 디렉터리가 <code>MemoryCore</code> 로 고정되어 있어서 나머지 세 컴포넌트는 CI 자체가 없다.</p>
+        </div>
+      </div>
+
+      <div class="figure" style="margin-top:16px;">
+        <p class="fig-title">README 와 코드가 어긋나는 지점 넷</p>
+        <p class="fig-sub">도입 판단이 걸리는 것만 골라 대조했다. 전수 조사가 아니다</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>README 의 서술</th><th>코드</th><th>도입에 미치는 영향</th></tr></thead>
+            <tbody>
+              <tr class="hero"><td>restricted 는 User/Role/Agent ACL 로 정밀 접근을 준다 (L110)</td><td>비관리자에게 ACL 조회가 도달하지 않고, agent 바인딩도 거부된다</td><td>ACL 기반 부분 공유를 설계에 넣으면 안 된다</td></tr>
+              <tr><td>팀 역할은 Admin 과 Member 둘 (L111)</td><td>타입은 셋. reviewer 는 member 와 권한이 같다</td><td>reviewer 를 권한 경계로 쓰면 안 된다</td></tr>
+              <tr><td>visibility 는 네 종류 (L206-211)</td><td>다섯 종류. task 가 빠져 있다</td><td>작다. task 는 agent 에 장착되지 않는다</td></tr>
+              <tr><td>Fixed Binding + ACL 로 agent 가 쓸 자산을 정한다 (L236)</td><td>주입 경로는 Fixed Binding 만 읽는다</td><td>agent 접근 제어는 바인딩 관리가 전부다</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>첫 행만 성격이 다르다. 나머지 셋은 문서가 코드보다 단순하게 적힌 정도이고,
+        첫 행은 광고된 기능이 판정 함수에 닿지 않는 경우다. 그 두 줄은 「가시성 다섯 등급」에 있다.
+        여기 실은 것은 그 사실이 도입 결정에 무엇을 뜻하는가뿐이다.</figcaption>
+      </div>
+
+      <div class="note warn"><b>Knowledge Service 에 인증 미들웨어가 없다.</b>
+      <code>MemoryKnowledge/src/server.ts:50</code> 에 붙는 것은 접근 로그와 에러 핸들러뿐이다.
+      <code>/v3/wiki/*</code> 는 조회뿐 아니라 <code>delete</code>, <code>page/write</code>, <code>raw/rm</code> 까지 열려 있고,
+      요구하는 것은 <code>x-tdai-service-id</code> 헤더 하나인데, 이건 인스턴스 식별자이지 자격 증명이 아니다.
+      그런데 기본 배포 스크립트는 이 포트를 호스트로 내보낸다
+      (<code>deploy/global-images/start-memory-hub.sh:94</code> 의 <code>-p "${KNOWLEDGE_PORT}:8424"</code>).
+      Panel 과 Knowledge 는 같은 컨테이너라서 "Panel 뒤에 둔다"는 선택지가 스크립트에 없다.
+      닫으려면 <code>-p</code> 한 줄을 직접 지워야 한다.</div>
+
+      <p class="note">한계 밖으로 가져갈 수 있는 것도 있다.
+      결정론적 asset_id 로 멱등성을 확보하는 방식(「identity」)과 인덱스를 메모리에서 SQLite 로 내려 메모리 상한을
+      대상 수와 분리하는 방식(「Wiki · 인덱스 저장」)은 이 저장소를 쓰지 않아도 그대로 쓸 수 있는 설계다.
+      둘 다 근거가 코드 주석에 남아 있어서 검증도 쉽다.</p>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adopt</p>
+      <h2>도입 판단. 격리된 로컬만 trial, 포트가 남에게 닿는 순간 assess 이하다</h2>
+      <p class="dek">기억 자산화라는 아이디어와 배포 기본값의 안전성은 갈라져 있다.
+      원클릭 배포는 게이트웨이 인증을 꺼 놓고 포트를 밖으로 내므로, 판정은 코드 품질보다
+      <b>그 포트에 누가 닿을 수 있는가</b>로 갈린다. 「공유의 두 경로」와 「해석의 한계」의 구멍은 그다음 문제다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th style="width:22%">상황</th><th style="width:10%">판단</th><th>근거</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>혼자, 네트워크에서 격리된 로컬</td><td>trial</td><td style="text-align:left;white-space:normal">원클릭 배포가 있고, 열려 있는 포트에 닿을 사람이 자기뿐이다</td></tr>
+            <tr class="hero"><td>같은 LAN 의 한 팀</td><td class="lose">assess</td><td style="text-align:left;white-space:normal">기본 배포가 게이트웨이 인증을 꺼 놓고 8420·8424 를 <code>0.0.0.0</code> 으로 낸다. 스크립트를 고쳐야 시작할 수 있다</td></tr>
+            <tr><td>여러 팀이 한 배포를 공유</td><td class="lose">assess</td><td style="text-align:left;white-space:normal"><code>INSTALL.md:267</code> 가 admin user_key 를 각자 셸 토큰으로 쓰라고 안내한다. 전원이 admin 이 되면 역할 구분이 무의미해진다</td></tr>
+            <tr class="hero"><td>외부 고객을 태우는 다중 테넌트</td><td class="lose">hold</td><td style="text-align:left;white-space:normal">테스트 0개 · CI 검사 없음 · <code>restricted</code> 미동작 · 인스턴스당 500명 상한</td></tr>
+            <tr><td>Wiki 아이디어만 참고</td><td>adopt</td><td style="text-align:left;white-space:normal">ingest-v2 와 index-db 두 디렉터리만 읽어도 값어치가 있다. MIT 다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid g2" style="margin-top:16px;">
+        <div class="card">
+          <span class="tag">라이선스</span>
+          <p class="small">LICENSE 파일 본문은 <code>TencentDB Agent Memory is licensed under the MIT.</code> 이고
+          그 아래 MIT 전문이 이어진다. 26줄이고 <b>carve-out 은 없다.</b> 트리 안의 유일한 라이선스 파일이다.
+          <code>CONTRIBUTING.md:145</code> 도 기여물이 프로젝트 MIT 로 들어간다고 못박고 CLA 없이 DCO sign-off 만 요구한다.
+          GitHub API 가 <code>NOASSERTION</code> 을 돌려주는 이유는 이 corpus 로 확인할 수 없다.</p>
+          <p class="small"><code>package.json</code> 은 갈린다. MemoryCore·MemoryKnowledge·SDK 는 <code>"license": "MIT"</code> 인데
+          MemoryProxy·MemoryPanel·openclaw-plugin 은 license 필드가 없다. 루트 LICENSE 가 덮는다고 읽는 것이 자연스럽지만
+          명시되어 있지는 않다. CodeGraph 가 의존하는 <code>@colbymchenry/codegraph</code> 는 별도 확인이 필요하다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">붙이면 무엇이 남는가</span>
+          <p class="small">컨테이너 3개(memory-core, memory-hub, proxy), named volume 2개, 도커 네트워크 1개,
+          호스트에 <code>.admin-key</code>(admin user_key 평문)와 <code>.memory-core-config/</code>·<code>.proxy-config/</code>
+          두 디렉터리. 생성된 core config 에는 <code>llm.apiKey</code> 가 평문으로 들어간다.
+          그리고 coding agent 의 <code>ANTHROPIC_BASE_URL</code> 변경.</p>
+          <p class="small"><b>되돌리기는 잘 정리돼 있다.</b> <code>stop-all.sh --purge</code> 한 줄이
+          볼륨·네트워크·키 파일·config 디렉터리 둘을 지운다(<code>stop-all.sh:34-59</code>). 컨테이너 삭제는 <code>--purge</code> 없이도 항상 돈다(<code>:25-32</code>).</p>
+        </div>
+      </div>
+
+      <div class="note"><b>의존이 생기는 곳.</b> LLM API 두 벌이 필요하다(기억 추출용, 프록시 상류용).
+      기본 설정은 텐센트 <code>api.lkeap.cloud.tencent.com</code> 의 <code>deepseek-v3.2</code> 를 가리키지만
+      OpenAI 호환이면 무엇이든 된다. 바꿀 수 없는 쪽이 더 중요하다.
+      MemoryCore 런타임이 텐센트가 배포하는 <code>@tencentdb-agent-memory/tcvdb-text ^0.1.1</code> 에 의존하고,
+      CodeGraph 자산 전체가 개인 스코프 npm 패키지 <code>@colbymchenry/codegraph ^1.2.0</code> 하나에 걸린다.
+      <code>sqlite-vec</code> 는 <code>0.1.7-alpha.2</code> 에 정확히 고정돼 있다.
+      Node 요구 버전은 컴포넌트마다 다르다. MemoryCore 만 22.16 이상이고 MemoryProxy 와 웹 프런트는 <code>engines</code> 자체가 없다.
+      멀티노드로 가면 COS 가 사실상 필수가 되고(<code>MemoryProxy/README.md:324</code>), 타이머 스캐너가 Redis ZSET 위에 서 있어 Redis 도 따라온다. 단일 노드면 SQLite 와 in-process 타이머만으로 돈다.</div>
+
+      <p class="note"><b>대화 내용이 어디로 나가는지</b>도 같이 봐야 한다. 프록시가 매 턴 대화를
+      MemoryCore <code>/v3/conversation/add</code> 로 밀어 넣고, MemoryCore 는 그것을
+      <code>MEMORY_LLM_*</code> 로 지정한 두 번째 LLM 에 추출용으로 다시 보낸다.
+      coding agent 트래픽 전량이 L0 에 원문으로 남고 별도 endpoint 로 재전송된다.
+      관측 벤더(Langfuse, ClickHouse)는 전부 기본 꺼짐이다.</p>
+
+      <p class="note">커밋 빈도와 기여자 분포는 shallow clone 이라 말할 수 없다.
+      <b>릴리스 규율은 다르다.</b> <code>CHANGELOG.md</code> 가 Keep a Changelog 형식으로
+      2.0.0(2026-08-03)과 2.0.0-beta.1(2026-07-21)을 기록하고, <code>CONTRIBUTING.md</code> 가 DCO sign-off 와
+      보안 신고 창구를 정한다. 다만 원클릭 배포가 띄우는 것은 이 커밋에서 빌드된 것이 아니라
+      Docker Hub 의 <code>:latest</code> 이미지이고, 이미지를 만드는 CI 는 저장소에 없다.</p>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론. 자산화는 끝났고, 공유 판정은 두 경로가 아직 만나지 않는다</h2>
+      <p class="dek">기억을 등록 가능한 자산으로 바꾸는 부분은 네 종류가 같은 테이블과 같은 등록 함수를 공유한다.
+      그 위에서 누가 무엇을 볼 수 있는지 정하는 부분은 두 갈래로 갈린 채 아직 합쳐지지 않았다.
+      네 달 된 저장소에서 예상 가능한 순서다.</p>
+
+      <ul class="clean">
+        <li><span class="m">✓</span><span><b>자산 평면과 내용 평면을 나눈 것</b>이 이 설계의 중심이다.
+        <code>meta_assets</code> 는 asset_id 를 만들지 않고 기록과 인가만 한다.
+        덕분에 네 종류가 서로 완전히 다른 저장소를 쓰면서도 같은 관리 화면에 들어온다.</span></li>
+        <li><span class="m">✓</span><span><b>결정론적 id 로 멱등성을 산다.</b>
+        <code>chat_memory-{team}-{agent}</code> 는 분산 락 없이 여러 pod 이 동시에 등록해도 안전하다.
+        충돌을 정상 경로로 처리하는 것이 요령이다. 예외로 다루면 이 이득이 사라진다.</span></li>
+        <li><span class="m">✓</span><span><b>대규모를 인스턴스 증식으로 푼다.</b>
+        메타데이터 DB 를 인스턴스마다 나누고, 인스턴스당 500명 상한을 걸었다.
+        Wiki 인덱스도 같은 발상으로 위키마다 파일을 나누고 연결 수만 상한을 뒀다.</span></li>
+        <li><span class="m bad">✗</span><span><b>공유의 두 경로가 만나지 않는다.</b>
+        사람 경로는 권한 판정 함수를, agent 경로는 고정 바인딩 테이블을 본다.
+        ACL 로만 열리는 <code>restricted</code> 등급은 양쪽 모두에서 막혀 실질적으로 존재하지 않는다.</span></li>
+        <li><span class="m bad">✗</span><span><b>격리를 강제하는 스위치가 기본으로 꺼져 있고 배포 설정에도 없다.</b>
+        켜지 않으면 격리 필드가 빠진 요청이 거부되지 않고 공용 <code>default</code> 버킷에 쌓인다.</span></li>
+      </ul>
+
+      <p class="note">Karpathy 의 gist 는 <code>The document's only job is to communicate the pattern.
+      Your LLM can figure out the rest.</code> 로 끝난다. 이 저장소는 그 패턴을 여러 팀이 쓰는 서비스로 옮기면서 무엇이 더 필요한지 보여 준다.
+      소유자, 가시성, 버전, 바인딩. 그 네 컬럼이 개인용 위키와 팀용 자산을 가르는 전부다.
+      그리고 그 네 컬럼을 실제로 강제하는 일이 컬럼을 만드는 일보다 어렵다는 것도 같이 보여 준다.</p>
+    </div>
+  </section>
+
+  <!-- 18 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처. 저장소 커밋 하나와 gist 하나</h2>
+      <p class="dek">모든 인용은 커밋 <code>fe3230f</code> 의 파일에서 가져왔다.
+      경로는 저장소 루트 기준이고, <code>git show fe3230f:&lt;path&gt;</code> 로 그대로 확인할 수 있다.</p>
+
+      <div class="src">
+        <p><b>r1 · 분석 대상 저장소</b><br>
+        <a href="https://github.com/TencentCloud/TencentDB-Agent-Memory">github.com/TencentCloud/TencentDB-Agent-Memory</a><br>
+        <span class="t">브랜치 <code>feat/server_team</code> (기본 브랜치) · 커밋
+        <code>fe3230f176f1bf5832fee79d12494bbc2d19a8aa</code> · 837 파일 ·
+        <code>--depth 1 --filter=blob:none</code> · 커밋 이력 없음 · MIT</span></p>
+
+        <p><b>g1 · Wiki 층의 출처로 README 가 밝힌 문서</b><br>
+        <a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f">gist.github.com/karpathy/442a6bf555914893e9891c11519de94f</a><br>
+        <span class="t">LLM Wiki. 2026-08-07 회수본. 「Wiki · gist 대조」는 이 회수본 기준이다</span></p>
+
+        <p><b>a1 · GitHub REST API</b><br>
+        <span class="t"><code>GET /repos/TencentCloud/TencentDB-Agent-Memory</code> · 2026-08-07 회수 ·
+        생성 2026-04-07, 마지막 push 2026-08-06, 기본 브랜치 <code>feat/server_team</code>.
+        문서가 쓰는 것은 이 셋뿐이다. star 와 fork 수는 회수해 두었지만 쓰지 않았다</span></p>
+
+        <p><b>같은 연구 라인의 문서</b><br>
+        <a href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">Retrieval as Reasoning: LLM-Wiki 논문 분석</a> ·
+        <a href="../2026-08-05-wikikv-hierarchical-kb-storage/">WikiKV: 계층형 지식베이스 저장 계층</a> ·
+        <a href="../2026-08-05-wikiloop-feedback-coupled-wiki/">WikiLoop: 구축과 순회를 함께 학습</a><br>
+        <span class="t">앞의 셋은 논문이고 이 문서는 구현체다. 위키를 agent 가 유지하는 아이디어를
+        논문 쪽에서 먼저 본 뒤 이 문서를 읽으면 무엇이 실제로 만들어졌는지 대조하기 쉽다</span></p>
+      </div>
+
+      <div class="note"><b>대상 저장소 안의 agent 지시문에 대하여.</b>
+      <code>MemoryCore/SKILL.md</code>, <code>SKILL-MIGRATION.md</code>,
+      <code>sdk/memory-core/*/AGENT_GUIDE.*.zh-CN.md</code> 는 모델에게 내리는 명령문 형식이다.
+      이 문서에서는 전부 분석 대상 자료로만 다뤘고 지시로 실행하지 않았다.</div>
+
+      <p class="note">이 저장소의 설계 근거는 대부분 중국어 주석으로 남아 있다.
+      본문에 옮길 때는 한국어로 풀어 쓰고 파일과 줄 번호를 함께 적었다.
+      원문을 대조하려면 그 줄을 열면 된다. 코드 식별자와 영어 원문은 그대로 뒀다.</p>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 18</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
