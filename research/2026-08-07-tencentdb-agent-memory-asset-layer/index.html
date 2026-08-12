@@ -135,6 +135,8 @@ body { margin: 0; }
 }
 .eyebrow::before { content: "[["; opacity: .45; }
 .eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
 h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
 h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
 h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
@@ -197,7 +199,7 @@ strong { font-weight: 700; }
   background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
 }
 .bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
-.bar { height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
 .bar.s1 { background: var(--link); }
 .bar.s2 { background: var(--redlink); }
 .bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
