@@ -245,6 +245,21 @@ pre .c { color: var(--muted); }
 .plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
 .plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
 
+/* 원문에서 그대로 가져온 그림. 색과 클래스 이름은 원문 페이지의 .cb-fig 정의를 옮긴 것이라
+   이 문서의 토큰을 쓰지 않는다. .plate 의 흰 바탕이 다크 모드에서도 이 그림을 살린다 */
+.cbfig { --cobalt-50: oklch(0.98 0.012 45); --cobalt-100: oklch(0.945 0.038 45);
+         --cobalt-300: oklch(0.79 0.125 39); --cobalt-600: #a93613; --label: rgb(0 0 0 / 0.5); }
+.cbfig svg { display: block; width: 100%; height: auto; }
+.cbfig .stroke { fill: none; stroke: var(--cobalt-600); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
+.cbfig .stroke-muted { fill: none; stroke: var(--cobalt-300); stroke-width: 1; vector-effect: non-scaling-stroke; }
+.cbfig .dash { stroke-dasharray: 4 4; }
+.cbfig .fill-white { fill: #fff; }
+.cbfig .fill-50 { fill: var(--cobalt-50); }
+.cbfig .fill-100 { fill: var(--cobalt-100); }
+.cbfig .fill-300 { fill: var(--cobalt-300); }
+.cbfig .svg-label { fill: var(--cobalt-600); font-family: var(--mono); font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
+.cbfig .svg-label-muted { fill: var(--label); font-family: var(--mono); font-size: 9px; letter-spacing: .05em; text-transform: uppercase; }
+
 /* ── svg charts ───────────────────────────────────────────── */
 .svgwrap { overflow-x: auto; }
 svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
@@ -423,12 +438,12 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         <div class="stat">
           <span class="lab">RRF 평활 상수</span>
           <span class="val">60</span>
-          <span class="sub">weight 기본 1.0, 리스트 6개 융합</span>
+          <span class="sub">weight 기본 1.0. fig-001 은 리스트 6개</span>
         </div>
         <div class="stat">
           <span class="lab">embedding 차원</span>
           <span class="val">3,072</span>
-          <span class="sub">pgvector + HNSW. 원문 그림 표기</span>
+          <span class="sub">pgvector + HNSW. 원문 fig-001 표기</span>
         </div>
         <div class="stat bad">
           <span class="lab">공개된 검색 품질 수치</span>
@@ -437,7 +452,109 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         </div>
       </div>
 
-      <p>원문은 자기 시스템이 세 가지를 제공한다고 적는다. 수집과 저장, 질의, 그리고 <span class="wl">authentication and authorization</span> 계층이다. 앞의 둘은 절반 이상의 분량으로 설명되고, <strong>세 번째는 그 한 문장 뒤로 다시 등장하지 않는다.</strong></p>
+      <figure class="figure">
+        <p class="fig-title">이 문서가 인용한 수치 셋은 산문이 아니라 이 그림에만 있다</p>
+        <p class="fig-sub">원문 fig-001 을 그대로 가져왔다. 시스템 전체를 여섯 층으로 분해한 원문의 중심 그림이다</p>
+        <div class="plate cbfig">
+<svg viewBox="0 0 900 760" role="img" aria-label="시스템 전체를 여섯 층으로 분해해 세로로 쌓은 원문 그림. 맨 아래 SOURCES 층에 SLACK - WIKI - CODE - INCIDENTS 가 적혀 있고, 그 위 DISTILLATION 층은 LLM EXTRACTORS, 그 위 EMBEDDINGS 층은 PGVECTOR - 3072-DIM - HNSW, 그 위 RETRIEVAL 층은 SIX LISTS IN PARALLEL, 그 위 FUSION + RERANK 층은 RRF (K=60) 다음에 LLM RERANK, 맨 위 SYNTHESIS 층은 ANSWER + CITATIONS 로 표기돼 있다." data-hero-stack>
+    <title id="fig-001-title">Exploded vertical stack of the internal knowledge base</title>
+    <desc id="fig-001-desc">Sources feed distillation, embeddings, retrieval, fusion, and synthesis layers.</desc>
+    <defs>
+      <marker id="arrow-001" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+        <path d="M0 0 10 5 0 10Z" fill="var(--cobalt-600)"/>
+      </marker>
+    </defs>
+    <g class="stroke-muted dash">
+      <path d="M235 104V656"/>
+      <path d="M665 104V656"/>
+      <path d="M450 152V608"/>
+    </g>
+    <g class="hero-layer">
+      <polygon class="fill-50 stroke" points="235,656 450,608 665,656 450,704"/>
+      <polygon class="fill-100 stroke-muted" points="235,656 450,704 450,724 235,676"/>
+      <polygon class="fill-100 stroke-muted" points="450,704 665,656 665,676 450,724"/>
+      <path class="fill-white stroke" d="M414 634H458L476 648V676H414Z"/>
+      <path class="stroke" d="M458 634V648H476"/>
+      <path class="stroke-muted" d="M424 656H466M424 663H466M424 670H450"/>
+      <rect class="fill-white stroke-muted" x="486" y="652" width="24" height="13"/>
+      <rect class="fill-white stroke-muted" x="514" y="652" width="24" height="13"/>
+      <text class="svg-label-muted" font-size="8" x="495" y="662">1</text>
+      <text class="svg-label-muted" font-size="8" x="523" y="662">2</text>
+      <text class="svg-label" x="712" y="646">SYNTHESIS</text>
+      <text class="svg-label-muted" x="712" y="670">ANSWER + CITATIONS</text>
+      <path class="stroke" marker-end="url(#arrow-001)" d="M712 656H674"/>
+    </g>
+    <g class="hero-layer">
+      <polygon class="fill-100 stroke" points="235,550 450,502 665,550 450,598"/>
+      <polygon class="fill-50 stroke-muted" points="235,550 450,598 450,610 235,562"/>
+      <polygon class="fill-50 stroke-muted" points="450,598 665,550 665,562 450,610"/>
+      <text class="svg-label" x="36" y="540">FUSION + RERANK</text>
+      <text class="svg-label-muted" x="36" y="564">RRF (K=60) -&gt; LLM RERANK</text>
+      <path class="stroke" marker-end="url(#arrow-001)" d="M196 550H226"/>
+    </g>
+    <g class="hero-layer">
+      <polygon class="fill-50 stroke" points="235,442 450,394 665,442 450,490"/>
+      <polygon class="fill-100 stroke-muted" points="235,442 450,490 450,510 235,462"/>
+      <polygon class="fill-100 stroke-muted" points="450,490 665,442 665,462 450,510"/>
+      <polygon class="fill-white stroke" points="291.4,441.2 446.2,406.6 458.1,409.2 303.3,443.8"/>
+      <polygon class="fill-50 stroke" points="321.5,447.9 476.3,413.3 488.2,416 333.4,450.5"/>
+      <polygon class="fill-white stroke" points="351.6,454.6 506.4,420 518.3,422.7 363.5,457.2"/>
+      <polygon class="fill-50 stroke" points="381.7,461.3 536.5,426.8 548.4,429.4 393.6,464"/>
+      <polygon class="fill-white stroke" points="411.8,468 566.6,433.5 578.5,436.1 423.7,470.7"/>
+      <polygon class="fill-50 stroke" points="441.9,474.8 596.7,440.2 608.6,442.8 453.8,477.4"/>
+      <text class="svg-label" x="712" y="432">RETRIEVAL</text>
+      <text class="svg-label-muted" x="712" y="456">SIX LISTS IN PARALLEL</text>
+      <path class="stroke" marker-end="url(#arrow-001)" d="M712 442H674"/>
+    </g>
+    <g class="hero-layer">
+      <polygon class="fill-100 stroke" points="235,322 450,274 665,322 450,370"/>
+      <polygon class="fill-100 stroke-muted" points="235,322 450,370 450,390 235,342"/>
+      <polygon class="fill-100 stroke-muted" points="450,370 665,322 665,342 450,390"/>
+      <ellipse class="fill-300 stroke" opacity="0.55" cx="450" cy="322" rx="150" ry="34"/>
+      <ellipse class="stroke-muted" cx="450" cy="322" rx="95" ry="21"/>
+      <ellipse class="fill-white stroke" cx="450" cy="322" rx="20" ry="4.5"/>
+      <path class="stroke-muted" d="M469 320.5 591 310"/>
+      <text class="svg-label" x="36" y="312">EMBEDDINGS</text>
+      <text class="svg-label-muted" x="36" y="336">PGVECTOR - 3072-DIM - HNSW</text>
+      <path class="stroke" marker-end="url(#arrow-001)" d="M196 322H226"/>
+    </g>
+    <g class="hero-layer">
+      <polygon class="fill-50 stroke" points="235,202 450,154 665,202 450,250"/>
+      <polygon class="fill-100 stroke-muted" points="235,202 450,250 450,270 235,222"/>
+      <polygon class="fill-100 stroke-muted" points="450,250 665,202 665,222 450,270"/>
+      <ellipse class="fill-50 stroke" cx="450" cy="190" rx="40" ry="10"/>
+      <path class="stroke" d="M410 190 444 216V232M490 190 456 216V232"/>
+      <path class="stroke-muted" d="M450 238V244"/>
+      <text class="svg-label" x="712" y="192">DISTILLATION</text>
+      <text class="svg-label-muted" x="712" y="216">LLM EXTRACTORS</text>
+      <path class="stroke" marker-end="url(#arrow-001)" d="M712 202H674"/>
+    </g>
+    <g class="hero-layer">
+      <polygon class="fill-50 stroke" points="235,84 450,36 665,84 450,132"/>
+      <polygon class="fill-100 stroke-muted" points="235,84 450,132 450,152 235,104"/>
+      <polygon class="fill-100 stroke-muted" points="450,132 665,84 665,104 450,152"/>
+      <polygon class="fill-white stroke" points="408,62.4 450,52.4 492,62.4 450,72.4"/>
+      <polygon class="fill-100 stroke-muted" points="408,62.4 450,72.4 450,78.4 408,68.4"/>
+      <polygon class="fill-100 stroke-muted" points="450,72.4 492,62.4 492,68.4 450,78.4"/>
+      <polygon class="fill-white stroke" points="504.8,84 546.8,74 588.8,84 546.8,94"/>
+      <polygon class="fill-100 stroke-muted" points="504.8,84 546.8,94 546.8,100 504.8,90"/>
+      <polygon class="fill-100 stroke-muted" points="546.8,94 588.8,84 588.8,90 546.8,100"/>
+      <polygon class="fill-white stroke" points="408,105.6 450,95.6 492,105.6 450,115.6"/>
+      <polygon class="fill-100 stroke-muted" points="408,105.6 450,115.6 450,121.6 408,111.6"/>
+      <polygon class="fill-100 stroke-muted" points="450,115.6 492,105.6 492,111.6 450,121.6"/>
+      <polygon class="fill-white stroke" points="311.2,84 353.2,74 395.2,84 353.2,94"/>
+      <polygon class="fill-100 stroke-muted" points="311.2,84 353.2,94 353.2,100 311.2,90"/>
+      <polygon class="fill-100 stroke-muted" points="353.2,94 395.2,84 395.2,90 353.2,100"/>
+      <text class="svg-label" x="36" y="74">SOURCES</text>
+      <text class="svg-label-muted" x="36" y="98">SLACK - WIKI - CODE - INCIDENTS</text>
+      <path class="stroke" marker-end="url(#arrow-001)" d="M196 84H226"/>
+    </g>
+  </svg>
+        </div>
+        <figcaption>원문 fig-001. <span class="wl">PGVECTOR - 3072-DIM - HNSW</span>, <span class="wl">SIX LISTS IN PARALLEL</span>, <span class="wl">RRF (K=60)</span> 는 원문 본문 어디에도 적혀 있지 않고 이 그림에만 있다. 텍스트로 변환하면 사라지므로 보관본 HTML 에서 직접 읽었다. 층의 순서는 아래에서 위로 읽는다.</figcaption>
+      </figure>
+
+      <p>원문은 자기 시스템이 세 가지를 제공한다고 적는다. 수집과 저장, 질의, 그리고 <span class="wl">authentication and authorization, with auditing and analytics</span> 계층이다. 앞의 둘은 절반 이상의 분량으로 설명되고, <strong>세 번째는 그 한 문장 뒤로 다시 등장하지 않는다.</strong> 권한만이 아니라 감사와 분석까지 한 줄에 묶여 통째로 비어 있다.</p>
 
       <p>커뮤니티의 반응도 이 비대칭을 그대로 반영한다. Hacker News에 원문이 네 번 제출됐고 최고 3점, 댓글 0개에 그쳤다. 논의가 붙은 것은 원문을 인용한 2차 글 한 편이었고, 그 댓글은 검색이 아니라 Dunbar 수와 Coase의 기업 이론으로 갔다. 검색 파이프라인 자체는 논쟁거리로 취급되지 않았다.</p>
 
@@ -473,76 +590,60 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <p class="dek">Slack 스레드부터 netlist까지 전부 같은 embeddings 테이블에 들어가고, 그 테이블에 있는 것은 전부 같은 인터페이스로 질의된다. 쓰기 쪽의 다양성과 읽기 쪽의 다양성이 가운데 한 지점에서만 만난다.</p>
 
       <figure class="figure">
-        <p class="fig-title">쓰기 쪽 커넥터를 늘려도 읽기 쪽은 한 줄도 바뀌지 않는다</p>
-        <p class="fig-sub">원문의 산문과 아키텍처 그림을 하나로 합쳐 다시 그린 것. 원문에는 이 형태의 그림이 없다</p>
-        <div class="svgwrap">
-        <svg class="chart" viewBox="0 0 760 300" role="img" aria-label="이종 소스가 단일 embeddings 테이블로 수렴했다가 다시 갈라지는 모래시계 구조. 왼쪽에 Slack 채널, 코드 저장소, 문서 공간, 팀 자체 DB 네 종류의 소스가 있고 각각 화살표로 가운데의 embeddings 테이블 하나로 모인다. 테이블은 document, embedding, metadata, source, timestamp 다섯 칸을 가지며 pgvector와 HNSW 인덱스, 3072차원, full-text GIN 인덱스로 표기돼 있다. 테이블에서 다시 오른쪽으로 MCP 도구, 웹 UI, 자동화 스크립트 세 갈래로 화살표가 나간다. 왼쪽 아래에는 커넥터를 추가하는 경로가 Python 플러그인 pull request로 표시돼 있다. 테이블 바로 아래에 붉은 상자가 하나 더 있는데, authz와 감사와 분석 계층이며 원문이 한 번 언급하고 끝났다고 적혀 있다.">
-          <text class="txt-m" x="8" y="14">쓰기: 소스마다 다름</text>
-          <text class="txt-m" x="298" y="14">좁은 허리</text>
-          <text class="txt-m" x="590" y="14">읽기: 소비자마다 다름</text>
-
-          <rect class="box" x="8" y="26" width="150" height="42" rx="8"/>
-          <text class="txt" x="20" y="45">Slack 채널</text>
-          <text class="txt-s" x="20" y="60">채널 하나 = 소스 하나</text>
-
-          <rect class="box" x="8" y="80" width="150" height="42" rx="8"/>
-          <text class="txt" x="20" y="99">코드 저장소</text>
-          <text class="txt-s" x="20" y="114">CocoIndex, 커밋 단위 갱신</text>
-
-          <rect class="box" x="8" y="134" width="150" height="42" rx="8"/>
-          <text class="txt" x="20" y="153">문서 공간</text>
-          <text class="txt-s" x="20" y="168">wiki, 사내 문서</text>
-
-          <rect class="box" x="8" y="188" width="150" height="42" rx="8"/>
-          <text class="txt" x="20" y="207">팀 자체 DB</text>
-          <text class="txt-s" x="20" y="222">Python 플러그인 PR</text>
-
-          <path class="arw" d="M158 47 L206 47 L206 128 L286 128"/>
-          <path class="arw" d="M158 101 L226 101 L226 140 L286 140"/>
-          <path class="arw" d="M158 155 L226 155 L226 152 L286 152"/>
-          <path class="arw" d="M158 209 L206 209 L206 164 L286 164"/>
-          <path class="arw" d="M279 141 L286 146 L279 151"/>
-
-          <rect class="box-hi" x="290" y="86" width="184" height="122" rx="8"/>
-          <text class="txt" x="304" y="106">embeddings 테이블</text>
-          <text class="txt-s" x="304" y="124">document · embedding</text>
-          <text class="txt-s" x="304" y="140">metadata · source</text>
-          <text class="txt-s" x="304" y="156">timestamp</text>
-          <text class="txt-m" x="304" y="176">pgvector · 3072-dim</text>
-          <text class="txt-m" x="304" y="192">HNSW · full-text GIN</text>
-
-          <path class="arw-hi" d="M474 128 L536 128 L536 60 L600 60"/>
-          <path class="arw-hi" d="M474 147 L556 147 L600 147"/>
-          <path class="arw-hi" d="M474 166 L536 166 L536 234 L600 234"/>
-          <path class="arw-hi" d="M593 55 L600 60 L593 65"/>
-          <path class="arw-hi" d="M593 142 L600 147 L593 152"/>
-          <path class="arw-hi" d="M593 229 L600 234 L593 239"/>
-
-          <rect class="box" x="604" y="39" width="148" height="42" rx="8"/>
-          <text class="txt" x="616" y="58">MCP 도구</text>
-          <text class="txt-s" x="616" y="73">에이전트가 직접 조합</text>
-
-          <rect class="box" x="604" y="126" width="148" height="42" rx="8"/>
-          <text class="txt" x="616" y="145">웹 UI</text>
-          <text class="txt-s" x="616" y="160">planner가 대신 조합</text>
-
-          <rect class="box" x="604" y="213" width="148" height="42" rx="8"/>
-          <text class="txt" x="616" y="232">자동화 스크립트</text>
-          <text class="txt-s" x="616" y="247">사람 없이 질의</text>
-
-          <rect class="box-bad" x="290" y="232" width="184" height="46" rx="8"/>
-          <text class="txt" x="304" y="251">authz · 감사 · 분석</text>
-          <text class="txt-s" x="304" y="267">원문이 한 번 언급하고 끝</text>
-        </svg>
+        <p class="fig-title">여섯 종류의 소스가 테이블 하나로 들어가고 질의는 한 창구로 나간다</p>
+        <p class="fig-sub">원문 fig-002 를 그대로 가져왔다. 색과 라벨은 원문의 것이다</p>
+        <div class="plate cbfig">
+<svg viewBox="0 0 900 500" role="img" aria-label="이종 소스 여섯 개가 embeddings 테이블 하나로 모이는 원문 그림. 왼쪽에 SLACK, WIKI/CONFLUENCE, CODE REPOS, NETLISTS, PRM DOCS, CUSTOM DATABASES 여섯 상자가 세로로 놓이고, 각각에서 나온 선이 하나로 합쳐져 가운데 EMBEDDINGS 상자로 들어간다. 그 상자 안에 DOCUMENT, EMBEDDING, METADATA, SOURCE + TIMESTAMPS 네 줄이 적혀 있고 아래에 ONE EMBEDDINGS TABLE 이라고 쓰여 있다. 오른쪽으로 화살표가 나가 QUERY 상자에 닿고 그 위에 MCP - WEB UI - AGENTS 가 적혀 있다. 왼쪽 아래에는 ONE CONNECTOR PER SOURCE 라고 쓰여 있다.">
+    <title id="fig-002-title">Many data sources feeding one queryable embeddings table</title>
+    <defs>
+      <marker id="arrow-002" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M0 0 10 5 0 10Z" fill="var(--cobalt-600)"/>
+      </marker>
+    </defs>
+    <g class="stroke">
+      <rect class="fill-white" x="48" y="60" width="200" height="44"/>
+      <rect class="fill-white" x="48" y="126" width="200" height="44"/>
+      <rect class="fill-white" x="48" y="192" width="200" height="44"/>
+      <rect class="fill-white" x="48" y="258" width="200" height="44"/>
+      <rect class="fill-white" x="48" y="324" width="200" height="44"/>
+      <rect class="fill-white" x="48" y="390" width="200" height="44"/>
+      <rect class="fill-100" x="396" y="152" width="228" height="190"/>
+      <rect class="fill-50" x="700" y="210" width="160" height="74"/>
+      <path d="M248 82H322M248 148H322M248 214H322M248 280H322M248 346H322M248 412H322"/>
+      <path d="M322 82V412"/>
+      <path marker-end="url(#arrow-002)" d="M322 247H388"/>
+      <path marker-end="url(#arrow-002)" d="M624 247H692"/>
+      <path d="M396 200H624"/>
+    </g>
+    <g class="svg-label">
+      <text x="68" y="86">SLACK</text>
+      <text x="68" y="152">WIKI / CONFLUENCE</text>
+      <text x="68" y="218">CODE REPOS</text>
+      <text x="68" y="284">NETLISTS</text>
+      <text x="68" y="350">PRM DOCS</text>
+      <text x="68" y="416">CUSTOM DATABASES</text>
+      <text x="420" y="184">EMBEDDINGS</text>
+      <text x="780" y="247" text-anchor="middle" dominant-baseline="middle">QUERY</text>
+    </g>
+    <g class="svg-label-muted">
+      <text x="420" y="234">DOCUMENT</text>
+      <text x="420" y="264">EMBEDDING</text>
+      <text x="420" y="294">METADATA</text>
+      <text x="420" y="324">SOURCE + TIMESTAMPS</text>
+      <text x="700" y="196">MCP - WEB UI - AGENTS</text>
+      <text x="396" y="372">ONE EMBEDDINGS TABLE</text>
+      <text x="48" y="468">ONE CONNECTOR PER SOURCE</text>
+    </g>
+  </svg>
         </div>
-        <figcaption>원문은 <span class="wl">"every source, from Slack threads to netlists, lands in the same embeddings table"</span>이라고 쓴다. 다섯 칸 이름은 원문 아키텍처 그림의 라벨 <span class="wl">DOCUMENT / EMBEDDING / METADATA / SOURCE + TIMESTAMPS</span>에서 읽었고, DataSci Ocean이 원문 본문의 코드 블록을 읽은 결과와 일치한다. 그 코드 블록 자체는 내가 쓴 텍스트 변환 경로에서 누락됐다. 붉은 상자는 원문에 설명이 없는 계층이다.</figcaption>
+        <figcaption>원문 fig-002. 원문이 소스로 든 것은 여섯 가지이고 <span class="wl">NETLISTS</span> 와 <span class="wl">PRM DOCS</span> 가 거기 들어 있다. 반도체 회사의 코퍼스가 문서와 코드만으로 이뤄져 있지 않다는 뜻이다. 테이블 칸은 <span class="wl">DOCUMENT · EMBEDDING · METADATA · SOURCE + TIMESTAMPS</span> 네 라벨로 적혀 있다. <strong>원문에 스키마를 적은 코드 블록은 없다.</strong> 페이지 전체에 <span class="wl">&lt;pre&gt;</span> 가 하나도 없고, 산문은 <span class="wl">"embeddings, raw summaries, and metadata"</span> 셋만 든다. DataSci Ocean 이 말한 다섯 칸은 이 그림의 <span class="wl">SOURCE + TIMESTAMPS</span> 를 둘로 나눠 읽은 것이고, 스레드 예시 그림(fig-004)은 또 <span class="wl">source · source_id · embedding · metadata</span> 넷을 보여준다. 칸의 정확한 수를 원문이 확정해 주지 않는다. 이 그림에 <strong>권한 계층은 없다.</strong> 원문이 세 기능 중 하나로 센 계층이 자기 아키텍처 그림에도 나타나지 않는다.</figcaption>
       </figure>
 
-      <p>이 구조의 값은 정돈돼 보인다는 데 있지 않다. <strong>쓰기 쪽과 읽기 쪽을 따로 바꿀 수 있다</strong>는 데 있다. 소스를 추가하면 다섯 칸을 채우는 커넥터만 쓰면 되고 읽기 쪽 코드는 바뀌지 않는다. 검색 전략을 바꾸면 읽기 쪽만 바뀌고 커넥터는 그대로다.</p>
+      <p>이 구조의 값은 정돈돼 보인다는 데 있지 않다. <strong>쓰기 쪽과 읽기 쪽을 따로 바꿀 수 있다</strong>는 데 있다. 그림 왼쪽 아래의 <span class="wl">ONE CONNECTOR PER SOURCE</span> 가 그 규칙이다. 소스를 추가하면 같은 칸을 채우는 커넥터만 쓰면 되고 읽기 쪽 코드는 바뀌지 않는다. 검색 전략을 바꾸면 읽기 쪽만 바뀌고 커넥터는 그대로다.</p>
 
       <p>커넥터 추가를 조직적으로 푼 방식이 이 설계의 실제 시험대다. 팀이 자기 DB를 옮기고 싶어하지 않을 때, Cerebras는 <strong>플러그인 스크립트</strong>로 받는다. 팀이 pull request를 열어 자기 시스템에서 읽어 embeddings 테이블 모양의 행을 뱉는 작은 Python 모듈과 데이터 소스 항목 하나를 낸다. 같은 스키마로 쓰기만 하면 나머지 스택은 그대로 동작한다.</p>
 
-      <p class="note"><b>이 장은 데이터가 어떻게 들어가는지만 다룬다.</b> 같은 테이블에 회사 전체 지식이 들어간다는 것은 곧 행마다 열람 권한이 다르다는 뜻이다. 붉은 상자가 그 계층이고, 12장이 그것만 다룬다.</p>
+      <p class="note"><b>이 장은 데이터가 어떻게 들어가는지만 다룬다.</b> 같은 테이블에 회사 전체 지식이 들어간다는 것은 곧 행마다 열람 권한이 다르다는 뜻인데, 그 계층은 원문 산문에도 이 그림에도 없다. 12장이 그것만 다룬다.</p>
     </div>
   </section>
 
@@ -607,8 +708,8 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">fusion</p>
-      <h2>네 신호가 각자 순위를 내고 순위끼리 합친다</h2>
-      <p class="dek">단일 채점자를 믿지 않는다. 각 기법이 같은 코퍼스에 대해 자기 순위를 만들고 질의 시점에 융합된다. 융합이 점수가 아니라 순위를 쓰기 때문에 척도가 다른 채점자를 정규화 없이 섞을 수 있다.</p>
+      <h2>Slack 안에서는 네 신호가, 시스템 전체에서는 여섯 retriever가 순위를 낸다</h2>
+      <p class="dek">단일 채점자를 믿지 않는다. 다만 원문은 두 층을 따로 말한다. Slack 검색 안에서 네 신호가 서로의 약점을 메우고, 시스템 전체에서는 코퍼스별 retriever 여섯이 각자 순위를 만든다. 융합이 점수가 아니라 순위를 쓰기 때문에 척도가 다른 채점자를 정규화 없이 섞을 수 있다.</p>
 
       <div class="tablewrap">
         <table>
@@ -626,15 +727,16 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
 
       <figure class="figure">
         <p class="fig-title">여섯 개의 순위 리스트가 RRF로 합쳐진 뒤 두 번 더 줄어든다</p>
-        <p class="fig-sub">원문의 아키텍처 그림에 적힌 단계와 산문의 수치를 합쳐 다시 그린 것</p>
+        <p class="fig-sub">원문 fig-008 의 리스트 이름과 산문의 수치를 합쳐 그린 것. 원문에 이 형태의 그림은 없다</p>
         <div class="svgwrap">
-        <svg class="chart" viewBox="0 0 760 232" role="img" aria-label="검색 결과가 좁혀지는 5단계 파이프라인. 왼쪽에서 여섯 개의 순위 리스트가 병렬로 나오는데 full-text, embedding, IDF, age decay, code, subsystem이다. RRF 융합 단계에서 문서마다 weight를 60 더하기 rank로 나눈 값을 합산해 하나의 순위로 합치며 weight 기본값은 1.0이다. 다음 단계에서 중복 chunk를 원본 단위로 합치고 파일당 기여 개수에 상한을 걸어 상위 20개를 만든다. 그 다음 작은 reranker 모델이 0에서 10점을 매겨 상위 10개만 남긴다. 마지막 단계에서 남은 결과에 주변 문맥을 다시 붙이는데, wiki 섹션이 걸리면 앞뒤 두 섹션을 함께 가져온다. 마지막 단계에서만 결과의 크기가 다시 커진다.">
-          <rect class="box" x="8" y="46" width="126" height="96" rx="8"/>
-          <text class="txt" x="20" y="66">순위 리스트 6개</text>
-          <text class="txt-s" x="20" y="84">full-text · embedding</text>
-          <text class="txt-s" x="20" y="100">IDF · age decay</text>
-          <text class="txt-s" x="20" y="116">code · subsystem</text>
-          <text class="txt-m" x="20" y="134">병렬 실행</text>
+        <svg class="chart" viewBox="0 0 760 232" role="img" aria-label="검색 결과가 좁혀지는 5단계 파이프라인. 왼쪽에서 여섯 개의 순위 리스트가 병렬로 나오는데 VECTOR, FTS, THREAD SUMMARIES, GRAPH, WIKI VECTOR, SLACK FTS이다. RRF 융합 단계에서 문서마다 weight를 60 더하기 rank로 나눈 값을 합산해 하나의 순위로 합치며 weight 기본값은 1.0이다. 다음 단계에서 중복 chunk를 원본 단위로 합치고 파일당 기여 개수에 상한을 걸어 상위 20개를 만든다. 그 다음 작은 reranker 모델이 0에서 10점을 매겨 상위 10개만 남긴다. 마지막 단계에서 남은 결과에 주변 문맥을 다시 붙이는데, wiki 섹션이 걸리면 앞뒤 두 섹션을 함께 가져온다. 마지막 단계에서만 결과의 크기가 다시 커진다.">
+          <rect class="box" x="8" y="40" width="126" height="116" rx="8"/>
+          <text class="txt" x="20" y="64">순위 리스트 6개</text>
+          <text class="txt-s" x="20" y="81">VECTOR · FTS</text>
+          <text class="txt-s" x="20" y="96">THREAD SUMMARIES</text>
+          <text class="txt-s" x="20" y="111">GRAPH · WIKI VECTOR</text>
+          <text class="txt-s" x="20" y="126">SLACK FTS</text>
+          <text class="txt-m" x="20" y="146">병렬 실행</text>
 
           <path class="arw" d="M134 94 L164 94"/>
           <path class="arw" d="M157 89 L164 94 L157 99"/>
@@ -682,10 +784,12 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
           <text class="txt-s" x="8" y="216">chunking이 잘라낸 heading, 전제조건, 단서를 마지막에 되붙인다</text>
         </svg>
         </div>
-        <figcaption>리스트 6개라는 수는 원문 아키텍처 그림의 <span class="wl">SIX LISTS IN PARALLEL</span> 표기에서 읽었고, 어떤 여섯인지는 원문이 명시하지 않는다. 그림의 여섯 칸 이름은 원문의 도구 목록에서 유추한 것이라 실제 구성과 다를 수 있다. 융합식과 상수 60, 상위 20과 상위 10은 원문 산문에 그대로 적힌 값이다.</figcaption>
+        <figcaption>원문 fig-008 이 여섯 리스트의 이름을 그대로 적는다. <span class="wl">VECTOR</span>, <span class="wl">FTS</span>, <span class="wl">THREAD SUMMARIES</span>, <span class="wl">GRAPH</span>, <span class="wl">WIKI VECTOR</span>, <span class="wl">SLACK FTS</span> 다. <strong>신호별이 아니라 코퍼스별로 갈린다.</strong> 위 표의 네 신호는 Slack 절의 서술이고 이 여섯은 Reranking 절의 그림이라 층이 다르다. IDF 와 age decay 는 별도 리스트가 아니라 Slack 검색 안에서 쓰이는 신호다. 융합식과 상수 60, 상위 20 과 상위 10 은 원문 산문에 그대로 적힌 값이다.</figcaption>
       </figure>
 
       <p>상수 60이 하는 일은 <strong>한 채점자의 강한 확신보다 여러 채점자의 합의를 무겁게 만드는 것</strong>이다. 분모가 60에서 시작하므로 1위와 5위의 기여 차이가 크지 않고, 여러 리스트에 고르게 등장한 문서가 한 리스트에서만 1위인 문서를 이긴다.</p>
+
+      <p>여섯 중 하나는 원문 산문이 한 번도 설명하지 않는다. <strong><span class="wl">GRAPH</span> retriever</strong>다. 그림에서는 <span class="wl">CLASS: CHECKPOINTLOADER</span> 와 <span class="wl">MANIFEST_PARSER.H</span> 를 상위로 올리므로 코드 심볼 사이의 관계를 타는 검색으로 보이지만, 무엇으로 그래프를 만들고 무엇을 간선으로 삼는지는 원문 어디에도 없다. 이 문서도 그 이상을 말하지 않는다.</p>
 
       <p class="note"><b>60은 Cerebras가 고른 값이 아니라 물려받은 값이다.</b> 원문이 참조 (3)으로 단 Cormack 외의 SIGIR 2009 논문에서 온 기본값이고, Cerebras 코퍼스에 맞춰 조정했다는 언급은 없다. 나는 이 논문을 열지 않았으므로 60이 그 논문에서 어떤 근거로 나온 값인지에 대해서는 아무것도 주장하지 않는다.</p>
     </div>
@@ -717,54 +821,57 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <p><strong>웹 UI에서는 planner와 executor를 시스템이 갖는다.</strong> 사용자에게는 질문을 넣으면 답이 나오는 창구지만 내부는 MCP 클라이언트가 명시적으로 재현할 수 있는 것과 같은 패턴이다.</p>
 
       <figure class="figure">
-        <p class="fig-title">되돌아오는 화살표가 없다는 것이 이 구조의 경계다</p>
-        <p class="fig-sub">원문이 서술한 단계를 그린 것. 점선 화살표는 원문에 없는 경로다</p>
-        <div class="svgwrap">
-        <svg class="chart" viewBox="0 0 760 220" role="img" aria-label="질의 처리 흐름. 질의가 planner로 들어가면 planner가 한 번 도구를 고르고, executor가 그 도구들을 병렬로 실행한 뒤 결과를 공통 증거 형식으로 정규화하고, synthesis LLM이 답을 만들고, 마지막 상자에서 답변으로 종료한다. 질의, planner, executor, synthesis, 답변 다섯 상자가 왼쪽에서 오른쪽으로 한 줄로 이어지며 되돌아오는 화살표가 없다. 그림 아래쪽에 점선으로 그려진 화살표가 synthesis에서 planner로 돌아가는 경로를 나타내는데, 이 경로는 원문에 존재하지 않으며 증거가 부족하다고 판단해 다시 검색하는 단계가 없다는 뜻이다.">
-          <rect class="box" x="8" y="34" width="118" height="66" rx="8"/>
-          <text class="txt" x="20" y="54">질의</text>
-          <text class="txt-s" x="20" y="72">사용자 질문 +</text>
-          <text class="txt-s" x="20" y="88">활성 project</text>
-
-          <path class="arw" d="M126 67 L160 67"/>
-          <path class="arw" d="M153 62 L160 67 L153 72"/>
-
-          <rect class="box-hi" x="164" y="34" width="130" height="66" rx="8"/>
-          <text class="txt" x="176" y="54">planner</text>
-          <text class="txt-s" x="176" y="72">가벼운 LLM 1회</text>
-          <text class="txt-s" x="176" y="88">도구 선택만 한다</text>
-
-          <path class="arw" d="M294 67 L328 67"/>
-          <path class="arw" d="M321 62 L328 67 L321 72"/>
-
-          <rect class="box" x="332" y="34" width="140" height="66" rx="8"/>
-          <text class="txt" x="344" y="54">executor</text>
-          <text class="txt-s" x="344" y="72">병렬 fan-out</text>
-          <text class="txt-s" x="344" y="88">공통 증거 형식으로</text>
-
-          <path class="arw" d="M472 67 L506 67"/>
-          <path class="arw" d="M499 62 L506 67 L499 72"/>
-
-          <rect class="box" x="510" y="34" width="130" height="66" rx="8"/>
-          <text class="txt" x="522" y="54">synthesis</text>
-          <text class="txt-s" x="522" y="72">LLM 1회</text>
-          <text class="txt-s" x="522" y="88">인용과 단서 포함</text>
-
-          <path class="arw" d="M640 67 L674 67"/>
-          <path class="arw" d="M667 62 L674 67 L667 72"/>
-          <rect class="box" x="678" y="34" width="74" height="66" rx="8"/>
-          <text class="txt" x="690" y="54">답변</text>
-          <text class="txt-s" x="690" y="72">종료</text>
-
-          <path class="arw" style="stroke-dasharray:5 4; stroke:var(--redlink)" d="M575 100 L575 154 L229 154 L229 100"/>
-          <path class="arw" style="stroke:var(--redlink)" d="M224 107 L229 100 L234 107"/>
-          <text class="txt-s" style="fill:var(--redlink)" x="300" y="148">이 경로가 원문에 없다</text>
-
-          <text class="txt-s" x="8" y="186">증거가 부족하다는 판단도, 앞 결과를 보고 다음 질의를 정하는 순차 의존도 표현되지 않는다.</text>
-          <text class="txt-s" x="8" y="204">병렬 fan-out의 전제가 도구끼리 독립이라는 것이기 때문이다.</text>
-        </svg>
+        <p class="fig-title">원문의 그림에도 되돌아오는 화살표가 없다</p>
+        <p class="fig-sub">원문 fig-007 을 그대로 가져왔다. 화살표는 전부 왼쪽에서 오른쪽으로만 간다</p>
+        <div class="plate cbfig">
+<svg viewBox="0 0 900 460" role="img" aria-label="planner 와 병렬 도구 실행과 synthesis 를 그린 원문 그림. 왼쪽 QUESTION 상자에서 화살표가 PLANNER 로 가고, PLANNER 에서 다섯 갈래가 동시에 뻗어 SEARCH, SEARCH_SLACK, SEARCH_CODE, RECENT_PRS, WHO_KNOWS 다섯 상자에 각각 닿는다. 다섯 상자에서 나온 화살표는 모두 오른쪽 EVIDENCE 상자로 모이고, 거기서 아래 SYNTHESIS 상자로 내려간다. 모든 화살표가 왼쪽에서 오른쪽으로만 향하며 뒤로 돌아오는 화살표는 하나도 없다.">
+    <title id="fig-007-title">Planner, parallel tool execution, evidence normalization, and synthesis</title>
+    <defs>
+      <marker id="arrow-007" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
+        <path d="M0 0 10 5 0 10Z" fill="var(--cobalt-600)"/>
+      </marker>
+    </defs>
+    <g class="stroke">
+      <rect class="fill-white" x="58" y="188" width="142" height="64"/>
+      <rect class="fill-100" x="274" y="188" width="142" height="64"/>
+      <rect class="fill-white" x="492" y="48" width="150" height="52"/>
+      <rect class="fill-white" x="492" y="122" width="150" height="52"/>
+      <rect class="fill-white" x="492" y="196" width="150" height="52"/>
+      <rect class="fill-white" x="492" y="270" width="150" height="52"/>
+      <rect class="fill-white" x="492" y="344" width="150" height="52"/>
+      <rect class="fill-100" x="704" y="142" width="148" height="64"/>
+      <rect class="fill-100" x="704" y="264" width="148" height="64"/>
+      <path marker-end="url(#arrow-007)" d="M200 220H266"/>
+      <path marker-end="url(#arrow-007)" d="M416 220H458V74H484"/>
+      <path marker-end="url(#arrow-007)" d="M416 220H458V148H484"/>
+      <path marker-end="url(#arrow-007)" d="M416 220H484"/>
+      <path marker-end="url(#arrow-007)" d="M416 220H458V296H484"/>
+      <path marker-end="url(#arrow-007)" d="M416 220H458V370H484"/>
+      <path marker-end="url(#arrow-007)" d="M642 74H674V174H696"/>
+      <path marker-end="url(#arrow-007)" d="M642 148H696"/>
+      <path marker-end="url(#arrow-007)" d="M642 222H674V174H696"/>
+      <path marker-end="url(#arrow-007)" d="M642 296H674V296H696"/>
+      <path marker-end="url(#arrow-007)" d="M642 370H674V296H696"/>
+      <path marker-end="url(#arrow-007)" d="M778 206V256"/>
+    </g>
+    <g class="svg-label" text-anchor="middle" dominant-baseline="middle">
+      <text x="129" y="220">QUESTION</text>
+      <text x="345" y="220">PLANNER</text>
+      <text x="567" y="74">SEARCH</text>
+      <text x="567" y="148">SEARCH_SLACK</text>
+      <text x="567" y="222">SEARCH_CODE</text>
+      <text x="567" y="296">RECENT_PRS</text>
+      <text x="567" y="370">WHO_KNOWS</text>
+      <text x="778" y="166">EVIDENCE</text>
+      <text x="778" y="288">SYNTHESIS</text>
+    </g>
+    <g class="svg-label-muted" text-anchor="middle" dominant-baseline="middle">
+      <text x="778" y="190">NORMALIZED ROWS</text>
+      <text x="778" y="312">ANSWER + CITATIONS</text>
+    </g>
+  </svg>
         </div>
-        <figcaption>이 판단은 원문이 아니라 DataSci Ocean의 읽기다. 원문은 자기 구조를 agentic이라 부르지 않고 이 경계를 언급하지도 않는다. 표현을 그대로 옮기면 <span class="wl">"a traditional RAG pipeline that uses an LLM for dynamic routing"</span>이며, LLM이 결정에 관여한다는 것과 agentic이라는 것은 다르다는 지적이다.</figcaption>
+        <figcaption>원문 fig-007. 이 그림에서 확인할 수 있는 것이 둘이다. 하나는 뒤로 오는 화살표가 없다는 것이고, 증거가 부족하다는 판단도 앞 결과를 보고 다음 질의를 정하는 순차 의존도 여기에 자리가 없다. 다른 하나는 <strong>도구가 다섯 개만 그려져 있다는 것이다.</strong> 산문은 여섯 개를 나열하는데 그림에는 <span class="wl">subsystem_index</span> 가 빠져 있다. 단일 라운드라는 판단 자체는 원문이 아니라 DataSci Ocean 의 읽기이고, 그쪽 표현으로는 <span class="wl">"a traditional RAG pipeline that uses an LLM for dynamic routing"</span> 이다. 다만 원문이 agentic 이라는 말과 무관한 것은 아니다. planner 에서 synthesis 까지를 서술한 그 문장 끝에 원문은 각주 (4) 로 <span class="wl">Search-o1: Agentic Search-Enhanced Large Reasoning Models</span> 를 단다. <strong>스스로를 agentic 이라 부르지는 않지만 agentic search 문헌을 근거로 끌어온다.</strong> 나는 그 논문을 열지 않았으므로 인용이 타당한지는 판단하지 않는다.</figcaption>
       </figure>
 
       <p class="note"><b>단일 라운드가 결함이라는 뜻은 아니다.</b> MCP 경로에서는 루프를 클라이언트 에이전트가 갖는다. 원문이 검색 계층을 <span class="wl">"as LLM-free as possible"</span>로 유지한 것은 그 루프를 바깥에 두겠다는 선택으로 읽는 편이 맞다. 웹 UI에만 루프가 없다.</p>
@@ -861,6 +968,8 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
 
       <p>이 차이를 Cerebras의 잘못으로 단정할 수는 없다. 설명이 되는 경로가 둘 있다. 하나는 설정이다. hop 1이 보여주듯 커스텀 regex 언어를 등록하면 tree-sitter를 아예 건너뛰므로, Cerebras가 그렇게 썼다면 원문의 서술은 자기 설정에 대해 정확하다. 다른 하나는 버전이다. 저장소가 <span class="wl">"CocoIndex v1 is a fundamental redesign from v0"</span>라고 적는다(<span class="wl">docs/src/content/docs/getting_started/ai_coding_agents.mdx:14</span>). 원문이 v0를 썼다면 내가 읽은 코드는 원문이 말한 코드가 아니다.</p>
 
+      <p>원문이 무엇과 견주고 있었는지도 그림에 남아 있다. fig-006 은 chunking 방식을 두 모드로 놓고 비교하는데 대안 쪽 이름이 <span class="wl">NAIVE WINDOWS · CUT EVERY N TOKENS</span> 다. <strong>원문이 이기려던 상대는 AST 가 아니라 고정 길이 윈도우였다.</strong> 그 기준에서는 regex 든 tree-sitter 든 둘 다 "language-aware" 쪽이고, 원문이 두 경로를 구분해 적을 이유가 크지 않았다는 뜻이기도 하다. 밴드 라벨(<span class="wl">1 TRY: CLASS</span>, <span class="wl">2 METHOD</span>, <span class="wl">3 IF STILL LARGE</span>)이 산문의 사다리 서술과 그대로 맞는다.</p>
+
       <p><strong>어느 쪽인지 이 문서로는 가릴 수 없다.</strong> 원문은 버전을 밝히지 않았고 사내 설정도 공개되지 않았다. 확실한 것은 여기 고정한 커밋에서 기본 경로가 tree-sitter라는 것뿐이다. 14장에서 이 갈래가 도입 판단에 어떻게 걸리는지 다시 다룬다.</p>
 
       <p class="note"><b>코드를 읽어서 확인한 것이고 실행해서 확인한 것이 아니다.</b> 위 네 홉은 코드가 그렇게 쓰여 있다는 진술이고, 실제로 어떤 chunk가 나오는지는 말하지 않는다. 파일 안에 <span class="k">chunk_size</span> 10에서 80까지를 쓰는 테스트가 여럿 있지만(:728 이후) 실행하지 않았다.</p>
@@ -878,7 +987,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         <table>
           <thead><tr><th>대상</th><th class="wrap">읽은 정도</th><th class="wrap">이 문서에서 하는 일</th></tr></thead>
           <tbody>
-            <tr class="hero"><td>Cerebras 원문</td><td class="wrap">전문. 산문은 텍스트 변환 경로로, 그림 라벨은 보관본 HTML에서</td><td class="wrap">03 ~ 08장의 사실 진술 전부</td></tr>
+            <tr class="hero"><td>Cerebras 원문</td><td class="wrap">산문은 전문. 그림은 10개 중 7개만. 셋은 SVG가 아니라 JS 위젯이라 늦게 발견했다</td><td class="wrap">03 ~ 08장의 사실 진술, 02·04·07장의 그림</td></tr>
             <tr><td>cocoindex @ d7607100</td><td class="wrap">1,176개 파일 중 9개. rust 3편, docs 4편, README, LICENSE</td><td class="wrap">09장 추적, 14장 도입 판단</td></tr>
             <tr><td>Cursor semsearch</td><td class="wrap">전문</td><td class="wrap">08장 수치</td></tr>
             <tr><td>HN 스레드 4건</td><td class="wrap">Semble 445점/151댓글, Contextual Retrieval 309/72, Greptile 253/166, Falconer 14/6</td><td class="wrap">08장, 12장 반론</td></tr>
@@ -890,7 +999,11 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
 
       <p><strong>회수 경로가 특이한 것.</strong> Threads 스레드는 어떤 fetch 경로로도 닿지 않았다. 첫 게시물만 서버에서 렌더링되고 1/부터 9/까지는 GraphQL로 오기 때문이다. 렌더된 화면을 이미지로 읽어 9개 게시물을 회수했다. <strong>텍스트를 받은 것이 아니므로 이 문서의 Threads 인용은 화면에서 옮겨 적은 것이다.</strong> X에 올라온 같은 제목의 글은 열지 못했고, 계정과 제목이 같아 원문의 미러로 보았을 뿐이다. Anthropic의 Contextual Retrieval 원글도 직접 열지 못해 HN 논의와 Threads의 전달을 통해서만 다뤘다.</p>
 
-      <p><strong>열지 않기로 한 것.</strong> 원문이 참조로 단 논문 셋(HNSW, RRF, Lost in the Middle)은 열지 않았다. 그래서 이 문서는 상수 60이나 상위 10이라는 선택이 그 논문들에 비춰 타당한지에 대해 아무 주장도 하지 않는다. CocoIndex의 <span class="wl">examples/</span> 441개와 <span class="wl">python/</span> 225개는 열지 않았고, <span class="wl">docs/</span> 169개 중에서는 4편만 열었다. 그래서 09장은 chunking 한 축만 다루고, 원문이 강조한 증분 갱신은 문서의 서술을 옮긴 수준에 그친다.</p>
+      <p><strong>그림에서 놓친 것.</strong> 원문의 그림은 <strong>10개</strong>인데 처음에 7개로 셌다. 회수 경로를 보관본 HTML 에서 <span class="wl">&lt;svg&gt;</span> 만 긁도록 짰는데 fig-004, fig-006, fig-008 은 HTML 과 JS 로 렌더되는 위젯이라 걸리지 않았다. 그중 <strong>fig-008 이 여섯 retriever 의 이름을 담고 있어</strong> 06장이 한동안 원문에 없는 추정을 실은 채 서 있었다. 지금은 셋을 모두 열었고 06장과 09장에 반영했다. 문서에 embed 한 것은 fig-001, fig-002, fig-007 셋이다.</p>
+
+      <p>나머지 넷(fig-003 Slack 이벤트 흐름, fig-005 burst 분할, fig-009 MCP 대 웹 UI, fig-010 project 참조 관계)은 읽었지만 문서가 그 형태를 필요로 하는 주장을 하지 않아 넣지 않았다. 05장의 스레드 예시(fig-004)는 본문 텍스트가 선택 가능해야 해서 <span class="wl">&lt;pre&gt;</span> 로 재타이핑했다.</p>
+
+      <p><strong>열지 않기로 한 것.</strong> 원문의 참조는 10개이고 그중 어느 것도 열지 않았다. 논문 셋(HNSW, RRF, Lost in the Middle)은 이 문서가 상수 60이나 상위 10의 타당성을 판단하지 않는다는 뜻이고, 나머지 다섯(Search-o1, Code Execution with MCP, Use XML Tags, Slack AI 처리, Best Nested Data Format)은 원문이 자기 설계를 정당화하려고 붙인 것이라 그 정당화가 성립하는지도 판단하지 않는다는 뜻이다. CocoIndex의 <span class="wl">examples/</span> 441개와 <span class="wl">python/</span> 225개는 열지 않았고, <span class="wl">docs/</span> 169개 중에서는 4편만 열었다. 그래서 09장은 chunking 한 축만 다루고, 원문이 강조한 증분 갱신은 문서의 서술을 옮긴 수준에 그친다.</p>
 
       <p class="note"><b>CocoIndex 저장소에는 에이전트용 지시문이 들어 있다.</b> <span class="wl">.claude/</span> 10개, <span class="wl">skills/</span> 6개, <span class="wl">.agents/</span> 4개다. 열지 않았고, 따라서 이 문서의 어떤 문장도 거기서 나오지 않았다. shallow clone이라 커밋 빈도나 기여자 분포 같은 유지보수 활력 지표는 이 체크아웃에 존재하지 않으며 14장에서 그런 주장을 하지 않는다.</p>
     </div>
@@ -948,7 +1061,9 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       </div>
 
       <h3 style="margin-top:22px">권한. 필터를 어디에 두든 하나씩 깨진다</h3>
-      <p>같은 테이블에 회사 전체 지식이 있다는 것은 <strong>행마다 볼 수 있는 사람이 다르다</strong>는 뜻이다. 비공개 Slack 채널, 접근 제한 저장소, 인사 문서가 같은 스키마로 섞인다. 02장에서 본 대로 원문에 이 계층의 설명이 없으므로, 아래는 원문의 설명이 아니라 원문의 파이프라인에 권한을 얹으려 할 때 생기는 선택지를 내가 정리한 것이다.</p>
+      <p>같은 테이블에 회사 전체 지식이 있다는 것은 <strong>행마다 볼 수 있는 사람이 다르다</strong>는 뜻이다. 비공개 Slack 채널, 접근 제한 저장소, 인사 문서가 같은 스키마로 섞인다.</p>
+
+      <p>원문에 접근 통제 장치가 전혀 없는 것은 아니다. 코드 저장소 온보딩을 팀이 제출하는 설정 파일로 옮기면서 <span class="wl">"allowlists and denylists at the file-path level"</span> 을 받는다. 다만 이것은 <strong>색인 시점에 무엇을 넣지 않을지</strong>를 정하는 장치이고, 넣은 뒤에 누가 볼 수 있는지를 정하는 장치가 아니다. 아래 셋 중 A안의 일부가 원문에 이미 있는 셈이지만 파일 경로 단위이고 사람 단위가 아니다. 나머지는 원문의 설명이 아니라 원문의 파이프라인에 권한을 얹으려 할 때 생기는 선택지를 내가 정리한 것이다.</p>
 
       <figure class="figure">
         <p class="fig-title">필터 위치 셋 중 무엇을 골라도 대가가 있다</p>
@@ -1024,6 +1139,8 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <p>커밋 트리거를 골랐을 때 남는 문제를 가장 날카롭게 적은 것은 Threads 스레드 5번 게시물이다. 원문에는 이 진술이 없다.</p>
 
       <p class="q">커밋이 수백 번 쌓이면 벡터 상당수가 이미 사라진 코드를 가리키는데 아무도 눈치채지 못하는 순간이 가장 큰 난제입니다.<cite>@choi.openai, Threads 5/9</cite></p>
+
+      <p>유출 경로도 요약 하나가 아니다. 원문은 <span class="wl">"Raw Slack text is keyword-searchable as soon as it lands because we maintain a Postgres full-text (GIN) index over the raw content"</span> 라고 적는다. <strong>정규화 행과 별개로 원본 대화가 같은 DB에 남아 검색된다.</strong> 위 그림의 붉은 상자는 distillation 요약만 지목하지만, 실제로 권한을 걸어야 하는 대상은 요약과 원문 둘 다이고 후자는 full-text 인덱스로 이미 질의 가능한 상태다.</p>
 
       <p>이 진술을 삭제 전파가 안 된다는 뜻으로 읽으면 틀린다. CocoIndex 문서는 target 단계에서 삽입, 갱신, 삭제를 최소 단위로 반영한다고 적는다(<span class="wl">docs/src/content/docs/getting_started/overview.mdx:54</span>). 걸리는 것은 <strong>메커니즘이 아니라 관측</strong>이다. 벡터가 낡았다는 사실은 검색 결과가 틀려야 드러나고, 검색 품질을 재는 장치가 없으면 틀린 채로 남는다. 11장에서 본 대로 검색 품질을 재는 장치가 없으면 낡은 행을 발견할 경로도 없다.</p>
 
@@ -1120,13 +1237,13 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <h2>결론. 회사의 기억을 만드는 일에서 어려운 부분은 아직 공개되지 않았다</h2>
       <p class="dek">원문은 검색 파이프라인을 성실하게 공개했고, 그 파이프라인에서 새로 발명된 것은 없다. 옮길 만한 것은 기법 목록이 아니라 순서다. embedding 이전을 설계 대상으로 본 것, 그리고 검색 계층에서 LLM을 최대한 걷어낸 것.</p>
 
-      <p>이 문서를 연 질문은 회사 지식을 embedding 테이블 하나로 모으는 설계에서 어디까지 옮겨 쓸 수 있는가였다. 답은 <strong>쓰기 쪽은 거의 그대로 옮겨지고, 읽기 쪽은 조건부이며, 그 사이의 권한 계층은 직접 그려야 한다</strong>는 것이다. 다섯 칸 스키마와 플러그인 커넥터는 조직 규모와 무관하게 성립한다. 네 신호와 RRF는 Slack 같은 대화 코퍼스가 있을 때 성립한다. 권한은 원문에 없다.</p>
+      <p>이 문서를 연 질문은 회사 지식을 embedding 테이블 하나로 모으는 설계에서 어디까지 옮겨 쓸 수 있는가였다. 답은 <strong>쓰기 쪽은 거의 그대로 옮겨지고, 읽기 쪽은 조건부이며, 그 사이의 권한 계층은 직접 그려야 한다</strong>는 것이다. 단일 테이블과 플러그인 커넥터는 조직 규모와 무관하게 성립한다. 네 신호와 RRF는 Slack 같은 대화 코퍼스가 있을 때 성립한다. 행 단위 열람 권한은 원문에 없다.</p>
 
       <p>Threads 스레드는 원문이 다루지 않은 지점을 하나 더 짚는다. 다음 전장이 회사의 기억이라는 첫 게시물은 원문이 뒷받침한다. 하루 15,000건이면 사람들이 실제로 그 창구를 쓴다는 뜻이고, 사람과 스크립트와 에이전트가 같은 곳에 묻는다는 것도 원문이 명시한다. 그리고 아홉 번째 게시물이 닫는 문장은 이 문서가 12장에서 따로 도달한 결론과 같다.</p>
 
       <p class="q">브레인을 만드는 건 쉽습니다. 살아 있게 유지하는 게 어렵습니다.<cite>@choi.openai, Threads 9/9</cite></p>
 
-      <p>원문을 읽고 나면 이 문장이 왜 맞는지가 구체적으로 보인다. 만드는 쪽은 다섯 칸 스키마와 여섯 개의 순위 리스트로 끝난다. 유지하는 쪽에는 <strong>세 가지가 남는데 원문에 그 셋이 다 없다.</strong> 권한이 바뀔 때 색인을 어떻게 하는지, 대상이 사라진 행을 언제 눈치채는지, 모델을 갈아탈 때 재작성 비용을 어떻게 치르는지다. 앞의 둘은 평가 장치가 있어야 보이고, 원문은 검색 품질 수치를 한 건도 내놓지 않았다.</p>
+      <p>원문을 읽고 나면 이 문장이 왜 맞는지가 구체적으로 보인다. 만드는 쪽은 단일 테이블과 코퍼스별 retriever 여섯으로 끝난다. 유지하는 쪽에는 <strong>세 가지가 남는데 원문에 그 셋이 다 없다.</strong> 권한이 바뀔 때 색인을 어떻게 하는지, 대상이 사라진 행을 언제 눈치채는지, 모델을 갈아탈 때 재작성 비용을 어떻게 치르는지다. 앞의 둘은 평가 장치가 있어야 보이고, 원문은 검색 품질 수치를 한 건도 내놓지 않았다.</p>
 
       <p>도입을 검토한다면 순서는 이렇게 뒤집는 편이 낫다. 검색 기법을 먼저 고르지 말고, <strong>권한 등급이 몇 개인지부터 세는 것</strong>이다. 등급이 하나면 원문의 구조를 거의 그대로 쓸 수 있다. 여럿이면 12장의 세 선택지 중 하나를 고르는 일이 나머지 전부보다 오래 걸린다. 그 다음이 평가다. 무엇이 틀렸는지 재는 장치 없이 이 구조를 올리면, 낡은 답이 인용과 함께 최상위로 반환되고 그것이 낡았다는 신호는 어디에도 남지 않는다.</p>
 
@@ -1187,18 +1304,18 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
           <span class="tag">3차 분석</span>
           <div class="src">
             <div><a href="https://datasciocean.com/en/paper-intro/cerebras-rag/">DataSci Ocean, Narrow-Waist Design, Decoupled Retrieval (2026-07)</a></div>
-            <div class="t">엔터프라이즈 RAG를 직접 만든 쪽의 대조 읽기. 07장의 단일 라운드 판단과 다섯 칸 스키마 읽기의 출처.</div>
+            <div class="t">엔터프라이즈 RAG를 직접 만든 쪽의 대조 읽기. 07장의 단일 라운드 판단이 여기서 나왔다. 다섯 칸이라는 읽기도 여기 것인데, 04장에 적었듯 원문이 확정해 주는 값이 아니다.</div>
             <div><a href="https://falconer.com/notes/cerebras-knowledge-base/">Falconer, Why everything breaks at 150 people</a></div>
             <div class="t">문서 소유권과 project scoping 비판.</div>
           </div>
           <span class="tag" style="margin-top:14px">열지 않은 참조</span>
           <div class="src">
-            <div class="t">원문 참조 (1) HNSW, (3) RRF, (6) Lost in the Middle. 이 문서는 이 논문들의 내용에 대해 아무 주장도 하지 않는다.</div>
+            <div class="t">원문의 참조 10개 전부. (1) HNSW, (3) RRF, (6) Lost in the Middle, (4) Search-o1, (5) Code Execution with MCP, (2) Contextual Retrieval, (7) Use XML Tags, (8) Slack AI 처리, (9) Best Nested Data Format, (10) Cursor semsearch. 이 중 (10)만 전문을 읽었고 (2)는 HN 논의로만 다뤘다. 나머지 여덟의 내용에 대해서는 아무 주장도 하지 않는다.</div>
           </div>
         </div>
       </div>
 
-      <p class="note"><b>렌더링을 확인했다.</b> 정적 게이트를 통과시킨 뒤 headless 브라우저로 16장 중 10장을 열어 화면을 읽었다. 그 과정에서 그림 하나의 화살표가 대상 상자를 빗나가는 것, 제목 둘이 어절 중간에서 줄바꿈되는 것, 한국어 줄바꿈 규칙이 CSS에 없는 것을 고쳤다. 02, 03, 06, 11, 13, 15장은 화면으로 보지 않았다.</p>
+      <p class="note"><b>렌더링을 확인했다.</b> headless 브라우저로 열어 읽은 장은 01, 02, 04, 05, 07, 08, 09, 10, 12, 14, 16 이다. 화면에서만 드러난 것이 넷이다. 그림 하나의 화살표가 대상 상자를 빗나갔고, 제목 둘이 어절 중간에서 줄바꿈됐고, 한국어 줄바꿈 규칙이 CSS 에 없었고, 원문에서 가져온 fig-001 의 한 도형이 클래스 정의를 빠뜨려 검게 칠해졌다. <strong>03, 06, 11, 13, 15장은 화면으로 보지 않았다.</strong></p>
     </div>
   </section>
   </main>
