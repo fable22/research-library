@@ -263,6 +263,29 @@ const PAPER_DIR = paperOverrideDir
 const paperCache = new Map();
 const missingPapers = new Set();
 
+// 그림 안의 수치는 .tex 에 없다. pin-paper.mjs 가 PDF 에서 뽑아 둔 것을 따로 읽는다.
+const figureCache = new Map();
+
+function resolveFigures(src) {
+  if (figureCache.has(src.id)) return figureCache.get(src.id);
+  const ref = `${src.arxiv_id}${src.version || ''}`;
+  const path = join(PAPER_DIR, `${ref}.figures.txt`);
+  let text = null;
+  if (existsSync(path)) {
+    text = readFileSync(path, 'utf8');
+    if (src.figures_sha256) {
+      const sha = createHash('sha256').update(text).digest('hex');
+      if (sha !== src.figures_sha256) {
+        add('source-drift',
+          `source ${src.id}: ${ref}.figures.txt 의 sha256 이 sources.jsonl 과 다르다. pin-paper.mjs 로 다시 고정할 것`);
+        text = null;
+      }
+    }
+  }
+  figureCache.set(src.id, text);
+  return text;
+}
+
 function resolvePaper(src) {
   if (paperCache.has(src.id)) return paperCache.get(src.id);
   const ref = `${src.arxiv_id}${src.version || ''}`;
@@ -321,7 +344,7 @@ function envCount(text, kind) {
   return (text.match(new RegExp(`\\\\begin\\{${kind}\\*?\\}`, 'g')) || []).length;
 }
 
-function scopeFor(text, locator) {
+function scopeFor(text, locator, figures) {
   const l = (locator || '').trim();
   let m;
   if ((m = /^Table\s+(\d+)$/.exec(l))) {
@@ -331,8 +354,16 @@ function scopeFor(text, locator) {
   }
   if ((m = /^Figure\s+(\d+)$/.exec(l))) {
     const env = envAt(text, 'figure', Number(m[1]));
-    return env ? { text: env, scoped: true, what: l }
-      : { text, scoped: false, what: l, overflow: envCount(text, 'figure') };
+    if (!env) return { text, scoped: false, what: l, overflow: envCount(text, 'figure') };
+    // 그림 환경은 캡션과 파일 이름만 갖는다. 값은 그 PDF 안에 있다.
+    const inc = /\\includegraphics[^{]*\{([^}]+)\}/.exec(env);
+    if (inc && figures) {
+      const file = inc[1].replace(/^.*\//, '').replace(/\.(pdf|png|jpg|jpeg|eps)$/i, '');
+      const re = new RegExp(`===== FIGURE-PDF ${file}\\.[a-z]+ =====([\\s\\S]*?)(?====== FIGURE-PDF |$)`, 'i');
+      const block = re.exec(figures);
+      if (block) return { text: env + '\n' + block[1], scoped: true, what: `${l} (${file})` };
+    }
+    return { text: env, scoped: true, what: l, figureless: !!inc };
   }
   if (/^Abstract$/i.test(l)) {
     const env = envAt(text, 'abstract', 1);
@@ -369,6 +400,7 @@ for (const c of claims || []) {
   }
 
   const evidence = Array.isArray(c.evidence) ? c.evidence : [];
+  const paperScopes = [];   // derived 주장이 인용한 표들. 아래 evidence 루프가 채운다
 
   if (c.verdict === 'confirmed' && !evidence.length && c.kind !== 'absence') {
     add('empty-evidence', `${id} 는 verdict=confirmed 인데 evidence 가 비어 있다`);
@@ -438,10 +470,15 @@ for (const c of claims || []) {
           `      Table N · Figure N · §N.N · Section N · Appendix X · Abstract 중 하나여야 한다`);
       }
 
-      const sc = scopeFor(text, loc);
+      const sc = scopeFor(text, loc, resolveFigures(src));
       if (sc.overflow !== undefined) {
         add('locator-form',
           `${id}: locator 가 ${loc} 인데 원문에 그 환경은 ${sc.overflow}개뿐이다`);
+      }
+      if (sc.figureless) {
+        add('numeric-match',
+          `${id}: ${loc} 의 수치는 .tex 가 아니라 그림 PDF 안에 있는데 뽑아 둔 것이 없다.\n` +
+          `      pin-paper.mjs 를 다시 돌리고 (pdftotext 필요) sources.jsonl 에 figures_sha256 을 넣을 것`);
       }
       if (!sc.scoped) paperUnscoped++;
 
@@ -455,15 +492,18 @@ for (const c of claims || []) {
       }
 
       // 발행 규칙 1번("확인하지 않은 수치를 발행하지 말 것")이 기계로 검사되는 자리.
-      // derived 는 원문에 없는 것이 정상이므로 입력값 쪽을 본다.
-      const wanted = c.kind === 'derived' ? (c.derived_from || []).map(String) : numsIn(c.text);
-      const missing = wanted.filter((n) => !hasNum(sc.text, n));
+      // derived 는 표 두 개를 겹쳐 만드는 것이 본령이라 근거 하나로 판정할 수 없다.
+      // 아래 루프 밖에서 evidence 전체의 합집합을 놓고 한 번에 본다.
+      if (c.kind === 'derived') {
+        paperScopes.push({ loc, text: sc.text, scoped: sc.scoped });
+        continue;
+      }
+      const missing = numsIn(c.text).filter((n) => !hasNum(sc.text, n));
       if (missing.length) {
-        add('numeric-match', c.kind === 'derived'
-          ? `${id}: 계산의 입력값이 ${loc} 안에 없다: ${missing.join(', ')}`
-          : `${id}: 주장의 수치가 ${loc}${sc.scoped ? '' : ' (문서 전체)'} 안에 없다: ${missing.join(', ')}\n` +
-            `      "${c.text.slice(0, 70)}${c.text.length > 70 ? '…' : ''}"\n` +
-            `      원문이 인쇄하지 않은 값을 계산한 것이면 kind 를 "derived" 로 하고 derived_from 에 입력값을 적을 것`);
+        add('numeric-match',
+          `${id}: 주장의 수치가 ${loc}${sc.scoped ? '' : ' (문서 전체)'} 안에 없다: ${missing.join(', ')}\n` +
+          `      "${c.text.slice(0, 70)}${c.text.length > 70 ? '…' : ''}"\n` +
+          `      원문이 인쇄하지 않은 값을 계산한 것이면 kind 를 "derived" 로 하고 derived_from 에 입력값을 적을 것`);
       }
       continue;
     }
@@ -504,6 +544,19 @@ for (const c of claims || []) {
       add('quote-match', whole
         ? `${id}: quote 가 ${file} 안에 있긴 하나 ${line}행 ±${LINE_SLACK} 밖이다. locator 를 고칠 것`
         : `${id}: quote 가 ${src.repo}@${src.commit} 의 ${file} 에 없다. 지어낸 인용이거나 커밋이 다르다`);
+    }
+  }
+
+  // 파생 수치는 표 두 개를 겹쳐 만드는 것이 본령이다. 입력값 하나하나가
+  // 인용한 표 중 어딘가에 있으면 되고, 어느 표인지까지 요구하지는 않는다.
+  if (c.kind === 'derived' && paperScopes.length) {
+    const missing = (c.derived_from || []).map(String)
+      .filter((n) => !paperScopes.some((s) => hasNum(s.text, n)));
+    if (missing.length) {
+      const where = paperScopes.map((s) => s.loc + (s.scoped ? '' : ' (문서 전체)')).join(' + ');
+      add('numeric-match',
+        `${id}: 계산의 입력값이 ${where} 어디에도 없다: ${missing.join(', ')}\n` +
+        `      다른 표에서 가져온 값이면 그 표도 evidence 에 넣을 것`);
     }
   }
 }
