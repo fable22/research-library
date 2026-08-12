@@ -34,9 +34,23 @@ miss ones inside entities or attributes.)
 calculation the source did not make** — that is not process narration, it is what the
 reader needs to check the original. Do not confuse the two.
 
-**AI slop.** Apply `prose-ko.md`: progress narration (이제, 먼저 ~부터), reaction words
-(흥미롭게도, 놀랍게도, 주목할 점은), empty summary sentences, hedging with no named
-gap, forced symmetry between upsides and downsides.
+**AI slop.** Apply `prose-ko.md`, which has three families. The first is spot-checkable:
+progress narration (이제, 먼저 ~부터), reaction words (흥미롭게도, 놀랍게도, 주목할 점은),
+empty summary sentences, hedging with no named gap, forced symmetry.
+
+The other two need a sweep, because every sentence in them is true and reads fine on its
+own. Go slide by slide and ask what each sentence buys the reader.
+
+- **Residue of the work** — an incidental finding from the research, sourcing narration
+  outside the coverage chapter, a parenthetical aside, monologue (여기서 잠깐 정리하면),
+  visible self-correction. The coverage chapter is the one place these belong. Everywhere
+  else, name the slide and say where it should move to or that it should go.
+- **Borrowed emphasis** — manufactured significance (중요한 전환점, ~을 시사한다), vague
+  attribution (업계에서는, 전문가들은), promotional adjectives, a
+  challenges-and-prospects close, elegant variation.
+
+These two are why this lens exists. A person reads these documents, and a true sentence
+that buys them nothing still costs them the attention they were spending on the argument.
 
 **Translated-English syntax.** Also from `prose-ko.md`: `~하는 것은 ~이다` as a default
 frame, stacked passives, pronouns Korean would drop, English-order nested relative

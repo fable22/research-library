@@ -262,6 +262,8 @@ by the same route, so verify's lenses run where this context cannot reach them.
 | Verification needs subagents, so ask before starting it | The chain does not stop for permission. Start it, and declare a reduced review if it comes to that |
 | The source's figure is not essential, the prose covers it | Decide that in the coverage chapter where a reader can see the decision, not silently |
 | I could not confirm this number, so soften the sentence | Hedging with no named gap is worse than the gap. Name what is missing |
+| A reader would find this interesting too | Interesting to you is not the test. Whether it changes a claim in this document is |
+| It is true and it took work to find, so it stays | Cost of finding it is not value to the reader. Chapter ⑦ is where the work goes |
 
 ## Do not
 
