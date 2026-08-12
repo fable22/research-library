@@ -1,0 +1,1267 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cerebras Knowledge: 사내 지식을 RAG로 중앙집중화할 때 남는 문제</title>
+<meta name="description" content="Cerebras가 공개한 사내 지식베이스의 검색 파이프라인과, 회사 지식을 하나의 임베딩 테이블로 모을 때 프로덕션에서 실제로 걸리는 지점들">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cerebras Knowledge: 사내 지식을 RAG로 중앙집중화할 때 남는 문제">
+<meta property="og:description" content="Cerebras가 공개한 사내 지식베이스의 검색 파이프라인과, 회사 지식을 하나의 임베딩 테이블로 모을 때 프로덕션에서 실제로 걸리는 지점들">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-12-cerebras-knowledge-base/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다. scaffold 에 이 규칙이 없다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* display:block 은 scaffold 에 없다. span 이라 이게 없으면 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+td.wrap, th.wrap { white-space: normal; min-width: 150px; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .box-bad { fill: var(--redlink-soft); stroke: var(--redlink); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .arw-hi { stroke: var(--link); stroke-width: 1.8; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+svg .txt-m { fill: var(--muted); font-family: var(--mono); font-size: 10.5px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>단일 테이블</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>Slack 정규화</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>네 신호와 RRF</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>planner 구조</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>grep 논쟁</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>chunk 경계 추적</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>공개된 수치</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>프로덕션 쟁점</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>도입 판단</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>결론</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 표지 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>Cerebras Knowledge: 사내 지식을 RAG로 중앙집중화할 때 남는 문제</h1>
+      <p class="dek">Cerebras가 사내 지식베이스의 검색 파이프라인을 문서 한 편으로 공개했다. 하루 15,000개가 넘는 질문을 받고, 사람과 자동화 스크립트와 에이전트가 같은 창구에 묻는다. 이 문서는 그 파이프라인을 단계별로 뜯고, 같은 것을 프로덕션에 올릴 때 원문이 답하지 않는 지점을 표시한다.</p>
+
+      <p class="q">AI 경쟁의 다음 전장은 모델이 아니라 회사의 기억입니다.<cite>@choi.openai, Threads, 2026</cite></p>
+
+      <p>이 문서가 답하는 질문은 하나다. <strong>회사 지식을 embedding 테이블 하나로 모으는 설계에서, 실제로 옮겨 쓸 수 있는 부분은 어디까지인가.</strong> 답을 뒤집는 조건도 명확하다. 원문이 설명하지 않은 계층이 옮겨 쓸 수 없을 만큼 크면, 남는 것은 아키텍처가 아니라 기법 목록이다.</p>
+
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag">03 – 07</span>
+          <p class="small">문제와 메커니즘. 단일 테이블, Slack 정규화, 네 신호의 RRF 융합, planner와 executor.</p>
+        </div>
+        <div class="card">
+          <span class="tag">08 – 11</span>
+          <p class="small">근거와 그 범위. grep으로 충분한가에 대한 Cursor의 수치, CocoIndex 코드 추적, 읽은 범위, 공개된 수치.</p>
+        </div>
+        <div class="card">
+          <span class="tag">12 – 16</span>
+          <p class="small">프로덕션 쟁점, 한계, 도입 판단. 권한, 무효화, embedding 모델 고착, 평가 부재.</p>
+        </div>
+      </div>
+
+      <p class="note"><b>원문은 코드가 아니라 blog post 한 편이다.</b> Cerebras Knowledge는 사내 시스템이라 저장소가 공개되지 않는다. 09장의 코드 추적은 원문이 이름을 댄 외부 의존물 CocoIndex를 대상으로 하며, Cerebras가 그것을 어떤 설정으로 쓰는지는 확인할 수 없다.</p>
+    </div>
+  </section>
+
+  <!-- 02 요약 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약. 옮겨 쓸 것은 embedding 이전 단계의 설계다</h2>
+      <p class="dek">원문이 쓴 검색 기법은 전부 알려진 것이다. full-text, embedding, IDF, age decay, RRF, rerank 중 새로 발명된 것은 없다. 실제로 옮길 만한 결정은 raw Slack 스레드를 embedding하지 않고 LLM으로 정규화한 뒤 embedding한다는 write-side 선택이다.</p>
+
+      <div class="stats">
+        <div class="stat hero">
+          <span class="lab">하루 질의</span>
+          <span class="val">15,000<span class="u">건+</span></span>
+          <span class="sub">원문은 "more than". 출시 3개월 시점, 자체 발표</span>
+        </div>
+        <div class="stat">
+          <span class="lab">RRF 평활 상수</span>
+          <span class="val">60</span>
+          <span class="sub">weight 기본 1.0, 리스트 6개 융합</span>
+        </div>
+        <div class="stat">
+          <span class="lab">embedding 차원</span>
+          <span class="val">3,072</span>
+          <span class="sub">pgvector + HNSW. 원문 그림 표기</span>
+        </div>
+        <div class="stat bad">
+          <span class="lab">공개된 검색 품질 수치</span>
+          <span class="val">0<span class="u">건</span></span>
+          <span class="sub">accuracy, recall, 사용자 만족도 모두 없음</span>
+        </div>
+      </div>
+
+      <p>원문은 자기 시스템이 세 가지를 제공한다고 적는다. 수집과 저장, 질의, 그리고 <span class="wl">authentication and authorization</span> 계층이다. 앞의 둘은 절반 이상의 분량으로 설명되고, <strong>세 번째는 그 한 문장 뒤로 다시 등장하지 않는다.</strong></p>
+
+      <p>커뮤니티의 반응도 이 비대칭을 그대로 반영한다. Hacker News에 원문이 네 번 제출됐고 최고 3점, 댓글 0개에 그쳤다. 논의가 붙은 것은 원문을 인용한 2차 글 한 편이었고, 그 댓글은 검색이 아니라 Dunbar 수와 Coase의 기업 이론으로 갔다. 검색 파이프라인 자체는 논쟁거리로 취급되지 않았다.</p>
+
+      <p>원문을 가장 깊이 읽은 두 글은 영어권 밖에 있다. 하나는 엔터프라이즈 RAG를 직접 만든 쪽이 자기 시스템과 대조한 분석이고, 다른 하나는 이 문서의 출발점이 된 한국어 Threads 스레드 9편이다. 후자는 원문에 없는 진단을 하나 더 얹는데, <strong>어려운 것은 저장이 아니라 유지</strong>라는 것이다. 12장과 15장에서 다시 다룬다.</p>
+
+      <p class="note"><b>15,000이라는 수치는 외부 검증 수단이 없다.</b> 사내 시스템의 자체 발표이고, 사람 질의와 스크립트 질의와 에이전트 질의가 각각 몇 건인지는 구분되지 않는다. 에이전트가 한 질문에 도구를 여러 번 호출한다는 점을 감안하면 이 수치는 사용자 수가 아니라 호출 수에 가깝다.</p>
+    </div>
+  </section>
+
+  <!-- 03 문제 정의 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>문제 정의. single source of truth는 분기마다 제안되고 매번 실패한다</h2>
+      <p class="dek">원문이 지목한 실패는 검색 품질이 아니다. 데이터가 생기는 곳과 데이터를 모으자고 정한 곳이 다르다는 것이고, 사람은 전자를 따른다는 것이다.</p>
+
+      <p class="q">The dream of a single source of truth, of course, rarely works in practice.<cite>Cerebras, How we built our knowledge base</cite></p>
+
+      <p>Cerebras는 데이터센터 운영, 칩 설계, 하드웨어, 학습, 추론, 클라우드 플랫폼에 팀이 흩어져 있고 매년 수백 명이 들어온다. 그 결과 커뮤니케이션 채널이 같은 질문으로 채워졌다고 원문은 적는다. <span class="wl">"Where can I find X?"</span>, <span class="wl">"Who is the expert in Y?"</span>, <span class="wl">"What is Z?"</span> 세 가지다.</p>
+
+      <p>여기서 나온 설계 원칙이 <strong>기존 행동을 최소로 바꾸는 것</strong>이다. 정보는 편한 곳에서 생긴다. 문서의 제안 수정, Slack 스레드, GitHub의 코드 참조, Jira의 상태 메타데이터가 각각 그 도메인에 맞게 수년간 다듬어진 도구다. 원문의 표현대로 pull request를 Google Docs에서 논의하는 것은 끔찍한 경험이다. 그래서 수집 쪽에서 각 플랫폼을 직접 긁는 방향을 택했다.</p>
+
+      <p>같은 현상을 다른 축으로 읽은 사람도 있다. Falconer의 Dave Nunez는 이 문제가 조직 규모 150명 근처에서 터진다고 본다. 누가 무엇을 하는지 조직이 더 이상 알지 못하게 되는 지점이다. 다만 진단이 같아도 처방은 갈린다. Nunez는 Cerebras가 소스를 code, wiki, incidents, Slack 넷으로 좁힌 것을 칭찬하면서, <strong>문서에 주인이 없다는 문제는 검색으로 풀리지 않는다</strong>고 지적한다. Slack에서 건진 답을 문서로 옮기지 않으면 다음 사람이 같은 스레드를 다시 찾아야 한다는 것이다.</p>
+
+      <p class="note"><b>이 장은 원문의 문제 진술을 그대로 옮긴 것이다.</b> Cerebras 내부에서 실제로 무엇이 얼마나 실패했는지는 원문이 수치로 적지 않았고, 확인할 방법도 없다. Nunez의 150명은 Dunbar 수를 조직에 적용한 해석이며 Cerebras 사례로 검증된 값이 아니다.</p>
+    </div>
+  </section>
+  <!-- 04 단일 테이블 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">anatomy</p>
+      <h2>구조. 이종 소스가 테이블 하나로 수렴하고 거기서 다시 갈라진다</h2>
+      <p class="dek">Slack 스레드부터 netlist까지 전부 같은 embeddings 테이블에 들어가고, 그 테이블에 있는 것은 전부 같은 인터페이스로 질의된다. 쓰기 쪽의 다양성과 읽기 쪽의 다양성이 가운데 한 지점에서만 만난다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">쓰기 쪽 커넥터를 늘려도 읽기 쪽은 한 줄도 바뀌지 않는다</p>
+        <p class="fig-sub">원문의 산문과 아키텍처 그림을 하나로 합쳐 다시 그린 것. 원문에는 이 형태의 그림이 없다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 760 300" role="img" aria-label="이종 소스가 단일 embeddings 테이블로 수렴했다가 다시 갈라지는 모래시계 구조. 왼쪽에 Slack 채널, 코드 저장소, 문서 공간, 팀 자체 DB 네 종류의 소스가 있고 각각 화살표로 가운데의 embeddings 테이블 하나로 모인다. 테이블은 document, embedding, metadata, source, timestamp 다섯 칸을 가지며 pgvector와 HNSW 인덱스, 3072차원, full-text GIN 인덱스로 표기돼 있다. 테이블에서 다시 오른쪽으로 MCP 도구, 웹 UI, 자동화 스크립트 세 갈래로 화살표가 나간다. 왼쪽 아래에는 커넥터를 추가하는 경로가 Python 플러그인 pull request로 표시돼 있다. 테이블 바로 아래에 붉은 상자가 하나 더 있는데, authz와 감사와 분석 계층이며 원문이 한 번 언급하고 끝났다고 적혀 있다.">
+          <text class="txt-m" x="8" y="14">쓰기: 소스마다 다름</text>
+          <text class="txt-m" x="298" y="14">좁은 허리</text>
+          <text class="txt-m" x="590" y="14">읽기: 소비자마다 다름</text>
+
+          <rect class="box" x="8" y="26" width="150" height="42" rx="8"/>
+          <text class="txt" x="20" y="45">Slack 채널</text>
+          <text class="txt-s" x="20" y="60">채널 하나 = 소스 하나</text>
+
+          <rect class="box" x="8" y="80" width="150" height="42" rx="8"/>
+          <text class="txt" x="20" y="99">코드 저장소</text>
+          <text class="txt-s" x="20" y="114">CocoIndex, 커밋 단위 갱신</text>
+
+          <rect class="box" x="8" y="134" width="150" height="42" rx="8"/>
+          <text class="txt" x="20" y="153">문서 공간</text>
+          <text class="txt-s" x="20" y="168">wiki, 사내 문서</text>
+
+          <rect class="box" x="8" y="188" width="150" height="42" rx="8"/>
+          <text class="txt" x="20" y="207">팀 자체 DB</text>
+          <text class="txt-s" x="20" y="222">Python 플러그인 PR</text>
+
+          <path class="arw" d="M158 47 L206 47 L206 128 L286 128"/>
+          <path class="arw" d="M158 101 L226 101 L226 140 L286 140"/>
+          <path class="arw" d="M158 155 L226 155 L226 152 L286 152"/>
+          <path class="arw" d="M158 209 L206 209 L206 164 L286 164"/>
+          <path class="arw" d="M279 141 L286 146 L279 151"/>
+
+          <rect class="box-hi" x="290" y="86" width="184" height="122" rx="8"/>
+          <text class="txt" x="304" y="106">embeddings 테이블</text>
+          <text class="txt-s" x="304" y="124">document · embedding</text>
+          <text class="txt-s" x="304" y="140">metadata · source</text>
+          <text class="txt-s" x="304" y="156">timestamp</text>
+          <text class="txt-m" x="304" y="176">pgvector · 3072-dim</text>
+          <text class="txt-m" x="304" y="192">HNSW · full-text GIN</text>
+
+          <path class="arw-hi" d="M474 128 L536 128 L536 60 L600 60"/>
+          <path class="arw-hi" d="M474 147 L556 147 L600 147"/>
+          <path class="arw-hi" d="M474 166 L536 166 L536 234 L600 234"/>
+          <path class="arw-hi" d="M593 55 L600 60 L593 65"/>
+          <path class="arw-hi" d="M593 142 L600 147 L593 152"/>
+          <path class="arw-hi" d="M593 229 L600 234 L593 239"/>
+
+          <rect class="box" x="604" y="39" width="148" height="42" rx="8"/>
+          <text class="txt" x="616" y="58">MCP 도구</text>
+          <text class="txt-s" x="616" y="73">에이전트가 직접 조합</text>
+
+          <rect class="box" x="604" y="126" width="148" height="42" rx="8"/>
+          <text class="txt" x="616" y="145">웹 UI</text>
+          <text class="txt-s" x="616" y="160">planner가 대신 조합</text>
+
+          <rect class="box" x="604" y="213" width="148" height="42" rx="8"/>
+          <text class="txt" x="616" y="232">자동화 스크립트</text>
+          <text class="txt-s" x="616" y="247">사람 없이 질의</text>
+
+          <rect class="box-bad" x="290" y="232" width="184" height="46" rx="8"/>
+          <text class="txt" x="304" y="251">authz · 감사 · 분석</text>
+          <text class="txt-s" x="304" y="267">원문이 한 번 언급하고 끝</text>
+        </svg>
+        </div>
+        <figcaption>원문은 <span class="wl">"every source, from Slack threads to netlists, lands in the same embeddings table"</span>이라고 쓴다. 다섯 칸 이름은 원문 아키텍처 그림의 라벨 <span class="wl">DOCUMENT / EMBEDDING / METADATA / SOURCE + TIMESTAMPS</span>에서 읽었고, DataSci Ocean이 원문 본문의 코드 블록을 읽은 결과와 일치한다. 그 코드 블록 자체는 내가 쓴 텍스트 변환 경로에서 누락됐다. 붉은 상자는 원문에 설명이 없는 계층이다.</figcaption>
+      </figure>
+
+      <p>이 구조의 값은 정돈돼 보인다는 데 있지 않다. <strong>쓰기 쪽과 읽기 쪽을 따로 바꿀 수 있다</strong>는 데 있다. 소스를 추가하면 다섯 칸을 채우는 커넥터만 쓰면 되고 읽기 쪽 코드는 바뀌지 않는다. 검색 전략을 바꾸면 읽기 쪽만 바뀌고 커넥터는 그대로다.</p>
+
+      <p>커넥터 추가를 조직적으로 푼 방식이 이 설계의 실제 시험대다. 팀이 자기 DB를 옮기고 싶어하지 않을 때, Cerebras는 <strong>플러그인 스크립트</strong>로 받는다. 팀이 pull request를 열어 자기 시스템에서 읽어 embeddings 테이블 모양의 행을 뱉는 작은 Python 모듈과 데이터 소스 항목 하나를 낸다. 같은 스키마로 쓰기만 하면 나머지 스택은 그대로 동작한다.</p>
+
+      <p class="note"><b>이 장은 데이터가 어떻게 들어가는지만 다룬다.</b> 같은 테이블에 회사 전체 지식이 들어간다는 것은 곧 행마다 열람 권한이 다르다는 뜻이다. 붉은 상자가 그 계층이고, 12장이 그것만 다룬다.</p>
+    </div>
+  </section>
+
+  <!-- 05 Slack 정규화 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">distill</p>
+      <h2>Slack은 원문 그대로 embedding하지 않는다</h2>
+      <p class="dek">가장 먼저 시도한 것은 raw 텍스트에 embedding을 걸어보는 것이었고, 곧 부족하다는 결론이 났다. 대신 LLM이 스레드를 읽고 정해진 모양으로 다시 쓴 뒤 그것을 embedding한다.</p>
+
+      <p>Slack 메시지의 문제를 원문은 셋으로 정리한다. 정보 밀도가 극단적으로 다르고(<span class="wl">"hey yeah sure mike"</span>와 커널 설명이 둘 다 메시지다), 짧은 메시지가 cosine similarity에서 길고 자세한 메시지를 자주 이긴다. 그리고 메시지의 의미가 주변 대화에 달려 있다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">스레드 하나가 다섯 항목짜리 JSON으로 압축된 뒤 embedding된다</p>
+        <p class="fig-sub">원문의 예시 스레드를 그대로 옮긴 것. 실제 사내 데이터가 아니라 원문이 만든 설명용 예시다</p>
+<pre><span class="c">#ckpt-support / thread_8f42          입력: 메시지 4개 전체</span>
+  09:14  Maya   Restore stalls after manifest load on the larger
+                cluster. Small runs are fine.
+  09:17  Owen   I can reproduce with 128 shards. The logs stop
+                before cache warmup.
+  09:18  Sam    My laptop also stalls when it sees Monday.   <span class="r">← 잡음</span>
+  09:21  Maya   Setting <b>CKPT_PREFETCH=4</b> makes it complete.
+                The default is too high for the NFS mount.
+
+<span class="c">                     ↓  LLM distillation</span>
+
+{
+  <span class="k">"question"</span>   : "Why does restore stall after manifest load?"
+  <span class="k">"summary"</span>    : "Large restores stop before cache warmup."
+  <span class="k">"resolution"</span> : "Set CKPT_PREFETCH=4 for the NFS mount."
+  <span class="k">"systems"</span>    : ["checkpoint restore", "NFS"]
+  <span class="k">"code_refs"</span>  : ["CKPT_PREFETCH"]
+}
+
+<span class="c">                     ↓  embedding 대상은 위 JSON, 원본 대화가 아니다</span>
+
+  source      <b>slack_thread</b>        embedding  <b>3,072 dims</b>
+  source_id   <b>thread_8f42</b>         metadata   <b>channel + authors + time</b></pre>
+        <figcaption>원문의 표현은 <span class="wl">"The original transcript is not embedded directly"</span>다. 스레드에 답글이 하나 붙으면 부모와 형제 전체를 Slack API에서 다시 받아 스레드 한 행으로 통째로 다시 쓴다. 그래서 저장된 내용과 참여자 목록과 마지막 활동 시각이 항상 대화 전체를 반영한다.</figcaption>
+      </figure>
+
+      <p>정규화만으로는 놓치는 것이 있다. 긴 스레드 안의 중요한 메시지가 스레드 수준 요약에 담기지 않는 경우다. 여기에 <strong>bursting</strong>을 덧댄다. 같은 사람이 연속으로 쓴 메시지 묶음 하나를 burst라 부르고, 스레드 주제를 앞에 붙여 따로 embedding한다. 답이 어휘가 요약까지 올라오지 못한 곁가지 메시지 하나에 들어 있을 때 그 메시지를 단독으로 찾을 수 있게 하는 장치다.</p>
+
+      <p>다만 모든 burst를 넣지는 않는다. 저품질 데이터가 DB에 닿기 전에 가중 신호 조합으로 점수를 매기고 문턱을 넘어야 embedding된다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>burst 통과 조건</th><th>값</th><th class="wrap">무엇을 거르는가</th></tr></thead>
+          <tbody>
+            <tr><td>코퍼스 기준 희귀 토큰 포함</td><td>IDF ≥ 4.0</td><td class="wrap">흔한 말로만 이뤄진 덩어리</td></tr>
+            <tr><td>묶인 길이</td><td>≥ 200자</td><td class="wrap">한 줄짜리 맞장구</td></tr>
+            <tr><td>반응(reaction) 존재</td><td>1개 이상</td><td class="wrap">아무도 반응하지 않은 혼잣말</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note"><b>정확도 개선폭은 수치로 공개되지 않았다.</b> 원문은 정규화 후 <span class="wl">"accuracy increased significantly"</span>라고만 쓴다. 세 조건이 AND인지 가중합의 항인지도 명확하지 않다. 원문은 <span class="wl">"a weighted combination of signals"</span>에 대해 문턱을 넘어야 한다고 쓰면서 세 항목을 나열하는데, 가중치 값은 없다.</p>
+    </div>
+  </section>
+
+  <!-- 06 네 신호와 RRF -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">fusion</p>
+      <h2>네 신호가 각자 순위를 내고 순위끼리 합친다</h2>
+      <p class="dek">단일 채점자를 믿지 않는다. 각 기법이 같은 코퍼스에 대해 자기 순위를 만들고 질의 시점에 융합된다. 융합이 점수가 아니라 순위를 쓰기 때문에 척도가 다른 채점자를 정규화 없이 섞을 수 있다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>신호</th><th class="wrap">잡아내는 것</th><th class="wrap">혼자 두면 생기는 실패</th></tr></thead>
+          <tbody>
+            <tr><td>full-text</td><td class="wrap">에러 문자열, 플래그명, 호스트명 같은 정확한 토큰</td><td class="wrap">다른 단어로 쓴 답을 못 찾는다</td></tr>
+            <tr><td>embedding</td><td class="wrap">어휘가 겹치지 않는 질문과 답의 연결</td><td class="wrap">짧고 무의미한 메시지가 상위에 온다</td></tr>
+            <tr><td>IDF</td><td class="wrap">희귀 토큰 중심의 짧지만 밀도 높은 메시지</td><td class="wrap">희귀어가 없는 정답을 놓친다</td></tr>
+            <tr><td>age decay</td><td class="wrap">같은 질문에 답하는 두 스레드 중 최신 쪽</td><td class="wrap">오래됐지만 여전히 맞는 답을 밀어낸다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>원문이 든 예가 이 조합이 왜 필요한지 보여준다. 질의 <span class="wl">"restore hangs after manifest load"</span>에 대해, 어휘가 하나도 겹치지 않는 2주 전 스레드(<span class="wl">"checkpoint stalls on the NFS mount"</span>)는 embedding이 잡고, 같은 문자열을 그대로 담은 1일 전 메시지는 full-text가 잡는다. <span class="wl">"sounds good, thanks!"</span>는 embedding 공간에서는 많은 질의와 가깝지만 IDF를 적용하면 0에 수렴한다. 8개월 전 스레드는 같은 질문에 답하지만 age decay로 내려간다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">여섯 개의 순위 리스트가 RRF로 합쳐진 뒤 두 번 더 줄어든다</p>
+        <p class="fig-sub">원문의 아키텍처 그림에 적힌 단계와 산문의 수치를 합쳐 다시 그린 것</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 760 232" role="img" aria-label="검색 결과가 좁혀지는 5단계 파이프라인. 왼쪽에서 여섯 개의 순위 리스트가 병렬로 나오는데 full-text, embedding, IDF, age decay, code, subsystem이다. RRF 융합 단계에서 문서마다 weight를 60 더하기 rank로 나눈 값을 합산해 하나의 순위로 합치며 weight 기본값은 1.0이다. 다음 단계에서 중복 chunk를 원본 단위로 합치고 파일당 기여 개수에 상한을 걸어 상위 20개를 만든다. 그 다음 작은 reranker 모델이 0에서 10점을 매겨 상위 10개만 남긴다. 마지막 단계에서 남은 결과에 주변 문맥을 다시 붙이는데, wiki 섹션이 걸리면 앞뒤 두 섹션을 함께 가져온다. 마지막 단계에서만 결과의 크기가 다시 커진다.">
+          <rect class="box" x="8" y="46" width="126" height="96" rx="8"/>
+          <text class="txt" x="20" y="66">순위 리스트 6개</text>
+          <text class="txt-s" x="20" y="84">full-text · embedding</text>
+          <text class="txt-s" x="20" y="100">IDF · age decay</text>
+          <text class="txt-s" x="20" y="116">code · subsystem</text>
+          <text class="txt-m" x="20" y="134">병렬 실행</text>
+
+          <path class="arw" d="M134 94 L164 94"/>
+          <path class="arw" d="M157 89 L164 94 L157 99"/>
+
+          <rect class="box-hi" x="168" y="46" width="138" height="96" rx="8"/>
+          <text class="txt" x="180" y="66">RRF 융합</text>
+          <text class="txt-s" x="180" y="86">문서마다</text>
+          <text class="txt-s" x="180" y="103">Σ weight / (60 + rank)</text>
+          <text class="txt-m" x="180" y="123">weight 기본 1.0</text>
+          <text class="txt-m" x="180" y="137">상수 60 고정</text>
+
+          <path class="arw" d="M306 94 L336 94"/>
+          <path class="arw" d="M329 89 L336 94 L329 99"/>
+
+          <rect class="box" x="340" y="52" width="118" height="84" rx="8"/>
+          <text class="txt" x="352" y="72">중복 제거</text>
+          <text class="txt-s" x="352" y="90">chunk를 원본 단위로</text>
+          <text class="txt-s" x="352" y="106">파일당 개수 상한</text>
+          <text class="txt-m" x="352" y="126">→ 상위 20</text>
+
+          <path class="arw" d="M458 94 L488 94"/>
+          <path class="arw" d="M481 89 L488 94 L481 99"/>
+
+          <rect class="box" x="492" y="52" width="112" height="84" rx="8"/>
+          <text class="txt" x="504" y="72">rerank</text>
+          <text class="txt-s" x="504" y="90">작은 모델 1회</text>
+          <text class="txt-s" x="504" y="106">0 ~ 10점 부여</text>
+          <text class="txt-m" x="504" y="126">→ 상위 10</text>
+
+          <path class="arw" d="M604 94 L634 94"/>
+          <path class="arw" d="M627 89 L634 94 L627 99"/>
+
+          <rect class="box-hi" x="638" y="52" width="114" height="84" rx="8"/>
+          <text class="txt" x="650" y="72">문맥 복원</text>
+          <text class="txt-s" x="650" y="90">wiki 섹션이면</text>
+          <text class="txt-s" x="650" y="106">앞뒤 2개 추가</text>
+          <text class="txt-m" x="650" y="126">여기서만 늘어남</text>
+
+          <text class="txt-m" x="8" y="176">좁히는 방향</text>
+          <path class="arw" d="M8 190 L604 190"/>
+          <path class="arw" d="M597 185 L604 190 L597 195"/>
+          <text class="txt-m" x="638" y="176">다시 넓히는 방향</text>
+          <path class="arw-hi" d="M752 190 L638 190"/>
+          <path class="arw-hi" d="M645 185 L638 190 L645 195"/>
+          <text class="txt-s" x="8" y="216">chunking이 잘라낸 heading, 전제조건, 단서를 마지막에 되붙인다</text>
+        </svg>
+        </div>
+        <figcaption>리스트 6개라는 수는 원문 아키텍처 그림의 <span class="wl">SIX LISTS IN PARALLEL</span> 표기에서 읽었고, 어떤 여섯인지는 원문이 명시하지 않는다. 그림의 여섯 칸 이름은 원문의 도구 목록에서 유추한 것이라 실제 구성과 다를 수 있다. 융합식과 상수 60, 상위 20과 상위 10은 원문 산문에 그대로 적힌 값이다.</figcaption>
+      </figure>
+
+      <p>상수 60이 하는 일은 <strong>한 채점자의 강한 확신보다 여러 채점자의 합의를 무겁게 만드는 것</strong>이다. 분모가 60에서 시작하므로 1위와 5위의 기여 차이가 크지 않고, 여러 리스트에 고르게 등장한 문서가 한 리스트에서만 1위인 문서를 이긴다.</p>
+
+      <p class="note"><b>60은 Cerebras가 고른 값이 아니라 물려받은 값이다.</b> 원문이 참조 (3)으로 단 Cormack 외의 SIGIR 2009 논문에서 온 기본값이고, Cerebras 코퍼스에 맞춰 조정했다는 언급은 없다. 나는 이 논문을 열지 않았으므로 60이 그 논문에서 어떤 근거로 나온 값인지에 대해서는 아무것도 주장하지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 07 planner 구조 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">orchestration</p>
+      <h2>planner는 도구를 고르고, 증거가 충분한지는 판단하지 않는다</h2>
+      <p class="dek">질의마다 LLM이 짧게 계획을 세워 어떤 도구와 소스가 관련 있을지 정한다. 그 뒤 executor가 병렬로 펼치고, 결과를 공통 형식으로 정규화해 마지막 synthesis LLM에 넘긴다. 결정은 한 번뿐이다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>도구</th><th class="wrap">하는 일</th></tr></thead>
+          <tbody>
+            <tr><td>search</td><td class="wrap">Slack, wiki, code 등을 가로지르는 통합 vector 파이프라인. 내부에서 병합과 rerank까지</td></tr>
+            <tr><td>search_slack</td><td class="wrap">Slack만 직접 검색</td></tr>
+            <tr><td>search_code</td><td class="wrap">소스 저장소에 ripgrep</td></tr>
+            <tr><td>subsystem_index</td><td class="wrap">파일 단위 LLM 요약</td></tr>
+            <tr><td>recent_prs</td><td class="wrap">질문과 관련된 최근 pull request</td></tr>
+            <tr><td>who_knows</td><td class="wrap">해당 주제에 전문성이 입증된 사람</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p>같은 도구가 두 인터페이스에 다르게 물려 있다. <strong>MCP에서는 검색 원시 요소를 도구 그대로 노출한다.</strong> 하나의 "질문에 답하라" 엔드포인트 뒤에 숨기지 않고, 의도적으로 LLM을 최대한 배제해 클라이언트가 빠르고 싸게 부를 수 있게 한다. 이때 조율 엔진은 Claude Code 같은 MCP 클라이언트 쪽이 된다. 어떤 도구를 어떤 순서로 부르고 결과를 어떻게 조립할지 에이전트가 정하며, 검색 계층 자체는 그 결정에 의존하지 않는다.</p>
+
+      <p><strong>웹 UI에서는 planner와 executor를 시스템이 갖는다.</strong> 사용자에게는 질문을 넣으면 답이 나오는 창구지만 내부는 MCP 클라이언트가 명시적으로 재현할 수 있는 것과 같은 패턴이다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">되돌아오는 화살표가 없다는 것이 이 구조의 경계다</p>
+        <p class="fig-sub">원문이 서술한 단계를 그린 것. 점선 화살표는 원문에 없는 경로다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 760 220" role="img" aria-label="질의 처리 흐름. 질의가 planner로 들어가면 planner가 한 번 도구를 고르고, executor가 그 도구들을 병렬로 실행한 뒤 결과를 공통 증거 형식으로 정규화하고, synthesis LLM이 답을 만들고, 마지막 상자에서 답변으로 종료한다. 질의, planner, executor, synthesis, 답변 다섯 상자가 왼쪽에서 오른쪽으로 한 줄로 이어지며 되돌아오는 화살표가 없다. 그림 아래쪽에 점선으로 그려진 화살표가 synthesis에서 planner로 돌아가는 경로를 나타내는데, 이 경로는 원문에 존재하지 않으며 증거가 부족하다고 판단해 다시 검색하는 단계가 없다는 뜻이다.">
+          <rect class="box" x="8" y="34" width="118" height="66" rx="8"/>
+          <text class="txt" x="20" y="54">질의</text>
+          <text class="txt-s" x="20" y="72">사용자 질문 +</text>
+          <text class="txt-s" x="20" y="88">활성 project</text>
+
+          <path class="arw" d="M126 67 L160 67"/>
+          <path class="arw" d="M153 62 L160 67 L153 72"/>
+
+          <rect class="box-hi" x="164" y="34" width="130" height="66" rx="8"/>
+          <text class="txt" x="176" y="54">planner</text>
+          <text class="txt-s" x="176" y="72">가벼운 LLM 1회</text>
+          <text class="txt-s" x="176" y="88">도구 선택만 한다</text>
+
+          <path class="arw" d="M294 67 L328 67"/>
+          <path class="arw" d="M321 62 L328 67 L321 72"/>
+
+          <rect class="box" x="332" y="34" width="140" height="66" rx="8"/>
+          <text class="txt" x="344" y="54">executor</text>
+          <text class="txt-s" x="344" y="72">병렬 fan-out</text>
+          <text class="txt-s" x="344" y="88">공통 증거 형식으로</text>
+
+          <path class="arw" d="M472 67 L506 67"/>
+          <path class="arw" d="M499 62 L506 67 L499 72"/>
+
+          <rect class="box" x="510" y="34" width="130" height="66" rx="8"/>
+          <text class="txt" x="522" y="54">synthesis</text>
+          <text class="txt-s" x="522" y="72">LLM 1회</text>
+          <text class="txt-s" x="522" y="88">인용과 단서 포함</text>
+
+          <path class="arw" d="M640 67 L674 67"/>
+          <path class="arw" d="M667 62 L674 67 L667 72"/>
+          <rect class="box" x="678" y="34" width="74" height="66" rx="8"/>
+          <text class="txt" x="690" y="54">답변</text>
+          <text class="txt-s" x="690" y="72">종료</text>
+
+          <path class="arw" style="stroke-dasharray:5 4; stroke:var(--redlink)" d="M575 100 L575 154 L229 154 L229 100"/>
+          <path class="arw" style="stroke:var(--redlink)" d="M224 107 L229 100 L234 107"/>
+          <text class="txt-s" style="fill:var(--redlink)" x="300" y="148">이 경로가 원문에 없다</text>
+
+          <text class="txt-s" x="8" y="186">증거가 부족하다는 판단도, 앞 결과를 보고 다음 질의를 정하는 순차 의존도 표현되지 않는다.</text>
+          <text class="txt-s" x="8" y="204">병렬 fan-out의 전제가 도구끼리 독립이라는 것이기 때문이다.</text>
+        </svg>
+        </div>
+        <figcaption>이 판단은 원문이 아니라 DataSci Ocean의 읽기다. 원문은 자기 구조를 agentic이라 부르지 않고 이 경계를 언급하지도 않는다. 표현을 그대로 옮기면 <span class="wl">"a traditional RAG pipeline that uses an LLM for dynamic routing"</span>이며, LLM이 결정에 관여한다는 것과 agentic이라는 것은 다르다는 지적이다.</figcaption>
+      </figure>
+
+      <p class="note"><b>단일 라운드가 결함이라는 뜻은 아니다.</b> MCP 경로에서는 루프를 클라이언트 에이전트가 갖는다. 원문이 검색 계층을 <span class="wl">"as LLM-free as possible"</span>로 유지한 것은 그 루프를 바깥에 두겠다는 선택으로 읽는 편이 맞다. 웹 UI에만 루프가 없다.</p>
+    </div>
+  </section>
+  <!-- 08 grep 논쟁 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">compare</p>
+      <h2>코드에 embedding이 필요한가라는 물음에 남의 수치로 답했다</h2>
+      <p class="dek">Cerebras는 코드 저장소를 embedding할 필요가 있는지부터 의심했다. Claude Code 같은 도구가 퍼지면서 grep이면 충분해 보였기 때문이다. 자체 실험 대신 Cursor가 공개한 수치를 근거로 삼아 시도하기로 했다.</p>
+
+      <p class="q">creating code embeddings felt counterintuitive when it seemed like "grep is all you need"<cite>Cerebras, How we built our knowledge base</cite></p>
+
+      <figure class="figure">
+        <p class="fig-title">semantic search를 붙이면 질문 정답률이 오르지만 모델에 따라 폭이 3.6배 차이난다</p>
+        <p class="fig-sub">Cursor, Improving agent with semantic search (2025-11). Cursor Context Bench 기준 자체 평가</p>
+        <div class="bars">
+          <div class="bar-row">
+            <span class="bar-name">모델별 최저</span>
+            <span class="bar-track"><span class="bar" style="--w:26%"></span></span>
+            <span class="bar-val">+6.5%</span>
+          </div>
+          <div class="bar-row is-hero">
+            <span class="bar-name">전체 평균</span>
+            <span class="bar-track"><span class="bar s1" style="--w:50%"></span></span>
+            <span class="bar-val">+12.5%</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-name">모델별 최고</span>
+            <span class="bar-track"><span class="bar" style="--w:94%"></span></span>
+            <span class="bar-val">+23.5%</span>
+          </div>
+        </div>
+        <div class="bar-axis"><div class="ticks"><span>0</span><span>25%</span></div></div>
+        <figcaption>semantic search가 있는 도구 집합과 없는 집합을 비교한 정답률 차이다. 최저와 최고의 비(23.5 ÷ 6.5 = 3.6)는 <strong>원문에 없는 계산이다.</strong> Cursor는 범위만 적었다. 자체 벤치마크이고 자체 제품을 정당화하는 글에 실린 수치라는 점도 감안해야 한다. Cerebras는 이 수치를 근거로 인용했을 뿐 자기 코퍼스에서 재현하지 않았다.</figcaption>
+      </figure>
+
+      <p>Cursor는 A/B 테스트 수치도 함께 냈고, 여기서 조건이 붙는다. 코드 잔존율은 semantic search가 있을 때 <strong>0.3%</strong> 오르는데, <strong>파일 1,000개 이상의 큰 코드베이스에서는 2.6%</strong>로 커진다. semantic search가 없을 때 불만족 후속 요청은 2.2% 늘었다. 효과 크기가 작은 이유를 Cursor는 A/B가 모든 질의를 포함하고 모든 요청이 검색을 필요로 하지는 않기 때문이라고 적는다.</p>
+
+      <p>Cerebras가 이 근거를 받아들인 맥락은 Cursor와 비슷하다. 사내 저장소 중 일부가 <strong>40 GB를 넘는다</strong>. 큰 코드베이스일수록 효과가 커진다는 조건에 정확히 걸린다.</p>
+
+      <p>반대편 논거는 Hacker News의 Semble 스레드(445점, 댓글 151개)에 모여 있다. 거기서 반복된 지적은 검색 품질이 아니라 <strong>에이전트가 grep이 아닌 도구를 믿는가</strong>였다. 한 사용자는 모델이 grep에 워낙 강하게 RL돼 있어 다른 형태의 결과를 신뢰하지 않고 계속 재시도하거나 다시 읽어서 토큰 절약분이 사라진다고 적는다. Semble 저자도 같은 관찰을 확인하면서 모델에 따라 갈린다고 답한다. 다른 참가자는 검색 출력만이 아니라 에이전트 루프 전체를 재야 한다고 요구했고, 저자는 그 벤치마크가 아직 없다고 인정했다.</p>
+
+      <p><strong>Cerebras가 내린 결론은 둘 중 하나가 아니라 둘 다였다.</strong> 07장의 도구 목록에서 <span class="wl">search_code</span>가 ripgrep인 것이 그 증거다. embedding 검색을 도입하면서 저장소를 직접 뒤지는 경로를 걷어내지 않고 나란히 남겼다. 이 읽기는 Threads 스레드 6번 게시물의 정리와 일치한다.</p>
+
+      <p class="q">결론은 둘 다였습니다. 리포지토리를 뒤지는 ripgrep 검색이 embedding 검색 바로 옆에 그대로 남았습니다.<cite>@choi.openai, Threads 6/9</cite></p>
+
+      <p>같은 게시물이 규모 조건도 덧붙인다. 문서가 100개에서 1,000개 수준이면 여전히 RAG가 더 빠르다는 것이다. Cursor의 1,000 파일 경계와 방향이 같지만 이쪽은 출처가 밝혀지지 않은 저자의 정리이므로 참고 수준으로만 읽어야 한다.</p>
+
+      <p class="note"><b>Cerebras는 두 종류의 수치 중 어느 쪽도 자기 시스템에서 재지 않았다.</b> 검색 품질도, 에이전트 루프 효과도 원문에 없다. 코드를 embedding하기로 한 결정의 근거는 남의 벤치마크 하나와 <span class="wl">"After talking with others in the industry"</span>가 전부다.</p>
+    </div>
+  </section>
+
+  <!-- 09 chunk 경계 추적 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">trace</p>
+      <h2>chunk 경계는 fallback 사다리가 아니라 비용 최소화의 결과다</h2>
+      <p class="dek">원문은 코드 분할을 굵은 단위에서 가는 단위로 내려가는 regex 경계로 설명한다. 원문이 이름을 댄 CocoIndex를 열어보면 순서가 다르다. regex는 fallback이고 기본은 tree-sitter AST이며, 굵은 것부터 시도하는 사다리가 아니라 비용 함수를 최소화하는 계획 문제다.</p>
+
+      <p class="q">we split the code using language-specific regex boundaries ordered from coarse to fine. The splitter tries higher-level boundaries, such as classes, first.<cite>Cerebras, How we built our knowledge base</cite></p>
+
+<pre><span class="c">cocoindex-io/cocoindex @ d7607100e39dfee3919cd1116c10620eb6636104
+전부 rust/ops_text/src/split/recursive.rs 한 파일 안이다</span>
+
+<b>hop 1  경로 선택 (:644, :650, :673)</b>
+  <span class="c">/// Routing: a custom (regex) language configured on this chunker takes</span>
+  <span class="c">} else if let ParseOutcome::Parsed(tree) = source.tree() {</span>
+  → 커스텀 regex 언어가 설정돼 있으면 <span class="r">파싱 자체를 건너뛴다</span>
+  → 없으면 tree-sitter 파스를 쓴다
+  → 언어 미상 · 문법 없음 · 파싱 실패일 때만 기본 regex 분할
+
+<b>hop 2  atom chunk까지 끝까지 내려간다 (:356, :364)</b>
+  <span class="c">if current_chunk.range.len() &lt;= self.min_atom_chunk_size {</span>
+  <span class="c">if !lang_config.terminal_node_kind_ids.contains(&amp;node.kind_id()) {</span>
+  → 노드가 <span class="k">min_atom_chunk_size</span> 이하이거나 terminal 종류면 거기서 멈춘다
+  → 아니면 자식으로 내려간다. <span class="r">클래스에서 멈춰보는 단계가 없다</span>
+  → iter_stack 깊이가 그 atom 의 syntax level 로 기록된다
+
+<b>hop 3  비용을 매겨 다시 묶는다 (:448, :481)</b>
+  <span class="c">gap_cost_cache.push(gap_cost_cache[i - 1] + SYNTAX_LEVEL_GAP_COST / i);</span>
+  <span class="c">syntax_level_gap_cost(start_chunk.boundary_syntax_level, internal_syntax_level);</span>
+  → 연속한 atom 을 묶는 모든 방법에 비용을 매기고 최소를 고른다
+  → syntax level 을 처음 건널 때 512, 그 다음 256, 그 다음 170 <span class="c">(512/i 누적)</span>
+
+<b>hop 4  비용 상수가 굵은 단위 선호를 만든다 (:13, :16)</b>
+  <span class="c">const SYNTAX_LEVEL_GAP_COST: usize = 512;</span>
+  <span class="c">const TOO_SMALL_CHUNK_COST: usize = 1048576;</span>
+  → 너무 작은 chunk 는 syntax level 하나 건너는 것보다 <b>2,048배</b> 비싸다
+  → 그래서 계획기는 경계를 여러 겹 건너서라도 작은 chunk 를 피한다</pre>
+
+      <p>결과 동작은 원문의 서술과 겹친다. 클래스가 먼저 잡히고 너무 크면 메서드로 내려간다. 하지만 <strong>그렇게 되는 이유가 다르다.</strong> 굵은 단위를 먼저 시도하고 실패하면 물러나는 것이 아니라, 끝까지 내려간 뒤 되묶으면서 경계를 적게 건너는 조합이 싸기 때문에 굵은 단위가 살아남는다. 차이는 크기 초과가 아닌 상황에서 드러난다. 사다리 모델이라면 클래스 하나가 <span class="k">chunk_size</span> 안에 들어가면 그대로 한 덩어리다. 비용 모델에서는 <span class="k">min_chunk_size</span> 미만이 되는 조합을 피하려고 인접한 것을 끌어와 묶을 수 있다.</p>
+
+      <p>이 차이를 Cerebras의 잘못으로 단정할 수는 없다. 설명이 되는 경로가 둘 있다. 하나는 설정이다. hop 1이 보여주듯 커스텀 regex 언어를 등록하면 tree-sitter를 아예 건너뛰므로, Cerebras가 그렇게 썼다면 원문의 서술은 자기 설정에 대해 정확하다. 다른 하나는 버전이다. 저장소가 <span class="wl">"CocoIndex v1 is a fundamental redesign from v0"</span>라고 적는다(<span class="wl">docs/src/content/docs/getting_started/ai_coding_agents.mdx:14</span>). 원문이 v0를 썼다면 내가 읽은 코드는 원문이 말한 코드가 아니다.</p>
+
+      <p><strong>어느 쪽인지 이 문서로는 가릴 수 없다.</strong> 원문은 버전을 밝히지 않았고 사내 설정도 공개되지 않았다. 확실한 것은 여기 고정한 커밋에서 기본 경로가 tree-sitter라는 것뿐이다. 14장에서 이 갈래가 도입 판단에 어떻게 걸리는지 다시 다룬다.</p>
+
+      <p class="note"><b>코드를 읽어서 확인한 것이고 실행해서 확인한 것이 아니다.</b> 위 네 홉은 코드가 그렇게 쓰여 있다는 진술이고, 실제로 어떤 chunk가 나오는지는 말하지 않는다. 파일 안에 <span class="k">chunk_size</span> 10에서 80까지를 쓰는 테스트가 여럿 있지만(:728 이후) 실행하지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 10 읽은 범위 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>읽은 범위. 근거는 원문, 외부 코드, 커뮤니티 세 층이다</h2>
+      <p class="dek">이 문서의 근거는 세 층으로 나뉜다. Cerebras 원문, 원문이 이름을 댄 외부 코드, 그리고 커뮤니티 논의다. 층마다 검증 강도가 다르므로 어디까지가 무엇인지 밝힌다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>대상</th><th class="wrap">읽은 정도</th><th class="wrap">이 문서에서 하는 일</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>Cerebras 원문</td><td class="wrap">전문. 산문은 텍스트 변환 경로로, 그림 라벨은 보관본 HTML에서</td><td class="wrap">03 ~ 08장의 사실 진술 전부</td></tr>
+            <tr><td>cocoindex @ d7607100</td><td class="wrap">1,176개 파일 중 9개. rust 3편, docs 4편, README, LICENSE</td><td class="wrap">09장 추적, 14장 도입 판단</td></tr>
+            <tr><td>Cursor semsearch</td><td class="wrap">전문</td><td class="wrap">08장 수치</td></tr>
+            <tr><td>HN 스레드 4건</td><td class="wrap">Semble 445점/151댓글, Contextual Retrieval 309/72, Greptile 253/166, Falconer 14/6</td><td class="wrap">08장, 12장 반론</td></tr>
+            <tr><td>DataSci Ocean</td><td class="wrap">전문</td><td class="wrap">07장 단일 라운드 판단</td></tr>
+            <tr><td>Falconer 노트</td><td class="wrap">요약 수준</td><td class="wrap">03장, 12장 project scoping 비판</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p><strong>회수 경로가 특이한 것.</strong> Threads 스레드는 어떤 fetch 경로로도 닿지 않았다. 첫 게시물만 서버에서 렌더링되고 1/부터 9/까지는 GraphQL로 오기 때문이다. 렌더된 화면을 이미지로 읽어 9개 게시물을 회수했다. <strong>텍스트를 받은 것이 아니므로 이 문서의 Threads 인용은 화면에서 옮겨 적은 것이다.</strong> X에 올라온 같은 제목의 글은 열지 못했고, 계정과 제목이 같아 원문의 미러로 보았을 뿐이다. Anthropic의 Contextual Retrieval 원글도 직접 열지 못해 HN 논의와 Threads의 전달을 통해서만 다뤘다.</p>
+
+      <p><strong>열지 않기로 한 것.</strong> 원문이 참조로 단 논문 셋(HNSW, RRF, Lost in the Middle)은 열지 않았다. 그래서 이 문서는 상수 60이나 상위 10이라는 선택이 그 논문들에 비춰 타당한지에 대해 아무 주장도 하지 않는다. CocoIndex의 <span class="wl">examples/</span> 441개와 <span class="wl">python/</span> 225개는 열지 않았고, <span class="wl">docs/</span> 169개 중에서는 4편만 열었다. 그래서 09장은 chunking 한 축만 다루고, 원문이 강조한 증분 갱신은 문서의 서술을 옮긴 수준에 그친다.</p>
+
+      <p class="note"><b>CocoIndex 저장소에는 에이전트용 지시문이 들어 있다.</b> <span class="wl">.claude/</span> 10개, <span class="wl">skills/</span> 6개, <span class="wl">.agents/</span> 4개다. 열지 않았고, 따라서 이 문서의 어떤 문장도 거기서 나오지 않았다. shallow clone이라 커밋 빈도나 기여자 분포 같은 유지보수 활력 지표는 이 체크아웃에 존재하지 않으며 14장에서 그런 주장을 하지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 11 공개된 수치 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-adoption</p>
+      <h2>공개된 것은 채택 수치뿐이고 품질 수치는 한 건도 없다</h2>
+      <p class="dek">원문이 내놓은 숫자는 사용량이다. 하루 15,000건이 넘는 질의, 3개월 만에 사내에서 가장 널리 쓰이는 도구 중 하나. 검색이 얼마나 맞는지에 대한 숫자는 없다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th class="wrap">항목</th><th>Cerebras</th><th>Cursor</th></tr></thead>
+          <tbody>
+            <tr><td class="wrap">사용량 지표</td><td class="win">15,000+ / 일</td><td>없음</td></tr>
+            <tr><td class="wrap">오프라인 정답률</td><td class="lose">없음</td><td class="win">+12.5%</td></tr>
+            <tr><td class="wrap">온라인 A/B</td><td class="lose">없음</td><td class="win">잔존율 +0.3%</td></tr>
+            <tr><td class="wrap">평가 데이터셋</td><td class="lose">언급 없음</td><td class="win">Context Bench</td></tr>
+            <tr><td class="wrap">ablation</td><td class="lose">없음</td><td>없음</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small">두 시스템을 나란히 둔 비교는 원문에 없다. Cerebras 원문과 Cursor 글에서 각각 읽은 것을 내가 겹쳐 놓은 표다. 둘은 목적이 다르므로(사내 지식베이스 대 코딩 에이전트 제품) 우열 비교가 아니라 <strong>무엇을 공개했는가의 비교</strong>로만 읽어야 한다.</p>
+
+      <p>이 공백이 문서의 성격을 정한다. 원문은 <strong>무엇을 만들었는지에 대한 설계 보고서이고 그것이 잘 작동한다는 증거 보고서가 아니다.</strong> 실제로 원문이 성능 근거로 제시하는 대목은 두 군데뿐인데, 하나는 Slack 정규화 후 <span class="wl">"accuracy increased significantly"</span>라는 무수치 진술이고 다른 하나는 남의 벤치마크(Cursor)다.</p>
+
+      <p>사용량 수치도 해석에 조심할 필요가 있다. 원문 스스로 사용자를 <span class="wl">"humans, automations and agents"</span>로 적는다. 에이전트는 한 질문에 MCP 도구를 여러 번 부르고, 자동화는 사람 없이 반복 호출한다. 15,000은 사람이 물은 횟수가 아니라 <strong>호출 횟수의 합</strong>이며, 셋의 비율은 공개되지 않았다.</p>
+
+      <p class="note"><b>수치가 없다는 것이 시스템이 나쁘다는 뜻은 아니다.</b> 사내 도구는 채택률 자체가 유효한 신호이고, 3개월 만에 가장 널리 쓰이는 축에 들었다면 사람들이 답을 얻고 있다는 뜻이다. 다만 그 신호로는 어떤 설계 결정이 기여했는지 분해할 수 없다. bursting을 빼면 어떻게 되는지, 상수 60이 40보다 나은지는 이 문서로도 원문으로도 답할 수 없다.</p>
+    </div>
+  </section>
+  <!-- 12 프로덕션 쟁점 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">production</p>
+      <h2>어려워지는 것은 검색이 아니라 권한과 무효화와 고착이다</h2>
+      <p class="dek">회사 지식을 테이블 하나로 모으면 검색은 쉬워지고 나머지 셋이 어려워진다. 원문은 셋 중 어느 것도 다루지 않고, 커뮤니티 논의도 검색 기법에 쏠려 있어 여기가 가장 비어 있는 자리다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th class="wrap">쟁점</th><th class="wrap">원문의 서술</th><th class="wrap">근거 출처</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td class="wrap">행 단위 열람 권한</td><td class="wrap">세 기능 중 하나로 세고 설명 없음</td><td class="wrap">원문 자체의 공백</td></tr>
+            <tr><td class="wrap">재색인 트리거</td><td class="wrap">소스별 주기 조절, 커밋 시 delta</td><td class="wrap">HN Greptile 운영자</td></tr>
+            <tr><td class="wrap">사라진 대상을 가리키는 행</td><td class="wrap">언급 없음</td><td class="wrap">Threads 5/9</td></tr>
+            <tr><td class="wrap">embedding 모델 교체</td><td class="wrap">언급 없음</td><td class="wrap">HN Contextual Retrieval</td></tr>
+            <tr><td class="wrap">LLM 재작성 비용</td><td class="wrap">prompt caching 언급 없음</td><td class="wrap">HN, simonw / lmeyerov</td></tr>
+            <tr><td class="wrap">평가 체계</td><td class="wrap">없음</td><td class="wrap">원문 자체의 공백</td></tr>
+            <tr><td class="wrap">에이전트의 도구 신뢰</td><td class="wrap">없음</td><td class="wrap">HN Semble</td></tr>
+            <tr><td class="wrap">project 기본값 노후화</td><td class="wrap">온보딩 시 1회 선택 후 프로필 저장</td><td class="wrap">Falconer</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 style="margin-top:22px">권한. 필터를 어디에 두든 하나씩 깨진다</h3>
+      <p>같은 테이블에 회사 전체 지식이 있다는 것은 <strong>행마다 볼 수 있는 사람이 다르다</strong>는 뜻이다. 비공개 Slack 채널, 접근 제한 저장소, 인사 문서가 같은 스키마로 섞인다. 02장에서 본 대로 원문에 이 계층의 설명이 없으므로, 아래는 원문의 설명이 아니라 원문의 파이프라인에 권한을 얹으려 할 때 생기는 선택지를 내가 정리한 것이다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">필터 위치 셋 중 무엇을 골라도 대가가 있다</p>
+        <p class="fig-sub">원문에 이 그림은 없다. 06장에서 확인한 파이프라인 위에 권한 필터가 들어갈 수 있는 자리를 표시한 것</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 760 250" role="img" aria-label="검색 파이프라인 위에 권한 필터를 놓을 수 있는 세 위치와 각각의 대가. 위쪽에 색인, retriever 여섯 개, RRF 융합으로 상위 20개, rerank로 상위 10개, synthesis 답변으로 이어지는 흐름이 있다. 첫 번째 위치는 색인 단계로 권한 그룹마다 파티션을 따로 두는 방식이며 대가는 저장 중복과 권한 변경 시 재색인이다. 두 번째 위치는 각 retriever가 권한 조건을 건 채로 검색하는 방식이며 대가는 여섯 개 retriever 전부가 권한 인지 인덱스를 가져야 한다는 것이다. 세 번째 위치는 RRF 융합이 끝난 뒤 걸러내는 방식이며 대가는 권한이 좁은 사용자에게 결과가 거의 남지 않고 상위 열 개가 채워지지 않는다는 것이다. 세 번째 위치에는 추가로 distillation 단계에서 만들어진 LLM 요약이 원본의 권한을 물려받지 못하면 비공개 스레드의 내용이 요약을 통해 새어나간다는 경고가 붙어 있다.">
+          <rect class="box" x="8" y="34" width="116" height="46" rx="8"/>
+          <text class="txt" x="20" y="53">색인</text>
+          <text class="txt-s" x="20" y="69">embeddings 테이블</text>
+
+          <path class="arw" d="M124 57 L156 57"/>
+          <path class="arw" d="M149 52 L156 57 L149 62"/>
+
+          <rect class="box" x="160" y="34" width="116" height="46" rx="8"/>
+          <text class="txt" x="172" y="53">retriever ×6</text>
+          <text class="txt-s" x="172" y="69">각자 순위 생성</text>
+
+          <path class="arw" d="M276 57 L308 57"/>
+          <path class="arw" d="M301 52 L308 57 L301 62"/>
+
+          <rect class="box" x="312" y="34" width="116" height="46" rx="8"/>
+          <text class="txt" x="324" y="53">RRF 융합</text>
+          <text class="txt-s" x="324" y="69">상위 20</text>
+
+          <path class="arw" d="M428 57 L460 57"/>
+          <path class="arw" d="M453 52 L460 57 L453 62"/>
+
+          <rect class="box" x="464" y="34" width="116" height="46" rx="8"/>
+          <text class="txt" x="476" y="53">rerank</text>
+          <text class="txt-s" x="476" y="69">상위 10</text>
+
+          <path class="arw" d="M580 57 L612 57"/>
+          <path class="arw" d="M605 52 L612 57 L605 62"/>
+
+          <rect class="box" x="616" y="34" width="136" height="46" rx="8"/>
+          <text class="txt" x="628" y="53">synthesis</text>
+          <text class="txt-s" x="628" y="69">인용 포함 답변</text>
+
+          <path class="arw-hi" d="M66 80 L66 108"/>
+          <path class="arw-hi" d="M61 101 L66 108 L71 101"/>
+          <rect class="box-hi" x="8" y="112" width="200" height="66" rx="8"/>
+          <text class="txt" x="20" y="131">A. 권한 그룹별 파티션</text>
+          <text class="txt-s" x="20" y="148">읽기는 빠르다</text>
+          <text class="txt-s" x="20" y="164">권한이 바뀌면 재색인</text>
+
+          <path class="arw-hi" d="M218 80 L218 108"/>
+          <path class="arw-hi" d="M213 101 L218 108 L223 101"/>
+          <rect class="box-hi" x="216" y="112" width="200" height="66" rx="8"/>
+          <text class="txt" x="228" y="131">B. retriever마다 조건절</text>
+          <text class="txt-s" x="228" y="148">정확하다</text>
+          <text class="txt-s" x="228" y="164">ripgrep 포함 6개 전부 수정</text>
+
+          <path class="arw-hi" d="M370 80 L370 96 L524 96 L524 108"/>
+          <path class="arw-hi" d="M519 101 L524 108 L529 101"/>
+          <rect class="box-hi" x="424" y="112" width="200" height="66" rx="8"/>
+          <text class="txt" x="436" y="131">C. 융합 뒤 걸러내기</text>
+          <text class="txt-s" x="436" y="148">구현이 가장 싸다</text>
+          <text class="txt-s" x="436" y="164">상위 10이 안 채워진다</text>
+
+          <rect class="box-bad" x="8" y="192" width="616" height="46" rx="8"/>
+          <text class="txt" x="20" y="211">세 선택지와 별개로: distillation 요약이 원본의 권한을 물려받지 못하면</text>
+          <text class="txt-s" x="20" y="228">비공개 스레드의 question · summary · resolution 이 요약을 통해 그대로 새어나간다</text>
+        </svg>
+        </div>
+        <figcaption>C가 특히 위험한 이유는 RRF가 순위 기반이기 때문이다. 융합 뒤에 걸러내면 상위 20에서 몇 개가 빠지는 것이 아니라, 권한이 좁은 사용자에게는 20개가 전부 빠질 수 있고 그때 결과가 0건이 되는 것이 아니라 <strong>순위가 낮던 문서가 상위로 올라온다</strong>. 이 분석은 원문에 없으며 06장에서 확인한 파이프라인 구조에서 따라 나오는 것이다.</figcaption>
+      </figure>
+
+      <h3 style="margin-top:22px">무효화. age decay가 재는 것은 언제 쓰였는지다</h3>
+      <p>원문은 두 가지 신선도 장치를 갖는다. Slack 채널마다 데이터 소스를 따로 두어 바쁜 incident 채널을 더 자주 수집할 수 있게 했고, 코드는 CocoIndex가 커밋마다 바뀐 chunk만 다시 embedding한다. 둘 다 <strong>새 것을 빨리 넣는</strong> 장치다. <strong>틀린 것을 빼는</strong> 장치는 age decay 하나인데, 원문 스스로 그것을 동점일 때의 판정 기준으로 설명한다. 최근에 쓰였지만 틀린 답은 여전히 이긴다.</p>
+
+      <p>같은 문제를 제품으로 겪은 쪽의 진술이 HN에 있다. Greptile 공동창업자는 로컬 저장소 지원이 막힌 이유로 <span class="wl">"Haven't figured out what should trigger updates. Every commit sounds crazy, every save would be perfect but too intensive"</span>를 든다. Cerebras가 커밋 트리거를 고른 것은 이 딜레마의 한쪽 끝을 택한 것이고, 원문은 그 비용을 적지 않는다.</p>
+
+      <p>커밋 트리거를 골랐을 때 남는 문제를 가장 날카롭게 적은 것은 Threads 스레드 5번 게시물이다. 원문에는 이 진술이 없다.</p>
+
+      <p class="q">커밋이 수백 번 쌓이면 벡터 상당수가 이미 사라진 코드를 가리키는데 아무도 눈치채지 못하는 순간이 가장 큰 난제입니다.<cite>@choi.openai, Threads 5/9</cite></p>
+
+      <p>이 진술을 삭제 전파가 안 된다는 뜻으로 읽으면 틀린다. CocoIndex 문서는 target 단계에서 삽입, 갱신, 삭제를 최소 단위로 반영한다고 적는다(<span class="wl">docs/src/content/docs/getting_started/overview.mdx:54</span>). 걸리는 것은 <strong>메커니즘이 아니라 관측</strong>이다. 벡터가 낡았다는 사실은 검색 결과가 틀려야 드러나고, 검색 품질을 재는 장치가 없으면 틀린 채로 남는다. 11장에서 본 대로 검색 품질을 재는 장치가 없으면 낡은 행을 발견할 경로도 없다.</p>
+
+      <p>age decay도 이 경우를 잡지 못한다. <strong>사라진 코드를 가리키는 행은 오래된 것이 아니라 최근 것일 수 있다.</strong> 리팩터링 직후라면 삭제된 심볼을 설명하는 Slack 스레드가 이번 주에 쓰였을 수 있고, timestamp 기준으로는 최신이다. 신선도 신호는 언제 쓰였는지를 재지 대상이 아직 존재하는지를 재지 않는다.</p>
+
+      <h3 style="margin-top:22px">고착. 다시 만들어야 하는 단위는 distillation이다</h3>
+      <p>embedding 모델을 바꾸면 코퍼스 전체를 다시 embedding해야 한다는 것은 HN Contextual Retrieval 스레드에서도 반복 확인된 제약이다. Cerebras 구조에서는 이 비용이 한 겹 더 붙는다는 것이 내 판단이다. 원문은 재작성 비용을 언급하지 않는다. 테이블에 들어간 Slack 행은 원본이 아니라 <strong>LLM이 다시 쓴 문서</strong>이므로, distillation prompt나 그 모델을 바꾸면 embedding 비용이 아니라 LLM 호출 비용으로 전체를 다시 치러야 한다.</p>
+
+      <p>같은 스레드에서 이 재작성 방식 자체에 대한 반론도 나왔다. 한 참가자는 요약을 chunk 앞에 붙이면 벡터가 오염되고 quantization 단계에서 정밀도를 잃는다며, 대신 embedding을 문서 요약 쪽으로 가중합해 밀어주는 방식을 제안한다. 다른 참가자는 더 직접적으로, 값싼 방법이 놓치는 것이 무엇인지 근거 없이 전체 문서를 LLM에 태우라는 주장이라고 지적하며 <span class="wl">"It is difficult to get a man to understand something when his salary depends on his not understanding it"</span>을 인용한다. 이 반론은 Anthropic의 글을 향한 것이지만 그 기법을 그대로 채택한 Cerebras에도 그대로 적용된다.</p>
+
+      <p class="note"><b>이 장의 쟁점 대부분은 원문에 대한 반박이 아니라 원문이 다루지 않은 영역이다.</b> Cerebras가 이것들을 풀지 않았다는 뜻이 아니라 공개하지 않았다는 뜻이다. 다만 도입을 검토하는 쪽에서는 같은 것이다. 설계도에 없는 계층은 직접 그려야 한다.</p>
+    </div>
+  </section>
+
+  <!-- 13 해석의 한계 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>한계. 1차 자료가 blog post 한 편이면 세울 수 있는 주장이 정해진다</h2>
+      <p class="dek">이 문서의 근거 대부분은 Cerebras가 자기 시스템에 대해 쓴 서술이다. 코드도 로그도 벤치마크도 없으므로, 검증한 것과 옮겨 적은 것을 구분해 둔다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">검증한 것</span>
+          <p class="small">CocoIndex의 chunk 경계 알고리즘(09장). 고정 커밋의 파일에서 직접 읽었고 인용과 줄 번호를 남겼다. 원문의 서술과 어긋나는 지점도 여기서 나왔다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">검증한 것</span>
+          <p class="small">원문 그림에만 있는 값(pgvector, 3072차원, HNSW, 리스트 6개). 텍스트 변환에서 누락돼 보관본 HTML에서 따로 확인했다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">옮겨 적은 것</span>
+          <p class="small">Slack 정규화, bursting 문턱, RRF 상수, 상위 20과 10, 도구 6종. 전부 Cerebras의 자기 서술이고 대조할 코드가 없다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">옮겨 적은 것</span>
+          <p class="small">Cursor의 정답률과 A/B 수치. 자체 벤치마크이며 자사 기능을 정당화하는 글에 실렸다. 재현물은 찾지 못했다.</p>
+        </div>
+      </div>
+
+      <p style="margin-top:16px"><strong>세울 수 없었던 주장.</strong> 원문의 어떤 설계 결정이 15,000이라는 사용량에 기여했는지는 이 문서로 알 수 없다. bursting을 빼면, 상수를 60에서 바꾸면, 정규화를 생략하면 어떻게 되는지에 대한 ablation이 원문에 없고 나도 재현할 코퍼스가 없다.</p>
+
+      <p><strong>회수하지 못한 자료.</strong> X의 같은 글과 Reddit 검색은 열지 못했다. 그래서 이 문서의 커뮤니티 층은 사실상 Hacker News 한 곳이다.</p>
+
+      <p><strong>Threads 스레드의 수치는 검증하지 않았다.</strong> 3번 게시물의 하이브리드 검색 도입 의향 10.3%에서 33.3%, 7번 게시물의 Glean 기업가치와 시장 규모는 저자가 출처를 밝히지 않은 채 제시한 값이다. 이 문서는 그 수치를 인용하지 않았고, 스레드에서 가져온 것은 Cerebras 원문과 직접 대조할 수 있는 진술과 저자의 정리뿐이다. 4번 게시물이 전한 Anthropic의 검색 실패율 49% 감소도 원글을 열지 못해 그대로 옮기지 않았다.</p>
+
+      <p><strong>커뮤니티 논의의 편향.</strong> 12장에서 인용한 반론은 Cerebras 원문에 대한 것이 아니라 원문이 채택한 기법에 대한 것이다. Contextual Retrieval 비판은 2024년 Anthropic 글을 향했고, grep 신뢰 논의는 2026년 다른 제품을 향했다. 같은 기법을 쓰므로 적용된다고 본 것은 나의 판단이고, 그 사람들이 Cerebras를 두고 한 말은 아니다.</p>
+
+      <p class="note"><b>한계에도 불구하고 남는 것이 있다.</b> 원문의 값은 검색 알고리즘이 아니라 <strong>embedding 이전 단계를 설계 대상으로 취급했다는 점</strong>이고, 이 부분은 코퍼스가 달라도 옮겨간다. 대화 로그든 티켓이든 회의록이든, 원본을 그대로 벡터로 만들기 전에 무엇을 뽑아 정해진 모양으로 다시 쓸지 정하는 문제는 동일하게 나타난다.</p>
+    </div>
+  </section>
+
+  <!-- 14 도입 판단 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adopt</p>
+      <h2>도입 판단. 아키텍처는 assess, CocoIndex는 버전을 확인한 뒤 trial이다</h2>
+      <p class="dek">두 가지가 섞여 있어 판단도 둘로 나뉜다. Cerebras Knowledge 자체는 도입할 수 있는 물건이 아니고, 그 설계를 베낄지의 문제다. CocoIndex는 실제로 설치할 수 있는 물건이다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th class="wrap">상황</th><th class="wrap">판단</th><th class="wrap">근거</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td class="wrap">Slack에 지식이 쌓이고 검색이 안 되는 조직</td><td class="wrap">정규화 설계는 채택</td><td class="wrap">05장. 원본을 그대로 embedding하지 않는 결정은 코퍼스와 무관하게 옮겨간다</td></tr>
+            <tr><td class="wrap">권한 등급이 여러 개인 조직</td><td class="wrap">보류</td><td class="wrap">12장. 원문에 해당 계층이 없고, 필터 위치 셋 모두 대가가 있다</td></tr>
+            <tr><td class="wrap">코드베이스 embedding을 검토 중</td><td class="wrap">규모가 크면 시도</td><td class="wrap">08장. Cursor 제품 안에서 파일 1,000개가 경계였다. 남의 코퍼스로 옮겨지는 상수는 아니다</td></tr>
+            <tr><td class="wrap">이미 에이전트가 grep으로 잘 찾는 경우</td><td class="wrap">보류</td><td class="wrap">08장. 모델이 다른 도구의 결과를 믿지 않으면 절약분이 사라진다</td></tr>
+            <tr><td class="wrap">CocoIndex 도입 검토</td><td class="wrap">버전 확인 후 trial</td><td class="wrap">Apache-2.0에 테스트도 있다. 다만 원문이 어느 버전을 말하는지 모른다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:16px"><strong>CocoIndex를 실제로 넣을 때.</strong> 라이선스는 <span class="wl">LICENSE</span> 파일을 열어 Apache License 2.0임을 확인했다. 테스트는 트리에 있다. <span class="wl">python/tests</span> 아래 127개 파일, rust 쪽 39개, <span class="wl">.github/workflows</span> 10개다. 실행하지는 않았다.</p>
+
+      <p><strong>확인해야 할 세 가지가 원문에서 넘어오지 않는다.</strong> 첫째, 내부 상태는 Postgres가 아니라 <strong>LMDB 로컬 파일</strong>이다. 문서가 <span class="wl">COCOINDEX_DB</span> 환경변수로 경로를 잡으라고 적는다(<span class="wl">docs/src/content/docs/advanced_topics/internal_storage.mdx</span>). Postgres는 여러 target connector 중 하나다. 원문은 <span class="wl">"the synchronization state and embedding store live in the same database"</span>를 이득으로 꼽는데, 이 커밋에서는 그 배치가 기본값이 아니다.</p>
+
+      <p>둘째, <strong>설치본이 외부로 호출을 보낸다.</strong> <span class="wl">rust/core/src/telemetry/mod.rs:18</span>이 <span class="wl">https://cocoindex.gateway.scarf.sh</span>를 상수로 갖는다. 같은 파일 49행이 <span class="wl">cfg!(debug_assertions)</span>로 분기해 release 빌드에서만 동작하므로, <strong>소스를 읽어서는 보이고 debug 빌드로 시험해서는 나타나지 않는다.</strong> 끄는 방법은 <span class="wl">COCOINDEX_DISABLE_USAGE_TRACKING</span> 환경변수뿐이다. 사내 지식을 다루는 시스템이면 이 항목이 보안 검토의 첫 줄이 된다.</p>
+
+      <p>셋째, 철수 명령이 산출물을 지운다. <span class="wl">drop</span>은 앱이 만든 target 상태를 되돌리고(테이블 drop, 행 삭제) 내부 상태 DB를 비운다(<span class="wl">docs/src/content/docs/cli_commands.mdx:15</span>). 걷어내도 데이터가 남는 것은 이 명령을 돌리지 않을 때뿐이고, 돌리지 않으면 아무도 갱신하지 않는 인덱스가 남는다. 어느 쪽을 택할지가 롤백 계획이다.</p>
+
+      <p>shallow clone이라 커밋 빈도, 기여자 분포, 릴리스 주기는 이 체크아웃에 없다. 유지보수 활력은 판단하지 않는다.</p>
+
+      <p><strong>하드웨어 기술 언어는 regex 경로를 탄다.</strong> <span class="wl">rust/code_ast/src/prog_langs.rs:514</span>가 verilog와 vhdl을 문법 없이(<span class="wl">None</span>) 등록하므로 tree-sitter가 아니라 기본 regex 분할로 간다. Cerebras가 netlist를 소스로 든 것을 보면 이 경로는 가정이 아니라 실제로 쓰이는 쪽이다.</p>
+
+      <p class="note warn"><b>원문이 쓴 CocoIndex와 이 커밋이 같은 물건이 아닐 수 있다.</b> 저장소가 <span class="wl">"CocoIndex v1 is a fundamental redesign from v0"</span>라고 적는다(<span class="wl">docs/src/content/docs/getting_started/ai_coding_agents.mdx:14</span>). 09장의 분할 방식 불일치도, 위의 Postgres 대 LMDB 불일치도 버전 차이 하나로 설명된다. 원문은 버전을 밝히지 않았다. <strong>도입 전에 원문이 어느 버전을 말하는지부터 정해야 하고, 그전까지 "Cerebras가 쓴다"는 근거로 쓸 수 없다.</strong></p>
+
+    </div>
+  </section>
+
+  <!-- 15 결론 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론. 회사의 기억을 만드는 일에서 어려운 부분은 아직 공개되지 않았다</h2>
+      <p class="dek">원문은 검색 파이프라인을 성실하게 공개했고, 그 파이프라인에서 새로 발명된 것은 없다. 옮길 만한 것은 기법 목록이 아니라 순서다. embedding 이전을 설계 대상으로 본 것, 그리고 검색 계층에서 LLM을 최대한 걷어낸 것.</p>
+
+      <p>이 문서를 연 질문은 회사 지식을 embedding 테이블 하나로 모으는 설계에서 어디까지 옮겨 쓸 수 있는가였다. 답은 <strong>쓰기 쪽은 거의 그대로 옮겨지고, 읽기 쪽은 조건부이며, 그 사이의 권한 계층은 직접 그려야 한다</strong>는 것이다. 다섯 칸 스키마와 플러그인 커넥터는 조직 규모와 무관하게 성립한다. 네 신호와 RRF는 Slack 같은 대화 코퍼스가 있을 때 성립한다. 권한은 원문에 없다.</p>
+
+      <p>Threads 스레드는 원문이 다루지 않은 지점을 하나 더 짚는다. 다음 전장이 회사의 기억이라는 첫 게시물은 원문이 뒷받침한다. 하루 15,000건이면 사람들이 실제로 그 창구를 쓴다는 뜻이고, 사람과 스크립트와 에이전트가 같은 곳에 묻는다는 것도 원문이 명시한다. 그리고 아홉 번째 게시물이 닫는 문장은 이 문서가 12장에서 따로 도달한 결론과 같다.</p>
+
+      <p class="q">브레인을 만드는 건 쉽습니다. 살아 있게 유지하는 게 어렵습니다.<cite>@choi.openai, Threads 9/9</cite></p>
+
+      <p>원문을 읽고 나면 이 문장이 왜 맞는지가 구체적으로 보인다. 만드는 쪽은 다섯 칸 스키마와 여섯 개의 순위 리스트로 끝난다. 유지하는 쪽에는 <strong>세 가지가 남는데 원문에 그 셋이 다 없다.</strong> 권한이 바뀔 때 색인을 어떻게 하는지, 대상이 사라진 행을 언제 눈치채는지, 모델을 갈아탈 때 재작성 비용을 어떻게 치르는지다. 앞의 둘은 평가 장치가 있어야 보이고, 원문은 검색 품질 수치를 한 건도 내놓지 않았다.</p>
+
+      <p>도입을 검토한다면 순서는 이렇게 뒤집는 편이 낫다. 검색 기법을 먼저 고르지 말고, <strong>권한 등급이 몇 개인지부터 세는 것</strong>이다. 등급이 하나면 원문의 구조를 거의 그대로 쓸 수 있다. 여럿이면 12장의 세 선택지 중 하나를 고르는 일이 나머지 전부보다 오래 걸린다. 그 다음이 평가다. 무엇이 틀렸는지 재는 장치 없이 이 구조를 올리면, 낡은 답이 인용과 함께 최상위로 반환되고 그것이 낡았다는 신호는 어디에도 남지 않는다.</p>
+
+      <p class="note"><b>이 결론은 blog post 한 편과 외부 코드 한 저장소에 기반한다.</b> Cerebras가 권한 계층을 어떻게 풀었는지 공개하면 12장의 상당 부분이 바뀔 수 있다. 이 문서는 그것이 공개되지 않았다는 사실에 대한 진술이지, 존재하지 않는다는 진술이 아니다.</p>
+    </div>
+  </section>
+
+  <!-- 16 출처 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처. 1차 자료와 커뮤니티 논의를 층별로 구분한다</h2>
+      <p class="dek">회수 경로가 특이한 것이 몇 개 있어 함께 적는다. Cerebras 원문은 크롤러에 HTTP 500을 돌려주면서 본문은 온전히 담고 있고, 보관본도 같은 상태로 저장돼 있다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">1차 자료</span>
+          <div class="src">
+            <div><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base">Cerebras, How we built our knowledge base</a></div>
+            <div class="t">산문은 텍스트 변환 경로로, 그림 라벨은 <a href="https://web.archive.org/web/20260727211917id_/https://www.cerebras.ai/blog/how-we-built-our-knowledge-base">2026-07-27 보관본</a>에서 읽었다. 직접 요청은 500을 반환한다.</div>
+            <div><a href="https://x.com/cerebras/article/2077822555159945507">같은 글의 X 게시본</a></div>
+            <div class="t">402로 막혀 직접 읽지 못했다. 계정과 제목이 같아 미러로 취급했다.</div>
+            <div><a href="https://www.threads.com/@choi.openai/post/Da9o6Tsj2yZ">@choi.openai, Threads (2026-07-19, 9개 게시물)</a></div>
+            <div class="t">1/부터 9/까지 GraphQL로 오기 때문에 fetch 경로로는 닿지 않는다. 렌더된 화면을 이미지로 읽었고, 인용은 화면에서 옮겨 적은 것이다.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag">코드</span>
+          <div class="src">
+            <div><a href="https://github.com/cocoindex-io/cocoindex">cocoindex-io/cocoindex</a></div>
+            <div class="t">커밋 <span class="wl">d7607100e39dfee3919cd1116c10620eb6636104</span>. Apache-2.0. shallow clone이라 이력은 없다. 09장의 인용은 전부 <span class="wl">rust/ops_text/src/split/recursive.rs</span> 한 파일이고, 14장은 <span class="wl">prog_langs.rs</span>, <span class="wl">telemetry/mod.rs</span>와 docs 4편을 함께 인용한다.</div>
+          </div>
+          <span class="tag" style="margin-top:14px">인용된 근거</span>
+          <div class="src">
+            <div><a href="https://cursor.com/blog/semsearch">Cursor, Improving agent with semantic search (2025-11)</a></div>
+            <div class="t">원문 참조 (10). 08장 수치의 출처.</div>
+            <div><a href="https://www.anthropic.com/news/contextual-retrieval">Anthropic, Introducing Contextual Retrieval (2024-09)</a></div>
+            <div class="t">원문 참조 (2). 직접 열지 못해 HN 논의로만 다뤘다.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag">커뮤니티 논의</span>
+          <div class="src">
+            <div><a href="https://news.ycombinator.com/item?id=48169874">HN 48169874 · Show HN: Semble (2026-05)</a></div>
+            <div class="t">445점 151댓글. grep 대비 신뢰 문제.</div>
+            <div><a href="https://news.ycombinator.com/item?id=41598119">HN 41598119 · Contextual Retrieval (2024-09)</a></div>
+            <div class="t">309점 72댓글. LLM 재작성에 대한 반론과 embedding 모델 고착.</div>
+            <div><a href="https://news.ycombinator.com/item?id=39604961">HN 39604961 · Launch HN: Greptile (2024-03)</a></div>
+            <div class="t">253점 166댓글. 재색인 트리거 문제.</div>
+            <div><a href="https://news.ycombinator.com/item?id=49185462">HN 49185462 · Why everything breaks at 150 people</a></div>
+            <div class="t">14점 6댓글. 원문에서 파생된 글 중 유일하게 논의가 붙었다.</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <span class="tag">3차 분석</span>
+          <div class="src">
+            <div><a href="https://datasciocean.com/en/paper-intro/cerebras-rag/">DataSci Ocean, Narrow-Waist Design, Decoupled Retrieval (2026-07)</a></div>
+            <div class="t">엔터프라이즈 RAG를 직접 만든 쪽의 대조 읽기. 07장의 단일 라운드 판단과 다섯 칸 스키마 읽기의 출처.</div>
+            <div><a href="https://falconer.com/notes/cerebras-knowledge-base/">Falconer, Why everything breaks at 150 people</a></div>
+            <div class="t">문서 소유권과 project scoping 비판.</div>
+          </div>
+          <span class="tag" style="margin-top:14px">열지 않은 참조</span>
+          <div class="src">
+            <div class="t">원문 참조 (1) HNSW, (3) RRF, (6) Lost in the Middle. 이 문서는 이 논문들의 내용에 대해 아무 주장도 하지 않는다.</div>
+          </div>
+        </div>
+      </div>
+
+      <p class="note"><b>렌더링을 확인했다.</b> 정적 게이트를 통과시킨 뒤 headless 브라우저로 16장 중 10장을 열어 화면을 읽었다. 그 과정에서 그림 하나의 화살표가 대상 상자를 빗나가는 것, 제목 둘이 어절 중간에서 줄바꿈되는 것, 한국어 줄바꿈 규칙이 CSS에 없는 것을 고쳤다. 02, 03, 06, 11, 13, 15장은 화면으로 보지 않았다.</p>
+    </div>
+  </section>
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 16</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>

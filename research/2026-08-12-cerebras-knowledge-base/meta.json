@@ -1,0 +1,7 @@
+{
+  "title": "Cerebras Knowledge: 사내 지식을 RAG로 중앙집중화할 때 남는 문제",
+  "date": "2026-08-12",
+  "seq": 11,
+  "summary": "Cerebras가 공개한 사내 지식베이스의 검색 파이프라인과, 회사 지식을 하나의 임베딩 테이블로 모을 때 프로덕션에서 실제로 걸리는 지점들",
+  "category": "topic"
+}
