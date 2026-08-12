@@ -1,0 +1,1334 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>omo 5.0 native: opencode 플러그인을 떠나 자기 호스트를 갖는다</title>
+<meta name="description" content="OpenCode 플러그인으로 살던 omo가 senpi 엔진을 핀 고정해 자기 CLI로 나온다. 정체성, 에이전트 아키텍처, 팬아웃과 오케스트레이션, 모델 배치, 토큰 비용, UI/UX, 다른 에이전트와의 결합이 v4.19.4와 v5.0.0-beta.6 사이에서 어떻게 달라지는지 소스로 확인한다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="omo 5.0 native: opencode 플러그인을 떠나 자기 호스트를 갖는다">
+<meta property="og:description" content="OpenCode 플러그인으로 살던 omo가 senpi 엔진을 핀 고정해 자기 CLI로 나온다. 정체성, 에이전트 아키텍처, 팬아웃과 오케스트레이션, 모델 배치, 토큰 비용, UI/UX, 다른 에이전트와의 결합이 v4.19.4와 v5.0.0-beta.6 사이에서 어떻게 달라지는지 소스로 확인한다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-12-omo-native-vs-opencode-plugin/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+/* 이 문서의 표는 마지막 칸이 산문이다. nowrap 이면 오른쪽이 잘려 헤더까지 화면 밖으로 나간다 */
+th, td { padding: 8px 12px; text-align: right; white-space: normal; word-break: keep-all; border-bottom: 1px solid var(--rule); }
+td.nb, th.nb { white-space: nowrap; }
+tbody td:last-child { text-align: left; }
+thead th:last-child { text-align: left; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+/* 마커에 "no-rerun" 같은 라벨이 들어가므로 20px 칸에는 들어가지 않는다 */
+ul.clean li { display: grid; grid-template-columns: 68px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; text-align: right; overflow-wrap: anywhere; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>플러그인 API의 문제</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>native 의 정체</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>훅에서 컴포넌트로</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>팬아웃</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>완료와 내구성</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>에이전트 인벤토리</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>모델 배치</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>토큰 비용</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>UI/UX</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>다른 에이전트</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>정면 비교</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>스폰 경로 추적</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>저자의 주장 대조</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="17"><span class="n">18</span><span>도입 판단</span></button>
+    <button class="rail-item" data-go="18"><span class="n">19</span><span>결론</span></button>
+    <button class="rail-item" data-go="19"><span class="n">20</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>omo 5.0 native: opencode 플러그인을 떠나 자기 호스트를 갖는다</h1>
+      <p class="dek">omo는 지금까지 OpenCode 위에 얹히는 플러그인이었다. 5.0 베타는 <span class="wl">omo</span> 라는 자기 이름의 CLI로 나온다. 이 문서는 그 전환이 배포 형태만 바꾼 것인지 에이전트 계층까지 바꾼 것인지를, <span class="wl">v4.19.4</span> 와 <span class="wl">v5.0.0-beta.6</span> 두 커밋을 직접 열어 확인한다.</p>
+
+      <div class="stats">
+        <div class="stat hero">
+          <span class="lab">v4.19.4 → v5.0.0-beta.6</span>
+          <span class="val">940<span class="u"> files</span></span>
+          <span class="sub">packages/ 기준 +74,449 / −3,838</span>
+        </div>
+        <div class="stat">
+          <span class="lab">어댑터가 붙는 방식</span>
+          <span class="val">58 → 16</span>
+          <span class="sub">OpenCode 5-tier 합성 훅 슬롯 대 senpi 등록 컴포넌트. 단위가 다르다</span>
+        </div>
+        <div class="stat">
+          <span class="lab">한 번의 호출로 스폰</span>
+          <span class="val">1 → 16</span>
+          <span class="sub">task 도구의 배치 상한. 동시 실행은 기본 5로 그대로다</span>
+        </div>
+      </div>
+
+      <h3>읽는 길</h3>
+      <ul class="clean">
+        <li><span class="m">03</span><span>왜 떠났는지가 저장소 안에 문장으로 적혀 있다. 거기서 시작한다.</span></li>
+        <li><span class="m">04</span><span>native가 무엇을 뜻하는지부터 정한다. 플러그인이 사라진 게 아니다.</span></li>
+        <li><span class="m">06-10</span><span>팬아웃, 완료 처리, 에이전트 인벤토리, 모델 배치, 토큰 비용. 질문의 본체.</span></li>
+        <li><span class="m">13</span><span>Ultimate와 native를 한 표에서 맞붙인다. 잃는 것도 여기 있다.</span></li>
+        <li><span class="m">18</span><span>지금 갈아탈지 말지.</span></li>
+      </ul>
+
+      <p class="note"><b>이 문서가 하지 않은 것.</b> omo-ai를 설치하거나 실행하지 않았다. 성능, 안정성, 메모리 사용량에 대한 주장은 전부 소스와 저장소 문서에서 나온 것이며, 측정한 값이 아니다. 저장소의 라이브 QA 증적 <span class="wl">.omo/evidence</span> 857개 중 856개는 열지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약. 플러그인을 그만둔 게 아니라 호스트를 바꿨다</h2>
+      <p class="dek">omo native는 여전히 익스텐션이다. 달라진 건 그 익스텐션이 얹히는 호스트를 omo 쪽이 소유한다는 점이다. npm 패키지 <span class="wl">omo-ai</span> 가 버전을 핀 고정한 <span class="wl">@code-yeongyu/senpi</span> 엔진을 <span class="wl">--extension</span> 으로 띄우고, 브랜드 프로파일을 넘겨 사용자에게는 <span class="wl">omo</span> 로 보이게 한다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">달라진 것</span>
+          <p class="small">주입이 1급 API가 된다. OpenCode에서는 <span class="wl">session.prompt</span> 를 감싸는 341줄짜리 게이트를 통해야 했던 내부 메시지 주입이, senpi에서는 <span class="wl">pi.sendMessage({display:false})</span> 한 줄이다.</p>
+          <p class="small">자식 완료 경로에서 폴링이 빠진다. v4는 자식 세션이 생길 때까지 100ms 간격으로 최대 60초를 폴링했고, 완료는 1초 간격 폴링에 10초 안정과 연속 3회 관측으로 추정했으며, 부모를 깨우는 데 <span class="wl">parent-wake-*</span> 모듈 15개를 썼다. v5는 in-process 러너가 부모의 도구 클로저를 그대로 쓰고, 완료는 3분기 라우팅 switch 하나가 처리한다.</p>
+          <p class="small">한 번의 <span class="wl">task</span> 호출로 최대 16개 자식을 팬아웃한다. 자식은 세션이 끊겨도 파기되지 않고 유예되었다가 세션 재개 시 되살아난다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">대가</span>
+          <p class="small">hashline이 없다. README가 Grok Code Fast 1의 편집 성공률을 6.7%에서 68.3%로 올렸다고 자랑하는 해시 앵커 편집 도구는 native 어댑터에 존재하지 않는다.</p>
+          <p class="small">Claude Code 호환 계층이 없고, Sisyphus/Atlas/Prometheus/Hephaestus로 이루어진 11개 discipline agent 레지스트리도 없다. native의 builtin subagent는 4개다.</p>
+          <p class="small">베타 채널 전용이고, 2026-08-12 기준 native 자체를 대상으로 한 열린 버그가 최소 6건이다. 설치하면 178MB짜리 엔진이 따라온다.</p>
+        </div>
+      </div>
+
+      <p class="note"><b>한 줄로.</b> Ultimate의 상위집합은 아니다. 같은 철학을 더 얇은 층으로 다시 구현한 별개 제품이다. 오케스트레이션은 얻고 편집 도구와 호환 계층은 잃는다.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>플러그인이 메인 루프에 메시지를 밀어 넣을 수 있으면 병이 생긴다</h2>
+      <p class="dek">omo가 OpenCode를 떠난 이유는 추측할 필요가 없다. 저장소가 두 곳에 적어 두었다. <span class="wl">ROADMAP.md</span> 의 "Why Not OpenCode-Native" 절과 <span class="wl">AGENTS.md</span> 의 ARCHITECTURE INVARIANTS 절이다. 둘 다 같은 API를 지목한다.</p>
+
+      <blockquote class="q">Session prompt injection (<span class="wl">session.prompt</span>, <span class="wl">session.promptAsync</span>) returns before the prompt is durably accepted. Later failures arrive as <span class="wl">session.error</span>. Multiple hooks observe the same idle or error edge and inject the same internal message into a live parent session. Duplicate work. Infinite loops. State corruption.
+        <cite>ROADMAP.md, "Why Not OpenCode-Native" (v5.0.0-beta.6)</cite></blockquote>
+
+      <p>같은 문장이 <span class="wl">AGENTS.md</span> 에서는 한국어로 적혀 있다. 영어로 쓰인 저장소에서 이 한 항목만 한국어인 것은, 메인테이너가 기여자용 규칙이 아니라 자기에게 남긴 경고를 적었기 때문으로 읽힌다.</p>
+
+      <blockquote class="q">OpenCode의 stupid한 설계로 플러그인이 <span class="wl">session.prompt</span> / <span class="wl">session.promptAsync</span> 같은 메인 세션 메시지 API를 통해 메인 시스템을 망가뜨릴 수 있다.
+        <cite>AGENTS.md, ARCHITECTURE INVARIANTS (v5.0.0-beta.6)</cite></blockquote>
+
+      <h3>대응책의 크기가 문제의 크기다</h3>
+      <p>omo는 이 API를 직접 못 쓰게 막고 게이트를 하나 세웠다. <span class="wl">packages/utils/src/prompt-async-gate.ts</span> 는 341줄이고, 그 아래 <span class="wl">prompt-async-gate/</span> 디렉터리에 테스트를 뺀 모듈 11개가 따로 붙는다. 큐, 예약, 최근 디스패치 기록, 의미 기반 중복 제거, idle 디스패치, 라우트 해석, 타이밍, 그리고 메시지 상태와 도구 턴을 다루는 넷이다. AGENTS.md는 게이트의 계약과 금지 패턴까지 명문화한다.</p>
+
+      <pre><span class="c"># AGENTS.md 가 규정한 게이트 의미론</span>
+reserve per session before dispatch
+check active session state
+keep a short post-dispatch hold
+release only on intentional abort/recovery paths
+restore optimistic task/loop state when dispatch is skipped or fails later
+
+<span class="c"># 금지 패턴</span>
+<span class="r">raw prompt calls outside the shared gate</span>
+<span class="r">postDispatchHoldMs: 0</span>
+<span class="r">no-session fallback to raw prompt</span>
+<span class="r">new internal message routes without duplicate-injection regression tests</span></pre>
+
+      <p>ROADMAP은 여기에 두 줄을 더 붙인다. "The TUI burns CPU." 그리고 "Breaking changes are frequent." 결론 문장은 OpenCode를 겨냥하지 않는다.</p>
+
+      <blockquote class="q">These are not OpenCode-specific flaws. Any plugin system that exposes the main loop to arbitrary injection has the same disease. We treat OpenCode as one adapter target among several. Not the center of the architecture.
+        <cite>ROADMAP.md (v5.0.0-beta.6)</cite></blockquote>
+
+      <p class="note"><b>이 장이 다루지 않는 것.</b> OpenCode 쪽 소스는 읽지 않았다. 위 인용은 omo 저장소가 OpenCode API에 대해 주장하는 내용이며, OpenCode의 <span class="wl">promptAsync</span> 구현을 직접 확인한 결과가 아니다. 확인한 것은 omo가 그 주장을 믿고 341줄짜리 게이트를 세웠다는 사실이다.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">identity</p>
+      <h2>native는 26개 파일짜리 런처다. 엔진은 따로 있다</h2>
+      <p class="dek"><span class="wl">packages/omo-native</span> 에는 테스트를 빼면 실행 코드가 열 개도 안 된다. 하는 일은 하나다. 버전을 정확히 핀 고정한 senpi CLI를, omo가 만든 익스텐션 페이로드와 브랜드 프로파일을 붙여 띄운다.</p>
+
+      <figure class="figure">
+        <p class="fig-title"><span class="wl">omo</span> 는 엔진을 스폰하기 전에 브랜드와 익스텐션을 붙인다</p>
+        <p class="fig-sub">packages/omo-native/bin/omo.js 와 bin/lib/launcher.js 를 따라 그렸다. 저장소에는 이 그림이 없다.</p>
+        <div class="svgwrap">
+          <svg class="chart" viewBox="0 0 760 300" role="img" aria-label="omo 명령이 엔진에 도달하는 경로. bin/omo.js 가 runLauncher 를 부르고, 런처는 senpiEnvironment 로 SENPI_BRAND 와 OMO_NATIVE=1 을 환경 변수에 실은 뒤 spawnNode 로 핀 고정된 senpi CLI 를 --extension plugin 옵션과 함께 띄운다. doctor, setup, --version, update 네 명령은 엔진에 가지 않고 런처가 직접 답하고 끝나며, 그중 update 는 자가 업데이트가 핀 고정을 깨뜨리므로 npm 명령만 안내한다. 스폰되는 엔진은 버전이 2026.8.11-4 로 정확히 고정돼 있고, 브랜드 프로파일을 한 번 읽은 뒤 지운다. 로드되는 plugin 디렉터리는 omo-senpi 어댑터의 빌드 산출물이며 29개 파일이 저장소에 커밋돼 있다.">
+            <rect class="box" x="8" y="20" width="132" height="56" rx="8"/>
+            <text class="txt" x="20" y="44">omo &lt;args&gt;</text>
+            <text class="txt-s" x="20" y="62">bin/omo.js</text>
+
+            <path class="arw" d="M140 48 L172 48"/>
+            <path class="arw" d="M165 43 L172 48 L165 53"/>
+
+            <rect class="box" x="176" y="20" width="168" height="56" rx="8"/>
+            <text class="txt" x="188" y="44">runLauncher()</text>
+            <text class="txt-s" x="188" y="62">bin/lib/launcher.js</text>
+
+            <path class="arw" d="M344 48 L380 48"/>
+            <path class="arw" d="M373 43 L380 48 L373 53"/>
+
+            <rect class="box" x="384" y="20" width="192" height="56" rx="8"/>
+            <text class="txt" x="396" y="44">senpiEnvironment()</text>
+            <text class="txt-s" x="396" y="62">SENPI_BRAND, OMO_NATIVE=1</text>
+
+            <path class="arw" d="M576 48 L612 48"/>
+            <path class="arw" d="M605 43 L612 48 L605 53"/>
+
+            <rect class="box" x="616" y="20" width="136" height="56" rx="8"/>
+            <text class="txt" x="628" y="44">spawnNode()</text>
+            <text class="txt-s" x="628" y="62">--extension plugin</text>
+
+            <path class="arw" d="M260 76 L260 116"/>
+            <path class="arw" d="M255 109 L260 116 L265 109"/>
+            <rect class="box" x="176" y="120" width="260" height="56" rx="8"/>
+            <text class="txt" x="188" y="144">런처가 직접 답하고 끝나는 명령</text>
+            <text class="txt-s" x="188" y="162">doctor · setup · --version · update</text>
+
+            <path class="arw" d="M684 76 L684 116"/>
+            <path class="arw" d="M679 109 L684 116 L689 109"/>
+            <rect class="box-hi" x="470" y="120" width="282" height="76" rx="8"/>
+            <text class="txt" x="482" y="144">@code-yeongyu/senpi 2026.8.11-4</text>
+            <text class="txt-s" x="482" y="162">브랜드 프로파일을 1회 소비하고 스크럽</text>
+            <text class="txt-s" x="482" y="180">핀 고정이라 자가 업데이트는 런처가 막는다</text>
+
+            <path class="arw" d="M611 228 L611 200"/>
+            <path class="arw" d="M606 207 L611 200 L616 207"/>
+            <rect class="box" x="470" y="228" width="282" height="52" rx="8"/>
+            <text class="txt" x="482" y="250">plugin/ (29개 파일 tracked)</text>
+            <text class="txt-s" x="482" y="268">omo-senpi 어댑터의 빌드 산출물이 커밋돼 있다</text>
+          </svg>
+        </div>
+        <figcaption>엔진이 브랜드를 소비하고 지우기 때문에, 에이전트가 스스로 senpi를 스폰하면 그 자식은 엔진 정체성을 유지한다. <span class="wl">docs/reference/omo-ai-publishing.md</span> 의 brand contract 절에 그 이유가 적혀 있다.</figcaption>
+      </figure>
+
+      <h3>브랜드 프로파일이 곧 제품 정체성이다</h3>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>필드</th><th>값</th><th>효과</th></tr></thead>
+          <tbody>
+            <tr><td>name</td><td>omo</td><td>환영 헤더, 터미널 제목, help, 시스템 프롬프트 정체성</td></tr>
+            <tr><td>configDir + flatLayout</td><td>.omo, flat</td><td>에이전트 상태가 ~/.omo 바로 아래</td></tr>
+            <tr><td>envPrefix</td><td>OMO</td><td>OMO_* 를 먼저 읽고 SENPI_* / PI_* 는 레거시</td></tr>
+            <tr><td>userAgent / originator</td><td>omo</td><td>바깥으로 나가는 요청의 신원</td></tr>
+            <tr class="hero"><td>update</td><td>omo-ai, beta</td><td>beta dist-tag 를 본다. latest 는 보지 않는다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">마지막 행이 회피 장치다. <span class="wl">omo-ai</span> 의 <span class="wl">latest</span> 는 2026-08-03에 한 번 올린 폐기된 플레이스홀더 <span class="wl">0.0.0-beta.0</span> 에 영구히 고정돼 있다. npm이 삭제를 거부했고(E400) 런북은 그 상태를 의도된 것으로 기록한다. 그래서 엔진은 프로파일이 지정한 dist-tag를 읽는다.</p>
+
+      <h3>엔진의 출신</h3>
+      <p>senpi는 <span class="wl">badlogic/pi-mono</span> 의 opinionated fork이고, 저장소 설명이 그렇게 말한다. 그 README는 자기 출신을 이렇게 적는다.</p>
+      <blockquote class="q">Think of senpi as a light version of OMO that runs as a single pi CLI binary instead of an opencode plugin.
+        <cite>github.com/code-yeongyu/senpi README (2026-08-12 조회)</cite></blockquote>
+      <p>OMO가 영감을 준 경량 포크가 먼저 생기고, 그 위에 OMO 본체를 다시 얹은 것이 <span class="wl">omo-ai</span> 다. senpi README가 "No direct senpi counterpart"로 묶은 목록에 ultrawork, Team Mode 와 <span class="wl">team_*</span>, 스킬 시스템, 카테고리 라우터가 들어 있는데, 그것들이 정확히 omo-senpi 어댑터가 되돌려 놓는 것이다.</p>
+
+      <p class="note"><b>확인하지 않은 것.</b> senpi 저장소는 클론하지 않았다. 엔진의 브랜드 소비 코드, 스크럽 시점, 익스텐션 로더 동작은 omo 쪽 문서와 어댑터 주석이 주장하는 내용이며 엔진 소스에서 확인한 것이 아니다.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">layers</p>
+      <h2>어댑터가 얇아진다. 합성 훅 58슬롯 대 등록 컴포넌트 16개</h2>
+      <p class="dek">두 에디션은 같은 코어 패키지를 공유하고 어댑터만 다르다. 그런데 어댑터의 두께가 다르다. OpenCode 어댑터는 호스트가 노출한 14개 훅 핸들러 위에 5계층 훅을 합성해야 하고, senpi 어댑터는 배열 하나에 컴포넌트를 나열한다. 두 숫자의 단위는 다르다. 환산으로 읽으면 안 된다. 각 어댑터가 자기 호스트에 붙는 방식의 차이다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">Ultimate (packages/omo-opencode)</span>
+          <p class="small">OpenCode가 주는 훅 핸들러 <b>14개</b>. 12개는 <span class="wl">plugin-interface.ts</span> 에, 2개(<span class="wl">experimental.session.compacting</span>, <span class="wl">experimental.compaction.autocontinue</span>)는 플러그인 모듈 생성 시점에 직접 배선한다.</p>
+          <p class="small">그 위에 omo가 5계층으로 훅을 합성한다. Session 24 + ToolGuard 18 + Transform 7 + Continuation 7 + Skill 2 = <b>58 슬롯</b>. 기본 설정에서는 7개 이상이 config로 꺼져 있어 <b>~50-51개</b>가 활성이고, team mode를 켜면 이벤트 핸들러 4개가 더 붙어 최대 62개가 된다.</p>
+          <p class="small"><span class="wl">packages/omo-opencode/src/hooks/</span> 디렉터리 엔트리는 101개다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">Native (packages/omo-senpi)</span>
+          <p class="small"><span class="wl">src/extension/index.ts</span> 의 <span class="wl">omoSenpiComponents</span> 배열에 <b>16개</b>가 들어 있다. config-startup, native-badge, onboarding, init-deep-advisor, telemetry, ultrawork, start-work-continuation, ulw-loop, todo-fanout-reminder, fallback-architect, comment-checker, ast-grep, lsp, task, memory, config-watch.</p>
+          <p class="small">배열 순서가 곧 우선순위다. <span class="wl">start-work-continuation</span> 이 <span class="wl">ulw-loop</span> 보다 먼저 등록되어, boulder 작업이 있으면 ulw-loop 이어달리기보다 우선한다. memory는 task 뒤, config-watch 앞이다.</p>
+          <p class="small">rules 컴포넌트는 일부러 없다. senpi에 builtin rules가 있어서, 어댑터가 흉내내지 않는다.</p>
+        </div>
+      </div>
+
+      <h3>모노레포는 그대로다</h3>
+      <p><span class="wl">packages/AGENTS.md</span> 가 패키지 43개를 6개 역할로 나눈다. Core 20개(순수 TypeScript), MCP 4개(stdio), Skills 1개, Adapters 5개(+어댑터 지원 1개), Platform 12개(생성된 런처), Web 1개. 핀 커밋의 실제 디렉터리는 45개다. 차이는 둘에서 온다. 그 문서가 2026-08-07 기준으로 생성돼 <span class="wl">omo-native</span>(2026-08-09 생성)를 담지 못했고, <span class="wl">senpi-task</span> 를 어댑터 지원으로 빼서 5+1 로 셌다. 의존은 아래로만 흐르고, 어댑터가 코어를 쓴다. ROADMAP이 소스로 확인된 예외 두 개를 스스로 적어 둔다. <span class="wl">omo-senpi → senpi-task</span> 는 같은 층의 어댑터 지원 간선이고, <span class="wl">omo-opencode → omo-codex</span> 는 Codex 설치 배포를 위한 과도기 간선이다.</p>
+      <p>즉 v5는 코어를 다시 쓰지 않았다. 어댑터를 하나 더 만들고, 그 어댑터를 제품으로 포장했다. 실제로 <span class="wl">packages/omo-senpi</span> 의 첫 커밋은 2026-07-03, <span class="wl">packages/senpi-task</span> 는 2026-07-06이다. <span class="wl">packages/omo-native</span> 만 2026-08-09에 생겼다. native는 5.0에서 제품이 되었다. 태어난 것은 그보다 다섯 주 앞이다.</p>
+
+      <p class="note"><b>수치의 출처.</b> 58, 24/18/7/7/2, ~50-51, 62는 모두 <span class="wl">AGENTS.md</span> 의 ARCHITECTURE INVARIANTS 절이 스스로 밝힌 값이다. 훅을 세어 검증하지는 않았다. 16은 <span class="wl">src/extension/index.ts</span> 배열 리터럴을 직접 센 값이다. 참고로 <span class="wl">packages/omo-senpi/AGENTS.md</span> 는 "Thirteen live components"라고 적혀 있어 트리보다 뒤처져 있다.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">fanout</p>
+      <h2>팬아웃이 도구 호출 한 번으로 압축된다</h2>
+      <p class="dek">v4에서 <span class="wl">task</span> 는 자식 하나를 만든다. 다섯 갈래로 갈라지려면 다섯 번 부르고 다섯 번의 왕복을 기다린다. v5의 <span class="wl">task</span> 는 <span class="wl">tasks:[...]</span> 배열을 받아 최대 16개를 한 번에 띄운다.</p>
+
+      <pre><span class="c">// packages/senpi-task/src/tools/task/params.ts</span>
+export const <b>MAX_TASK_BATCH_ITEMS = 16</b>
+
+<span class="c">// 상위 target/model/skills 는 항목이 생략하면 상속된다</span>
+{
+  "tasks": [
+    { "category": <span class="k">"quick"</span>,     "prompt": "Check the API contract.", "name": "contract" },
+    { "subagent_type": <span class="k">"librarian"</span>, "prompt": "Find the upstream doc.",   "name": "docs" }
+  ],
+  "run_in_background": true
+}</pre>
+
+      <p>동기 배치는 시작된 자식을 전부 기다려 하나의 결과로 집계한다(<span class="wl">execute-batch.ts</span> 가 <span class="wl">Promise.allSettled</span> 로 모은다). 백그라운드 배치는 각 자식의 id와 큐 위치를 즉시 돌려준다. 배치 검증을 통과한 뒤 한 항목이 시작에 실패해도, 성공한 형제들과 나란히 실패가 보고된다.</p>
+      <p class="small"><b>16은 호출당 스폰 수이지 병렬도가 아니다.</b> <span class="wl">default_concurrency</span> 기본값은 <b>5</b> 이고(<span class="wl">packages/omo-config-core/src/schema/task.ts:25</span>), manager가 모델·프로바이더별 슬롯을 잡아 초과분을 큐에 넣는다. 16개를 한 번에 넣어도 기본 설정에서 동시에 도는 것은 5개다. 큐 위치가 결과에 실려 오는 이유가 이것이다. v4도 같은 기본값 5를 썼으므로, 바뀐 것은 왕복 횟수이지 병렬도가 아니다.</p>
+
+      <h3>자식을 어디에 띄우는가</h3>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>러너</th><th>프로세스</th><th>도구</th><th>스티어링</th><th>기본</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>in-process</td><td>같은 senpi 런타임</td><td>부모의 도구 클로저 그대로</td><td>함수 호출</td><td>예</td></tr>
+            <tr><td>process</td><td>자식 senpi 프로세스</td><td>자식이 자기 것을 로드</td><td>JSON-RPC</td><td>팀 멤버는 강제</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">in-process 자식은 부모가 이미 등록해 둔 <span class="wl">ToolDefinition</span> 을 그대로 받는다. 같은 프로세스, 같은 execute 클로저, 같은 MCP 클라이언트 인스턴스다. 제외되는 건 <span class="wl">task</span>, <span class="wl">task_*</span>, <span class="wl">team_*</span> 계열뿐이다.</p>
+
+      <pre><span class="c">// packages/senpi-task/src/runners/in-process/shared-tool-filter.ts</span>
+<span class="c">// The shared-MCP-client mechanism: sharedParentTools are the parent extension's own</span>
+<span class="c">// registered ToolDefinitions (same process, same execute closures, same client instances).</span>
+export function isTaskOrTeamFamilyTool(name: string): boolean {
+  return name === <span class="k">"task"</span> || name.startsWith(<span class="k">"task_"</span>) || name.startsWith(<span class="k">"team_"</span>)
+}</pre>
+
+      <h3>v4는 같은 자리에서 폴링을 했다</h3>
+      <p><span class="wl">packages/omo-opencode/src/tools/delegate-task/background-task.ts</span> 의 주석이 이유를 밝힌다. <span class="wl">BackgroundManager.launch()</span> 가 세션이 만들어지기 전에 반환하기 때문에, 도구는 sessionId가 나타날 때까지 기다려야 한다. 그 뒤에도 늦게 도착한 sessionId를 잡는 별도 패치가 붙어 있고, 주석은 그것이 없으면 OpenCode TUI가 영원히 스피너를 돌린다고 적는다(issue #4252).</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>상수 (delegate-task/timing.ts)</th><th>값</th><th>쓰이는 곳</th></tr></thead>
+          <tbody>
+            <tr><td>WAIT_FOR_SESSION_INTERVAL_MS</td><td>100</td><td>자식 세션 생성 대기 폴링 간격</td></tr>
+            <tr><td>WAIT_FOR_SESSION_TIMEOUT_MS</td><td>60,000</td><td>같은 대기의 상한</td></tr>
+            <tr><td>POLL_INTERVAL_MS</td><td>1,000</td><td>동기 위임의 완료 폴링</td></tr>
+            <tr><td>MIN_STABILITY_TIME_MS</td><td>10,000</td><td>완료로 판정하기 전 안정 시간</td></tr>
+            <tr><td>STABILITY_POLLS_REQUIRED</td><td>3</td><td>연속 안정 관측 횟수</td></tr>
+            <tr><td>MAX_POLL_TIME_MS</td><td>1,800,000</td><td>동기 위임 상한 (30분)</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">완료를 이벤트로 받지 못하니 휴리스틱으로 추정한다. "1초마다 보고, 10초 이상 조용하고, 3번 연속 그러면 끝난 것으로 친다."</p>
+
+      <h3>v4에도 깨우는 경로는 있었다. 크기가 다르다</h3>
+      <p>v4가 폴링만 한 것은 아니다. <span class="wl">v4.19.4</span> 의 <span class="wl">packages/omo-opencode/src/features/background-agent/</span> 에는 테스트를 뺀 파일이 52개 있고, 그중 <b>15개가 이름에 <span class="wl">parent-wake</span> 를 달고 있다</b>(그중 14개는 접두사, 하나는 <span class="wl">message-updated-parent-wake-output.ts</span>). dedupe, pending-queue, flush-runner, dispatched-tracker, window-recovery, session-inspector, timer-handle 이 각각 파일 하나씩이다. 3장의 게이트가 필요했던 바로 그 문제를 여기서도 감당하고 있었다.</p>
+      <p>v5에서 같은 일을 하는 것은 <span class="wl">completion/routing.ts</span> 의 switch 하나와 그 위의 notifier다. 줄어든 것은 폴링 여부가 아니라 부모를 깨우는 데 드는 코드의 양이다.</p>
+
+      <p class="note"><b>과장하지 말 것.</b> native에도 폴링은 남아 있다. 팀 멤버 익스텐션이 durable mailbox를 <span class="wl">MEMBER_POLL_INTERVAL_MS = 1_000</span>, ack를 <span class="wl">ACK_POLL_INTERVAL_MS = 100</span> 으로 돌린다(<span class="wl">packages/senpi-task/src/team/member-extension/index.ts:13-14</span>). v4를 비판한 바로 그 1초와 100ms다. 폴링이 사라진 곳은 <b>자식 완료 경로</b> 하나다. 그리고 두 방식의 실제 지연 차이는 재지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">orchestrate</p>
+      <h2>완료는 3분기 라우팅이고, 자식은 세션이 끊겨도 죽지 않는다</h2>
+      <p class="dek">오케스트레이션에서 어려운 부분은 회수다. 자식이 끝났을 때 부모가 스트리밍 중이면 어떻게 넣을 것인가, 부모가 컴팩션 중이면, 사용자가 창을 닫으면. <span class="wl">packages/senpi-task</span> 는 이 세 질문에 각각 코드를 두었다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">완료 통지는 설정으로 끌 수 없다</p>
+        <p class="fig-sub">packages/senpi-task/src/completion/routing.ts 의 switch 를 그대로 옮겼다.</p>
+        <div class="svgwrap">
+          <svg class="chart" viewBox="0 0 760 320" role="img" aria-label="자식 완료가 부모에게 전달되는 세 갈래. 외부 원인으로 끝난 자식만 라우팅에 들어가고, routeCompletion 이 부모 상태를 보고 갈라진다. 부모가 idle 이면 wake 로 깨우고, streaming 이면 다음 tool-call 경계로 steer 해 넣고, compacting 이나 session_switching 이나 session_shutdown 이면 buffer 에 담는다. buffer 에서 부모가 settle 한 뒤 다시 라우팅으로 돌아가는 화살표가 있다.">
+            <rect class="box" x="8" y="106" width="150" height="58" rx="8"/>
+            <text class="txt" x="20" y="130">자식 terminal</text>
+            <text class="txt-s" x="20" y="148">completed · error · lost</text>
+
+            <path class="arw" d="M158 135 L186 135"/>
+            <path class="arw" d="M179 130 L186 135 L179 140"/>
+
+            <rect class="box-hi" x="190" y="106" width="190" height="58" rx="8"/>
+            <text class="txt" x="202" y="130">routeCompletion()</text>
+            <text class="txt-s" x="202" y="148">부모 상태 하나만 본다</text>
+
+            <path class="arw" d="M380 135 L405 135 L405 45 L426 45"/>
+            <path class="arw" d="M419 40 L426 45 L419 50"/>
+            <rect class="box" x="430" y="16" width="212" height="58" rx="8"/>
+            <text class="txt" x="442" y="40">idle → wake</text>
+            <text class="txt-s" x="442" y="58">부모를 깨워 다음 턴에 주입</text>
+
+            <path class="arw" d="M380 135 L426 135"/>
+            <path class="arw" d="M419 130 L426 135 L419 140"/>
+            <rect class="box" x="430" y="106" width="212" height="58" rx="8"/>
+            <text class="txt" x="442" y="130">streaming → deliver</text>
+            <text class="txt-s" x="442" y="148">다음 tool-call 경계로 steer</text>
+
+            <path class="arw" d="M380 135 L405 135 L405 225 L426 225"/>
+            <path class="arw" d="M419 220 L426 225 L419 230"/>
+            <rect class="box" x="430" y="196" width="212" height="58" rx="8"/>
+            <text class="txt" x="442" y="220">transient → buffer</text>
+            <text class="txt-s" x="442" y="238">compacting · switching · shutdown</text>
+
+            <path class="arw" d="M535 254 L535 284 L285 284 L285 168"/>
+            <path class="arw" d="M280 175 L285 168 L290 175"/>
+            <text class="txt-s" x="300" y="304">부모가 settle 하면 다시 라우팅한다</text>
+          </svg>
+        </div>
+        <figcaption>주석이 그 조건을 못 박아 둔다. "Delivery is unconditional: an idle parent ALWAYS wakes and a streaming parent ALWAYS receives the notification steered into its running turn at the next tool-call boundary - no config can suppress, delay, or split it." 부모가 직접 건 cancel과 interrupt는 도구 결과로 동기 반환되므로 이 경로에 들어오지 않는다.</figcaption>
+      </figure>
+
+      <h3>세션 종료가 자식을 유예 상태로 남긴다</h3>
+      <p><span class="wl">session_shutdown</span> 은 <span class="wl">quit</span>, <span class="wl">reload</span>, <span class="wl">new</span>, <span class="wl">resume</span>, <span class="wl">fork</span> 다섯 사유 모두에서 자식을 죽이지 않는다. 살아 있는 핸들은 정리하되 레코드는 <span class="wl">persisted_only</span>(in-process) 또는 <span class="wl">rpc_detached</span>(process)로 남고, 상태와 epoch, 실행 통계가 보존된다. 다음에 그 세션을 재개하면 <span class="wl">reconcileOnSessionStart(parentSessionId)</span> 가 <b>그 세션의 자식만</b> 되살린다.</p>
+      <ul class="clean">
+        <li><span class="m">lease</span><span>부활은 부모 세션당 하나의 admission lease 아래에서 배치로 일어난다. <span class="wl">&lt;stateDir&gt;/locks/session-&lt;id&gt;.lock</span> 에 owner token을 쓰고 1초마다 갱신하며, 3주기 이상 낡은 lease만 token CAS로 뺏는다. 5초 안에 못 잡으면 배치 전체가 <span class="wl">deferred/lock_contended</span> 로 미뤄지고 세션 시작 자체는 진행된다.</span></li>
+            <li><span class="m">cap</span><span>정원을 넘긴 후보는 <span class="wl">deferred/capacity</span> 로 남는다. evict 되지도 lost 되지도 않는다. 정원은 <span class="wl">residency_max_children</span> 이고 기본 스키마 값은 8이지만, 해석 시 <span class="wl">Math.max(8, availableParallelism() * 3)</span> 로 올라간다.</span></li>
+            <li><span class="m">no-rerun</span><span>transcript 없이 종료된 레코드는 폐기하고 다시 돌리지 않는다. 세션 파일이 없는 비종료 레코드만 저장된 프롬프트로 정확히 한 번 재실행한다. senpi는 첫 assistant 메시지 전에는 JSONL을 쓰지 않으므로 이 경우 재실행되는 작업이 없다.</span></li>
+            <li><span class="m">ttl</span><span>TTL 삭제는 2단계 tombstone이다. 락 안에서 보존 조건을 다시 확인하고 <span class="wl">.expunging</span> 으로 이름을 바꾼 뒤(load/list에서 사라져 부활 요구가 집을 수 없다), 락 밖에서 실제 파일을 지운다. 기본 <span class="wl">ttl_ms</span> 는 86,400,000(24시간)이다.</span></li>
+      </ul>
+
+      <p class="note"><b>이걸 얼마나 믿을 수 있나.</b> <span class="wl">src/__adversarial__/chaos-bench.test.ts</span> 가 시드 고정 200회 반복으로 불변식 13개를 건다. 매 iteration 이 13개를 전부 평가한다. (task_id, run_epoch) 당 정확히 한 번 통지, terminal 멱등, 동시성 슬롯 누수 없음, unhandled rejection 없음, 모든 waitFor 정착, 그리고 suspend/revive 소유권·복구·epoch·pid·의도적 중단·정원·회수·terminal 재실행 금지까지 여덟 개가 더 있다. 참고로 <span class="wl">packages/senpi-task/AGENTS.md</span> 는 아직 "the four W1 invariants"라고 적는다. 옆 파일 <span class="wl">chaos-lifecycle.test.ts</span> 는 한 걸음 더 간다. 6~13번 각각을 일부러 깨뜨리는 mutation 여덟 개(<span class="wl">double_revive</span>→6 … <span class="wl">relaunch_terminal_without_session</span>→13)를 두고, 그 불변식이 실제로 터지는지 본다. 검사가 검사되고 있다는 뜻이다. 테스트가 있다는 사실은 확인했고, 실행하지는 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">agents</p>
+      <h2>discipline agent 11개가 curated subagent 4개로 줄고, 그중 둘은 잠겨 있다</h2>
+      <p class="dek">Ultimate의 오케스트레이션은 에이전트 레지스트리 위에 서 있다. Prometheus가 인터뷰로 계획을 세우고, Momus와 Oracle이 이중 검토하고, Atlas가 실행을 지휘하고, Sisyphus-Junior가 코드를 쓴다. native에는 그 레지스트리가 없다. 대신 카테고리 라우팅과 네 개의 읽기 전용 subagent가 있다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">Ultimate: 11 agents</span>
+          <p class="small">primary 넷: <span class="wl">sisyphus</span>, <span class="wl">hephaestus</span>, <span class="wl">prometheus</span>, <span class="wl">atlas</span>. subagent 일곱: <span class="wl">oracle</span>, <span class="wl">librarian</span>, <span class="wl">explore</span>, <span class="wl">multimodal-looker</span>, <span class="wl">metis</span>, <span class="wl">momus</span>, <span class="wl">sisyphus-junior</span>.</p>
+          <p class="small">계획과 실행이 서로 다른 세션 에이전트로 분리돼 있고, <span class="wl">/start-work</span> 가 세션 에이전트를 Atlas로 바꾼다. 계획은 <span class="wl">.omo/plans/*.md</span> 에, 진행은 <span class="wl">.omo/boulder.json</span> 에, 누적 학습은 <span class="wl">.omo/notepads/</span> 에 쌓인다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">Native: 4 curated agents</span>
+          <p class="small"><span class="wl">explore</span>, <span class="wl">librarian</span>, <span class="wl">metis</span>, <span class="wl">momus</span>. 넷 다 in-process로 고정되고 <span class="wl">execution_mode</span> 오버라이드가 무시된다. 팀 멤버로도 거부된다. process 모드 스폰이 persona 프롬프트와 도구 allowlist를 떨어뜨리기 때문이다.</p>
+          <p class="small">도구는 9개만 허용된다. <span class="wl">read find grep ls bash lsp_diagnostics lsp_goto_definition lsp_find_references lsp_symbols</span>. 그리고 이 중 <span class="wl">bash</span> 는 진짜 셸이 아니다.</p>
+        </div>
+      </div>
+
+      <h3>읽기 전용을 프롬프트가 아니라 실행 경로로 강제한다</h3>
+      <p>curated 자식에게 주는 <span class="wl">bash</span> 는 같은 이름의 구조화 브로커로 치환된다. <span class="wl">runners/in-process/curated-readonly-bash.ts</span> 가 검증된 read-only GitHub 질의와 HTTPS 조회만 직접 실행하고, 편집/쓰기 도구와 변형을 일으키는 LSP 도구는 애초에 목록에 없다. 프롬프트로 "읽기만 해"라고 부탁하는 대신 실행 경로를 갈아 끼운 것이다.</p>
+
+      <h3>metis와 momus는 조건이 셋 다 맞아야 뜬다</h3>
+      <p><span class="wl">agents/invocation-guard.ts</span> 가 이 둘을 plan-gated tier로 분류한다. 스폰되려면 세 조건이 모두 참이어야 한다.</p>
+      <pre><span class="c">// packages/senpi-task/src/agents/invocation-guard.ts 의 판정 조건</span>
+hasUserRequested   <span class="c">// 사용자가 raw 입력으로 ulw-plan 을 직접 요청했다</span>
+                   <span class="c">//   모델이 스스로 SKILL.md 를 읽은 것은 인정되지 않는다</span>
+hasPlanArtifact    <span class="c">// 이번 세션에서 .omo/plans/*.md 를 건드렸다 (worktree 포함)</span>
+!hasInvoked        <span class="c">// start-work 가 한 번도 호출되지 않았다</span>
+
+<span class="c">// resolveSkillInvocations 가 배선되지 않으면 fail CLOSED:</span>
+<span class="c">//   상태가 없으면 사용자 요청의 증거도 없으므로 거부한다</span></pre>
+      <p>거부 메시지는 일부러 해제 방법을 알려주지 않는다. 소스 주석이 그 이유를 적는다. start-work 이후의 거부는 최종적이라, 금지된 스킬 검사를 조건 미충족 검사보다 먼저 돌린다. momus는 한 번만 쓸 수 있고, 스폰 프롬프트는 하네스가 표준 plan-review 계약으로 통째로 갈아 끼운다. 계획 파일 경로 외의 내용은 버려진다.</p>
+
+      <h3>사용자 정의 에이전트가 확장 지점이다</h3>
+      <p>builtin 넷이 전부는 아니다. <span class="wl">packages/senpi-task/src/agents/omo-config-agents.ts</span> 의 <span class="wl">mapOmoConfigAgents</span> 가 <span class="wl">omo.json</span> 의 <span class="wl">agents</span> 블록을 senpi-task 의 <span class="wl">AgentDefinition</span> 으로 옮긴다. 파일 상단 주석이 목적을 밝힌다. "so <span class="wl">subagent_type</span> spawns and team membership can address user-defined agents." 넘어가는 필드는 description, prompt, model, models, variant, reasoning, temperature, tools, disable, background, execution_mode, allowed_subagents, disallowed_tools, max_depth, max_turns 다.</p>
+      <p class="small">builtin 넷과 달리 사용자 정의 에이전트는 실행 모드를 고를 수 있고 팀 멤버가 될 수 있다. 요구가 어긋났을 때 째는 자리가 여기다.</p>
+
+      <h3>팀은 lead와 member의 도구가 다르다</h3>
+      <p>lead 세션만 6개 도구를 받는다. <span class="wl">team_create</span>, <span class="wl">team_delete</span>, <span class="wl">task_create</span>, <span class="wl">task_get</span>, <span class="wl">task_list</span>, <span class="wl">task_update</span>. 멤버는 팀 범위의 <span class="wl">task_send</span> 하나만 받는다. <span class="wl">team_wait</span> 도구는 존재하지 않는다. 답이 필요하면 보내고 턴을 끝내면, steer된 팀 메시지 통지가 대화를 재개시킨다. 전달은 durable mailbox의 예약 기반이고 <span class="wl">unread → .delivering-&lt;id&gt; → processed/&lt;id&gt;</span> 로 커밋되며, <span class="wl">processed</span> 파일이 exactly-once 원장이다.</p>
+
+      <h3>줄어든 것은 에이전트 수이고, 스킬은 18개다</h3>
+      <p>Prometheus 인터뷰와 Atlas 실행 계층은 없어진 것이 아니라 스킬로 내려왔다. <span class="wl">packages/omo-senpi/src/install/install-senpi.ts</span> 의 <span class="wl">REQUIRED_PLUGIN_ARTIFACTS</span> 가 native가 반드시 싣는 스킬 <b>18개</b>를 이름으로 못 박는다.</p>
+      <pre>ast-grep · coding-agent-sessions · debugging · frontend · git-master · init-deep · lsp-setup
+programming · refactor · remove-ai-slops · review-work · start-work · ultimate-browsing
+ultrawork · ulw-loop · ulw-plan · ulw-research · visual-qa</pre>
+      <p class="small">그래서 13장의 "에이전트 11개 대 4개" 행은 능력의 비교가 아니라 <b>레지스트리 항목 수</b>의 비교로 읽어야 한다. Ultimate가 에이전트로 표현한 것 중 상당수를 native는 스킬로 표현한다. 다만 18개 중 본문을 연 것은 <span class="wl">ultrawork</span> 하나뿐이라, 내용까지 같은지는 확인하지 못했다.</p>
+
+      <p class="note"><b>이 장이 다루지 않는 것.</b> 스킬 18개의 본문 비교가 없다. <span class="wl">hyperplan</span> 과 <span class="wl">give-me-tips</span> 는 senpi 전용으로 따로 있고, native의 <span class="wl">ulw-plan</span> 은 shared 사본이 아니라 senpi-local 오버라이드다. 어느 쪽 스킬이 더 나은지는 이 문서가 말할 수 없다. <span class="wl">start-work-continuation</span> 컴포넌트가 <span class="wl">.omo/boulder.json</span> 을 읽어 이어달리는 것(연속 8회 상한, 사용자 입력 시 리셋)까지만 확인했다.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">model-place</p>
+      <h2>모델 배치에 게이트가 두 겹 생긴다</h2>
+      <p class="dek">카테고리는 v4부터 있었다. 에이전트가 모델 이름 대신 의도를 말하고(<span class="wl">quick</span>, <span class="wl">deep</span>, <span class="wl">ultrabrain</span>) 하네스가 폴백 체인을 타고 내려가 실제 모델을 고른다. v5 native가 더한 것은, 라이브 레지스트리에 없는 카테고리를 아예 목록에서 지우는 두 개의 게이트다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>게이트</th><th>적용 대상</th><th>조건</th><th>미충족 시</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>requiresModel</td><td>builtin 3개</td><td>지정 모델 id가 라이브 레지스트리에 있어야 한다</td><td>model_unavailable. 폴백 체인으로도 안 간다</td></tr>
+            <tr><td>isCategoryChainViable</td><td>builtin 전부</td><td>폴백 체인 rung 중 최소 하나가 해석되어야 한다</td><td>카테고리 자체가 목록에서 사라진다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">게이트가 걸린 셋은 <span class="wl">architect</span>(claude-fable-5), <span class="wl">ultrabrain</span>(gpt-5.6-sol), <span class="wl">deep</span>(gpt-5.6-sol)이다. 각각의 폴백 체인이 자기 모델 패밀리로만 잘려 있어서, 다른 패밀리의 rung을 타고 게이트를 우회할 수 없다. 관계없는 모델 하나만 등록된 레지스트리에서는 <span class="wl">resolveAvailableCategoryNames</span> 가 빈 배열을 돌려준다.</p>
+
+      <h3>탈출구는 하나다</h3>
+      <p><span class="wl">omo.json</span> 에 <span class="wl">categories.&lt;name&gt;</span> 항목이 하나라도 있으면 설명만 적힌 항목이라도 두 게이트를 모두 우회한다. 사용자가 직접 쓴 설정은 하네스가 판단하지 않는다는 규칙이다. 이 동작은 <span class="wl">packages/omo-opencode/src/tools/delegate-task/categories.ts</span> 의 <span class="wl">hasExplicitUserConfig</span> 를 그대로 따라간 것이라고 소스가 밝힌다.</p>
+      <p>도구 설명은 등록 시점에 만들어져 레지스트리를 볼 수 없으므로, 잠긴 카테고리를 목록에서 지우는 대신 <span class="wl">(requires &lt;model&gt;)</span> 를 붙인다. 실제 판정은 스폰 시점의 <span class="wl">resolveCategory</span> 만이 권위를 갖는다.</p>
+
+      <h3>native에만 있는 카테고리: architect</h3>
+      <p><span class="wl">packages/model-core/src/category-model-requirements.ts</span> (OpenCode 에디션의 원본)에는 8개가 있다. <span class="wl">visual-engineering</span>, <span class="wl">ultrabrain</span>, <span class="wl">deep</span>, <span class="wl">artistry</span>, <span class="wl">quick</span>, <span class="wl">unspecified-low</span>, <span class="wl">unspecified-high</span>, <span class="wl">writing</span>. <span class="wl">packages/senpi-task/src/category/fallback-chains.ts</span> 에는 여기에 <span class="wl">architect</span> 가 더 있고, rung이 하나뿐이다.</p>
+      <pre>architect: [
+  { providers: [<span class="k">"anthropic"</span>, <span class="k">"anthropic-api"</span>, <span class="k">"github-copilot"</span>, <span class="k">"opencode"</span>, <span class="k">"vercel"</span>],
+    model: <span class="k">"claude-fable-5"</span>, variant: <span class="k">"xhigh"</span> },
+]</pre>
+      <p>이 카테고리는 다음 장의 fallback-architect 장치와 짝이다. 세션이 Fable 5에서 밀려났을 때, 최상급 추론을 잃지 않고 상담 창구로 남겨 두는 통로다.</p>
+
+      <p class="note"><b>어긋난 것 하나.</b> senpi 쪽 체인은 model-core를 import 하지 않고 손으로 미러한 사본이다(패키지 의존을 늘리지 않으려는 선택이라고 파일 상단 주석이 밝힌다). 그래서 두 파일이 실제로 어긋나 있다. kimi rung이 senpi에서는 <span class="wl">kimi-coding</span> 과 <span class="wl">kimi-for-coding</span> 을 둘 다 싣고, <span class="wl">writing</span> 의 마지막 rung은 native가 <span class="wl">gemini-3.1-pro</span>, OpenCode가 <span class="wl">gemini-3.6-flash</span> 다. 앞의 차이는 주석이 의도된 것이라 밝히지만, 뒤의 차이에 대한 언급은 찾지 못했다.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">token-cost</p>
+      <h2>토큰을 아끼는 방식이 절단에서 재주입 회피로 바뀐다</h2>
+      <p class="dek">v4의 토큰 관리는 <span class="wl">delegate-task/token-limiter.ts</span> 한 곳에 있다. 4자를 1토큰으로 추정해 스킬, 카테고리 프롬프트, AGENTS 컨텍스트를 순서대로 잘라 예산에 맞춘다. 잘린 자리에는 <span class="wl">[TRUNCATED]</span> 가 남는다. native의 장치 넷은 자르지 않는다. 첫 번째는 같은 지시문을 두 번 보내지 않는 것이다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">이미 무장된 세션에서 <span class="wl">ulw</span> 를 다시 치면 전문 대신 한 줄이 간다</p>
+        <p class="fig-sub">v5.0.0-beta.6 의 SENPI_ULTRAWORK_DIRECTIVE 상수와 ULTRAWORK_REMINDER 상수를 직접 세었다. 저장소는 이 비교를 하지 않는다.</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>주입 시점</th><th>문자 수</th><th>줄 수</th><th>무엇이 들어가는가</th></tr></thead>
+            <tbody>
+              <tr><td>첫 무장</td><td>29,950</td><td>540</td><td>SKILL.md 를 그대로 임베드한 전체 지시문</td></tr>
+              <tr class="hero"><td>같은 세션 재무장</td><td>171</td><td>1</td><td>이미 무장됐다는 한 줄짜리 리마인더</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>지시문은 <span class="wl">skills/ultrawork/SKILL.md</span> 를 그대로 임베드한 540줄짜리 문자열이다. 리마인더는 한 줄이며, 태그 쌍 가드가 새 지시문으로 오인하지 않도록 <span class="wl">&lt;ultrawork-mode&gt;</span> 여는 태그를 일부러 담지 않는다. 소스 주석의 표현은 "injecting ~17KB again only re-pays tokens for rules the model can already see"인데, 실제 파일은 그보다 커졌다.</figcaption>
+      </figure>
+
+      <p>이 장치가 성립하려면 "이 세션은 이미 무장됐다"는 기록이 살아 있어야 한다. 주석이 그 어려움을 적는다. senpi는 세션 전환이나 재개마다 익스텐션 러너를 헐고 컴포넌트를 다시 등록하며, 패키지 익스텐션을 캐시 없는 로더로 불러온다. 모듈 스코프에 원장을 두면 그때마다 잊어버리고 전문을 다시 주입한다. 그래서 원장을 다른 곳에 매달았다.</p>
+
+      <h3>장치 둘. 부모의 프롬프트 캐시가 만료되기 전에 턴을 닫는다</h3>
+      <p>전경 대기에 데드라인이 걸려 있다. <span class="wl">tools/task/foreground-wait.ts</span> 는 <span class="wl">PI_PROMPT_CACHE_SAFE_WAIT_SECONDS</span> 가 주어지면 그 초만큼만 기다리고, 넘기면 자식을 백그라운드로 승격시킨 뒤 부모 턴을 끝낸다.</p>
+      <pre>const budgetSeconds = resolvePromptCacheSafeWaitSeconds(input.ctx, input.env ?? process.env)
+const waiting = input.manager.waitFor(input.taskId, { signal: input.signal })...
+if (budgetSeconds === undefined) return waiting
+
+<span class="c">// 예산을 넘기면 기다림을 포기하고 승격한다</span>
+input.manager.<b>promoteToBackground</b>(input.taskId)
+
+<span class="c">// 모델이 받는 문구:</span>
+<span class="c">// "Foreground wait reached the prompt-cache-safe budget (Ns) for task &lt;id&gt;;</span>
+<span class="c">//  the task continues in background."</span></pre>
+      <p>느린 자식 하나가 부모의 캐시된 프롬프트를 무효화할 만큼 턴을 길게 잡아 두지 못하게 하는 장치다. 저자가 스레드에서 "캐시히트 처리"를 개선점으로 든 것과 같은 자리로 읽힌다.</p>
+
+      <h3>장치 셋. 비용이 태스크 단위로 계량된다</h3>
+      <p>토큰이 어디로 갔는지를 엔진이 아니라 어댑터가 센다. <span class="wl">packages/senpi-task/src/run-stats.ts</span> 가 자식 태스크마다 <span class="wl">total_tokens</span>, <span class="wl">tokens_per_second</span>, <span class="wl">cost_usd</span>, 그리고 <span class="wl">cache_hit_rate_last</span> 와 <span class="wl">cache_hit_rate_run</span> 을 누적하고, <span class="wl">status-line.ts</span> 가 그걸 상태 행에 렌더한다. 캐시 히트율이 실행 중 값과 실행 전체 값 두 개로 나뉘어 있는 것이, 저자가 말한 "캐시히트 처리"에 이름부터 대응하는 자리다.</p>
+      <p class="small">주석이 조건을 하나 단다. <span class="wl">tokens_per_second</span> 는 assistant 스트리밍 구간이 전부 계측될 때만 방출한다. 토큰을 실은 생성 윈도 중 하나라도 0ms로 붕괴하면 수치가 검증 불가능해지므로 아예 생략한다.</p>
+
+      <h3>장치 넷. 이미 본 장치의 부수 효과다</h3>
+      <p>in-process 러너가 부모의 도구 클로저를 공유하므로, 자식마다 MCP 서버를 다시 띄우거나 도구 정의를 다시 직렬화할 일이 없다. 여기에 memory 컴파일 캐시가 붙는다. <span class="wl">packages/memory-core/src/compile/cache.ts</span> 는 컴파일된 메모리 블록을 <span class="wl">(sha256(구조버전 + 템플릿), git HEAD)</span> 로 키잉하고, 커밋된 HEAD만 컴파일한다. 작업 중인 변경은 캐시를 깨지 않는다. 컴파일 결과가 <span class="wl">compile_warn_tokens</span> 30,000을 넘으면 경고가 뜬다.</p>
+
+      <h3>넷 밖: 모델이 거절당했을 때의 경로</h3>
+      <p>아래는 토큰을 아끼는 장치가 아니라 거절 이후의 상담 경로다. 위 넷에 넣지 않는다. <span class="wl">fallback-architect</span> 컴포넌트는 세션이 <span class="wl">claude-fable-5</span> 에서 거절이나 정책 차단으로 밀려났을 때 한 번 발동한다. 약해진 모델에게 문제를 쪼개고, 최상급 추론이 필요한 조각만 <span class="wl">task(category: "architect")</span> 로 상담하라고 지시한다. 상담 질의는 대화 맥락이 없는 자기완결형이어야 하고, 독립 상담은 병렬 백그라운드로 돌린 뒤 통합은 본인이 한다.</p>
+      <p class="small">지시문에는 실무적인 대목이 있다. architect 상담자는 방금 거절한 그 Fable 5이므로, 질의를 "정당한 엔지니어링 작업"으로 읽히게 구성하라고 시킨다. 그래도 거절하면 같은 질의를 다시 보내지 말고 각각 무해한 하위 질문으로 쪼개어 묻고, 연결하는 추론은 직접 하라고 한다. 이 지시문 자체는 숨겨진 메시지(<span class="wl">display: false</span>)로 들어가고, 사용자에게는 별도의 짧은 안내만 보인다.</p>
+
+      <p class="note"><b>측정하지 않은 것.</b> 장치 넷 중 어느 것도 실행해서 토큰 사용량을 재지 않았다. 확인한 것은 코드에 그 장치가 있다는 사실과, 상수의 값이다. 저자가 스레드에서 말한 "메모리도 덜 먹는다"는 주장의 근거가 되는 측정치는 저장소에서 찾지 못했다.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">ui-ux</p>
+      <h2>UI가 도구 스키마 안으로 들어온다</h2>
+      <p class="dek">Ultimate의 UI는 OpenCode TUI가 그린다. omo는 metadata를 발행해 TUI가 읽어 가기를 기다린다. native는 senpi를 자기 것으로 다루기 때문에, 무엇을 어떻게 보여줄지가 어댑터 안에 있다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">도구 스키마에 박힌 UI</span>
+          <p class="small"><span class="wl">task</span> 도구의 파라미터에 <span class="wl">task_summary</span> 가 있다. 80자 제한이고 넘으면 강제 절단된다. 사용자 footer와 위젯이 raw prompt 대신 보여줄 한 줄이며, 모델의 판단에는 쓰이지 않는다.</p>
+          <p class="small">도구 설명이 지시한다. "Pass task_summary (one line, &lt;=80 chars) on every spawn: the user's footer/widget UI shows it instead of the raw prompt, so it should say WHAT was delegated." 모델에게 사용자 화면을 채우는 일을 맡긴 것이다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">native 전용 표면</span>
+          <p class="small"><span class="wl">native-badge</span> 컴포넌트가 <span class="wl">session_start</span> 와 <span class="wl">agent_settled</span> 마다 footer 배지를 발행한다. 문자열은 <span class="wl">(😺 OmO Native)</span> 다. 런처가 <span class="wl">OMO_NATIVE=1</span> 을 심는 이유가 여기 있다. omo-ai 설치는 <span class="wl">--extension</span> 으로 로드되므로 settings 기반 탐지에 걸리지 않는다.</p>
+          <p class="small">그 밖에 <span class="wl">onboarding</span>, <span class="wl">init-deep-advisor</span> 컴포넌트, 슬래시 커맨드 <span class="wl">/tasks</span> 와 <span class="wl">/task-kill</span>, 에디터 아래 라이브 task 상태 위젯이 있다. footer 자체는 goal 표시용으로 예약돼 있다. 유예된 자식은 목록에서 <span class="wl">suspended</span> 로 라벨된다.</p>
+        </div>
+      </div>
+
+      <h3>모델 거절을 사용자에게 승급으로 설명한다</h3>
+      <p>fallback-architect가 발동하면 사용자에게 보이는 메시지가 하나 뜬다. 커스텀 타입 <span class="wl">omo-fallback-architect:notice</span> 에 <span class="wl">display: true</span> 와 구조화된 <span class="wl">details: { from, to }</span> 가 실린다. 문구는 전환을 승급으로 설명한다. 폴백 모델이 실행을 몰고, Fable 5급 추론은 architect 레인으로 계속 닿는다는 것이다.</p>
+      <p>문구보다 형태가 오래 간다. 안정된 customType과 details가 senpi의 세션 이벤트 스트림을 타므로, 나중에 GUI가 senpi 코어를 고치지 않고 같은 이벤트를 렌더할 수 있다. 소스 주석이 그 GUI를 <span class="wl">omo-desktop-app</span> 이라고 이름으로 부른다.</p>
+
+      <h3>메모리가 슬래시 커맨드와 뷰어로 노출된다</h3>
+      <p>memory 컴포넌트는 슬래시 커맨드 10개(<span class="wl">/memory /memfs /remember /init /doctor /recompile /memory-repository /sleeptime /reflect /search</span>)와 자기완결형 palace HTML 뷰어를 등록한다. 뷰어는 0600/0700 권한에 머신 게이트가 걸린다. 저장소는 git이고, 신원은 기본값 <span class="wl">auto</span> 로 프로젝트마다 파생되며 <span class="wl">~/.omo/memory/agents/&lt;safe-id&gt;/</span> 아래에 놓인다.</p>
+
+      <h3>실제 화면 한 줄</h3>
+      <p>저장소의 QA 증적에 라이브 TUI 캡처가 하나 있다. <span class="wl">.omo/evidence/20260802-senpi-task-cache-hit-rate/tui-capture.txt</span> 는 자식이 도는 동안 부모를 멈춰 찍은 것이다.</p>
+      <pre>⠦ active-c... · category:ultrabrain(omo-mock/mock-1:xhigh) · turn 2 (2 tools) · <b>$0.0481 (CH: 81%)</b> · 160000 tok/s · ba...
+(🏴‍☠️ OmO Native) • ...T/omo-senpi-qa-khg7r3/project • <b>292/200K (0.1%)</b> (auto)                (omo-mock) mock-1</pre>
+      <p class="small">위젯 한 줄에 카테고리, 해석된 모델, 턴 수, 누적 비용, <b>캐시 히트율</b>, 초당 토큰이 들어간다. 아래가 배지와 컨텍스트 사용량이다. 배지가 해적기인 것은 이 캡처가 2026-08-02, 비공식 배포 시절이기 때문이다. 핀 커밋의 문자열은 고양이로 바뀌었고, <span class="wl">packages/omo-native/test/pirate-badge-absence.test.ts</span> 가 공식 omo-ai 페이로드에 senpi 배지 게이트 매니페스트가 실리지 않는지 검사한다.</p>
+
+      <p class="note"><b>보지 못한 것.</b> 직접 실행해 화면을 본 적은 없다. 위 두 줄은 저장소에 커밋된 텍스트 캡처이고, 나머지(palace 뷰어, <span class="wl">/tasks</span> 선택기, onboarding)는 컴포넌트 등록 코드로만 확인했다. 데스크톱 앱은 이 저장소에 없다. 저자가 2026-08-12에 메인테이너에게 액세스를 열었다고 스레드에 적었을 뿐이다.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">interop</p>
+      <h2>다른 코딩 에이전트의 크리덴셜 저장소를 읽어 온다</h2>
+      <p class="dek">호스트를 소유한다는 건 사용자가 이미 다른 CLI에 넣어 둔 설정을 물려받을 수 없다는 뜻이기도 하다. <span class="wl">omo setup</span> 이 그 문제를 정면으로 다룬다. 형제 코딩 에이전트 네 종의 저장소를 열어 보고, 동의를 받아 API 키를 옮긴다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>하네스</th><th>읽는 경로</th><th>형식</th><th>수입 대상</th></tr></thead>
+          <tbody>
+            <tr><td>opencode</td><td>$XDG_DATA_HOME/opencode/auth.json</td><td>JSON</td><td>type: "api" 항목</td></tr>
+            <tr><td>oh-my-pi</td><td>~/.omp/agent/agent.db</td><td>sqlite, auth schema v7</td><td>credential_type api_key</td></tr>
+            <tr><td>gajae-code</td><td>~/.gjc/agent/agent.db</td><td>sqlite, auth schema v4</td><td>credential_type api_key</td></tr>
+            <tr><td>senpi (자기 자신)</td><td>$SENPI_CODING_AGENT_DIR/auth.json</td><td>JSON</td><td>수입원이 아닌 목적지</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>규칙이 보수적이다</h3>
+      <ul class="clean">
+        <li><span class="m">api</span><span><span class="wl">API_KEY_TYPE_ACCEPTLIST</span> 는 <span class="wl">api_key</span> 하나뿐이다. oauth 크리덴셜은 목록에만 올리고 옮기지 않으며, 대신 <span class="wl">omo auth</span> 로 로그인하라고 안내한다.</span></li>
+        <li><span class="m">map</span><span>provider id는 <span class="wl">provider-map.json</span> 을 거친다. builtin id는 그대로, 매핑에 있는 것은 변환, 없는 것은 <span class="wl">skipped-unmapped</span> 로 보고된다. 제외 목록에 오른 hosted gateway id는 아예 후보에서 빠진다.</span></li>
+        <li><span class="m">safe</span><span>이미 있는 provider 항목은 덮어쓰지 않는다. 쓰기 전에 <span class="wl">.bak-&lt;timestamp&gt;</span> 를 복사하고, <span class="wl">.tmp-&lt;pid&gt;</span> 에 0600으로 쓴 뒤 rename한다. 디렉터리는 0700이다.</span></li>
+        <li><span class="m">ask</span><span>TTY에서만 y/N 동의를 묻는다. 비대화형이면 아무것도 옮기지 않고 <span class="wl">omo setup --yes</span> 를 다시 실행하라고 알린다. <span class="wl">--dry-run</span> 은 계획만 출력한다. auth 스키마 버전이 모르는 값이면 크리덴셜을 들여다보지 않는다.</span></li>
+      </ul>
+
+      <h3>doctor는 페어링을 검사한다</h3>
+      <p><span class="wl">omo doctor</span> 는 네 개의 산출물이 있는지 본다. plugin manifest, 생성된 <span class="wl">plugin/extensions/omo.js</span>, lsp-daemon 런타임, agent-toolkit 런타임. 그리고 핀이 맞는지 확인한다. <span class="wl">omo-ai</span> 의 <span class="wl">dependencies["@code-yeongyu/senpi"]</span> 와 실제 설치된 senpi의 버전이 다르면 FAIL이다. senpi settings.json에 <span class="wl">@code-yeongyu/omo-senpi</span> 가 중복 등록돼 있으면 경고한다. omo가 익스텐션을 이미 싣고 있으니 빼라는 것이다.</p>
+
+      <h3>반대 방향은 끊긴다</h3>
+      <p>Ultimate에는 <span class="wl">claude-code-compat-core</span> 가 있어 Claude Code의 훅, 커맨드, 스킬, MCP, 플러그인을 그대로 로드한다. native 어댑터의 16개 컴포넌트에는 그 계층이 없다. 이미 Claude Code 설정을 다듬어 놓고 omo가 그것을 읽어 주기를 기대했다면, native로 옮기는 순간 그 자산은 따라오지 않는다.</p>
+
+      <p class="small"><b>설치 순서 함정.</b> 같은 머신에 4.19.4 이하가 남긴 전역 <span class="wl">omo</span> bin이 있으면 npm이 EEXIST로 거부한다. 먼저 rename 이후 릴리스로 올리거나 제거한 뒤에 <span class="wl">npm i -g omo-ai@beta</span> 를 해야 한다. 그리고 <span class="wl">bunx omo</span> / <span class="wl">npx omo</span> 는 쓰면 안 된다. npm의 <span class="wl">omo</span> 는 다른 저자의 무관한 패키지다.</p>
+
+      <p class="note"><b>확인하지 않은 것.</b> <span class="wl">omo setup</span> 을 실행해 보지 않았다. 위 규칙은 <span class="wl">setup-import.js</span> 를 읽어 정리한 것이고, 어떤 provider id 가 매핑을 통과하는지는 같은 디렉터리의 <span class="wl">provider-map.json</span> 을 열면 나오지만 열지 않았다. oh-my-pi 와 gajae-code 는 이 저장소 밖 프로젝트라 auth 스키마 버전이 지금도 7과 4인지는 확인할 수 없다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">compare</p>
+      <h2>Ultimate와 native는 상하 관계가 아니라 다른 물건이다</h2>
+      <p class="dek">저장소는 두 에디션을 "same product"의 두 판본이라고 부른다. 기능 목록을 맞대어 보면 그 표현은 절반만 맞다. 오케스트레이션은 native가 더 정교하고, 편집과 호환은 Ultimate만 가지고 있다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>축</th><th>Ultimate (OpenCode)</th><th>Native (senpi)</th></tr></thead>
+          <tbody>
+            <tr><td>호스트</td><td>사용자가 따로 설치한 OpenCode</td><td>핀 고정된 senpi를 패키지가 가져온다</td></tr>
+            <tr><td>주입</td><td>341줄 게이트를 통과해야 한다</td><td class="win">pi.sendMessage 1급 API</td></tr>
+            <tr><td>어댑터 두께</td><td>58 합성 훅 슬롯</td><td>16 컴포넌트 (일부는 엔진 builtin 으로 이관)</td></tr>
+            <tr><td>팬아웃</td><td>호출당 자식 1개</td><td class="win">호출당 최대 16개 배치 (동시 실행은 양쪽 다 기본 5)</td></tr>
+            <tr><td>자식 실행</td><td>별도 세션 + 폴링</td><td class="win">in-process 기본, 부모 도구 공유</td></tr>
+            <tr><td>완료 수신</td><td>1s 폴링 + 안정성 휴리스틱 + parent-wake 모듈 15개</td><td class="win">3분기 라우팅 switch 하나, 억제 불가</td></tr>
+            <tr><td>세션 종료 시 자식</td><td>정리</td><td class="win">유예 후 세션 재개 시 부활</td></tr>
+            <tr><td>카테고리 게이트</td><td>없음</td><td>requiresModel + chain viability</td></tr>
+            <tr><td>토큰 전략</td><td>예산 초과분 절단</td><td>재주입 회피 + 캐시 보존</td></tr>
+            <tr><td>메모리</td><td>notepad 파일</td><td>git 기반 memory-core (2026-08-10 착륙, 베타)</td></tr>
+            <tr><td>에이전트 수</td><td class="win">11 (primary 4 + subagent 7)</td><td>4 curated + 카테고리 + omo.json 사용자 정의</td></tr>
+            <tr><td>편집 도구</td><td class="win">hashline LINE#ID 해시 앵커</td><td>senpi 기본 edit / apply_patch</td></tr>
+            <tr><td>Claude Code 호환</td><td class="win">훅·커맨드·스킬·MCP·플러그인</td><td>없음</td></tr>
+            <tr><td>tmux 시각화 team mode</td><td class="win">있음 (opt-in)</td><td>team은 있으나 tmux backendType은 스키마 예약</td></tr>
+            <tr><td>배포 채널</td><td class="win">정식 릴리스</td><td>beta 전용, bare 설치는 설계상 실패</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">굵게 강조된 칸은 그 축에서 확실히 앞서는 쪽이다. 강조가 없는 행은 방향이 있어도 like-for-like 가 아니다. 어댑터 두께는 senpi builtin 으로 이관된 몫이 섞여 있고, 카테고리 게이트와 토큰 전략은 목적이 다른 설계이며, 메모리는 이틀 된 포트다. 마지막 다섯 줄이 Ultimate 쪽이라는 점이 이 표의 요점이다. 저장소에 없는 비교다. 이 문서가 두 트리를 대조해 만들었다.</p>
+
+      <h3>Light 에디션은 세 번째 축이다</h3>
+      <p>Codex CLI용 Light 에디션은 Codex 플러그인 시스템에 들어가는 부분만 가져간다. rules, comment-checker, git-bash, lsp, ultrawork, ulw-loop, start-work-continuation, telemetry. 에이전트 오케스트레이션과 <span class="wl">team_*</span> 도구는 없다. Codex CLI 자신의 표면이 그 일을 하기 때문이라고 README가 밝힌다.</p>
+      <p><span class="wl">docs/choose-edition</span> 브랜치가 선택 기준을 한 줄로 정리해 두었다. "Ultimate and Light are plugins that load into a host you already run. Senpi is standalone: it ships a pinned Senpi engine with OMO built in." 이 문구는 아직 <span class="wl">dev</span> 에 머물러 있고 v5.0.0-beta.6 태그의 README에는 없다.</p>
+
+      <p class="note"><b>이 표가 하지 않는 비교.</b> 품질과 속도는 없다. 두 에디션을 나란히 돌려 같은 과제를 시키지 않았다. 표의 각 행은 소스에 존재하는 기능과 설정값의 대조이며, 어느 쪽이 실제로 더 나은 결과를 내는지에 대해서는 아무 말도 하지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">trace</p>
+      <h2><span class="wl">task</span> 호출 하나가 자식이 되기까지 아홉 개의 관문을 지난다</h2>
+      <p class="dek">모델이 <span class="wl">task({tasks: [...], run_in_background: false})</span> 를 부른 순간부터 결과가 돌아올 때까지를 따라간다. 전 구간이 <span class="wl">packages/senpi-task</span> 안, 하나의 프로세스 경계 안에서 끝난다. 앞 장들이 따로 설명한 장치가 여기서는 <span class="wl">file:line</span> 과 실행 순서로 다시 나온다. 새로 나오는 것은 5번(정원), 6번(깊이), 그리고 관문의 배치 순서다.</p>
+
+      <pre><span class="c">─ 1. 도구 정의  packages/senpi-task/src/tools/task/tool.ts:15</span>
+export function <b>createTaskTool</b>(deps: TaskToolDeps): ToolDefinition&lt;typeof TaskToolParams, TaskToolDetails&gt; {
+  <span class="c">// 설명 문자열이 등록 시점에 omo.json 과 agent 로더에서 동적으로 만들어진다.</span>
+  <span class="c">// 그래서 잠긴 카테고리를 지우지 못하고 "(requires ...)" 만 붙일 수 있다.</span>
+
+<span class="c">─ 2. 스키마  packages/senpi-task/src/tools/task/params.ts:55</span>
+description: "<b>Batch of up to 16 child tasks to spawn in one call.</b> Empty provider padding is
+              normalized before validation. Mutually exclusive with prompt; ..."
+
+<span class="c">─ 3. 배치 상한  packages/senpi-task/src/tools/task/execute-batch.ts:246</span>
+<b>if (input.items.length &gt; MAX_TASK_BATCH_ITEMS) return oversizedBatchResult()</b>
+  <span class="c">// 17개를 넣으면 하나도 안 뜬다. 전부 거부하고 invalid_arguments 로 끝낸다.</span>
+
+<span class="c">─ 4. 스폰 게이트  packages/senpi-task/src/tools/task/invocation-gate.ts:11</span>
+<b>const state = deps.resolveSkillInvocations?.(sessionId) ?? EMPTY_SKILL_INVOCATIONS</b>
+  <span class="c">// metis/momus 만 여기서 걸린다. resolver 미배선 = 빈 상태 = 거부(fail closed).</span>
+
+<span class="c">─ 5. 정원  packages/senpi-task/src/lifecycle/residency.ts:17</span>
+<b>if (maxChildren === "unlimited" || residents.length &lt; maxChildren) return { kind: "admitted" }</b>
+  <span class="c">// 꽉 차면 terminal + idle 인 resident 중 가장 오래된 것만 LRU 로 비운다.</span>
+  <span class="c">// 비울 게 없으면 AgentLimitReached 에 현재 resident 목록을 담아 거절한다.</span>
+
+<span class="c">─ 6. 깊이  packages/senpi-task/src/runners/in-process.ts:98</span>
+<b>if (spec.depth &gt; this.#depthPolicy.maxDepth) {</b>
+  <span class="c">// DEFAULT_MAX_CHILD_DEPTH = 4. 다만 omo.json 의 task.max_depth 기본값은 1 이다.</span>
+
+<span class="c">─ 7. 도구 상속  packages/senpi-task/src/runners/in-process/shared-tool-filter.ts:21</span>
+<b>return tools.filter((tool) =&gt; !isTaskOrTeamFamilyTool(tool.name) &amp;&amp; !uiOnly.has(tool.name))</b>
+  <span class="c">// 자식이 부모의 ToolDefinition 을 그대로 받는다. task_*/team_* 만 빠진다.</span>
+  <span class="c">// memory 컴포넌트는 자기 도구를 uiOnlyToolNames 로 넘겨 자식에게서 뺀다.</span>
+
+<span class="c">─ 8. 전경 대기  packages/senpi-task/src/tools/task/foreground-wait.ts:54</span>
+<b>input.manager.promoteToBackground(input.taskId)</b>
+  <span class="c">// prompt-cache-safe 예산을 넘기면 기다림을 접고 백그라운드로 승격, 부모 턴 종료.</span>
+
+<span class="c">─ 9. 완료 회수  packages/senpi-task/src/completion/routing.ts:12</span>
+<span class="c">// <b>Delivery is unconditional: an idle parent ALWAYS wakes and a streaming parent ALWAYS receives the</b></span>
+<span class="c">// notification steered into its running turn at the next tool-call boundary</span></pre>
+
+      <p>순서에 담긴 설계가 있다. 상한 검사(3)가 게이트(4)보다 먼저 온다. 배치가 너무 크면 개별 항목의 권한을 따지기 전에 통째로 거부한다. 게이트(4)는 정원(5)보다 먼저다. 스폰할 자격이 없는 요청이 슬롯을 소모하지 않는다. 도구 상속(7)은 세션을 만드는 시점에 일어나므로, 부활한 자식이 원래보다 넓은 도구 표면을 갖고 돌아올 수 없다. 소스 주석이 그 점을 명시한다. "a resumed child never comes back with a WIDER tool surface than it had."</p>
+
+      <p class="note"><b>이 추적이 건너뛴 곳.</b> 6번과 7번 사이에서 senpi의 <span class="wl">createAgentSession</span> 이 실제로 세션을 만드는 부분은 엔진 코드라 열지 않았다. 8번의 예산 값도 확인하지 못했다. <span class="wl">PI_PROMPT_CACHE_SAFE_WAIT_SECONDS</span> 를 설정하지 않으면 기본값 없이 전경 대기가 무한이 되고, 이 환경 변수를 누가 언제 채우는지는 senpi 쪽에 있다.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">coverage</p>
+      <h2>7,536개 파일 중 61개를 열었다</h2>
+      <p class="dek">주 코퍼스는 <span class="wl">code-yeongyu/oh-my-openagent</span> 의 두 태그다. native 쪽은 <span class="wl">v5.0.0-beta.6</span> = <span class="wl">55326d2a8408920c8578a239aa39b9967595777f</span>, 비교 기준선은 <span class="wl">v4.19.4</span> = <span class="wl">b072d279110bdda2c6ac2525d0d24dc54d16148a</span>. blobless 클론이지만 전체 이력을 받았고, shallow가 아니다. 이 태그까지의 커밋은 12,352개다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>디렉터리</th><th>파일</th><th>열었나</th><th>안 열어서 얕아진 곳</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>packages/senpi-task</td><td>442</td><td>21개</td><td>팀 런타임과 RPC 러너 내부는 AGENTS.md 수준</td></tr>
+            <tr class="hero"><td>packages/omo-senpi</td><td>456</td><td>12개</td><td>memory 컴포넌트 구현은 AGENTS.md 요약만</td></tr>
+            <tr><td>packages/omo-native</td><td>26</td><td>9개</td><td>테스트는 배지 부재 검사 하나만 읽었다</td></tr>
+            <tr><td>packages/omo-opencode</td><td>2,728</td><td>4개</td><td>v4 서술은 delegate-task 네 파일과 AGENTS.md 에 근거한다. background-agent 52개 파일은 목록만 세고 열지 않았다</td></tr>
+            <tr><td>packages/omo-codex</td><td>789</td><td>0개</td><td>13장의 Light 에디션 설명은 README 수준이다</td></tr>
+            <tr><td>packages/shared-skills</td><td>315</td><td>0개</td><td>ulw-plan / ulw-research 스킬 내용 비교가 없다</td></tr>
+            <tr><td>.omo/evidence</td><td>857</td><td>1개</td><td>TUI 캡처 하나만 열었다. 캐시 히트율·부활 라이브 기록 나머지는 그대로 남는다</td></tr>
+            <tr><td>packages/web · 플랫폼 런처 12개</td><td>121</td><td>0개</td><td>마케팅 사이트와 배포 산출물. 이 문서와 무관하다</td></tr>
+            <tr><td>나머지 packages · docs · script 등</td><td>1,802</td><td>14개</td><td>model-core 는 카테고리 파일만 열었다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">본문이 파일 이름을 대면서도 <b>열지 않은</b> 것이 다섯 있다. <span class="wl">runners/in-process/curated-readonly-bash.ts</span>, <span class="wl">plugin/scripts/sync-skills.mjs</span>, <span class="wl">omo-opencode/src/tools/delegate-task/categories.ts</span>, <span class="wl">omo-opencode/src/features/background-agent/loop-detector.ts</span>, <span class="wl">senpi-task/src/status-line.ts</span>. 다섯 다 존재는 <span class="wl">git ls-tree</span> 로 확인했고, 무엇을 하는지는 각 패키지의 AGENTS.md 나 파일 이름이 주장하는 내용이다. 8장의 read-only 브로커 설명, 9장의 <span class="wl">hasExplicitUserConfig</span> 대응, 16장의 loop-detector 판정이 그 위에 서 있다.</p>
+      <p class="small" style="margin-top:10px"><b>저장소가 그린 유일한 아키텍처 그림을 옮기지 않았다.</b> <span class="wl">docs/guide/orchestration.md</span> 34~78행의 mermaid 다이어그램이 Planning(Prometheus·Metis·Momus) → Execution(Atlas) → Worker 3계층을 모델 폴백 스택까지 붙여 그린다. 이 문서는 그 그림 대신 8장에서 산문과 표로 같은 내용을 다뤘다. native 쪽에는 대응하는 그림이 저장소 어디에도 없어서, 나란히 놓을 짝이 없었기 때문이다. Ultimate의 오케스트레이션 형태를 눈으로 보고 싶다면 그 파일이 원본이다.</p>
+      <p class="small" style="margin-top:10px">가장 큰 구멍은 <span class="wl">.omo/evidence</span> 857개다. 저장소는 라이브 QA 증적을 여기 쌓도록 규칙을 정해 두었고(<span class="wl">packages/omo-senpi/AGENTS.md</span> 의 Evidence Rules), 그 안에 실제로 senpi를 띄워 확인한 기록이 있다. 856개를 열지 않았으므로 이 문서의 동작 서술은 대부분 소스가 그렇게 쓰여 있다는 진술이지, 그렇게 동작한다는 진술이 아니다. 예외는 11장의 TUI 캡처 한 건이다.</p>
+
+      <h3>저장소 밖에서 읽은 것</h3>
+      <ul class="clean">
+        <li><span class="m">npm</span><span><span class="wl">omo-ai</span> 와 <span class="wl">@code-yeongyu/senpi</span> 의 레지스트리 메타데이터. dist-tag, 버전 목록, 게시 시각, 라이선스 필드, 언팩 크기.</span></li>
+        <li><span class="m">gh</span><span>v5.0.0-beta.1~beta.6 릴리스 노트와, native를 다루는 열린 이슈 목록.</span></li>
+        <li><span class="m">git</span><span><span class="wl">github.com/code-yeongyu/senpi</span> 의 저장소 설명과 README. 클론은 하지 않았다.</span></li>
+        <li><span class="m">web</span><span>저자의 Threads 게시물 6건. 프로필 페이지는 서버 렌더가 최근 4건까지라 나머지는 검색으로 얻은 개별 URL로 접근했다.</span></li>
+      </ul>
+
+      <p class="note"><b>실패한 경로 하나.</b> insane-search 엔진으로 Threads 프로필을 여는 시도는 34번의 시도 끝에 <span class="wl">ok=false</span>, <span class="wl">unknown_challenge</span> 로 끝났다. 같은 URL을 WebFetch로는 열 수 있었다. 그래서 게시물은 확보했지만, 각 게시물의 답글 체인 전체는 확인하지 못했다.</p>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-author</p>
+      <h2>저자의 다섯 주장 중 셋은 대응 코드가 있고 둘은 어긋난다</h2>
+      <p class="dek">omo는 Discord와 Threads에서 공개적으로 만들어진다. 저자(<span class="wl">@yeon.gyu.kim</span>)가 베타 공개 시점에 쓴 글이 native의 판매 논점을 그대로 담고 있어서, 각 주장에 대응하는 코드가 있는지 확인했다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>저자의 주장</th><th>소스에서 확인한 것</th><th>판정</th></tr></thead>
+          <tbody>
+            <tr><td>"캐시히트 처리" 개선</td><td><span class="wl">run-stats.ts</span> 가 <span class="wl">cache_hit_rate_last</span> / <span class="wl">cache_hit_rate_run</span> 을 태스크마다 누적해 상태 행에 띄운다. foreground-wait 의 prompt-cache-safe 예산도 같은 축이다</td><td class="win">대응 코드 있음</td></tr>
+            <tr class="hero"><td>"모델무너짐 시 복구"<br>(같은 도구 반복 호출, 같은 말 반복)</td><td>fallback-architect 는 refusal 과 정책 차단에만 반응한다. 같은 도구 반복 호출을 끊는 <span class="wl">loop-detector.ts</span> 는 <span class="wl">omo-opencode</span> 에만 있고 native 두 패키지에는 대응물이 없다</td><td class="lose">Ultimate 쪽 장치</td></tr>
+            <tr><td>"폴백"</td><td>카테고리와 에이전트별 폴백 체인, requiresModel 게이트, chain viability 게이트</td><td class="win">대응 코드 있음</td></tr>
+            <tr><td>"멀티 프로바이더 지원, 복잡한 설정 없이 자동 등록"</td><td>omo setup 이 opencode / oh-my-pi / gajae-code 저장소에서 api_key 를 읽어 senpi auth.json 에 병합</td><td class="win">대응 코드 있음</td></tr>
+            <tr class="hero"><td>"명령어 하나 입력하면 그 세팅(<b>모델 설정까지</b>) 그대로 옮겨집니다"</td><td>setup-models.js 는 각 하네스의 provider 와 모델 힌트를 <b>출력</b>하고 omo.json 템플릿을 붙여넣기용으로 찍어 준다. 모델 설정을 옮기는 코드는 찾지 못했다</td><td class="lose">과장</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">어긋나는 지점은 둘이다. 하나는 모델 복구, 하나는 모델 설정 이식이다. <span class="wl">omo setup</span> 이 실제로 쓰는 것은 크리덴셜뿐이고, 모델 쪽은 <span class="wl">MODEL AVAILABILITY</span> 리포트와 <span class="wl">docs/guide/agent-model-matching.md</span> 링크, 그리고 채워 넣을 <span class="wl">models</span> 블록 템플릿이다. 사용자가 직접 붙여넣어야 한다.</p>
+
+      <h3>메모리는 왜 지금 들어왔나</h3>
+      <blockquote class="q">해적판이라 불렸던 비공식버전과 공식버전의 차이는 "메모리" 기능입니다. 여러분을 기억하고, 여러분이 일한것을 기억합니다. LettaCode 에서 영감을 받았으며 아직은 베타입니다.
+        <cite>@yeon.gyu.kim, Threads, 2026-08-10경</cite></blockquote>
+      <p>이 진술은 소스와 맞는다. <span class="wl">packages/memory-core</span> 의 첫 커밋은 2026-08-10이고 커밋 메시지가 <span class="wl">feat(omo-senpi): Letta-Code memory engine port (memory-core + memory component)</span> 다. 어댑터 문서는 <span class="wl">letta-code@a75f4d93e</span> 와의 parity를 목표로 삼았다고 적고, 의도적으로 다른 부분(Letta Cloud 행 없음, arena/channels 없음, 로컬 검색은 텍스트 전용 등)을 따로 나열한다. 구현 자체는 senpi를 import 하지 않는 harness-neutral 코드이고, 어댑터가 얇게 감싼다.</p>
+
+      <h3>속도는 재지 못했고, 구조적 근거만 남는다</h3>
+      <p>"OmO Native 는 빠르고 컴팩션이 잘 일어나지 않습니다 ... 같은 LLM 을 써도 실제 실행 시간이 더 짧을겁니다"라는 글이 있다. 컴팩션은 senpi builtin 확장이 담당하고 그 코드는 이 코퍼스 밖이다. 실행 시간 비교는 저장소에도 없고 이 문서도 재지 않았다. 다만 6장에서 본 v4의 폴링 상수들(세션 생성 대기 100ms 간격, 완료 판정에 10초 안정 + 3회 연속)은 in-process 러너에는 대응물이 없으므로, 위임이 많은 작업에서 벽시계 시간이 줄어들 구조적 근거는 있다.</p>
+
+      <p class="note"><b>이 대조의 한계.</b> Threads 게시물은 저자의 마케팅 글이고, 여기서 확인한 것은 "그 말에 대응하는 코드가 저장소에 있는가"뿐이다. 코드가 있다는 것이 주장이 참이라는 뜻은 아니다. 그리고 config-startup 컴포넌트가 돌리는 legacy 설정 마이그레이션 엔진은 열지 않았으므로, 모델 설정 이식이 다른 경로에 있을 가능성을 완전히 배제하지는 못했다.</p>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>기록 여섯 곳이 자기 코드보다 낡았고, 라이선스 표기는 침묵한다</h2>
+      <p class="dek">이 문서의 주장은 전부 소스를 읽어서 나왔다. 소스를 읽으면 코드가 어떻게 쓰였는지는 알 수 있다. 실행했을 때 무슨 일이 일어나는지는 알 수 없다. 아래는 그 경계와, 조사 중 실제로 어긋난 것들이다.</p>
+
+      <h3>문서와 코드가 어긋난 곳</h3>
+      <ul class="clean">
+        <li><span class="m bad">1</span><span><span class="wl">packages/omo-senpi/AGENTS.md</span> 는 "Thirteen live components"라고 쓰고 열세 개를 나열한다. <span class="wl">src/extension/index.ts</span> 의 배열에는 16개가 있다. <span class="wl">native-badge</span>, <span class="wl">onboarding</span>, <span class="wl">init-deep-advisor</span> 가 문서에 없다.</span></li>
+        <li><span class="m bad">2</span><span>v5.0.0-beta.6 태그의 <span class="wl">README.md</span> 는 "ships in two editions"라고 시작하면서 TL;DR 표에는 Senpi edition을 세 번째로 넣는다. 저장소가 스스로 이슈(#6726)를 열어 두었고, 수정은 <span class="wl">dev</span> 의 문서 브랜치에 있다.</span></li>
+        <li><span class="m bad">3</span><span>senpi README는 "Skill system ... do not exist in senpi"라고 적지만, omo-senpi 어댑터는 <span class="wl">/skill:</span> 확장 경로를 명시적으로 다루고(<span class="wl">skill_expansion</span> route) <span class="wl">sync-skills.mjs</span> 가 스킬을 <span class="wl">plugin/skills/</span> 로 싣는다. 코드를 믿었다.</span></li>
+        <li><span class="m bad">4</span><span>ultrawork 재무장 가드의 주석은 지시문을 "~17KB"라고 부른다. 같은 커밋의 상수는 29,950자다. 절약 효과의 방향은 같지만 크기는 주석이 낡았다.</span></li>
+        <li><span class="m bad">5</span><span><span class="wl">packages/senpi-task/AGENTS.md</span> 는 카오스 벤치가 "the four W1 invariants"를 건다고 적고, 다른 절에서 불변식을 (1)~(4) 넷으로 열거한다. 같은 커밋의 테스트는 <span class="wl">INVARIANT_IDS = [1..13]</span> 이고 테스트 이름이 "all thirteen invariants hold"다.</span></li>
+        <li><span class="m bad">6</span><span><span class="wl">packages/AGENTS.md</span> 는 패키지가 43개라고 적지만 핀 커밋의 디렉터리는 45개다. 2026-08-07 생성이라 <span class="wl">omo-native</span> 가 통째로 빠졌고, <span class="wl">senpi-task</span> 는 어댑터 지원으로 분류해 5+1 의 +1 로 뺐다. 앞쪽만 낡음이고 뒤쪽은 분류 선택이다.</span></li>
+      </ul>
+      <p class="small">여섯 건 중 넷은 이 저장소의 markdown 이고, 하나는 다른 저장소(senpi)의 README, 하나는 TypeScript 주석이다. 성질은 같다. 사람이 손으로 유지하는 기록보다 코드가 빨리 움직인다. 이 문서 자체도 그 기록을 여러 번 인용했으므로, 인용한 값과 직접 센 값을 구분해 적었다.</p>
+
+      <h3>라이선스가 두 갈래로 보인다</h3>
+      <p>저장소 <span class="wl">LICENSE.md</span> 는 Sustainable Use License 1.0이다. 소프트웨어를 "내부 업무 목적, 비상업, 개인 용도"로만 쓸 수 있고, 배포는 무상 비상업만 허용한다. OSI 오픈소스가 아니다.</p>
+      <p>npm 쪽은 더 애매하다. <span class="wl">omo-ai</span> 패키지 페이지는 MIT로 보이지만, 그 값은 폐기된 플레이스홀더 <span class="wl">0.0.0-beta.0</span> 의 것이다. 레지스트리를 직접 열어 보면 실제로 배포되는 <span class="wl">5.0.0-0.beta.1</span> 부터 <span class="wl">5.0.0-0.beta.6</span> 까지 <b>여섯 버전 모두 license 필드가 없다</b>. <span class="wl">packages/omo-native/package.json</span> 에도 없고, 빌드 스크립트는 <span class="wl">LICENSE</span> 파일만 페이로드에 넣는다. 엔진 <span class="wl">@code-yeongyu/senpi</span> 는 MIT다.</p>
+      <p class="small">그래서 실제로 설치되는 패키지는 라이선스를 명시하지 않는다. 저장소의 SUL-1.0이 적용된다고 읽는 게 자연스럽지만, 도구는 MIT라고 표시하고 매니페스트는 침묵한다. 상업적 도입을 검토한다면 이건 확인하고 넘어가야 하는 항목이다. <span class="wl">curl -s https://registry.npmjs.org/omo-ai</span> 로 버전별 필드를 직접 볼 수 있다.</p>
+
+      <h3>읽어서 확인할 수 없었던 것</h3>
+      <ul class="clean">
+        <li><span class="m">a</span><span>안정성. "더 오래 돌고 메모리를 덜 먹는다"의 근거가 되는 측정치를 이 조사에서 열지 않았다. 카오스 벤치는 상태 기계 불변식을 걸 뿐 자원 사용량을 재지 않는다. 다만 저장소의 <span class="wl">.omo/evidence</span> 에 라이브 QA 기록이 857개 있다. 그중 하나(TUI 캡처)만 열었고, 캐시 히트율과 부활 시나리오를 담은 나머지 856개를 열지 않기로 한 선택이 이 항목의 가장 큰 구멍이다.</span></li>
+        <li><span class="m">b</span><span>senpi 엔진 자체. 브랜드 스크럽, 컴팩션, 익스텐션 로더, steer 구현이 전부 코퍼스 밖이다. 이 문서가 senpi에 대해 말하는 것은 omo 쪽 어댑터와 문서의 진술이다.</span></li>
+        <li><span class="m">c</span><span>Windows. 베타 릴리스 노트 여섯 개 중 셋이 Windows 를 언급하고(beta.6 이 36회로 압도적이다), 관련 열린 이슈가 여럿이다(런처 PATH 유실 #6689, lsp-daemon proxy sweep #6747, TTL 정리 중 종료 #6535). 어느 것도 재현해 보지 않았다.</span></li>
+        <li><span class="m">d</span><span>규모. <span class="wl">residency_max_children</span> 가 코어 수의 3배까지 올라가고 배치가 16개까지 열리지만, 실제로 그만큼 띄웠을 때의 API rate limit과 비용은 확인하지 않았다.</span></li>
+      </ul>
+
+      <p class="note"><b>한계를 넘어 남는 것.</b> 이 조사에서 옮겨 갈 만한 결론이 하나 있다. 에이전트 하네스를 남의 CLI 플러그인으로 만들면, 메인 루프에 안전하게 메시지를 넣는 문제 하나에 341줄짜리 게이트와 11개 모듈을 쓰게 된다. 그 비용은 경계에서 나온다. 같은 문제를 겪는 다른 플러그인형 하네스에도 그대로 적용된다.</p>
+    </div>
+  </section>
+
+  <!-- 18 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adopt</p>
+      <h2>trial. 두 번째 머신에 깔고, 주력은 아직 옮기지 않는다</h2>
+      <p class="dek">판단은 상황에 따라 갈린다. 아래 표의 행은 프로젝트의 조건이 아니라 읽는 사람의 상황이다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>지금 당신의 상황</th><th>권장</th><th>이유</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>서브에이전트를 많이 띄우는 작업이 주력이다</td><td>trial</td><td>배치 16개, in-process 러너, 세션 재개 시 자식 부활. 여기가 native가 가장 앞서는 축이다</td></tr>
+            <tr><td>omo 없이 코딩 에이전트를 처음 붙인다</td><td>trial, 단 베타 내성이 있을 때</td><td>호스트를 따로 설치할 필요가 없는 유일한 에디션이다. 대신 이틀에 베타 6개가 나간 채널을 그대로 받는다</td></tr>
+            <tr><td>Ultimate를 쓰고 있고 hashline 편집에 의존한다</td><td>hold</td><td>native에 hashline이 없다. 다만 남을 자리인 v4 어댑터도 활발하지 않다. 아래를 볼 것</td></tr>
+            <tr><td>Claude Code 훅·스킬 자산을 omo로 재사용 중이다</td><td>hold</td><td>호환 계층이 native 컴포넌트 목록에 없다</td></tr>
+            <tr><td>Anthropic 또는 OpenAI 한쪽만 계약했다</td><td>assess</td><td>9장의 게이트 때문에 <span class="wl">architect</span>(fable-5) 또는 <span class="wl">ultrabrain</span>·<span class="wl">deep</span>(gpt-5.6-sol)이 목록에서 사라진다. 사는 것의 일부가 잠긴 채로 시작한다</td></tr>
+            <tr><td>Node 20 / 22 LTS 를 고정해 쓴다</td><td>hold</td><td><span class="wl">omo-ai</span> 의 <span class="wl">engines.node</span> 가 <span class="wl">&gt;=24.0.0</span> 이다</td></tr>
+            <tr><td>Windows에서 쓴다</td><td>assess</td><td>beta.6 릴리스 노트가 Windows 를 36회 언급하고 열린 이슈가 남아 있다</td></tr>
+            <tr><td>회사 업무에 상업적으로 쓴다</td><td>assess</td><td>SUL-1.0 자체는 사내 업무 사용을 허용한다. 확인이 필요한 건 배포되는 npm 매니페스트에 license 필드가 아예 없다는 사실이다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>유지보수는 한 사람에게 걸려 있다</h3>
+      <p>핀 커밋에서 <span class="wl">git shortlog -sne --since=2026-02-01</span> 를 돌리면 1위가 8,775 커밋, 2위가 봇(350), 3위가 사람으로 137이다. 전체 이력의 기여자는 368명이지만 분포는 이렇다. 프로젝트가 스스로 밝히듯 저장소는 저자의 AI 어시스턴트가 함께 굴리고 있고, 그 결과가 이 숫자다. 속도는 이 구조에서 나오고 위험도 같은 자리에서 나온다.</p>
+      <p>hold를 권한 두 행이 가리키는 곳도 확인해야 한다. <span class="wl">v5.0.0-beta.1</span> 이후 <span class="wl">dev</span> 까지 <span class="wl">packages/omo-opencode</span> 를 건드린 커밋은 4개이고, 그중 3개가 테스트 수정, 1개가 문서다. v4.19.4 이후 새 v4 릴리스도 없다. Ultimate에 남는 선택은 "지금 상태로 멈춘 것을 계속 쓴다"에 가깝다.</p>
+
+      <h3>테스트와 확장 지점</h3>
+      <ul class="clean">
+        <li><span class="m">test</span><span>native 세 패키지(<span class="wl">senpi-task</span>, <span class="wl">omo-senpi</span>, <span class="wl">omo-native</span>)의 <span class="wl">*.test.ts</span> 는 <b>369개</b>다. 루트 <span class="wl">.github/workflows/ci.yml</span> 이 있고, 워크플로는 모두 11개다. 시드 고정 카오스 벤치는 그중 하나일 뿐 전부가 아니다.</span></li>
+        <li><span class="m">agents</span><span>요구가 어긋나면 <span class="wl">omo.json</span> 의 <span class="wl">agents</span> 블록을 쨀 수 있다. <span class="wl">packages/senpi-task/src/agents/omo-config-agents.ts</span> 의 <span class="wl">mapOmoConfigAgents</span> 가 사용자 정의 에이전트를 senpi-task 의 <span class="wl">AgentDefinition</span> 으로 옮겨 <span class="wl">subagent_type</span> 스폰과 팀 멤버십에 태운다. prompt, model, models, tools, execution_mode, allowed_subagents, max_depth, max_turns 가 넘어간다.</span></li>
+        <li><span class="m">cat</span><span>카테고리도 같은 파일에서 연다. <span class="wl">categories.&lt;name&gt;</span> 항목을 하나 쓰면 9장의 두 게이트를 모두 우회하고 자기 폴백 체인을 쓴다.</span></li>
+        <li><span class="m">state</span><span>프로젝트 상태 디렉터리는 두 에디션이 같은 이름을 쓴다. <span class="wl">resolveStateDir</span> 이 <span class="wl">&lt;project_dir&gt;/.omo/senpi-task</span> 를 기본으로 잡고, <span class="wl">start-work-continuation</span> 이 <span class="wl">.omo/boulder.json</span> 을 읽는다. 그래서 프로젝트 안의 계획과 boulder 상태는 이어진다. 사용자 스코프는 다르다. Ultimate는 OpenCode 설정 디렉터리를, native는 <span class="wl">~/.omo</span> 를 쓴다.</span></li>
+      </ul>
+
+      <h3>설치가 남기는 것</h3>
+      <ul class="clean">
+        <li><span class="m">size</span><span><span class="wl">omo-ai@5.0.0-0.beta.6</span> 자체는 언팩 7.0MB / 494 파일이다. 의존하는 <span class="wl">@code-yeongyu/senpi@2026.8.11-4</span> 는 언팩 <b>178.0MB / 29,277 파일</b>이다. 전역 설치 한 번에 이만큼이 따라온다.</span></li>
+        <li><span class="m">home</span><span>에이전트 상태는 <span class="wl">~/.omo</span> 아래 flat 레이아웃으로 간다. 메모리 저장소는 <span class="wl">~/.omo/memory/agents/&lt;id&gt;/</span> 의 git repo다. task 레코드는 프로젝트 안 <span class="wl">.omo/senpi-task</span> 에 JSONL로 쌓이고 기본 TTL은 24시간이다.</span></li>
+        <li><span class="m">auth</span><span><span class="wl">omo setup</span> 을 실행하면 senpi의 <span class="wl">auth.json</span> 에 API 키가 병합된다. 실행 전 백업 파일이 남고 권한은 0600이다. 동의를 묻고, 비대화형에서는 아무것도 하지 않는다.</span></li>
+        <li><span class="m">net</span><span>익명 텔레메트리가 기본 켜짐이다. UTC 하루 한 번 <span class="wl">omo_senpi_daily_active</span> 이벤트를 보낸다. beta.6부터 이벤트별 허용 목록, primitive 전용 payload, prompt/path/text/IP 필드 명시 거부, <span class="wl">DO_NOT_TRACK</span> 지원이 붙었다. <span class="wl">{"telemetry": {"enabled": false}}</span> 로 끈다.</span></li>
+        <li><span class="m">out</span><span>되돌리기는 <span class="wl">npm uninstall -g omo-ai</span> 다. <span class="wl">~/.omo</span> 와 프로젝트의 <span class="wl">.omo</span> 는 남는다. 플러그인 에디션과 달리 남의 설정 파일을 고치지 않으므로 정리할 외부 상태가 적다.</span></li>
+      </ul>
+
+      <h3>확정된 위험 하나</h3>
+      <p class="small">런북이 스스로 기록한다. <span class="wl">omo-ai</span> 의 npm Trusted Publisher 항목이 저장됐는지 확인되지 않았다(2026-08-03에 WebAuthn 저장이 3회 연속 실패). publish 워크플로의 preflight-trust 검사는 모든 패키지에 무조건 돌기 때문에, 이 항목이 미검증인 채로 릴리스가 시작되면 저장소 전체의 다음 릴리스가 실패한다고 문서가 적는다. 이건 프로젝트 쪽 위험이지만, 베타 채널의 업데이트가 끊길 수 있다는 뜻이기도 하다.</p>
+
+      <p class="note"><b>trial의 조건.</b> 베타 채널이라는 사실이 이 판정의 대부분을 결정한다. bare <span class="wl">npm i -g omo-ai</span> 는 설계상 실패하도록 만들어져 있고(모든 버전이 prerelease), 저자도 "아직은 베타"라고 쓴다. 주력 작업을 옮기기 전에 <span class="wl">omo doctor</span> 가 통과하는지, 그리고 자신이 쓰는 편집 패턴이 hashline 없이도 견디는지 먼저 본다.</p>
+    </div>
+  </section>
+
+  <!-- 19 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>같은 철학을, 자기가 통제하는 경계 위에 다시 구현했다</h2>
+      <p class="dek">omo의 선언문은 5.0에서도 바뀌지 않았다. "Human intervention is a failure signal", "Higher token usage is acceptable if it significantly increases productivity". 바뀐 것은 그 선언을 실행하는 층이 남의 API 위에 있느냐 자기 API 위에 있느냐다.</p>
+
+      <p>플러그인 시절의 omo는 내부 메시지 하나를 안전하게 넣는 데 341줄짜리 게이트와 그 아래 11개 모듈을 썼다. 내부 메시지를 넣으려면 예약하고, 세션 상태를 확인하고, 디스패치 후 홀드를 걸고, 실패하면 낙관적 상태를 되돌려야 했다. 자식을 띄우면 세션이 생길 때까지 100ms 간격으로 폴링하고, 끝났는지는 10초 안정과 3회 연속 관측으로 추정했다. native에서 그 자리에 있는 것은 <span class="wl">pi.sendMessage({display:false})</span> 한 줄과, 부모 상태를 보는 3분기 switch 하나다.</p>
+
+      <p>그 절약분이 어디로 갔는지도 소스에 있다. 배치 팬아웃 16개, 부모 도구를 그대로 쓰는 in-process 러너, 세션이 끊겨도 살아남는 자식 레코드, admission lease와 2단계 tombstone, 라이브 레지스트리에 없는 카테고리를 지우는 두 겹의 게이트, 프롬프트 캐시가 만료되기 전에 턴을 닫는 전경 대기. 어느 것도 플러그인 경계 위에서는 만들기 어려운 것들이다.</p>
+
+      <p>동시에 이건 승격이 아니다. hashline이 없고, Claude Code 호환이 없고, discipline agent 레지스트리가 없다. 저장소는 세 에디션을 "same product"라 부르지만, 실제로는 같은 코어 20개를 공유하는 세 개의 다른 제품이다. 어느 것을 고를지는 무엇에 의존하고 있느냐로 갈린다.</p>
+
+      <p>프로젝트의 궤적 자체도 남는다. OMO가 영감을 준 경량 pi 포크가 senpi가 되었고, 그 senpi가 이제 OMO의 호스트다. 호스트를 소유하지 못한 하네스는 호스트를 만들거나 남의 호스트를 고르게 되는데, omo는 세 번째 길을 택했다. 자기가 영향을 준 포크를 핀 고정해서 자기 이름을 씌웠다.</p>
+
+      <p class="note"><b>이 결론이 서 있는 자리.</b> v5.0.0-beta.6 태그 하나의 스냅샷이다. 베타 여섯 개가 이틀 만에 나갔고, <span class="wl">dev</span> 는 이 문서를 쓰는 동안에도 움직였다. 여기 적힌 상수, 컴포넌트 수, 기능 유무는 그 커밋의 사실이며, 다음 베타에서 달라질 수 있다.</p>
+    </div>
+  </section>
+
+  <!-- 20 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처</h2>
+      <p class="dek">주 코퍼스는 커밋 두 개다. 아래 SHA로 클론하면 이 문서의 모든 인용과 상수를 그대로 확인할 수 있다.</p>
+
+      <h3>저장소</h3>
+      <div class="src">
+        <p><a href="https://github.com/code-yeongyu/oh-my-openagent/tree/v5.0.0-beta.6">code-yeongyu/oh-my-openagent @ v5.0.0-beta.6</a><br>
+          <span class="t">55326d2a8408920c8578a239aa39b9967595777f · 2026-08-11 릴리스 · 이 문서의 모든 native 인용의 기준</span></p>
+        <p><a href="https://github.com/code-yeongyu/oh-my-openagent/tree/v4.19.4">code-yeongyu/oh-my-openagent @ v4.19.4</a><br>
+          <span class="t">b072d279110bdda2c6ac2525d0d24dc54d16148a · 2026-08-01 릴리스 · 플러그인 시절 비교 기준선</span></p>
+        <p><a href="https://github.com/code-yeongyu/oh-my-openagent/compare/v4.19.4...v5.0.0-beta.6">v4.19.4...v5.0.0-beta.6 diff</a><br>
+          <span class="t">packages/ 기준 940 파일, +74,449 / −3,838</span></p>
+        <p><a href="https://github.com/code-yeongyu/senpi">code-yeongyu/senpi</a><br>
+          <span class="t">엔진. 저장소 설명과 README만 읽었고 클론하지 않았다. badlogic/pi-mono 의 fork, MIT</span></p>
+      </div>
+
+      <h3>이 문서가 직접 인용한 파일 (저장소 루트 기준, v5.0.0-beta.6)</h3>
+      <div class="src">
+        <p><span class="t">ROADMAP.md · AGENTS.md · README.md · LICENSE.md · docs/manifesto.md · docs/guide/orchestration.md · docs/guide/senpi-task.md · docs/reference/omo-ai-publishing.md · packages/AGENTS.md</span></p>
+        <p><span class="t">packages/omo-native/{AGENTS.md, package.json, bin/omo.js, bin/lib/launcher.js, bin/lib/doctor.js, bin/lib/setup-detect.js, bin/lib/setup-import.js, bin/lib/setup-models.js, test/pirate-badge-absence.test.ts}</span></p>
+        <p><span class="t">packages/omo-senpi/{AGENTS.md, src/extension/index.ts, src/extension/types.ts, src/components/ultrawork/{index.ts, generated-directive.ts}, src/components/todo-fanout-reminder/reminder.ts, src/components/fallback-architect/directive.ts, src/components/native-badge/index.ts, src/components/task/index.ts, src/components/native-badge/footer-badge.ts, src/install/install-senpi.ts, skills/ultrawork/SKILL.md}</span></p>
+        <p><span class="t">packages/senpi-task/{AGENTS.md, src/tools/task/{tool.ts, params.ts, description.ts, execute-batch.ts, foreground-wait.ts, invocation-gate.ts}, src/tools/team/index.ts, src/runners/{in-process.ts, in-process/shared-tool-filter.ts}, src/completion/routing.ts, src/lifecycle/residency.ts, src/category/{builtins.ts, fallback-chains.ts}, src/agents/{invocation-guard.ts, omo-config-agents.ts}, src/store/state-dir.ts, src/team/member-extension/index.ts, src/run-stats.ts, src/__adversarial__/{chaos-bench.test.ts, chaos-lifecycle.test.ts}}</span></p>
+        <p><span class="t">packages/model-core/src/category-model-requirements.ts · packages/memory-core/src/compile/cache.ts · packages/omo-config-core/src/schema/task.ts · packages/utils/src/prompt-async-gate.ts · script/build-omo-native.ts</span></p>
+        <p><span class="t">packages/omo-opencode/src/tools/delegate-task/{AGENTS.md, background-task.ts, timing.ts, token-limiter.ts} · .omo/evidence/20260802-senpi-task-cache-hit-rate/tui-capture.txt</span></p>
+      </div>
+
+      <h3>레지스트리와 릴리스</h3>
+      <div class="src">
+        <p><a href="https://www.npmjs.com/package/omo-ai">npm: omo-ai</a><br>
+          <span class="t">2026-08-12 조회. beta = 5.0.0-0.beta.6, latest = 0.0.0-beta.0 (폐기된 플레이스홀더). 언팩 7,039,388 B / 494 파일. 5.0.0-0.beta.* 버전 매니페스트에는 license 필드가 없고, 페이지에 보이는 MIT 는 플레이스홀더의 값이다</span></p>
+        <p><a href="https://www.npmjs.com/package/@code-yeongyu/senpi">npm: @code-yeongyu/senpi</a><br>
+          <span class="t">2026-08-12 조회. 핀 대상 2026.8.11-4. 언팩 178,029,842 B / 29,277 파일. license MIT, author 필드는 Mario Zechner</span></p>
+        <p><a href="https://github.com/code-yeongyu/oh-my-openagent/releases">릴리스 노트 v5.0.0-beta.1 ~ beta.6</a><br>
+          <span class="t">2026-08-09 ~ 2026-08-11. 텔레메트리 강화, LSP symlink 수정, Windows 수정, 브랜드 계약</span></p>
+        <p><a href="https://github.com/code-yeongyu/oh-my-openagent/issues">열린 이슈</a><br>
+          <span class="t">2026-08-12 조회. native 관련: #6680, #6686, #6689, #6697, #6715, #6717, #6726, #6731. 17장이 드는 Windows 이슈 셋은 #6689, #6747, #6535</span></p>
+      </div>
+
+      <h3>저자 공개 발언</h3>
+      <div class="src">
+        <p><a href="https://www.threads.com/@yeon.gyu.kim/post/Db1w_9okofQ">OmO Native CLI Public 베타 공지</a> · <a href="https://www.threads.com/@yeon.gyu.kim/post/Db1w_8bEgpA">자동 마이그레이션</a><br>
+          <span class="t">2026-08-10경. 안정성, 캐시히트, 폴백, 멀티 프로바이더, 메모리 기능에 대한 진술</span></p>
+        <p><a href="https://www.threads.com/@yeon.gyu.kim/post/DbQwmi_Cjl7">속도와 컴팩션</a> · <a href="https://www.threads.com/@yeon.gyu.kim/post/DZMRROiEnLb">사전 예고</a> · <a href="https://www.threads.com/@yeon.gyu.kim/post/Db73VfrEkvz">모델별 사용량 조회</a> · <a href="https://www.threads.com/@yeon.gyu.kim/post/Db7mvpukkL0">Desktop 액세스 개방</a><br>
+          <span class="t">프로필 페이지는 서버 렌더가 최근 4건까지라, 나머지는 검색으로 얻은 개별 URL로 접근했다</span></p>
+      </div>
+
+      <p class="note"><b>확인 방법.</b> <span class="wl">git clone --filter=blob:none https://github.com/code-yeongyu/oh-my-openagent.git</span> 후 <span class="wl">git checkout 55326d2a8</span>. 문서의 <span class="wl">file:line</span> 표기는 모두 이 커밋의 저장소 루트 기준이다. 14장의 아홉 개 인용이 그중 검증 가능성이 가장 높은 부분이다.</p>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 20</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
