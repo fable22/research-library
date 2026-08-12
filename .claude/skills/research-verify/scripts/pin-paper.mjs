@@ -7,7 +7,7 @@
 import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { mkdtempSync, mkdirSync, readdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, basename } from 'node:path';
 import { tmpdir } from 'node:os';
 
 const [id, version] = process.argv.slice(2);
@@ -65,11 +65,56 @@ try {
   console.log(`저장   ${out}`);
   console.log(`파일   ${texFiles.length}개, ${body.length.toLocaleString()}자`);
   console.log(`sha256 ${sha}`);
+
+  // 그림의 수치는 .tex 에 없다. 플롯 안에 라벨로 그려져 있고, 그 라벨은
+  // PDF 의 텍스트 스트림에 남아 있다. 뽑아 두지 않으면 그림을 근거로 삼는
+  // 주장은 대조할 대상이 아예 없다.
+  const pdfs = [];
+  const walkPdf = (d) => {
+    for (const e of readdirSync(d, { withFileTypes: true })) {
+      const p = join(d, e.name);
+      if (e.isDirectory()) walkPdf(p);
+      else if (/\.pdf$/i.test(e.name)) pdfs.push(p);
+    }
+  };
+  walkPdf(work);
+  pdfs.sort();
+
+  let figSha = null, figCount = 0;
+  if (pdfs.length) {
+    const blocks = [];
+    for (const p of pdfs) {
+      let txt = '';
+      try {
+        txt = execFileSync('pdftotext', ['-layout', p, '-'], {
+          encoding: 'utf8', maxBuffer: 16 * 1024 * 1024,
+        });
+      } catch {
+        txt = '';   // pdftotext 가 없거나 실패. 아래에서 개수로 드러난다
+      }
+      if (!txt.trim()) continue;
+      blocks.push(`===== FIGURE-PDF ${basename(p)} =====\n${txt}`);
+      figCount++;
+    }
+    if (blocks.length) {
+      const figBody = blocks.join('\n');
+      figSha = createHash('sha256').update(figBody).digest('hex');
+      writeFileSync(join(CACHE, `${ref}.figures.txt`), figBody);
+      console.log(`그림   ${figCount}/${pdfs.length}개에서 텍스트를 뽑았다`);
+      console.log(`       ${join(CACHE, `${ref}.figures.txt`)}`);
+    }
+  }
+  if (pdfs.length && !figSha) {
+    console.log(`그림   PDF ${pdfs.length}개에서 텍스트를 뽑지 못했다`);
+    console.log('       pdftotext (poppler-utils) 가 없으면 그림 수치를 대조할 수 없다');
+  }
+
   console.log('');
   console.log('sources.jsonl 에 넣을 것:');
   console.log(JSON.stringify({
     id: 'p1', kind: 'paper', arxiv_id: id, version,
     text_sha256: sha, text_chars: body.length,
+    ...(figSha ? { figures_sha256: figSha, figures_count: figCount } : {}),
     retrieved_at: new Date().toISOString().replace(/\.\d+Z$/, 'Z'),
   }));
 } finally {
