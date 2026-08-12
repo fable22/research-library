@@ -14,11 +14,16 @@ Technical terms stay English (RAG, embedding, corpus, ablation, tool call, F1, m
 | Path | Contents | git |
 |---|---|---|
 | `research/<slug>/` | The publication. `index.html` and `meta.json` only | committed |
-| `.research/<slug>/` | Working artifacts. `sources.jsonl`, `claims.jsonl`, `notes/` | ignored |
+| `.research/<slug>/` | Evidence. `sources.jsonl`, `claims.jsonl` | committed |
+| `.research/<slug>/notes/` | Working artifacts, not a publication | ignored |
 
 The two trees always use the **same directory name**. There is no mapping file, so a
 mismatch means the document and its evidence can no longer be connected. Directory names
 are `YYYY-MM-DD-slug`, with the slug in lowercase letters and hyphens.
+
+Evidence travels with the publication because research happens on more than one machine.
+A document merged from elsewhere arrives with its `index.html`; if the ledger stayed
+behind, nobody here can re-check a single number in it, and neither can CI.
 
 ## Which skill to use
 

@@ -14,9 +14,18 @@ scratch/
 # 문서 제작 과정에서만 쓰는 원본 (내보낸 결과물만 커밋한다)
 research/*/src/
 
-# 조사 작업 산출물 (근거, 주장, 읽은 범위). research/ 는 발행물만 담는다.
-# 디렉터리 이름은 research/<slug> 와 항상 같게 유지한다.
-.research/
+# 조사 작업 산출물. 디렉터리 이름은 research/<slug> 와 항상 같게 유지한다.
+#
+# sources.jsonl 과 claims.jsonl 은 올린다. 발행물이 머지될 때 근거가 따라가지
+# 않으면 받는 쪽에서 그 문서를 다시 검증할 방법이 없고, CI 도 볼 수 없다.
+# 둘 다 작다 (문서 하나에 수 KB).
+#
+# notes/ 는 올리지 않는다. 다듬지 않은 중간 산출물이고 발행물이 아니다.
+.research/*
+!.research/*/
+.research/*/*
+!.research/*/sources.jsonl
+!.research/*/claims.jsonl
 
 # node
 node_modules/
