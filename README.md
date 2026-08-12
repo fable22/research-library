@@ -12,6 +12,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 
 | 날짜 | 문서 | 분류 |
 |---|---|---|
+| 2026-08-11 | [addyosmani/agent-skills: 강제는 산문에 맡기고, CI 는 스킬 자체에 건다](https://fable22.github.io/research-library/research/2026-08-11-addyosmani-agent-skills/) | 주제 리서치 |
 | 2026-08-07 | [EviGraph: 리서치 에이전트의 작업 상태를 파이프라인 대신 근거 그래프로 둔다](https://fable22.github.io/research-library/research/2026-08-07-evigraph-evidence-graph-agent/) | 논문 분석 |
 | 2026-08-07 | [Cloudflare computer: 에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다](https://fable22.github.io/research-library/research/2026-08-07-cloudflare-computer-filesystem-not-container/) | 주제 리서치 |
 | 2026-08-07 | [TencentDB Agent Memory: 기억을 자산으로 등록하고 agent 에게 장착시키는 층](https://fable22.github.io/research-library/research/2026-08-07-tencentdb-agent-memory-asset-layer/) | oss |

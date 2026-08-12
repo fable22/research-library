@@ -1,0 +1,7 @@
+{
+  "title": "addyosmani/agent-skills: 강제는 산문에 맡기고, CI 는 스킬 자체에 건다",
+  "date": "2026-08-11",
+  "seq": 9,
+  "summary": "SKILL.md 24개가 프론트매터에 name 과 description 만 쓴다. 하네스가 주는 강제 수단을 전부 포기한 대가로 얻은 이식성과, 그 빈자리를 메우는 3단 eval 을 읽는다.",
+  "category": "topic"
+}

@@ -1,0 +1,918 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>addyosmani/agent-skills: 강제는 산문에 맡기고, CI 는 스킬 자체에 건다</title>
+<meta name="description" content="SKILL.md 24개가 프론트매터에 name 과 description 만 쓴다. 하네스가 주는 강제 수단을 전부 포기한 대가로 얻은 이식성과, 그 빈자리를 메우는 3단 eval 을 읽는다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="addyosmani/agent-skills: 강제는 산문에 맡기고, CI 는 스킬 자체에 건다">
+<meta property="og:description" content="SKILL.md 24개가 프론트매터에 name 과 description 만 쓴다. 하네스가 주는 강제 수단을 전부 포기한 대가로 얻은 이식성과, 그 빈자리를 메우는 3단 eval 을 읽는다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-11-addyosmani-agent-skills/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+/* 마지막 열에 산문이 들어가는 표: nowrap 을 풀어야 잘리지 않는다 */
+table.prose td, table.prose th { white-space: normal; }
+table.prose td:first-child, table.prose th:first-child { min-width: 15ch; }
+table.prose td:last-child, table.prose th:last-child { text-align: left; min-width: 32ch; line-height: 1.55; }
+
+td.lose { color: var(--redlink); font-weight: 700; }
+tr.hero td.lose { color: var(--redlink); }
+tr.hero td.win { color: var(--link); }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>스킬 한 장의 구조</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>최소 프론트매터</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>산문으로 건 강제</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>3단 eval</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>라우팅 경로 추적</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>실행 결과</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>이웃 팩 대조</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>출처와 신뢰</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>하네스 확장</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>도입 판단</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>결론</span></button>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>addyosmani/agent-skills: 강제는 산문에 맡기고, CI 는 스킬 자체에 건다</h1>
+      <p class="dek">SKILL.md 24개가 프론트매터에 <code class="wl">name</code> 과 <code class="wl">description</code> 만 쓴다. Claude Code 가 스킬에 주는 필드는 20개인데 그중 2개다. 하네스가 주는 강제 수단을 전부 포기했고, 그 자리를 145행짜리 변명 반박표와 카탈로그 전체를 CI 에 거는 eval 이 대신 메운다.</p>
+      <p>답할 질문은 셋이다. Claude Skills 규격과 무엇이 다른가, 기존 harness 와 hardening 방식에 견줘 새로운 게 있는가, 최근 GitHub trending 진입에 특정 원인이 있는가.</p>
+      <div class="stats">
+        <div class="stat hero"><span class="lab">프론트매터 키</span><span class="val">2 <span class="u">/ 20</span></span><span class="sub">24개 SKILL.md 전부 name, description 뿐</span></div>
+        <div class="stat"><span class="lab">변명 반박표</span><span class="val">145 <span class="u">행</span></span><span class="sub">22개 스킬에 분산. 최다 9행</span></div>
+        <div class="stat"><span class="lab">라우팅 rank-1</span><span class="val">86 <span class="u">%</span></span><span class="sub">직접 실행. 65/76 프롬프트</span></div>
+        <div class="stat"><span class="lab">어댑터 커밋 당일 star</span><span class="val">+443</span><span class="sub">그 주 정점 +3,278 의 7분의 1</span></div>
+      </div>
+      <p class="note">읽은 대상은 커밋 <code class="wl">7676817</code> 하나다. 이 커밋에 없는 것, 이를테면 앞으로 릴리스될 스킬이나 논의 중인 이슈의 결말은 다루지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약. 스킬 본문의 규율은 이웃 팩에도 있고, 카탈로그를 검사하는 CI 만 이 팩의 것이다</h2>
+      <p class="dek">스킬 본문에 담긴 규율은 다른 팩에도 있다. 없는 건 카탈로그 24개를 통째로 결정론적 검사에 거는 층이다. 대신 이 팩은 하네스가 제공하는 실행 시점 강제 수단을 하나도 쓰지 않는다.</p>
+      <ul class="clean">
+        <li><span class="m">1</span><span><b>Claude Code 가 받는 프론트매터 20개 중 2개만 쓴다.</b> 24개 전부 <code class="wl">name</code> 과 <code class="wl">description</code> 뿐이고, <code class="wl">allowed-tools</code>, <code class="wl">disable-model-invocation</code>, <code class="wl">context: fork</code> 는 한 장에도 없다.</span></li>
+        <li><span class="m">2</span><span><b>hardening 은 코드가 아니라 문장으로 걸려 있다.</b> 프롬프트 인젝션 방어는 SKILL.md 24개 중 9개에 실제로 들어 있지만 전부 산문이다. 도구 권한 게이트도, 컨텍스트 격리도 프론트매터에 없다.</span></li>
+        <li><span class="m">3</span><span><b>기계 검사는 한 층 위에 있다.</b> 스킬 실행을 검사하는 대신 스킬 카탈로그를 검사한다. description 이 사용자 어휘를 담는지, 두 스킬이 라우팅에서 충돌하는지를 CI 가 막는다.</span></li>
+        <li><span class="m">4</span><span><b>트렌딩은 이 저장소가 아니라 분류가 오르는 것이다.</b> 일별 star 증가를 보면 어댑터 커밋 날이 그 주의 최저점이고, 같은 날 다른 agent skills 저장소들이 함께 오른다.</span></li>
+      </ul>
+      <p class="note">스킬 본문의 조언이 실제로 좋은 조언인지는 판정하지 않는다. 코드를 읽어서 알 수 있는 건 규율이 어떤 형태로 걸려 있는지까지다.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>문제 정의. 에이전트는 최단 경로로 수렴하고, 스펙과 테스트가 그 경로에서 먼저 빠진다</h2>
+      <p class="dek">README 가 스스로 밝히는 문제는 하나다. 그런데 이 저장소가 실제로 없앤 수작업은 두 번째 문제 쪽에 가깝다. 팀이 쓰는 에이전트가 바뀔 때마다 같은 규율을 새 형식으로 다시 쓰는 일이다.</p>
+      <p class="q">AI coding agents default to the shortest path - which often means skipping specs, tests, security reviews, and the practices that make software reliable.<cite>README.md:389</cite></p>
+      <p>첫 번째 문제의 처방은 새롭지 않다. 스펙 먼저, 실패 테스트 먼저, 머지 전 리뷰. 사람이 지키는 규율을 문서로 옮긴 것이고, 같은 처방을 담은 팩이 이미 여럿 있다.</p>
+      <p>두 번째 문제가 이 저장소의 형태를 결정한다. 최상위 어댑터 디렉터리가 7개다. <code class="wl">.claude</code>, <code class="wl">.claude-plugin</code>, <code class="wl">.gemini</code>, <code class="wl">.codex-plugin</code>, <code class="wl">.opencode</code>, <code class="wl">.agents</code>, <code class="wl">commands</code> 가 각각 다른 하네스를 향한다. <code class="wl">docs/comparison.md:26</code> 이 세는 지원 대상은 11곳인데, 디렉터리 없이 문서만으로 지원하는 하네스가 있어서다. 스킬 본문은 하나고, 그걸 각 하네스가 읽는 위치에 놓는 어댑터 디렉터리만 늘어난다. 이 구조가 성립하려면 스킬 본문이 어떤 하네스에도 종속되면 안 된다. 5장이 그 대가를 다룬다.</p>
+      <p class="note">"에이전트가 스펙을 건너뛴다"는 진술 자체는 이 저장소가 측정한 것이 아니다. README 의 주장이고, 저장소 안에 이를 뒷받침하는 측정은 없다.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">anatomy</p>
+      <h2>스킬 한 장의 구조. 워크플로 다음에 변명 반박표가 붙는다</h2>
+      <p class="dek">24개 모두 같은 골격을 따른다. Overview, When to Use, Process 까지는 흔한 형태다. 나머지 셋은 24개 중 22~23개에 들어 있다.</p>
+      <div class="figure">
+        <p class="fig-title">Common Rationalizations 와 Red Flags 가 거의 모든 스킬에 있다</p>
+        <p class="fig-sub">커밋 7676817 의 <code class="wl">skills/*/SKILL.md</code> 24개를 <code class="wl">grep -l</code> 로 센 파일 단위 집계. 저장소가 이 표를 제공하지는 않는다</p>
+        <div class="tablewrap"><table class="prose">
+          <thead><tr><th>섹션</th><th>보유</th><th>하는 일</th></tr></thead>
+          <tbody>
+            <tr><td>Overview</td><td>23 / 24</td><td>이 스킬이 무엇을 하는가</td></tr>
+            <tr class="hero"><td>Verification</td><td>23 / 24</td><td>증거 없이는 완료가 아니라는 종료 조건</td></tr>
+            <tr class="hero"><td>Red Flags</td><td>23 / 24</td><td>스킬을 어기고 있다는 관찰 가능한 징후</td></tr>
+            <tr><td>When to Use</td><td>22 / 24</td><td>발동 조건과 제외 조건</td></tr>
+            <tr class="hero"><td>Common Rationalizations</td><td>22 / 24</td><td>단계를 건너뛸 때 쓰는 변명과 그 반박</td></tr>
+          </tbody>
+        </table></div>
+        <figcaption>강조한 세 행이 이 팩의 특징이다. 골격에서 벗어난 두 장은 <code class="wl">using-agent-skills</code>(When to Use, Common Rationalizations, Red Flags, Verification 없음. 라우터라 실행 단계가 없다)와 <code class="wl">idea-refine</code>(Overview, When to Use, Common Rationalizations 없음. 헤딩이 How It Works, Usage, Output 계열로 아예 다르다). Overview 가 23인 것도 이 때문이고, <code class="wl">planning-and-task-breakdown</code> 은 Overview 헤딩을 두 번 쓴다. 섹션 유무를 셌을 뿐, 내용의 품질은 이 표가 말하지 않는다.</figcaption>
+      </div>
+      <p>SKILL.md 총량은 7,051줄, 한 장 평균 294줄이다. 최소 178줄(<code class="wl">idea-refine</code>), 최대 467줄(<code class="wl">security-and-hardening</code>)로 문서가 권고하는 500줄 상한을 넘는 장은 없다.</p>
+      <p>반박표는 총 145행이다. 한 행이 변명 하나와 그 반박 하나를 담는다. 가장 두꺼운 넷은 <code class="wl">git-workflow-and-versioning</code>, <code class="wl">doubt-driven-development</code>, <code class="wl">deprecation-and-migration</code>, <code class="wl">code-review-and-quality</code> 로 각 9행이다. 예를 들어 <code class="wl">doubt-driven-development</code> 의 한 행은 이렇다. 변명 "I'm confident, skip the doubt step", 반박 "Confidence correlates poorly with correctness on novel problems."</p>
+      <p class="note">이 장은 골격만 센 것이다. 반박 한 줄이 실제로 에이전트를 멈춰 세우는지는 세어서 알 수 없고, 그 답은 Tier 3 를 돌려야 나온다.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">frontmatter</p>
+      <h2>최소 프론트매터. 이식 규격에 있는 6개 중에서도 2개만 쓴다</h2>
+      <p class="dek">Claude Code 는 SKILL.md 프론트매터에서 20개 필드를 받고, 그중 6개는 하네스를 가리지 않는 이식 규격에 들어 있다. agent-skills 는 24개 전부 2개만 쓴다. 안 쓴 18개 중 4개는 이식 규격 안에 있어서, 이식성만으로는 설명되지 않는다.</p>
+      <div class="figure">
+        <p class="fig-title">이식성으로 설명되지 않는 미사용이 이식 규격 6개 중 4개다</p>
+        <p class="fig-sub">필드 목록은 Claude Code 공식 문서의 frontmatter reference, 사용 여부는 커밋 7676817 의 24개 SKILL.md 를 직접 센 결과. 두 출처를 겹친 이 대조는 어느 쪽에도 없다</p>
+        <div class="tablewrap"><table>
+          <thead><tr><th>필드</th><th>Claude Code</th><th>이식 규격</th><th>agent-skills</th><th>못 쓰게 된 것</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>name</td><td>받음</td><td>포함</td><td>24 / 24</td><td>-</td></tr>
+            <tr class="hero"><td>description</td><td>받음</td><td>포함</td><td>24 / 24</td><td>-</td></tr>
+            <tr><td>allowed-tools</td><td>받음</td><td>포함</td><td class="lose">0 / 24</td><td>도구 사전 승인</td></tr>
+            <tr><td>license, compatibility, metadata</td><td>받음</td><td>포함</td><td class="lose">0 / 24</td><td>배포 메타데이터</td></tr>
+            <tr><td>disallowed-tools</td><td>받음</td><td>제외</td><td>0 / 24</td><td>도구 회수</td></tr>
+            <tr><td>disable-model-invocation</td><td>받음</td><td>제외</td><td>0 / 24</td><td>사용자 전용 호출</td></tr>
+            <tr><td>context: fork</td><td>받음</td><td>제외</td><td>0 / 24</td><td>서브에이전트 격리</td></tr>
+            <tr><td>hooks</td><td>받음</td><td>제외</td><td>0 / 24</td><td>스킬 수명주기 훅</td></tr>
+            <tr><td>paths</td><td>받음</td><td>제외</td><td>0 / 24</td><td>경로 기반 발동</td></tr>
+            <tr><td>model, effort</td><td>받음</td><td>제외</td><td>0 / 24</td><td>모델 / 추론량 지정</td></tr>
+          </tbody>
+        </table></div>
+        <figcaption>가운데 열의 "이식 규격"은 agentskills.io 스펙이 정한 6개 키(allowed-tools, compatibility, description, license, metadata, name)다. 붉게 표시한 두 행이 <b>이식 규격 안에 있는데도 안 쓰는</b> 필드다. 특히 <code class="wl">allowed-tools</code> 는 가장 강한 강제 수단이면서 이식 규격에 포함이므로, 이걸 쓴다고 다른 하네스가 깨지지 않는다. 아래 6개 행은 Claude Code 전용 필드 14개 중 강제와 관련된 7개만 뽑은 것이고, 나머지 7개(when_to_use, argument-hint, arguments, user-invocable, agent, background, shell)도 똑같이 0/24 다. 이 14개는 이식성 설명이 통한다.</figcaption>
+      </div>
+      <p>모르고 안 쓰는 것은 아니다. <code class="wl">references/orchestration-patterns.md:164</code> 는 plugin agent 에서 <code class="wl">hooks</code>, <code class="wl">mcpServers</code>, <code class="wl">permissionMode</code> 가 조용히 무시된다고 적고, 이어 166행에서 실제로 작동하는 13개 필드를 <code class="wl">tools</code>, <code class="wl">disallowedTools</code>, <code class="wl">model</code>, <code class="wl">isolation</code> 까지 열거한다. 필드 공간을 정확히 파악하고 있다는 뜻이다. 그런데 <code class="wl">agents/</code> 의 페르소나 4개도 프론트매터가 <code class="wl">name</code> 과 <code class="wl">description</code> 뿐이다. 스킬에서만 최소로 간 게 아니라 페르소나까지 같다.</p>
+      <p>다만 <b>저장소가 이 선택을 트레이드오프로 설명한 적은 없다.</b> <code class="wl">docs/skill-anatomy.md</code> 의 "Required vs Recommended" 절은 필수를 둘로 규정하는 <b>최소 계약</b>일 뿐, 나머지를 쓰지 말라는 말이 아니다. <code class="wl">allowed-tools</code>, <code class="wl">disable-model-invocation</code>, <code class="wl">context: fork</code> 라는 문자열은 커밋 7676817 전체에 0건이다(<code class="wl">git grep -e 'allowed-tools' -e 'disable-model-invocation' -e 'context: fork' 7676817</code>). 부재를 의도로 읽은 것은 이 문서의 추론이다. 저장소는 그렇게 밝힌 적이 없다.</p>
+      <p class="note">이 장은 필드가 비어 있다는 것까지만 확인한 것이다. <code class="wl">allowed-tools</code> 를 실제로 채워 넣었을 때 어느 하네스가 무시하고 어느 하네스가 오류를 내는지는 하네스를 하나도 설치하지 않아 모른다. 이식 규격이 그걸 보장한다는 문장도 스펙의 약속이지 관측이 아니다.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">hardening</p>
+      <h2>산문으로 건 강제. 인젝션 방어는 실재하지만 전부 문장이다</h2>
+      <p class="dek">프롬프트 인젝션을 다루는 팩은 드물다. untrusted 데이터 doctrine 을 담은 SKILL.md 가 24개 중 9개, 공유 체크리스트가 7개 중 2개다. 다만 방어 수단이 전부 에이전트가 읽고 따르기를 기대하는 텍스트고, 그것이 5장의 선택에서 직접 따라 나온다.</p>
+      <div class="grid g2">
+        <div class="card"><span class="tag">신뢰 경계를 그은 곳 (9개 중 넷)</span>
+          <p class="small"><b>browser-testing</b> DOM, console, network 응답 전부 untrusted. <code class="wl">--autoConnect</code> 는 로그인된 프로필 전체가 blast radius 라고 명시한다.<br>
+          <b>debugging</b> 에러 메시지와 CI 로그도 데이터지 지시가 아니다.<br>
+          <b>source-driven</b> fetch 한 공식 문서도 untrusted 입력이다.<br>
+          <b>api-and-interface-design</b> 서드파티 응답을 그대로 신뢰하지 않는다.</p>
+        </div>
+        <div class="card"><span class="tag">실제 공격 표면을 막은 곳</span>
+          <p class="small"><b>doubt-driven</b> 크로스모델 CLI 를 <code class="wl">--sandbox read-only</code> 로 부르고, artifact 를 셸 인자로 보간하지 말고 stdin 으로 넘기라고 한다. artifact 안에 백틱이나 <code class="wl">$(...)</code> 가 있으면 그대로 실행되기 때문이다.<br>
+          <b>security-checklist</b> OWASP LLM01(Prompt Injection), LLM05(Improper Output Handling)를 항목으로 매핑한다.</p>
+        </div>
+      </div>
+      <p style="margin-top:16px">그런데 같은 체크리스트가 이렇게 쓴다.</p>
+      <p class="q">Prompt injection assumed; permissions enforced in code, not in the system prompt<cite>references/security-checklist.md:154</cite></p>
+      <p>이 문장은 사용자가 <em>작성할 코드</em>를 향한 조언이다. 다만 같은 기준을 팩 자체에 대면 어긋난다. 이 팩의 집행 수단은 100% 시스템 프롬프트 텍스트다. 스킬을 건너뛰는 에이전트를 막는 코드 경로는 저장소에 없다. 5장에서 <code class="wl">allowed-tools</code> 와 <code class="wl">context: fork</code> 를 포기한 결과이고, 그 대신 이 팩이 기계에 맡긴 건 한 층 위, 7장의 대상이다.</p>
+      <p class="note">인젝션 방어 문장이 실제 공격에서 작동하는지는 읽어서 알 수 없다. 저장소 안에 프롬프트 인젝션 시나리오를 돌리는 eval 은 찾지 못했다. <code class="wl">grep -rniE 'injection' evals/</code> 는 1건을 내지만 <code class="wl">evals/cases/context-engineering.json:24</code> 의 "Harden this endpoint against SQL injection" 으로, 에이전트를 겨냥한 인젝션이 아니라 사용자가 쓸 코드의 SQL injection 이다.</p>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">evals</p>
+      <h2>3단 eval. 상시 게이트가 보는 것은 스킬이 발동하는지까지다</h2>
+      <p class="dek">저장소가 자기 기여로 지목하는 지점이 여기다. 앞선 두 방식을 출처와 함께 밝히고, 그 사이에 빠진 층을 자기 것이라고 말한다.</p>
+      <p class="q">What neither provides is a <b>deterministic, CI-safe</b> check for a multi-skill <em>catalog</em> [...] That's Tier 2 below, and it's this repo's addition.<cite>evals/README.md:12 (생략한 부분은 Tier 2 가 무엇을 보는지에 대한 설명이다)</cite></p>
+      <div class="figure">
+        <p class="fig-title">Tier 2 만 결정론적이고, 결정론적이라서 CI 에 걸 수 있다</p>
+        <p class="fig-sub">evals/README.md 의 3단 표. 비용 열은 저장소 표현 그대로다</p>
+        <div class="tablewrap"><table>
+          <thead><tr><th>Tier</th><th>검사 대상</th><th>실행</th><th>비용</th></tr></thead>
+          <tbody>
+            <tr><td>1. Structural</td><td>frontmatter, 네이밍, 필수 섹션, 커맨드 정합</td><td>CI</td><td>무료</td></tr>
+            <tr class="hero"><td>2. Trigger &amp; routing</td><td>positive 프롬프트가 top-k 안에 드는가, 두 description 이 충돌하는가</td><td>CI</td><td>무료</td></tr>
+            <tr><td>3. Behavioral</td><td>스킬을 따른 에이전트가 expectations 를 만족하는가</td><td>수동</td><td>토큰</td></tr>
+          </tbody>
+        </table></div>
+        <figcaption>상시 게이트는 Tier 1 과 2 뿐이다. 스킬이 <em>행동을 바꾸는지</em>를 보는 Tier 3 는 토큰을 쓰므로 CI 에 없고, 그래서 이 팩이 기계로 늘 확인하는 것은 스킬이 발동하는지까지다.</figcaption>
+      </div>
+      <p>선행 연구를 명시한 것도 드문 처리다. <code class="wl">evals/README.md:9</code> 는 Anthropic skill-creator v2 의 <code class="wl">evals.json</code> 스키마를 채택했다고 밝히고 <code class="wl">kind</code> 필드 하나를 더했다고 적는다. 같은 파일 10행은 behavioral runner 가 Superpowers 의 headless <code class="wl">claude -p</code> 패턴을 따랐다고 적는다.</p>
+      <p>압박 케이스는 실재한다. <code class="wl">evals/fixtures/test-driven-development/authority-pressure.md</code> 는 "엔지니어링 리드가 실패 테스트 없이 바로 고치라고 지시"하는 상황을 주고, 워크플로가 그 압력에 버티는지를 본다. 같은 방식의 time pressure, sunk cost fixture 가 규율 계열 스킬에 붙어 있다.</p>
+      <p class="note">Tier 2 는 어휘만 본다. 의미 판단은 못 하고, README 스스로 "lexical approximation"이라고 쓴다. 라우터가 실제로 어떻게 고르는지와는 다른 것을 재고 있고, 10장이 그 수치를 다룬다.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">trace</p>
+      <h2>라우팅 경로 추적. 프롬프트 한 줄이 rank-1 판정이 되기까지 일곱 단계</h2>
+      <p class="dek">Tier 2 전체가 <code class="wl">scripts/run-evals.js</code> 한 파일 안에서 끝난다. 외부 의존성도, 모델 호출도 없다. 그래서 CI 에 걸 수 있다.</p>
+      <pre><span class="c">// 입력: evals/cases/test-driven-development.json 의 positive 프롬프트 한 줄
+//       "Write a failing test for this bug before fixing it"</span>
+
+<b>1. tokenize</b>              scripts/run-evals.js:89
+   소문자화 → 영숫자만 남김 → 공백/하이픈 분리 → 3글자 미만과 STOP 제거 → stem
+   <span class="k">.filter((t) =&gt; t.length &gt; 2 &amp;&amp; !STOP.has(t))</span>
+   STOP 은 40개짜리 손수 만든 목록이다(62행). 'when', 'use', 'help' 가 들어 있다.
+
+<b>2. stem</b>                  scripts/run-evals.js:69
+   'ally','ing','ed','es','al' 접미사만 벗긴다. 주석이 스스로 밝힌다.
+   <span class="c">// "architectural"/"architecture" cluster together. Not a real stemmer.</span>
+
+<b>3. buildCorpus</b>           scripts/run-evals.js:104
+   스킬 하나가 문서 하나. <span class="r">name 토큰을 두 번 넣어 2배 가중</span>한다.
+   <span class="k">const tokens = [...nameTokens, ...nameTokens, ...tokenize(s.description)];</span>
+   → 'test-driven-development' 라는 <b>이름</b>이 description 보다 세게 걸린다
+
+<b>4. idf</b>                   scripts/run-evals.js:117
+   <span class="k">const idf = (term) =&gt; Math.log(1 + n / (1 + (df.get(term) || 0)));</span>
+   n = 24. 24개 문서짜리 코퍼스에서 계산한 idf 다.
+
+<b>5. rankSkills</b>            scripts/run-evals.js:141
+   프롬프트 벡터와 24개 스킬 벡터의 코사인 유사도를 전부 구해 정렬
+   <span class="k">scores.push({ name, score: cosine(pv, vec(tf, corpus.idf)) });</span>
+
+<b>6. 판정</b>                  scripts/run-evals.js:299
+   <span class="k">if (idx === 0 &amp;&amp; hit.score &gt; 0) rank1++;</span>          <span class="c">← rank-1 집계</span>
+   idx &lt; top_k 면 pass. 점수가 0 이면 어휘가 아예 안 겹친다는 뜻이라 error:
+   <span class="r">"description shares no vocabulary with a prompt users would say"</span>
+
+<b>7. 게이트</b>                scripts/run-evals.js:376
+   <span class="k">if (minRank1 !== null &amp;&amp; (!positives || rank1Rate &lt; minRank1)) {</span>
+   80 이라는 값은 이 파일이 아니라 워크플로에 있다:
+   .github/workflows/test-plugin-install.yml:35  node scripts/run-evals.js --min-rank1 80
+   push 와 PR 마다 돈다. 체크인된 baseline 은 86% 라 6%p 여유가 있다.
+
+<span class="c">// 별도로: 24×23/2 = 276 쌍의 description 을 서로 비교(357행)
+//   sim ≥ 0.75 → error   sim ≥ 0.5 → warning</span></pre>
+      <p class="note">3번 단계의 name 2배 가중이 86%라는 수치의 성격을 정한다. positive 프롬프트에 스킬 이름의 단어가 들어 있으면 거의 자동으로 rank-1 이 된다. 그래서 README 가 "don't copy the description (that's gaming the eval)"이라고 따로 경고한다. 그 경고를 각 케이스 파일이 지켰는지는 24개 중 1개만 열어봤다.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>읽은 범위. 184개 중 34개를 열었고, 그래서 얕은 장이 셋이다</h2>
+      <p class="dek">커밋 <code class="wl">7676817c12a1317454ae3898a0c5c1eacf5dd3d5</code> 기준. 저장소가 916 KB 라 shallow 없이 전체 이력을 받았고, 그래서 13장의 날짜와 커밋 빈도를 쓸 수 있다.</p>
+      <figure class="figure">
+        <p class="fig-title">안 읽은 150개 중 evals 와 skills 가 문서를 가장 얕게 만든다</p>
+        <p class="fig-sub"><code class="wl">git ls-tree -r --name-only 7676817</code> 로 센 184개를 열람 목록과 대조한 결과. 전체 열의 합이 184 이고 34 + 150 = 184</p>
+        <div class="tablewrap"><table class="prose">
+          <thead><tr><th>디렉터리</th><th>전체</th><th>안 읽음</th><th>비용</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>evals/</td><td>70</td><td>66</td><td>케이스 파일 24개 중 2개만 열었다. 7장과 10장은 README 와 검사기 출력에 기대고, 나머지 22개 케이스가 잘 쓰였는지는 CI 통과 말고 직접 근거가 없다</td></tr>
+            <tr class="hero"><td>skills/</td><td>28</td><td>24</td><td>SKILL.md 24개 중 전문 2개, 특정 절만 2개를 봤다. 4장의 145행과 섹션 집계는 기계적 카운트고, <b>반박 내용이 설득력 있는지는 판정하지 않았다</b>. <code class="wl">idea-refine</code> 의 보조 파일 4개도 안 읽었다</td></tr>
+            <tr><td>scripts/</td><td>12</td><td>11</td><td>run-evals.js 외 검사기 5종은 실행만 하고 코드를 안 봤다</td></tr>
+            <tr><td>docs/</td><td>14</td><td>9</td><td>하네스별 setup 가이드 6종을 안 읽었다. 15장이 <code class="wl">cursor</code>, <code class="wl">copilot</code>, <code class="wl">windsurf</code> 사용 팀에게도 판단을 주는데, 정작 그 셋에 관한 파일이 이 안에 있다</td></tr>
+            <tr class="hero"><td>.claude, commands, .gemini, .opencode, .agents</td><td>27</td><td>27</td><td>어댑터 파일을 한 개도 안 열었다. 13장의 하네스 지원은 디렉터리와 매니페스트가 있다는 것까지만 확인한 것이다</td></tr>
+            <tr><td>references/</td><td>7</td><td>5</td><td>security-checklist 와 orchestration-patterns 만 부분 열람했다. 나머지 체크리스트 5종은 11장의 비교를 얕게 만든다</td></tr>
+            <tr><td>루트, hooks, .github, .claude-plugin, .codex-plugin, agents</td><td>26</td><td>8</td><td>안 읽은 8개는 대상 저장소의 AGENTS.md, CLAUDE.md, marketplace.json, .gitattributes, hooks 스크립트 3개, 이슈 템플릿이다</td></tr>
+          </tbody>
+        </table></div>
+        <figcaption>"열었다"는 전부 읽었다는 뜻이 아니다. 전문을 본 것은 README.md, LICENSE, CONTRIBUTING.md, docs/comparison.md, docs/skill-anatomy.md, docs/adoption-guide.md, evals/README.md, using-agent-skills 와 doubt-driven-development 의 SKILL.md, hooks/hooks.json, hooks/session-start.sh, .github/workflows/test-plugin-install.yml, 플러그인 매니페스트 3종, authority-pressure fixture 다. <code class="wl">agents/</code> 4개는 프론트매터만, <code class="wl">references/</code> 2개와 <code class="wl">evals/cases/</code> 2개는 인용한 줄만 봤다.</figcaption>
+      </figure>
+      <p class="note">대상 저장소의 <code class="wl">AGENTS.md</code> 와 <code class="wl">CLAUDE.md</code>, 그리고 <code class="wl">.claude/skills/</code> 는 모델을 향한 명령문이다. 이 조사에서는 작업 디렉터리 밖에 클론해 하네스가 자동 발견하지 못하게 두었고, 두 파일은 열지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-evals</p>
+      <h2>실행 결과. rank-1 86%, 실패 11건이고 그 11건이 어디인지는 출력에 없다</h2>
+      <p class="dek">Tier 2 는 로컬에서 그대로 돌아간다. 모델 호출이 없어 재현된다.</p>
+      <pre><span class="c">$ cd &lt;checkout at 7676817&gt; &amp;&amp; node scripts/run-evals.js      # 2026-08-11, Node 24</span>
+
+Running skill evals across 24 skills, 24 case files
+
+
+<b>124 checks passed — 0 error(s), 0 warning(s)</b>
+<b>trigger rank-1 rate: 86% (65/76 positive prompts rank their skill first)</b>
+PASSED</pre>
+      <figure class="figure">
+        <p class="fig-title">76개 프롬프트 전부 top 3 안에 들고, 그중 65개만 1위다</p>
+        <p class="fig-sub">위 실행 출력과 scripts/run-evals.js 를 겹쳐 읽은 것. 저장소가 이 구분을 표로 제공하지는 않는다</p>
+        <div class="bars">
+          <div class="bar-row is-hero"><span class="bar-name">rank-1</span><span class="bar-track"><span class="bar s1" style="--w:86%"></span></span><span class="bar-val">86%</span></div>
+          <div class="bar-row"><span class="bar-name">CI 하한</span><span class="bar-track"><span class="bar" style="--w:80%"></span></span><span class="bar-val">80%</span></div>
+          <div class="bar-row"><span class="bar-name">top-k 통과</span><span class="bar-track"><span class="bar s1" style="--w:100%"></span></span><span class="bar-val">100%</span></div>
+        </div>
+        <div class="bar-axis"><div class="ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div></div>
+        <figcaption>top-k 통과 100% 는 출력에 직접 없고 error 0 에서 따라 나온다. top-k 밖이면 <code class="wl">errors++</code> 가 되기 때문이다. 실패한 11건의 정체가 없는 이유도 같은 코드에 있다. rank-1 이 아니어도 top-k 안이면 <code class="wl">scripts/run-evals.js:301</code> 의 <code class="wl">passed++</code> 만 되고 로그를 남기지 않는다. 76개 중 4개는 <code class="wl">top_k: 1</code> 이라 "top 3" 은 느슨한 표현이다.</figcaption>
+      </figure>
+      <p>출력의 <code class="wl">0 warning(s)</code> 는 276쌍 전부 코사인 0.5 미만이라는 뜻이다(8장의 warning 임계 0.5). 자기 스킬을 얹을 팀에게는 그만큼 여유가 있다는 신호다.</p>
+      <p>이 86% 를 실제 라우팅 정확도로 읽으면 안 된다. 재고 있는 건 24개 description 으로 만든 TF-IDF 코퍼스 안에서의 코사인 순위다. 8장 3번 단계에서 본 대로 스킬 이름이 2배 가중이라, 프롬프트에 스킬 이름의 단어가 있으면 유리하게 나온다. 실제 하네스는 LLM 이 description 을 읽고 고르므로 다른 함수다.</p>
+      <p class="note">Tier 3 는 돌리지 않았다. headless <code class="wl">claude -p</code> 로 실행 trace 를 만들고 별도 모델이 채점하므로 토큰을 쓴다. 스킬이 에이전트 행동을 실제로 바꾸는지, 이 문서에 측정치가 없다.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">compare</p>
+      <h2>이웃 팩 대조. 별 수로는 네 개 중 꼴찌고, 병합 비율로는 가장 낫다</h2>
+      <p class="dek">저장소는 <code class="wl">docs/comparison.md</code> 라는 자기 비교 문서를 갖고 있다. 자기 비교라 편향이 예상되는 문서인데, 거버넌스 주장은 GitHub API 수치와 방향이 같다.</p>
+      <figure class="figure">
+        <p class="fig-title">규모와 처리 방식이 반대로 간다</p>
+        <p class="fig-sub">2026-08-11 <code class="wl">gh api</code> 직접 조회. star 는 repos 엔드포인트, PR 과 issue 는 search 엔드포인트. 시점 값이라 지금 다시 조회하면 다르다</p>
+        <div class="tablewrap"><table>
+          <thead><tr><th>저장소</th><th>star</th><th>병합 PR</th><th>미처리 PR</th><th>열린 이슈</th></tr></thead>
+          <tbody>
+            <tr><td>obra/superpowers</td><td>270,328</td><td>165</td><td>180</td><td>152</td></tr>
+            <tr><td>mattpocock/skills</td><td>212,812</td><td>85</td><td>3</td><td>315</td></tr>
+            <tr><td>anthropics/skills</td><td>167,624</td><td>46</td><td class="lose">762</td><td>310</td></tr>
+            <tr class="hero"><td>addyosmani/agent-skills</td><td class="lose">85,849</td><td>125</td><td>50</td><td>57</td></tr>
+          </tbody>
+        </table></div>
+        <figcaption>이 팩은 별이 가장 적다. 여러 매체가 "가장 많은 별을 가진 skills 저장소"라고 쓰지만 이 조회로는 사실이 아니다. 대신 병합 125건에 미처리 50건으로 처리율이 넷 중 가장 높고, 열린 이슈도 가장 적다. <code class="wl">docs/comparison.md:27</code> 이 Superpowers 를 "a substantial backlog of unmerged community PRs", Pocock 을 "solo-authored, self-merged" 라고 쓴 것은 이 수치와 방향이 같다.</figcaption>
+      </figure>
+      <p>기여자 분포는 solo 와 커뮤니티 사이다. 커밋 419개 중 Addy Osmani 229, Federico Bartoli 34, Joan Leon 35 로 상위 3인이 298개, 약 71% 다. 나머지 67명이 121개를 나눠 갖는다. merge 커밋 135개는 외부 PR 이 실제로 들어오고 있다는 뜻이다. 저자 수는 세는 기준에 따라 다르다. git 원장은 70명(이름 표기 정규화 후), GitHub contributors API 는 59명이다. API 는 GitHub 계정에 연결되지 않은 커밋을 빼기 때문이다.</p>
+      <p class="note">세 이웃 저장소의 코드는 열지 않았다. 별과 PR 수만 대조했으므로 스킬 내용이나 eval 층의 유무는 비교하지 않은 것이고, "왜 superpowers 가 아니라 이것인가"에는 이 장이 답하지 못한다. <code class="wl">docs/comparison.md:30</code> 은 star 와 채택 수치를 일부러 뺐다고 밝힌다. 위 표는 그 문서에 없는 대조다.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">provenance</p>
+      <h2>출처와 신뢰. Google 공식이 아니고, 그 사실이 어디에도 적혀 있지 않다</h2>
+      <p class="dek">저자가 Google Chrome 소속이고 README 가 "Google's engineering culture" 를 앞세우기 때문에 조직 산출물로 읽히기 쉽다. 확인해 보면 신호가 전부 반대를 가리킨다. 부인하는 문구도 없다는 점이 이 장의 요지다.</p>
+      <figure class="figure">
+        <p class="fig-title">소유, 저작권, 도메인, 거버넌스 파일이 모두 개인 프로젝트를 가리킨다</p>
+        <p class="fig-sub">커밋 7676817 의 파일과 2026-08-11 <code class="wl">gh api</code> 조회를 겹친 것. 저장소는 이 대조를 제공하지 않는다</p>
+        <div class="tablewrap"><table class="prose">
+          <thead><tr><th>확인한 것</th><th>값</th><th>읽는 법</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>소유 계정</td><td>addyosmani (User)</td><td><code class="wl">organization: null</code>. <code class="wl">google/</code> 도 <code class="wl">GoogleChrome/</code> 도 아닌 개인 계정이다</td></tr>
+            <tr class="hero"><td>LICENSE 저작권자</td><td>Addy Osmani</td><td>"Copyright (c) 2025 Addy Osmani". Google LLC 이 아니다. 조직 산출물이면 여기가 법인명이다</td></tr>
+            <tr><td>homepage</td><td>skills.addy.ie</td><td>개인 도메인이다</td></tr>
+            <tr><td>공동 관리자 2인</td><td>@madisoft, @PerfReviews</td><td>GitHub 프로필 company 기준으로 둘 다 Google 이 아니다. Google 소속은 저자 1인뿐이다</td></tr>
+            <tr class="hero"><td>CODEOWNERS, CLA, NOTICE, GOVERNANCE</td><td>전부 없음</td><td>기여자 저작권을 정리하는 장치가 없다. 법인이 뒤에 있는 프로젝트에서는 보통 CLA 부터 둔다</td></tr>
+            <tr><td>SECURITY.md</td><td>없음</td><td>취약점 신고 경로가 공시돼 있지 않다. 에이전트에 지시문을 주입하는 패키지라 이 부재는 값이 있다</td></tr>
+            <tr><td>소속 부인 문구</td><td>없음</td><td>공식이라고 하지도, 아니라고 하지도 않는다</td></tr>
+          </tbody>
+        </table></div>
+        <figcaption>커밋 7676817 전체에서 "Google" 이 본문에 나오는 자리는 <code class="wl">README.md:393</code> 한 곳뿐이고, 나머지는 CrUX 와 PageSpeed API 키 이름이다. 그 한 문장은 <b>공개된 자료를 참고했다</b>는 진술이지 승인 표시가 아니다. 근거로 든 <a href="https://abseil.io/resources/swe-book">Software Engineering at Google</a> 과 <a href="https://google.github.io/eng-practices/">eng-practices</a> 는 누구나 읽을 수 있는 공개 문서다.</figcaption>
+      </figure>
+      <p>즉 <b>Google 직원이 만든 개인 프로젝트</b>이고, Google 이 공개한 엔지니어링 자료를 재료로 썼다. 저장소는 이걸 속이지 않는다. Team 표에 소속을 적지 않고 개인 계정과 개인 도메인을 쓴다. 다만 부인도 하지 않아서, 저자의 직함과 README 의 "Google's engineering culture" 가 겹치면 조직 승인으로 읽힐 여지가 남는다. 팀에 제안할 때 "Google 방식"과 "Google 공식"을 갈라 말해야 하는 이유다.</p>
+      <p class="note">개인 프로젝트라는 게 품질 판정은 아니다. 11장에서 본 대로 병합 125건에 미처리 50건으로 처리율은 이웃 넷 중 가장 높다. 다만 bus factor 는 좁다. 커밋 419개 중 저자 1인이 229개, 상위 3인이 298개(71%)다. 이 사람이 멈추면 팩도 멈춘다고 보는 편이 안전하다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">reach</p>
+      <h2>하네스 확장. 이 저장소가 아니라 "agent skills" 분류 전체가 같이 오른다</h2>
+      <p class="dek">일별 star 증가를 실측하면 어댑터 커밋 날이 정점이 아니다. 6월 10일은 그 주에서 가장 낮고 정점은 이틀 뒤다. 같은 날 트렌딩한 다른 저장소들을 보면 오르는 것은 이 저장소가 아니라 분류다.</p>
+      <figure class="figure">
+        <p class="fig-title">어댑터 커밋 날이 그 주의 최저점이고, 정점은 이틀 뒤다</p>
+        <p class="fig-sub">agents-radar 일간 리포트 16건에서 뽑은 하루 star 증가. 이 저장소가 그 리포트에 등장한 날만 값이 있고, 등장하지 않은 날(06-15~07-06, 07-12~08-05)은 빈칸이라 이어지지 않는다</p>
+        <div class="legend"><span><i class="s2"></i>어댑터 커밋 당일</span><span><i class="s1"></i>2,000 이상</span><span><i class="sn"></i>그 외</span></div>
+        <div class="bars">
+          <div class="bar-row is-hero"><span class="bar-name">06-10 <b>어댑터 커밋</b></span><span class="bar-track"><span class="bar s2" style="--w:13.5%"></span></span><span class="bar-val">+443</span></div>
+          <div class="bar-row"><span class="bar-name">06-11</span><span class="bar-track"><span class="bar " style="--w:25.0%"></span></span><span class="bar-val">+821</span></div>
+          <div class="bar-row"><span class="bar-name">06-12</span><span class="bar-track"><span class="bar s1" style="--w:100.0%"></span></span><span class="bar-val">+3,278</span></div>
+          <div class="bar-row"><span class="bar-name">06-13</span><span class="bar-track"><span class="bar s1" style="--w:81.0%"></span></span><span class="bar-val">+2,656</span></div>
+          <div class="bar-row"><span class="bar-name">06-14</span><span class="bar-track"><span class="bar " style="--w:46.2%"></span></span><span class="bar-val">+1,514</span></div>
+          <div class="bar-row"><span class="bar-name">07-07</span><span class="bar-track"><span class="bar " style="--w:33.9%"></span></span><span class="bar-val">+1,112</span></div>
+          <div class="bar-row is-hero"><span class="bar-name">07-08 <b>어댑터 커밋</b></span><span class="bar-track"><span class="bar s2" style="--w:40.2%"></span></span><span class="bar-val">+1,317</span></div>
+          <div class="bar-row"><span class="bar-name">07-09</span><span class="bar-track"><span class="bar " style="--w:39.6%"></span></span><span class="bar-val">+1,297</span></div>
+          <div class="bar-row"><span class="bar-name">07-10</span><span class="bar-track"><span class="bar s1" style="--w:77.9%"></span></span><span class="bar-val">+2,554</span></div>
+          <div class="bar-row"><span class="bar-name">07-11</span><span class="bar-track"><span class="bar " style="--w:34.0%"></span></span><span class="bar-val">+1,116</span></div>
+          <div class="bar-row"><span class="bar-name">08-06</span><span class="bar-track"><span class="bar " style="--w:6.9%"></span></span><span class="bar-val">+226</span></div>
+          <div class="bar-row"><span class="bar-name">08-07</span><span class="bar-track"><span class="bar " style="--w:18.1%"></span></span><span class="bar-val">+593</span></div>
+          <div class="bar-row"><span class="bar-name">08-08</span><span class="bar-track"><span class="bar " style="--w:34.5%"></span></span><span class="bar-val">+1,131</span></div>
+          <div class="bar-row"><span class="bar-name">08-09</span><span class="bar-track"><span class="bar " style="--w:23.8%"></span></span><span class="bar-val">+779</span></div>
+          <div class="bar-row"><span class="bar-name">08-10</span><span class="bar-track"><span class="bar " style="--w:20.7%"></span></span><span class="bar-val">+680</span></div>
+          <div class="bar-row"><span class="bar-name">08-11</span><span class="bar-track"><span class="bar " style="--w:20.1%"></span></span><span class="bar-val">+659</span></div>
+        </div>
+        <div class="bar-axis"><div class="ticks"><span>0</span><span>800</span><span>1,600</span><span>2,400</span><span>3,278</span></div></div>
+        <figcaption>붉은 두 행이 <code class="wl">feat: add native support for Antigravity CLI (agy)</code>(06-10)와 <code class="wl">fix: use root Codex plugin layout</code>(07-08)이 들어온 날이다. 6월 구간에서 06-10 은 최저이고 정점 06-12 의 <b>7분의 1</b>이다. 7월도 커밋일보다 이틀 뒤가 높다. Trendshift 가 "최초 1위"로 기록한 날과 실제 유입이 몰린 날이 어긋난다. 세 구간의 값은 서로 이어지지 않는다. 이 저장소가 일간 리포트에 오른 날만 집계돼서다.</figcaption>
+      </figure>
+      <p>리포트가 매번 같은 말을 한다. 06-10 "explosive surge in <b>AI agent skills and harnesses</b>", 06-12 "<b>Agent Skills Marketplace is the breakout phenomenon today</b>. 상위 5개 중 3개가 agent skills 이고 세 프로젝트가 그날 합계 7,000 이상", 07-08 "the aftermath of <b>Anthropic's Claude Code launch</b> and <b>OpenAI's Codex evolution</b>", 08-09 "google/skills, addyosmani/agent-skills, mattpocock/skills 이 같은 날 올랐다". 오르는 것은 이 저장소 하나가 아니라 <b>분류</b>다.</p>
+      <p>그리고 분류가 뜨는 시점은 주요 코딩 에이전트 하네스에 사건이 있을 때다. 6월은 Antigravity 이주기(2026-05-19 공개, Gemini CLI 2026-06-18 은퇴), 7월은 Claude Code 런칭과 Codex 개편, 8월은 <code class="wl">google/skills</code> 등장이다. 어댑터 커밋도 같은 사건에 대한 반응이다. 즉 커밋과 트렌딩은 <b>공통 원인의 두 결과</b>로 읽는 편이 자료에 맞고, 커밋이 트렌딩을 만들었다고 볼 근거는 위 차트가 오히려 약화시킨다.</p>
+      <div class="grid g2" style="margin-bottom:16px">
+        <div class="card"><span class="tag">저자 쪽 홍보는 5주 앞이다</span>
+          <p class="small">블로그 글 2026-05-03, 이튿날 Hacker News 프론트 페이지에 <b>376 points / 212 comments</b>. 당시 27K stars 였다. O'Reilly Radar 재게재가 05-27.<br><br>
+          다만 6월 급등과 5주 간격이라 직접 원인으로 보기 어렵다. 저장소 URL 자체는 2026-04-07 에 HN 에 올랐다가 <b>2 points</b> 로 묻혔다.</p>
+        </div>
+        <div class="card"><span class="tag">같은 날 겹친 다른 사건</span>
+          <p class="small">06-10 에는 태그 <code class="wl">0.6.2</code> 도 찍혔다. 어댑터 추가와 릴리스를 이 날짜만으로 분리할 수 없다.<br><br>
+          07-08 쪽은 태그가 비껴가지만(<code class="wl">0.6.3</code> 07-02, <code class="wl">0.6.4</code> 07-12), <code class="wl">evals/</code> 가 07-03 에 들어왔다. 3단 eval 이라는 차별점이 닷새 전에 생겼다.</p>
+        </div>
+      </div>
+      <p class="note warn">이 시계열은 제3자 일간 집계 하나에서 나온 것이고 산출 방식은 공개돼 있지 않다. 이 저장소가 그 리포트에 오른 날만 값이 있어서, 오르지 않은 날의 증가량은 모른다. GitHub 이 stargazer API 를 막아 원본 곡선으로 대조하지 못했다. "분류가 같이 오른다"까지는 리포트가 직접 말하지만, 그게 <em>왜</em> 그 시점이었는지는 리포트의 해석을 그대로 옮긴 것이지 이 문서가 검증한 것이 아니다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>해석의 한계. 문서가 말하는 컨텍스트 비용과 훅이 실제로 넣는 양이 다르다</h2>
+      <p class="dek">도입 판단이 걸린 항목 중 하나에서 문서와 코드가 어긋난다. 컨텍스트 비용이다.</p>
+      <div class="grid g2">
+        <div class="card"><span class="tag">문서</span>
+          <p class="small"><code class="wl">docs/skill-anatomy.md:123</code><br><br>"Skills load on demand: only the skill name and description sit in context at startup."</p>
+        </div>
+        <div class="card"><span class="tag">코드</span>
+          <p class="small"><code class="wl">hooks/session-start.sh</code> 는 SessionStart 마다 <code class="wl">using-agent-skills/SKILL.md</code> <b>전문 191줄</b>을 <code class="wl">priority: "IMPORTANT"</code> 메시지로 주입한다. 주석이 스스로 "Injects the using-agent-skills meta-skill into every new session" 이라고 적는다.</p>
+        </div>
+      </div>
+      <p style="margin-top:16px">둘 다 사실이다. 개별 스킬은 정말 on-demand 로 뜨고, 라우터 한 장만 상시로 올라간다. 다만 "startup 에는 name 과 description 만"이라는 문장을 그대로 읽으면 예산을 잘못 잡는다. 이 훅이 실제로 발동하는지는 읽어서 확정하지 못했다. <code class="wl">.claude-plugin/plugin.json</code> 은 <code class="wl">commands</code> 와 <code class="wl">skills</code> 만 선언하고 hooks 를 참조하지 않는다. 훅 명령 자체는 <code class="wl">${CLAUDE_PLUGIN_ROOT}/hooks/session-start.sh</code> 를 가리키므로 플러그인 루트 규약에 의한 자동 발견을 전제한 것으로 보이지만, 설치해서 확인하지는 않았다.</p>
+      <ul class="clean">
+        <li><span class="m bad">1</span><span><b>팩의 한계. Tier 1 검사기 자신이 테스트되지 않는다.</b> 검사기 6종 중 <code class="wl">validate-skills.js</code> 하나만 <code class="wl">*-test.js</code> 가 없다. 스킬 본문 구조를 보는 게 이 검사기이므로, 구조 게이트가 조용히 망가져도 알아챌 장치가 없다. 훅 테스트 2개는 존재하지만 어느 CI job 도 돌리지 않는다.</span></li>
+        <li><span class="m bad">2</span><span><b>팩의 한계. 일부만 켜는 방법이 없다.</b> 24개 전부 모델이 자동으로 불러올 수 있고 <code class="wl">disable-model-invocation</code> 은 0건이다. 6개만 원하는 팀도 나머지 18개의 description 을 매 세션 컨텍스트에 얹는다. 이 비용은 재지 않았다.</span></li>
+        <li><span class="m bad">3</span><span><b>팩이 인정한 한계. 낱개 설치는 링크가 깨진다.</b> <code class="wl">npx skills add --skill &lt;name&gt;</code> 은 저장소 루트의 <code class="wl">references/</code> 를 가져오지 않는다. README 와 <code class="wl">skill-anatomy.md</code> 가 스스로 밝히고 이슈 #361 로 추적한다. 이 문서가 찾아낸 게 아니라 팩이 공시한 것이다.</span></li>
+        <li><span class="m bad">4</span><span><b>조사의 한계. 산문 강제의 효과를 재지 못했다.</b> 6장의 인젝션 방어와 4장의 145행 반박표가 에이전트 행동을 실제로 바꾸는지, 증거가 이 문서에 없다. 답을 낼 수 있는 건 Tier 3 뿐인데 상시 게이트가 아니고 토큰을 쓴다. 10장의 86% 도, 13장의 날짜 일치도 같은 성격이다. 코드와 이력에서 읽을 수 있는 데까지가 이 문서의 범위다.</span></li>
+      </ul>
+      <p class="note">한계를 넘어 남는 것이 하나 있다. Tier 2 는 이 팩과 무관하게 성립하는 아이디어다. 스킬을 여러 개 쓰는 팀이라면 description 끼리의 코사인 유사도에 상한을 걸어 CI 를 실패시키는 것만으로, 스킬이 왜 발동하지 않았는지 나중에 헤매는 일을 앞당겨 잡는다. 이 팩을 도입하지 않기로 해도 이 검사는 가져갈 수 있다.</p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adopt</p>
+      <h2>도입 판단. trial. 팀 표준으로는 쓸 만하고, 보안 경계로는 쓰면 안 된다</h2>
+      <p class="dek">되돌리기가 쉽고 lock-in 이 없어 시험 비용이 낮다. 무엇부터 켤지는 저장소가 <code class="wl">docs/adoption-guide.md</code> 에서 직접 답한다. 그린필드는 전 수명주기를 즉시, 브라운필드는 읽기 전용 스킬부터 4단계로 올리라고 한다. 아래는 그 가이드가 답하지 않는 것, 즉 켤지 말지다.</p>
+      <div class="grid g2">
+        <div class="card"><span class="tag">확인한 것</span>
+          <p class="small"><b>License</b> MIT 전문. 예외 조항이나 서드파티 carve-out 없이 표준 문구 그대로다.<br>
+          <b>의존성</b> 저장소에 <code class="wl">package.json</code> 이 없다(eval fixture 하나 제외). 감사할 의존성 트리도, 패치할 CVE 표면도 없다는 뜻이다. 툴체인은 stdlib Node 와 훅 하나의 jq 뿐이다. SessionStart 훅은 <code class="wl">jq</code> 를 요구하고, 없으면 INFO 를 내고 조용히 빠진다. Tier 2 를 떼어 쓰려면 Node 가 필요하다. <code class="wl">docs/developer-onboarding.md:39</code> 는 Node 20+, 워크플로는 24 로 돈다.<br>
+          <b>유지 상태</b> 6개월간 커밋 419개, 태그 8개(0.5.0~0.6.6), merge 커밋 135개, 저자 70명(GitHub contributors API 기준으로는 59명). 마지막 커밋 2026-08-08.<br>
+          <b>테스트</b> 검사기 6종 중 5종에 <code class="wl">*-test.js</code> 가 있고 CI 가 <code class="wl">node --test</code> 로 돌린다. <code class="wl">validate-skills.js</code> 만 테스트가 없는데, 이게 스킬 본문 구조를 보는 Tier 1 검사기다. 훅 테스트 2개(<code class="wl">session-start-test.sh</code>, <code class="wl">simplify-ignore-test.sh</code>)는 존재하지만 어느 job 도 돌리지 않는다.<br>
+          <b>CI 가 보증하는 것</b> job 4개 중 마지막 둘이 매 push 마다 <code class="wl">claude plugin validate .</code> 와 <code class="wl">claude plugin install</code> 까지 실제로 돌린다. 설치가 깨진 채 머지되지는 않는다는 뜻이다.</p>
+        </div>
+        <div class="card"><span class="tag">설치 경로와 남는 것</span>
+          <p class="small">README 가 <b>첫 번째로</b> 권하는 경로는 <code class="wl">npx skills add</code> 이고, 이건 <a href="https://github.com/vercel-labs/skills">vercel-labs/skills</a> 라는 제3자 CLI 다(<code class="wl">README.md:45</code>). 70+ 에이전트 지원을 실제로 떠받치는 것은 어댑터 디렉터리가 아닌 이 도구다. 공급망이 하나 더 붙는다는 뜻이고, 이 문서는 그 도구를 조사하지 않았다.<br><br>
+          훅 중 자동으로 도는 것은 SessionStart 하나뿐이고 파일을 쓰지 않는다. <code class="wl">.claude/sdd-cache/</code> 와 <code class="wl">.claude/.simplify-ignore-cache/</code> 를 만드는 훅은 <code class="wl">hooks.json</code> 에 없고 <code class="wl">hooks/SDD-CACHE.md:13</code> 이 안내하는 수동 설정 opt-in 이다.<br><br>
+          되돌리기는 플러그인 제거와 캐시 디렉터리 삭제로 끝난다. 단 이건 marketplace 설치 기준이고 <code class="wl">npx skills</code> 경로가 무엇을 복사하는지는 확인하지 않았다.</p>
+        </div>
+      </div>
+      <figure class="figure" style="margin-top:16px">
+      <p class="fig-title">상황별 판단은 갈린다. 팀이면 adopt, 개인이면 trial, 신뢰 경계면 hold</p>
+      <p class="fig-sub">행은 읽는 사람의 상황으로 잡았다. 이 표가 새로 만든 사실은 없다</p>
+      <div class="tablewrap"><table class="prose">
+        <thead><tr><th>상황</th><th>판단</th><th>근거</th></tr></thead>
+        <tbody>
+          <tr class="hero"><td>여러 하네스를 쓰는 팀의 공통 규율</td><td>adopt</td><td>어댑터 디렉터리 7개, 저장소가 세는 지원 대상 11곳. 스킬 본문이 하나라 하네스를 바꿔도 규율이 따라간다</td></tr>
+          <tr><td>스킬을 직접 여러 장 쓰는 팀</td><td>adopt</td><td>Tier 2 만 떼어다 자기 카탈로그에 걸 수 있다. 무료고 결정론적이다</td></tr>
+          <tr><td>Claude Code 하나만 쓰는 개인</td><td>trial</td><td>이식성 때문에 비운 <code class="wl">allowed-tools</code>, <code class="wl">context: fork</code> 를 당신은 쓸 수 있다. 다만 <code class="wl">npx skills --skill</code> 로 낱개 설치하면 14장의 <code class="wl">references/</code> 유실을 그대로 맞으므로, 저장소를 통째로 클론한 뒤 필요한 스킬만 복사하고 프론트매터를 채우는 편이 낫다</td></tr>
+          <tr><td>에이전트를 신뢰 경계로 삼아야 하는 곳</td><td class="lose">hold</td><td>6장에서 본 이유 그대로다. 이 팩이 막을 수 있는 것은 에이전트가 절차를 잊는 경우이고, 절차를 거스르기로 한 경우가 아니다</td></tr>
+        </tbody>
+      </table></div>
+      <figcaption>네 행 중 셋이 조건부이고, 갈리는 기준은 하나다. 이 팩을 <b>공통 어휘</b>로 쓰면 값이 나오고, <b>강제 장치</b>로 쓰면 나오지 않는다. 요구가 어긋날 때 잘라낼 지점은 절반만 문서화돼 있다. <code class="wl">CONTRIBUTING.md</code> 의 "Adding a New Skill" 과 "Modifying Existing Skills" 는 <b>업스트림에 기여하는</b> 규칙이고, 내 저장소에서 스킬 하나를 덮어쓰거나 24개 중 일부만 켜는 방법은 어디에도 없다.</figcaption>
+      </figure>
+      <p class="note warn">버전 고정 수단이 보이지 않는다. <code class="wl">.claude-plugin/marketplace.json</code> 의 설치 소스는 <code class="wl">{"source":"github","repo":"addyosmani/agent-skills"}</code> 뿐이고 ref, tag, branch 키가 없다. 같은 파일의 <code class="wl">version: 0.6.6</code> 은 메타데이터로 보이지만, 하네스가 그 값으로 고정하는지는 설치해 보지 않아 확정하지 못했다. 6개월에 커밋 419개인 저장소에서 규율이 산문으로 걸려 있다면, 업그레이드가 곧 에이전트 행동 변경이다. 팀 표준으로 쓸 거라면 fork 하거나 특정 커밋을 vendoring 하는 쪽을 권한다. 컨텍스트 비용도 재지 않았다. SessionStart 훅의 191줄과 description 24개가 매 세션 상시로 올라간다.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론. 새로운 건 스킬을 쓰는 방법이 아니라 스킬을 검사하는 방법이다</h2>
+      <p class="dek">세 질문의 답은 아래 세 줄이다. 셋 다 이 팩의 새로움이 스킬 본문 바깥에 있다고 가리킨다. 본문의 규율은 이웃 팩에도 있고, 검사 층과 어댑터 층이 이 팩만의 것이다.</p>
+      <ul class="clean">
+        <li><span class="m">Q1</span><span><b>Claude Skills 와의 대비는 축소 쪽이다.</b> Claude Code 가 받는 20개 필드 중 2개만 쓰고, 이식 규격의 6개 키 중에서도 2개만 쓴다. 지원 대상 11곳에서 같은 파일이 도는 대가로 포기한 것은 Claude Code 전용 14개다. 그런데 이식 규격 안에 있어 공짜인 <code class="wl">allowed-tools</code> 까지 비어 있으니, 도구 권한 게이트가 비어 있는 건 이식성으로 설명되지 않는 별개의 선택이다.</span></li>
+        <li><span class="m">Q2</span><span><b>hardening 의 내용은 새롭지 않고 위치가 새롭다.</b> untrusted 데이터 doctrine 도, 변명 반박표도 다른 곳에 있다. 없던 건 스킬 <em>카탈로그</em>를 결정론적으로 검사해 CI 에 거는 층이다. description 이 사용자 어휘를 담는지, 두 스킬이 라우팅에서 충돌하는지를 모델 호출 없이 막는다.</span></li>
+        <li><span class="m">Q3</span><span><b>트렌딩의 단위는 저장소가 아니라 분류다.</b> 일별 star 증가에서 어댑터 커밋 날은 그 주의 최저점이고 정점은 이틀 뒤다. 같은 날 <code class="wl">google/skills</code>, <code class="wl">mattpocock/skills</code> 가 함께 오른다. 분류가 뜨는 시점은 코딩 에이전트 하네스에 사건이 있을 때이고, 어댑터 커밋도 그 사건에 대한 반응이다.</span></li>
+      </ul>
+      <p style="margin-top:18px">읽고 남는 건 트레이드오프 하나다. 규율을 하네스에 강제시키면 확실하지만 그 하네스에 묶인다. 산문에 맡기면 어디서나 돌지만 에이전트가 안 지켜도 알 방법이 없다. 이 팩은 후자를 고르고, 대신 <b>규율이 지켜지는지</b>가 아니라 <b>규율이 발동하는지</b>를 기계로 검사한다. 그 절충이 옳은지는 Tier 3 를 돌려야 알 수 있고, 그건 이 문서 밖이다.</p>
+      <p class="note">같은 문제를 반대 방향으로 푼 사례가 이 저장소 안에 있다. <a class="xref" href="../2026-08-07-loopx-deterministic-loop-harness/">LoopX: 결정론적 루프 하네스</a> 는 규율을 실행기에 넣는다.</p>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처. 코퍼스 한 개와 대조용 외부 자료 넷</h2>
+      <p class="dek">저장소는 전체 이력을 받아 커밋에 고정했다. 별 수와 PR 수는 조회 시점의 값이라 지금 다시 조회하면 다르다.</p>
+      <div class="src">
+        <p><b>코퍼스</b></p>
+        <p><a href="https://github.com/addyosmani/agent-skills/tree/7676817c12a1317454ae3898a0c5c1eacf5dd3d5">addyosmani/agent-skills @ 7676817c12a1317454ae3898a0c5c1eacf5dd3d5</a><br>
+        <span class="t">전체 클론(shallow 아님). 커밋 419개, 태그 8개, 파일 184개. MIT. 2026-08-08 HEAD.<br>
+        재현: <code class="wl">git clone https://github.com/addyosmani/agent-skills &amp;&amp; git checkout 7676817</code></span></p>
+        <p><b>규격 대조</b></p>
+        <p><a href="https://code.claude.com/docs/en/skills">Claude Code · Extend Claude with skills</a><br>
+        <span class="t">5장의 필드 20개와 이식 규격 6개 키의 출처. 2026-08-11 조회. 문서에 버전 표기가 없어 이후 필드가 늘거나 줄 수 있다.</span></p>
+        <p><b>트렌딩 집계</b></p>
+        <p><a href="https://trendshift.io/repositories/25200">Trendshift · addyosmani/agent-skills</a><br>
+        <span class="t">13장 아래 줄의 날짜. 2026-08-11 조회. 제3자 집계이고 산출 방식은 공개돼 있지 않다. star-history.com 은 GitHub 의 stargazer API 제한으로 데이터를 주지 못했고, <code class="wl">gh api stargazers</code> 도 404 를 반환해 별 증가 곡선은 확인하지 못했다.</span></p>
+        <p><a href="https://github.com/duanyytop/agents-radar/issues?q=addyosmani%2Fagent-skills">agents-radar, AI Open Source Trends 일간 리포트 16건</a><br>
+        <span class="t">13장 차트의 star 증가 시계열 전부. 이슈 1539·1557·1575·1593·1611(6월), 2002·2017·2037·2055·2071(7월), 2529·2550·2570·2587·2601·2620(8월). 제3자 집계이고 산출 방식은 공개돼 있지 않다. 표의 "total stars 0" 은 데이터 결손이라 인용하지 않았다.</span></p>
+        <p><a href="https://hn.algolia.com/api/v1/search?query=addyosmani%20agent-skills&amp;tags=story">Hacker News Algolia 검색</a><br>
+        <span class="t">13장의 376 points / 212 comments(2026-05-04, 블로그 글)와 2 points(2026-04-07, 저장소 URL). 공개 API 라 재조회하면 같은 값이 나온다.</span></p>
+        <p><b>배경</b></p>
+        <p><a href="https://addyosmani.com/blog/agent-skills/">Addy Osmani, Agent Skills (2026-05-03)</a> · <a href="https://www.oreilly.com/radar/agent-skills/">O'Reilly Radar 재게재 (2026-05-27)</a><br>
+        <span class="t">두 글 모두 당시 27K stars 라고 적는다. 2026-08-11 조회값 85,849 와 비교하면 3개월 만에 3배가 넘는다.</span></p>
+        <p><b>이웃 팩</b></p>
+        <p><a href="https://github.com/obra/superpowers">obra/superpowers</a> · <a href="https://github.com/mattpocock/skills">mattpocock/skills</a> · <a href="https://github.com/anthropics/skills">anthropics/skills</a><br>
+        <span class="t">11장 표의 수치는 2026-08-11 <code class="wl">gh api</code> 조회다. 세 저장소의 코드는 열지 않았고, 별과 PR 수만 대조했다.</span></p>
+      </div>
+      <p class="note">렌더링된 페이지는 확인하지 않았다. headless 브라우저를 쓰지 않았고, 정적 게이트 통과와 화면에서 제대로 보이는 것은 다른 문제다.</p>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 17</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
