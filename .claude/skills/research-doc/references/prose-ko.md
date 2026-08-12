@@ -46,6 +46,62 @@ evidence is weak, name what is missing. That is useful; vagueness is not.
 **Forced symmetry.** Three upsides do not obligate three downsides. Write what the
 evidence supports and stop.
 
+## Residue of the work
+
+A separate family, and the one that survives longest, because every sentence in it is
+true. It is in the document because of how the document was made, not because a reader
+needs it. Chapter ⑦ is the one place these belong; anywhere else they break the reader's
+attention and hand back nothing.
+
+**Incidental findings.** Something you learned while looking for something else. Real to
+you, weightless to a reader deciding anything.
+
+- ✗ SWEET 논문이 인용한 탐지기 목록에 GPTZero 도 들어 있다.
+- ✓ (자르거나, 그 사실이 실제로 바꾸는 주장 옆으로 옮긴다)
+
+**Sourcing narration outside ⑦.** Which tool fetched what, which route failed, what you
+did not run.
+
+- ✗ 이 문서는 그 도구를 실행해 보지 않았고 규격 본문까지 확인하지도 않았다.
+- ✓ (⑦로. 그 자리에는 그림이 무엇을 보여주는지만 남긴다)
+
+**Asides.** A parenthesis that interrupts the sentence to add something the sentence did
+not need. If it matters it is a sentence; if it does not it is gone.
+
+- ✗ 탐지는 z 검정으로 한다(참고로 이 검정은 단측이다).
+- ✓ 탐지는 단측 z 검정으로 한다.
+
+**Monologue.** 여기서 잠깐 정리하면, 이 부분이 헷갈릴 수 있는데, 다시 말해. The reader
+is not in the room with you.
+
+**Visible self-correction.** 앞에서 A 라고 했는데 정확히는 B 다. Fix A and write B.
+
+## Borrowed emphasis
+
+These arrive already assembled and they read as decoration because they are. A claim
+carried by an adjective is a claim with no evidence behind it.
+
+**Manufactured significance.** 중요한 전환점, ~을 시사한다, ~의 상징적인 사례,
+~을 보여주는 방증. Say what changed and let the reader size it.
+
+- ✗ 이 결정은 AI 투명성 논의의 중요한 전환점을 시사한다.
+- ✓ 이 결정으로 Claude 출력 전부에 마크가 붙는다. 전환점인지는 탐지기가 나와야 안다.
+
+**Vague attribution.** 업계에서는, 전문가들은, 일각에서는. Name who said it or drop it.
+
+- ✗ 업계에서는 이를 규제 대응으로 보는 시각이 많다.
+- ✓ Cui 는 이를 regulatory hoop-jumping 이라고 불렀다.
+
+**Promotional adjectives.** 강력한, 획기적인, 풍부한, 정교한, 탄탄한. Replace with the
+property that earned the adjective, or cut.
+
+**The challenges-and-prospects close.** 여러 한계에도 불구하고 가능성은 열려 있다.
+A paragraph that would be true of anything is about nothing. ⑨ already carries the limits
+and it names them.
+
+**Elegant variation.** Swapping in a synonym to avoid repeating a term. In a document
+full of technical terms this reads as two different things. Repeat the term.
+
 **`~가 아니라 ~다` as a default frame.** Doubles a sentence whose second half carries all
 the information, and the discarded half often smuggles in a claim nobody made.
 
