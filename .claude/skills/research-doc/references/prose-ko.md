@@ -59,11 +59,20 @@ you, weightless to a reader deciding anything.
 - ✗ SWEET 논문이 인용한 탐지기 목록에 GPTZero 도 들어 있다.
 - ✓ (자르거나, 그 사실이 실제로 바꾸는 주장 옆으로 옮긴다)
 
-**Sourcing narration outside ⑦.** Which tool fetched what, which route failed, what you
-did not run.
+**Sourcing narration outside ⑦.** Which tool fetched it, which route failed, how many
+tries it took.
 
 - ✗ 이 문서는 그 도구를 실행해 보지 않았고 규격 본문까지 확인하지도 않았다.
 - ✓ (⑦로. 그 자리에는 그림이 무엇을 보여주는지만 남긴다)
+
+**Where the line falls: what the sentence bounds.** A sentence about how the document was
+made goes to ⑦. A sentence about what the evidence cannot support stays beside the claim it
+weakens, because that is the only position from which it stops a reader over-reading. The
+two look alike and do opposite jobs, so decide by what the sentence is about, not by
+whether it contains a negation.
+
+- ⑦ 로: 이 문서는 그 도구를 실행해 보지 않았다
+- 주장 옆에: 이 경로의 테스트는 찾지 못했다 (`grep -rn 'reconnect' **/*.test.ts` → 0건)
 
 **Asides.** A parenthesis that interrupts the sentence to add something the sentence did
 not need. If it matters it is a sentence; if it does not it is gone.
@@ -96,8 +105,10 @@ carried by an adjective is a claim with no evidence behind it.
 property that earned the adjective, or cut.
 
 **The challenges-and-prospects close.** 여러 한계에도 불구하고 가능성은 열려 있다.
-A paragraph that would be true of anything is about nothing. ⑨ already carries the limits
-and it names them.
+A paragraph that would be true of anything is about nothing. This is not the rule that ⑨
+should not end on a purely negative note: that one asks for a **named** result that
+survives the limits and transfers somewhere. Vague optimism is the slop; the named result
+is the requirement, and the two are told apart by whether a reader could act on it.
 
 **Elegant variation.** Swapping in a synonym to avoid repeating a term. In a document
 full of technical terms this reads as two different things. Repeat the term.
