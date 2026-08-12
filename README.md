@@ -55,13 +55,16 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 │   └── 2026-08-05-llm-wiki-retrieval-as-reasoning/
 │       ├── index.html              # 문서 본문 (자체 완결)
 │       └── meta.json               # 목록에 표시할 정보
-└── .research/                      # 조사 작업 산출물 (git 에 올라가지 않음)
+└── .research/                      # 근거
     └── 2026-08-05-llm-wiki-retrieval-as-reasoning/
         ├── sources.jsonl           # 무엇을 읽었는가 (repo+commit, arxiv_id+version)
-        └── claims.jsonl            # 어떤 주장을 어디에 근거했는가
+        ├── claims.jsonl            # 어떤 주장을 어디에 근거했는가
+        └── notes/                  # 작업 중 산출물 (git 에 올라가지 않음)
 ```
 
 `research/` 와 `.research/` 는 **같은 디렉터리 이름**을 씁니다. 그래야 `check-claims.mjs research/<slug>` 한 줄로 근거를 찾을 수 있고, 매핑 파일이나 작업 경로가 발행물에 새어 들어가지 않습니다.
+
+`sources.jsonl` 과 `claims.jsonl` 은 커밋합니다. 조사는 머신 여러 대에서 이뤄지는데, 발행물만 머지되고 근거가 따라오지 않으면 받는 쪽에서 그 문서의 수치를 하나도 다시 확인할 수 없습니다. 두 파일 모두 문서당 수 KB입니다. `notes/` 는 다듬지 않은 중간 산출물이라 올리지 않습니다.
 
 스크립트가 두 곳에 나뉜 기준은 **누가 돌리는가**입니다. `scripts/` 는 발행물을 검사하고 목록을 만드는 저장소 게이트라서 skill 이 없어도 사람이 그대로 돌립니다. skill 안의 스크립트는 `.research/` 의 작업 산출물만 다루므로 그 skill 의 절차 밖에서는 쓸 일이 없습니다.
 
