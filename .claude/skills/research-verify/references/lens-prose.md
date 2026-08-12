@@ -49,6 +49,11 @@ own. Go slide by slide and ask what each sentence buys the reader.
   attribution (업계에서는, 전문가들은), promotional adjectives, a
   challenges-and-prospects close, elegant variation.
 
+Two of these have a legitimate twin and a pattern match cannot tell them apart. A statement
+of what the evidence cannot support belongs beside the claim it weakens, not in the coverage
+chapter. A closing paragraph that names a result which survives the limits is required, not
+slop. Read what the sentence is about before flagging it.
+
 These two are why this lens exists. A person reads these documents, and a true sentence
 that buys them nothing still costs them the attention they were spending on the argument.
 
