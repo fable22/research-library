@@ -48,7 +48,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 │   ├── research-doc/               # 문서 작성
 │   │   └── references/             # prose-ko.md, paper.md, oss.md
 │   └── research-verify/            # 초고 적대적 검토
-│       ├── references/             # 렌즈 3개
+│       ├── references/             # 렌즈 4개
 │       └── scripts/check-claims.mjs    # 주장이 고정된 원문에 근거하는지 검사
 ├── research/                       # 발행물만
 │   └── 2026-08-05-llm-wiki-retrieval-as-reasoning/

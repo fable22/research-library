@@ -24,8 +24,8 @@ this review.
 Here is what a developer actually checks. Go through them against the document.
 
 - **License.** Did the document check the actual file, or copy a badge or an API field?
-  These disagree more often than you'd expect. An AGPL-family license changes the
-  decision entirely and is sometimes absent from the README badges.
+  Check which one it used. An AGPL-family license changes the decision entirely and is
+  sometimes absent from the README badges.
 - **Maintenance vitality.** Commit frequency, contributor spread, issue response. But if
   `{SOURCES_PATH}` or chapter 7 shows a shallow clone, these numbers **cannot have
   a source.** If the document asserts them anyway, that is a finding.
@@ -44,9 +44,9 @@ Here is what a developer actually checks. Go through them against the document.
 Someone else checks whether the numbers are right. You check **the bridge from the
 numbers to the conclusion.**
 
-- Did a controlled comparison really vary only the one thing? (Real case: an ablation
-  cut the budget as well as the mechanism, and the document claimed that variant escaped
-  a budget-asymmetry objection. It does not.)
+- Did a controlled comparison really vary only the one thing? An ablation that cuts the
+  budget as well as the mechanism does not escape a budget-asymmetry objection, however
+  the document reads it.
 - Do the limits the document admits actually reduce its conclusion, or are they listed
   and then ignored?
 - If the claim is "good under conditions", is there enough here to tell whether your
