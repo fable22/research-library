@@ -1,0 +1,1009 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude 텍스트 워터마크: 마크는 Claude 를 거쳤다는 신호까지만 증명한다</title>
+<meta name="description" content="앤트로픽은 워터마크를 넣는다고만 밝히고 원리는 적지 않았다. KGW 원논문과 SynthID-Text 논문에서 임계값, 최소 길이, 엔트로피 의존성을 확인해 코드와 짧은 글에 신호가 실리지 않는 이유를 정리한다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Claude 텍스트 워터마크: 마크는 Claude 를 거쳤다는 신호까지만 증명한다">
+<meta property="og:description" content="앤트로픽은 워터마크를 넣는다고만 밝히고 원리는 적지 않았다. KGW 원논문과 SynthID-Text 논문에서 임계값, 최소 길이, 엔트로피 의존성을 확인해 코드와 짧은 글에 신호가 실리지 않는 이유를 정리한다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-12-claude-text-watermark/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* 마지막 열이 문장인 표. nowrap 이면 옆으로 밀려 읽히지 않는다 */
+table.wrapcell td:last-child, table.wrapcell th:last-child { white-space: normal; text-align: left; min-width: 260px; line-height: 1.5; }
+table.wrapcell td:first-child { white-space: normal; min-width: 130px; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>공식 문서가 멈추는 자리</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>원리 1. 확률 편향</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>원리 2. z 검정</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>원리 3. 엔트로피</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>품질 논쟁</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>파일과 C2PA</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>앤트로픽의 의도</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>지우기 공격</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>탐지기 딜레마</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>사용자가 감수하는 것</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>대응</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>열린 질문</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>결론</span></button>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>Claude 텍스트 워터마크: 마크는 Claude 를 거쳤다는 신호까지만 증명한다</h1>
+      <p class="dek">앤트로픽은 2026년 8월 11일 지원 문서에서 Claude 가 생성한 텍스트에 사람이 알아챌 수 없는 워터마크를 넣는다고 밝혔다. 같은 문서는 그 워터마크가 어떤 원리로 동작하는지 한 줄도 쓰지 않는다. 이 문서는 공식 문서가 확정한 것, 공개 연구가 좁혀놓은 것, 아직 누구도 확인할 수 없는 것을 나눠서 정리한다.</p>
+
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag">03 · 08 · 09</span>
+          <h3>확정된 것</h3>
+          <p class="small">공식 지원 문서가 직접 적은 적용 범위, 파일에 붙는 C2PA 서명, EU AI Act Article 50(2) 라는 근거. 여기까지는 앤트로픽의 진술이다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">04 · 05 · 06 · 07 · 11</span>
+          <h3>좁혀진 것</h3>
+          <p class="small">스트리밍이라는 제약 하나가 쓸 수 있는 방식의 후보를 크게 줄인다. KGW 원논문과 SynthID-Text 논문에서 임계값, 최소 길이, 엔트로피 의존성을 직접 확인한다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">10 · 12 · 13 · 14 · 15</span>
+          <h3>확인할 수 없는 것</h3>
+          <p class="small">탐지기가 없어 Claude 워터마크를 실측한 사람은 아직 아무도 없다. 그 공백이 사용자에게 어떤 위험으로 돌아오는지가 뒷부분이다.</p>
+        </div>
+      </div>
+
+      <p class="note"><b>이 문서가 하지 않는 주장.</b> 앤트로픽은 Claude 가 KGW 계열인지, semantic 계열인지, 다른 무엇인지 밝히지 않았다. 04 장부터 06 장까지는 <b>공개된 방식이 어떻게 동작하는지</b>를 설명한 것이고 Claude 구현을 확인한 것이 아니다. 두 가지를 섞으면 이 문서 전체가 틀린 글이 된다.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약. 마크는 Claude 를 거쳤다는 신호까지만 증명한다</h2>
+      <p class="dek">워터마크는 텍스트에 심는 보이지 않는 문자가 아니라 단어 선택을 통계적으로 편향시킨 흔적이다. 그래서 붙는 자리와 안 붙는 자리가 원리적으로 갈리고, 코드처럼 선택지가 적은 텍스트가 가장 안 붙는 쪽이다. 그리고 마크의 유무는 저작자를 증명하지 않는다. 공식 문서가 그렇게 못 박는다.</p>
+
+      <div class="stats">
+        <div class="stat hero">
+          <span class="lab">KGW 하드 방식 최소 길이</span>
+          <span class="val">16<span class="u"> tokens</span></span>
+          <span class="sub">z&gt;4 임계값에 도달하는 최소 토큰 수 (KGW 2절). Claude 수치가 아니다</span>
+        </div>
+        <div class="stat">
+          <span class="lab">그때의 위양성 확률</span>
+          <span class="val">3×10<span class="u">⁻⁵</span></span>
+          <span class="sub">z&gt;4 의 단측 p 값 (KGW 2절). 앤트로픽은 자사 임계값을 공개하지 않았다</span>
+        </div>
+        <div class="stat bad">
+          <span class="lab">Watermark Stealing 성공률</span>
+          <span class="val">&gt;80<span class="u">%</span></span>
+          <span class="sub">50 달러 미만으로 spoofing 과 scrubbing 평균 성공률 (arXiv:2402.19361 초록)</span>
+        </div>
+        <div class="stat">
+          <span class="lab">SynthID 품질 영향 (유의차 없음)</span>
+          <span class="val">0.01<span class="u">%</span></span>
+          <span class="sub">Gemini 응답 약 2,000만 건에서 thumbs-up 비율 차이. 워터마크 모델이 높은 쪽이고 유의하지 않다 (Nature 634:818)</span>
+        </div>
+      </div>
+
+      <ul class="clean">
+        <li><span class="m">1</span><span><b>숨은 문자가 아니다.</b> 유니코드 제로폭 문자를 걸러내는 도구로는 지워지지도 찾아지지도 않는다. 신호는 어떤 단어를 골랐는가 그 자체에 있다.</span></li>
+        <li><span class="m">2</span><span><b>길이가 곧 증거다.</b> 통계 검정이므로 짧은 글에는 판정할 재료가 모자란다. 공식 문서도 "너무 짧은 구절"을 탐지 실패 사유로 적었다.</span></li>
+        <li><span class="m">3</span><span><b>코드에는 거의 안 실린다.</b> 선택지가 좁은 텍스트에는 편향을 넣을 자리가 없다. KGW 논문이 저엔트로피 예시로 든 두 문장 중 하나가 <code>for</code> 루프다.</span></li>
+        <li><span class="m bad">4</span><span><b>도용이 더 큰 위험이다.</b> 워터마크를 역설계하면 지우는 데 그치지 않고 <b>붙이는 데</b>도 쓸 수 있다. 내가 쓰지 않은 글에 Claude 마크가 실릴 수 있다.</span></li>
+      </ul>
+
+      <p class="note">위 네 수치 중 Claude 를 대상으로 측정된 것은 하나도 없다. 앤트로픽은 임계값, 최소 길이, 위양성률, 지연시간, 비용 중 어느 것도 숫자로 내놓지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>공식 문서는 적용 범위를 끝까지 적고, 동작 원리에서 멈춘다</h2>
+      <p class="dek">지원 문서 <span class="wl">How Claude marks AI-generated content</span> 는 어디에 적용되는지를 제품 단위, 클라우드 파트너 단위, 지역 단위로 남김없이 적는다. 반면 어떻게 동작하는지에 해당하는 항목은 전부 비어 있다. 이 비대칭이 이 문서가 다루는 문제다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">문서가 확정한 것</span>
+          <ul class="clean small">
+            <li><span class="m">·</span><span>2026년 8월 2일 이후 출시된 Claude 모델은 출시 시점부터 machine-readable marking 을 지원한다. 그 이전 모델은 작업 중이다</span></li>
+            <li><span class="m">·</span><span>텍스트에는 워터마크를 텍스트 자체에 짜 넣는다. <b>모델 레벨</b>에 적용되므로 어느 제품을 거치든 붙는다</span></li>
+            <li><span class="m">·</span><span><code>.svg</code>, <code>.png</code>, <code>.jpg</code> 같은 파일에는 C2PA 서명 provenance metadata 를 붙인다</span></li>
+            <li><span class="m">·</span><span>Claude Platform(API), Claude, Claude Code, Claude Cowork, Claude Tag. AWS, Google Cloud, Microsoft Foundry 경유도 포함</span></li>
+            <li><span class="m">·</span><span>EU 규제가 근거인데 적용은 <b>전 세계</b>다</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag">문서가 밝히지 않은 다섯 항목</span>
+          <ul class="clean small">
+            <li><span class="m bad">·</span><span>알고리즘 계열. KGW 인지, semantic 변형인지, 전혀 다른 방식인지</span></li>
+            <li><span class="m bad">·</span><span>탐지 임계값, 최소 길이, 위양성률, 위음성률</span></li>
+            <li><span class="m bad">·</span><span>지연시간과 추론 비용에 미치는 영향</span></li>
+            <li><span class="m bad">·</span><span>비밀 키 로테이션과, 예전 키로 만든 콘텐츠를 나중에 어떻게 탐지할지</span></li>
+            <li><span class="m bad">·</span><span>탐지 수단의 형태. 로컬 도구인지 API 인지 일부 기관 한정인지. 문서는 "forthcoming technical documentation" 이라고만 적었다</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <blockquote class="q">Because the watermark is part of the text, it will travel with the text when it's copied and pasted elsewhere, and may persist through some editing.<cite>Anthropic, How Claude marks AI-generated content (2026-08-11 갱신)</cite></blockquote>
+
+      <p class="note">The New Stack 도 같은 공백을 지적한다. "Anthropic has not explained how its text watermark works or said whether Claude uses KGW, a semantic version or another method." 뒤이은 04 장부터 06 장은 이 공백을 <b>메우는</b> 것이 아니라, 그 자리에 들어올 수 있는 후보가 어떤 성질을 갖는지 밝히는 것이다.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">mechanism-bias</p>
+      <h2>원리 1. 텍스트에 무언가를 끼워 넣는 것이 아니라, 단어 선택을 편향시킨다</h2>
+      <p class="dek">사용자가 흔히 떠올리는 워터마크는 눈에 안 보이는 유니코드 문자다. 스트리밍으로 토큰을 뱉는 프론티어 모델에서 실제로 굴릴 수 있는 방식은 그게 아니다. GPTZero 의 CTO Alex Cui 는 프론티어 랩이 감당할 만큼 빠르고 싼 방식은 거의 전부 KGW 공식을 따른다고 정리했고, KGW 원논문이 그 공식을 정의한다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">생성과 탐지가 같은 해시를 두 번 만드는 구조다</p>
+        <p class="fig-sub">arXiv:2301.10226v4 의 5절 Algorithm 3(Robust Private Watermarking) 기준</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 780 268" role="img" aria-label="KGW 워터마크의 생성 경로와 탐지 경로를 위아래로 놓은 그림. 생성은 앞선 n개 토큰과 비밀 키로 해시를 만들고, 그 해시로 어휘를 green 과 red 두 집합으로 나눈 뒤 green 토큰의 logit 에 델타를 더해 샘플링한다. 탐지는 검사할 텍스트와 같은 비밀 키로 각 위치의 해시를 재현해 같은 green red 집합을 다시 만들고, green 토큰의 비율을 세어 z 검정한다. 그림의 주장은 같은 비밀 키가 두 경로에서 같은 green red 분할을 만들어 내므로 탐지에 모델이 필요 없다는 것이다. 강조된 곳은 두 경로 사이의 설명 띠 하나다.">
+          <text class="tick" x="10" y="18">생성 (모델 안에서)</text>
+          <rect class="box" x="10"  y="30" width="172" height="62" rx="8"/>
+          <rect class="box" x="206" y="30" width="172" height="62" rx="8"/>
+          <rect class="box" x="402" y="30" width="172" height="62" rx="8"/>
+          <rect class="box" x="598" y="30" width="172" height="62" rx="8"/>
+          <text class="txt"   x="24"  y="57">앞선 n개 토큰</text>
+          <text class="txt-s" x="24"  y="76">+ 비밀 키</text>
+          <text class="txt"   x="220" y="57">해시</text>
+          <text class="txt-s" x="220" y="76">난수 시드를 만든다</text>
+          <text class="txt"   x="416" y="57">green / red 분할</text>
+          <text class="txt-s" x="416" y="76">어휘를 두 집합으로</text>
+          <text class="txt"   x="612" y="57">green 에 δ 가산</text>
+          <text class="txt-s" x="612" y="76">샘플링 → 토큰 n+1</text>
+          <path class="arw" d="M184 61 L202 61"/>
+          <path class="arw" d="M196 56 L202 61 L196 66"/>
+          <path class="arw" d="M380 61 L398 61"/>
+          <path class="arw" d="M392 56 L398 61 L392 66"/>
+          <path class="arw" d="M576 61 L594 61"/>
+          <path class="arw" d="M588 56 L594 61 L588 66"/>
+
+          <rect class="box-hi" x="10" y="108" width="760" height="50" rx="8"/>
+          <text class="txt"   x="26" y="130">같은 비밀 키로 같은 green / red 집합을 다시 만들 수 있다.</text>
+          <text class="txt-s" x="26" y="149">그래서 탐지에는 모델이 필요 없다. 텍스트와 키만 있으면 된다.</text>
+
+          <text class="tick" x="10" y="180">탐지 (모델 없이)</text>
+          <rect class="box" x="10"  y="190" width="172" height="62" rx="8"/>
+          <rect class="box" x="206" y="190" width="172" height="62" rx="8"/>
+          <rect class="box" x="402" y="190" width="172" height="62" rx="8"/>
+          <rect class="box" x="598" y="190" width="172" height="62" rx="8"/>
+          <text class="txt"   x="24"  y="217">검사할 텍스트</text>
+          <text class="txt-s" x="24"  y="236">+ 같은 비밀 키</text>
+          <text class="txt"   x="220" y="217">해시 재현</text>
+          <text class="txt-s" x="220" y="236">각 위치마다</text>
+          <text class="txt"   x="416" y="217">green / red 재구성</text>
+          <text class="txt-s" x="416" y="236">생성 때와 같은 집합</text>
+          <text class="txt"   x="612" y="217">green 비율 세기</text>
+          <text class="txt-s" x="612" y="236">z 검정으로 판정</text>
+          <path class="arw" d="M184 221 L202 221"/>
+          <path class="arw" d="M196 216 L202 221 L196 226"/>
+          <path class="arw" d="M380 221 L398 221"/>
+          <path class="arw" d="M392 216 L398 221 L392 226"/>
+          <path class="arw" d="M576 221 L594 221"/>
+          <path class="arw" d="M588 216 L594 221 L588 226"/>
+        </svg>
+        </div>
+        <figcaption>KGW 의 Algorithm 1 과 2 는 <b>직전 토큰 하나</b>의 해시로 난수 생성기를 시드하고 비밀 키를 쓰지 않는다. 비밀 키와 여러 토큰 윈도우는 5절 Algorithm 3 에서 들어오고, 이 그림은 그쪽이다. 키가 있어야 탐지 권한을 누구에게 줄지가 문제로 성립하므로 이 문서는 5절 쪽을 그린다. red 집합을 아예 금지하는 hard 와 green 의 logit 에 상수 δ 를 더하는 soft 의 구분은 두 경우 모두에 적용된다.</figcaption>
+      </figure>
+
+      <p class="note">이 그림이 Claude 의 구조라는 뜻이 아니다. 앤트로픽은 계열조차 밝히지 않았다. 다만 <b>스트리밍</b>이라는 제약 하나가 후보를 크게 줄인다. Cui 가 적었듯 문장이나 문단 단위로 계획하거나 다 쓴 뒤에 고치는 방식(SemStamp, PostMark)은 토큰을 흘려보내면서 쓸 수 없다.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">mechanism-test</p>
+      <h2>원리 2. 판정은 단어 수를 세는 z 검정이고, 짧은 글에는 셀 것이 모자란다</h2>
+      <p class="dek">탐지기는 텍스트가 워터마크된 것인지를 직접 알지 못한다. green 집합에서 뽑힌 토큰이 우연이라고 보기에 너무 많은지를 검정할 뿐이다. 검정이므로 임계값을 어디에 두느냐가 위양성률을 정하고, 표본이 짧으면 어느 쪽으로도 판정할 수 없다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>항목</th><th>값</th><th>어디에 적혀 있나</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>탐지 임계값 (논문의 예시 설정)</td><td>z &gt; 4</td><td>KGW 2절</td></tr>
+            <tr><td>그때의 위양성 확률</td><td>3×10⁻⁵</td><td>KGW 2절</td></tr>
+            <tr><td>hard red list 가 z=4 에 닿는 최소 길이</td><td>16 tokens</td><td>KGW 2절</td></tr>
+            <tr><td>초록이 말하는 탐지 가능 길이</td><td>as few as 25 tokens</td><td>KGW 초록</td></tr>
+            <tr><td>soft red list 의 파라미터</td><td>γ (green 비율), δ (logit 가산)</td><td>KGW Algorithm 2</td></tr>
+            <tr><td>논문 Figure 1 의 설정</td><td>γ, δ = (0.25, 2)</td><td>KGW Figure 1</td></tr>
+            <tr><td>Figure 1 예시 텍스트의 green 토큰</td><td>기대 9개 대비 실제 28개</td><td>KGW Figure 1</td></tr>
+            <tr><td>그 관측이 우연일 확률</td><td>약 6×10⁻¹⁴</td><td>KGW Figure 1</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="small" style="margin-top:14px">검정 통계량은 γ=0.5 일 때 <code>z = 2(|s|_G − T/2)/√T</code> 이고, 일반형은 <code>z = (|s|_G − γT)/√(Tγ(1−γ))</code> 다. T 는 토큰 수, |s|_G 는 green 토큰 수다. T 가 분모에 √ 로 들어가므로 <b>같은 편향이라도 글이 길수록 z 가 커진다</b>. 이것이 짧은 글에서 탐지가 실패하는 이유이고, 동시에 긴 글에서 몇 단어 고치는 정도로는 지워지지 않는 이유다.</p>
+
+      <p class="small">KGW 는 후자를 수치로 보인다. T=1000 인 워터마크 텍스트에서 공격자가 200개 토큰을 바꾸면 red list 위반은 최대 400개까지 만들어진다. 그래도 green 이 600개 남아 z 는 약 6.3, p 는 약 10⁻¹⁰ 이라 탐지는 그대로 성립한다.</p>
+
+      <p class="note">표에서 hard red list 전용은 <b>16 tokens 한 줄뿐</b>이다. z&gt;4 와 3×10⁻⁵ 는 논문이 soft 를 설명할 때 그대로 다시 쓰는 값이고, 25 tokens 와 Figure 1 의 네 수치는 전부 soft 기준이다. 그리고 soft 에서는 탐지에 필요한 길이가 고정되지 않고 텍스트의 엔트로피에 따라 달라진다. 그 조건이 다음 장이다.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">mechanism-entropy</p>
+      <h2>원리 3. 엔트로피가 없으면 워터마크도 없다. KGW 가 든 저엔트로피 예시가 for 루프다</h2>
+      <p class="dek">편향을 넣으려면 고를 수 있는 단어가 여럿이어야 한다. 다음에 올 토큰이 사실상 하나로 정해진 자리에서는 green 쪽을 밀어줄 여지가 없고, 억지로 밀면 코드가 깨지거나 문장이 이상해진다. 이 제약은 특정 방식의 결함이 아니라 통계적 워터마킹 전체의 성질이다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">KGW 1.2절이 "이건 사람이 썼는지 기계가 썼는지 판별할 수 없다"고 든 두 예시</p>
+        <p class="fig-sub">arXiv:2301.10226v4, 1.2 A caveat: The difficulty of watermarking low-entropy sequences</p>
+<pre>The quick brown fox jumps over the lazy dog
+for(i= 0;i&lt;n;i++) sum+=array[i]</pre>
+        <figcaption>논문의 설명은 두 갈래다. 첫째, 저엔트로피 프롬프트에는 사람과 기계가 비슷하거나 똑같은 완성을 내놓으므로 애초에 구별이 불가능하다. 둘째, 저엔트로피 텍스트는 워터마킹 자체가 어렵다. 토큰 선택을 바꾸면 perplexity 가 튀고 예상 밖 출력이 나오기 때문이다.</figcaption>
+      </figure>
+
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag">KGW (2023)</span>
+          <p class="small">soft 방식의 탐지 민감도를 spike entropy 로 정식화한다. 분포가 한 토큰에 몰려 있을수록 검정력이 떨어진다. "High entropy sequences are detected with relatively few tokens, while low entropy sequences require more tokens for detection."</p>
+        </div>
+        <div class="card">
+          <span class="tag">SynthID-Text (2024)</span>
+          <p class="small">같은 결론에 도달한다. LLM 분포가 아주 저엔트로피라 프롬프트에 거의 같은 응답만 내놓으면 Tournament sampling 이 g 함수 점수가 높은 토큰을 고를 수 없다. 방식이 달라도 제약은 공유된다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">SWEET (2023)</span>
+          <p class="small">코드 생성에서 기존 워터마크가 제대로 작동하지 않는다는 것을 문제로 삼아 나온 논문이다. 생성과 탐지 양쪽에서 저엔트로피 구간을 <b>빼는</b> 방식으로 대응한다.</p>
+        </div>
+      </div>
+
+      <p class="note"><b>Claude Code 사용자에게 걸리는 지점.</b> 짧은 패치, 보일러플레이트, 설정 파일, 상수 정의는 전부 저엔트로피 구간이다. 신호를 실을 자리가 원리적으로 좁다. 발표 직후 개발자 쪽 반발이 가장 먼저 나온 자리도 여기다. 자기 저장소에 커밋되는 코드에까지 표시가 붙는다는 뜻이기 때문이다. 앤트로픽이 코드에 어떤 처리를 하는지, SWEET 같은 선택적 적용을 하는지는 밝히지 않았고, PR 을 통과한 뒤에도 탐지되는지에 대한 테스트도 공개하지 않았다. 코드 워터마킹의 pass@1 하락 수치가 여러 곳에서 인용되지만, 출처로 지목된 후속 연구를 찾지 못해 이 문서에는 싣지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">quality</p>
+      <h2>품질 저하 여부는 방식에 따라 갈린다. 분포를 보존하는 설계가 따로 있다</h2>
+      <p class="dek">Cui 는 품질이 나빠지느냐는 질문에 그렇다고 답한 뒤, 대부분의 사람에게는 알아챌 수 없는 수준이라고 덧붙였다. 뒷절이 논문과 같은 방향이고, 앞절은 그가 말한 대상이 KGW 계열일 때만 맞다. 그가 근거로 든 인간 평가의 규모는 원논문과 세 자리 다르다.</p>
+
+      <blockquote class="q">The answer is yes, it does, but for most people, it's imperceptible (Google claims in human feedback study with 20,000 texts), since there are exponentially many ways to write the same paragraph.<cite>Alex Cui, X (2026-08-11). 취득 시점 조회수 1,095,989</cite></blockquote>
+
+      <div class="tablewrap">
+        <table class="wrapcell">
+          <thead><tr><th>Nature 논문이 실제로 보고한 것</th><th>규모</th><th>결과</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>Gemini 프로덕션 라이브 실험</td><td>응답 약 2,000만 건</td><td>thumbs-up 은 워터마크 모델이 0.01% 높고, thumbs-down 은 0.02% 낮다. 둘 다 유의하지 않음</td></tr>
+            <tr><td>통제된 인간 선호 실험</td><td>ELI5 질문 3,000개, Gemma 7B-IT</td><td>5개 항목 전부 선호 차이 없음</td></tr>
+            <tr><td>자동 평가</td><td>perplexity 및 표준 벤치마크</td><td>유의한 차이 없음</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="small" style="margin-top:14px">라이브 실험은 질의 일부를 워터마크 모델로, 같은 수를 비워터마크 모델로 보내고 사용자의 thumbs-up / thumbs-down 비율을 비교한 것이다. 차이는 양쪽 모두 95% 신뢰구간 안에 들어간다. 선호 실험의 5개 항목은 grammaticality/coherence, relevance, correctness, helpfulness, overall quality 다.</p>
+
+      <p class="small">갈라지는 지점은 <b>distortionary 인가 non-distortionary 인가</b>다. KGW 의 soft red list 는 green 토큰의 확률을 실제로 올리므로 분포를 바꾼다. SynthID-Text 는 두 설정을 모두 지원하고, 위 수치는 분포를 보존하는 non-distortionary 설정의 것이다. DiPmark(arXiv:2310.07710) 도 평균적으로 분포를 유지하는 reweight 함수를 쓴다. 제목과 식별자만 확인한 Undetectable Watermarks(arXiv:2306.09194) 는 제목이 말하는 만큼만 여기 적는다. 품질을 해치지 않는 워터마크가 이론적으로 가능하다는 결과가 따로 있다는 뜻이다.</p>
+
+      <p class="note"><b>수치가 어긋나면 논문 쪽을 쓴다.</b> Cui 가 인용한 "20,000 texts" 는 원논문에 없다. 논문의 대규모 평가는 응답 약 2,000만 건이고, 별도의 소규모 통제 실험이 ELI5 질문 3,000개다. 세 자리 차이라 어느 실험을 가리킨 것인지도 알 수 없다. 다만 "대부분의 사람에게는 알아챌 수 없다"는 그의 결론 자체는 논문과 어긋나지 않는다. 그리고 이 수치는 전부 Google 의 SynthID-Text 에 대한 것이지 Claude 에 대한 것이 아니다. 앤트로픽은 품질 영향을 숫자로 내놓지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">c2pa-files</p>
+      <h2>파일에 붙는 것은 워터마크가 아니라 서명이다. 스크린샷 한 번이면 사라진다</h2>
+      <p class="dek">공식 문서는 두 기법을 나란히 적어 두었지만 성질이 전혀 다르다. 텍스트 쪽 신호는 콘텐츠 <b>안</b>에 있고, 파일 쪽 신호는 콘텐츠 <b>옆</b>에 붙어 있다. 이 차이가 무엇이 살아남고 무엇이 지워지는지를 전부 결정한다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>비교 항목</th><th>텍스트 워터마크</th><th>C2PA 서명 메타데이터</th></tr></thead>
+          <tbody>
+            <tr><td>신호가 있는 곳</td><td>토큰 선택 그 자체</td><td>파일에 붙은 별도 메타데이터</td></tr>
+            <tr><td>적용 대상</td><td>생성된 모든 텍스트</td><td><code>.svg</code>, <code>.png</code>, <code>.jpg</code> 등 지원 형식</td></tr>
+            <tr><td>복사 후 붙여넣기</td><td class="win">따라간다</td><td class="lose">텍스트로 옮기면 사라진다</td></tr>
+            <tr><td>재저장, 포맷 변환</td><td class="win">텍스트가 남으면 유지</td><td class="lose">사라질 수 있다</td></tr>
+            <tr><td>스크린샷</td><td class="lose">이미지가 되면 사라진다</td><td class="lose">사라진다</td></tr>
+            <tr><td>변조 여부 판정</td><td class="lose">불가. 있다 없다만 나온다</td><td class="win">가능. 서명을 검증한다</td></tr>
+            <tr><td>규격 공개</td><td class="lose">비공개</td><td class="win">C2PA 공개 규격</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="small" style="margin-top:14px">C2PA 는 서명 메타데이터만 규정하는 표준이 아니다. 규격 문서 목록에 <span class="wl">Soft Binding API</span> 가 따로 있고, 메타데이터가 떨어져 나가도 콘텐츠 자체에서 식별자를 되찾는 경로를 다룬다. 앤트로픽이 문서에서 말한 것은 그중 서명 메타데이터, 즉 잘 떨어져 나가는 쪽이다.</p>
+
+      <blockquote class="q">A file's metadata was stripped through format conversion, re-saving, screenshots, or other means<cite>Anthropic, 같은 지원 문서의 Limitations 절. 마크가 탐지되지 않는 사유 중 하나로 앤트로픽이 직접 적었다</cite></blockquote>
+
+      <p class="note">위 표에서 "재저장, 포맷 변환" 행의 C2PA 칸은 앤트로픽 문서의 표현을 따른 것이다. C2PA 를 보존하는 도구 체인도 있으므로 항상 사라진다는 뜻은 아니다. 다만 소셜 플랫폼과 일반적인 이미지 편집 저장 경로 대부분에서 사라진다고 보는 편이 안전하다. SynthID 와 C2PA 메타데이터를 한꺼번에 지우는 오픈소스 도구가 이미 배포되고 있다는 것은 스레드 15/ 가 도구 README 캡처와 함께 전한 것이고, 도구를 실행해 확인하지는 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">intent</p>
+      <h2>의도. 규제 준수가 이 결정의 출발점이다. 문서 첫 문장이 그렇게 말한다</h2>
+      <p class="dek">지원 문서는 워터마크를 소개하기 전에 서명한 규범부터 밝힌다. 근거는 EU AI Act Article 50(2) 의 Code of Practice 이고, 적용은 유럽에 한정되지 않는다.</p>
+
+      <blockquote class="q">Anthropic has signed the EU AI Act's Article 50(2) Code of Practice on Transparency of AI-Generated Content, as a provider of both generative AI models and generative AI systems.<cite>같은 지원 문서의 첫 문장</cite></blockquote>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">규범 쪽 사실</span>
+          <ul class="clean small">
+            <li><span class="m">·</span><span>2026년 7월 말 기준 약 190개 조직이 서명했다. 서명자 목록은 제공자 대상 Section 1 이 82곳, 배포자 대상 Section 2 가 152곳으로 집계되어 있다</span></li>
+            <li><span class="m">·</span><span>Section 1 서명자에 Aleph Alpha, Anthropic, Black Forest Labs, Cohere, Google, Meta, Microsoft, Mistral, Open AI, Synthesia 가 포함된다</span></li>
+            <li><span class="m">·</span><span>AI Act 의 마킹 의무 발효일이 2026년 8월 2일이고, 지원 문서가 말하는 모델 기준일도 같은 날짜다</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag">앤트로픽 쪽 선택</span>
+          <ul class="clean small">
+            <li><span class="m">·</span><span>EU 규제인데 적용은 전 세계다. "wherever Claude is offered, worldwide"</span></li>
+            <li><span class="m">·</span><span>워터마킹을 제품이 아니라 <b>모델 레벨</b>에 넣었다. 제품마다 켜고 끄는 선택지를 두지 않았다는 뜻이다</span></li>
+            <li><span class="m">·</span><span>Article 50 준수 책임은 사용자에게 넘긴다. "you should independently assess what Article 50 requires of your products and services"</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="small" style="margin-top:14px">텍스트 워터마크와 C2PA 를 함께 쓰는 것도 규범 쪽 설계에 맞닿아 있다. Code of Practice 는 필요한 경우 메타데이터와 워터마킹처럼 표시를 두 겹 이상 적용하고 제3자가 확인할 수 있는 탐지 수단도 제공할 것을 권고한다. 앤트로픽 문서의 두 기법과 "We'll help you detect Claude's marks" 가 각각 그 권고에 대응한다.</p>
+
+      <p class="small">Cui 는 이것을 "regulatory hoop-jumping" 이라고 부르며, 프론티어 랩이 LLM 사용을 드러내려는 진지한 노력이라기보다 규제 통과에 가깝다고 봤다. 그건 그의 판단이고 앤트로픽이 확인해 준 것이 아니다. 확인 가능한 사실은 문서가 규제를 첫 문장에 놓았고, 기능 소개나 사용자 이익에 대한 설명이 문서 어디에도 없다는 것이다.</p>
+
+      <p class="note"><b>규제가 만든 비대칭.</b> Article 50(2) 의 의무는 생성형 AI <b>시스템의 제공자</b>에게 걸린다. 개인이 자기 GPU 에서 돌리는 오픈 웨이트 모델은 이 경로 밖에 있다. 그래서 표시를 피하려는 사람은 워터마크가 없는 모델로 옮기면 되고, 실제로 표시가 붙는 쪽은 규정을 지키는 서비스를 돈 내고 쓰는 사용자가 된다. 전 세계 적용을 규제 회피의 반대로 읽을 수도, 지역별로 모델을 두 벌 유지하는 비용을 피한 결과로 읽을 수도 있다. 문서는 어느 쪽인지 밝히지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>읽은 범위. Claude 워터마크 자체를 실측한 대목은 이 문서에 없다</h2>
+      <p class="dek">탐지기가 공개되지 않아 실측이 불가능하다. 그래서 이 문서의 근거는 앤트로픽의 진술, 그리고 공개된 워터마킹 연구 두 갈래뿐이다. 어디까지 열었고 어디서 멈췄는지를 적는다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">전문을 열었다</span>
+          <ul class="clean small">
+            <li><span class="m">·</span><span>앤트로픽 지원 문서 (2026-08-11 갱신 표기). Jina Reader 경유</span></li>
+            <li><span class="m">·</span><span>Alex Cui 의 X 포스트 전문. fxtwitter API 경유. 취득 시점 조회수 1,095,989, 좋아요 5,258</span></li>
+            <li><span class="m">·</span><span>@choi.openai 의 Threads 스레드 1/ 부터 18/ 까지 전부. 루트만 서버 렌더링되고 나머지는 GraphQL 로 오는 구조라 렌더된 화면을 판독했다</span></li>
+            <li><span class="m">·</span><span>KGW, arXiv:2301.10226v4. HTML 본문 1절부터 6절까지</span></li>
+            <li><span class="m">·</span><span>SynthID-Text, Nature 634:818-823 (DOI 10.1038/s41586-024-08025-4) 본문</span></li>
+            <li><span class="m">·</span><span>The New Stack 기사 (2026-08-11)</span></li>
+            <li><span class="m">·</span><span>European Commission 뉴스 페이지 (2026-07-31). 09 장의 서명자 수치가 전부 여기서 나온다</span></li>
+            <li><span class="m">·</span><span>C2PA Specifications 2.4 색인 페이지. 목록만 봤고 규격 본문은 열지 않았다</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag">초록만 읽었다</span>
+          <ul class="clean small">
+            <li><span class="m">·</span><span>Watermark Stealing (2402.19361v2), Watermarks in the Sand (2311.04378v5), SWEET (2305.15060v4), DiPmark (2310.07710v2)</span></li>
+            <li><span class="m">·</span><span>SIR, SemStamp, PostMark, EWD, Adaptive Watermark, Undetectable Watermarks 는 제목과 식별자만 대조했다</span></li>
+            <li><span class="m">·</span><span>11 장이 인용한 논문 두 편의 수치는 전부 초록에 실린 것이다. 실험 설정과 조건은 확인하지 않았다</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="small" style="margin-top:14px"><b>열지 못한 것과 그 대가.</b> SynthID-Text 논문의 Supplementary Information 을 열지 못했다. 편집과 패러프레이즈에 대한 내성 평가가 본문이 아니라 C.6 절에 있어서, 11 장의 내성 서술이 그만큼 얕다. 스레드 11/ 은 코드 워터마킹의 pass@1 하락 수치를 인용하는데 출처 논문을 밝히지 않았고, 후보로 짚은 두 편에서 같은 수치를 찾지 못했다. 그래서 06 장은 코드에 신호가 잘 실리지 않는다는 <b>방향</b>만 말하고 <b>크기</b>는 말하지 않는다.</p>
+
+      <p class="note">앤트로픽의 기술 문서는 아직 나오지 않았다. 지원 문서가 "forthcoming technical documentation" 이라고만 적어 두었으므로, 04 장부터 06 장까지의 서술은 그 문서가 나오는 시점에 다시 맞춰봐야 한다.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">attack</p>
+      <h2>지우기. 공격 셋이 각각 다른 자리에서 워터마크를 무너뜨린다</h2>
+      <p class="dek">패러프레이즈로 지워진다는 이야기는 널리 알려져 있다. 셋 중 공격자가 가장 많이 알아야 하는 경우다. 아래로 갈수록 필요한 지식이 줄고, 마지막에는 대상이 어떤 방식을 쓰는지조차 몰라도 된다.</p>
+
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag">공격자가 도구만 있으면 된다</span>
+          <h3>패러프레이즈</h3>
+          <p class="small">Cui 는 자신의 테스트에서 강한 패러프레이즈, 특히 어휘 공격과 구문 공격을 결합하면 워터마크가 살아남지 못했다고 적었다. 무료 패러프레이저로 Google DeepMind 의 SynthID 를 통과시켰다고도 썼다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">API 질의 예산 50달러</span>
+          <h3>Watermark Stealing</h3>
+          <p class="small">워터마크된 LLM 의 API 를 질의해 워터마크를 근사 역설계한다. 초록이 보고하는 수치는 <b>50 달러 미만</b>으로 spoofing 과 scrubbing 양쪽 모두, 평균 성공률 <b>80% 이상</b>이다. 안전하다고 여겨지던 최신 방식들이 대상이었다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">방식을 몰라도 된다</span>
+          <h3>Watermarks in the Sand</h3>
+          <p class="small">quality oracle 과 perturbation oracle 두 가정 아래 강한 워터마킹이 불가능함을 증명한다. 탐지가 비공개 키를 쓰는 경우에도 성립한다. 같은 공격으로 Kirchenbauer 2023, Kuditipudi 2023, Zhao 2023 세 방식을 품질 저하를 거의 내지 않고 제거했다.</p>
+        </div>
+      </div>
+
+      <blockquote class="q">In my testing, the watermarks don't survive intense paraphrasing (especially if you combine word choice and syntax attacks), or human text substitution.<cite>Alex Cui, X (2026-08-11)</cite></blockquote>
+
+      <p class="small">두 번째 층에서 함께 나오는 단어가 <b>spoofing</b> 이다. 워터마크를 근사 복원하면 지우는 것뿐 아니라 <b>없던 곳에 붙이는 것</b>도 가능해진다. 13 장에서 다시 다룬다.</p>
+
+      <p class="note">Cui 의 진술은 그의 자체 테스트이며 방법과 조건이 공개되지 않았다. 나머지 둘은 초록만 읽었고 실험 설정은 확인하지 않았다. 앤트로픽 구현이 이 공격에 어떻게 반응하는지는 탐지기 없이 확인할 방법이 없다.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>한계. 탐지기를 공개하면 워터마크가 약해지고, 공개하지 않으면 아무도 쓸 수 없다</h2>
+      <p class="dek">Code of Practice 는 탐지 수단을 제공하라고 요구하고, 앤트로픽도 그렇게 하겠다고 적었다. 그런데 탐지기를 공개하는 순간 공격자는 신호가 사라질 때까지 고쳐보고 확인하기를 반복할 수 있게 된다. 이 딜레마에 좋은 답은 나와 있지 않다.</p>
+
+      <blockquote class="q">If Anthropic releases the watermark detector publically, I think they defeat their own watermark. People find reliable watermark removal strategies by testing against Anthropic.<cite>Alex Cui, X (2026-08-11)</cite></blockquote>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">비공개로 두면</span>
+          <p class="small">Google 처럼 정부 등 제한된 상대에게만 열어두는 쪽이 Cui 의 표현으로 "safer" 다. 다만 Watermarks in the Sand 가 보인 공격은 학습 데이터도 방식에 대한 지식도 없이 동작한다. 그리고 탐지기가 없으면 이 마크로 무언가를 판단해야 하는 사람들이 아무것도 할 수 없다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">키가 새면</span>
+          <p class="small">Cui 는 비밀 키가 유출되면 워터마크가 끝나므로 여러 키를 돌려야 한다고 적었다. KGW 논문에 같은 설계가 이미 있다. k 개의 키를 두고 생성마다 하나를 고른 뒤, 탐지 때 k 번 검정하고 Bonferroni 보정으로 다중 가설을 교정한다. γ=0.5 라면 각 단어가 k/2 개 키에서 green 이 되도록 리스트를 짜서 빈도 분석으로 복원되지 않게 한다.</p>
+        </div>
+      </div>
+
+      <p class="small" style="margin-top:14px">패러프레이즈에 강해지려는 시도에도 같은 모양의 딜레마가 있다. 해시를 결정론적 함수 대신 의미 기반으로 만들면 단어를 바꿔도 비슷한 해시가 나와 표시가 남는다. 그런데 의미의 범위를 넓게 잡으면 사람이 쓴 글까지 걸리고, 좁게 잡으면 단어 몇 개만 바꿔도 표시가 사라진다. 어느 쪽에 맞추든 반대쪽 오류가 늘어난다.</p>
+
+      <p class="small">키 로테이션에는 두 가지 값이 따라붙는다. 하나는 검정력이다. KGW 는 다중 가설 보정의 비용을 "only a minor decrease in power" 라고 표현하지만, 키가 늘수록 판정은 보수적으로 간다. 다른 하나는 이력이다. 탐지기가 은퇴한 키까지 계속 인식해야 몇 달 전, 몇 년 전 텍스트를 판정할 수 있다. 앤트로픽은 키를 몇 개 쓰는지, 어떤 주기로 바꾸는지, 과거 콘텐츠를 어떻게 다룰지 아무것도 밝히지 않았다.</p>
+
+      <p class="note"><b>이 한계를 넘어 남는 것.</b> 탐지기가 끝내 제한적으로만 열리더라도 앤트로픽의 1차 목적은 달성된다. 규제가 요구하는 것은 machine-readable 마킹이지 누구나 쓸 수 있는 탐지기가 아니기 때문이다. 그리고 워터마킹을 모델 레벨에 넣은 결정은 되돌리기 어렵다. Claude 를 쓰는 모든 제품이 자동으로 같은 성질을 물려받는다는 뜻이고, 이건 탐지기 공개 여부와 무관하게 사실로 남는다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">user-risk</p>
+      <h2>사용자. 실제 위험은 양방향 오판과 도용이다</h2>
+      <p class="dek">마크가 있으면 AI 가 쓴 것이고 없으면 사람이 쓴 것이라는 읽기가 두 방향 모두 틀린다. 공식 문서가 두 방향을 모두 명시적으로 부정한다. 실제로 사용자가 물릴 자리는 아래 여섯 가지다.</p>
+
+      <div class="tablewrap">
+        <table class="wrapcell">
+          <thead><tr><th>상황</th><th>마크</th><th>물리는 지점</th></tr></thead>
+          <tbody>
+            <tr><td>Claude 로 교정, 번역, 요약만 했다</td><td class="lose">붙는다</td><td>아이디어와 원문이 내 것이어도 마크가 실린다. 문서가 직접 든 예시다</td></tr>
+            <tr><td>Claude 가 쓴 글을 많이 고쳤다</td><td>사라질 수 있다</td><td>마크가 없다는 것이 AI 를 안 썼다는 증명이 되지 않는다</td></tr>
+            <tr><td>짧은 답변, 코드 조각</td><td>안 잡힌다</td><td>통계 검정이라 표본이 짧으면 판정 자체가 안 선다</td></tr>
+            <tr><td>파이프라인이 출력을 가공한다</td><td>약해진다</td><td>요약, 번역, 분할, 구조화, DB 결합이 전부 신호를 깎는다</td></tr>
+            <tr class="hero"><td>남이 Claude 마크를 위조한다</td><td>spoofing</td><td>워터마크를 역설계하면 <b>없던 곳에 붙일 수</b> 있다. 위조되는 것은 "Claude 를 거쳤다"까지이고, 그것이 특정 계정이나 조직을 가리키려면 키가 그 단위로 나뉘어 있어야 한다. 앤트로픽은 키 범위를 밝히지 않았다</td></tr>
+            <tr><td>이미지를 스크린샷하거나 재저장한다</td><td>사라진다</td><td>C2PA 메타데이터는 콘텐츠 밖에 붙어 있다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <blockquote class="q">A detected mark provides a signal that content was processed by Claude, but is not fully conclusive.<cite>Anthropic, 같은 지원 문서의 Limitations 절</cite></blockquote>
+
+      <p class="note">여섯 줄 중 다섯 줄은 앤트로픽 문서가 스스로 인정한 한계다. 강조 표시한 spoofing 만 문서에 없다. Watermark Stealing 은 scrubbing 과 spoofing 을 함께 보고했지만 대상은 공개 방식이었고, Claude 에서 같은 것이 성립하는지는 확인되지 않았다. 표에 없는 위험이 하나 더 있다. 워터마크는 비밀 키를 가진 쪽만 판정할 수 있고 근거가 통계로 남지만, 시중의 AI 탐지기는 누구나 돌릴 수 있고 판정이 틀려도 책임지는 주체가 없다. 판정 결과가 사람의 기록에 남는 자리에서는 그쪽이 먼저 문제를 일으킨다.</p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adopt</p>
+      <h2>대응. provenance 가 필요하면 워터마크 대신 직접 기록해야 한다</h2>
+      <p class="dek">지금 시점에서 이 마크에 무엇을 걸 수 있고 무엇을 걸면 안 되는지가 갈린다. 판단 기준은 하나다. 탐지기가 없고 임계값도 위양성률도 공개되지 않았다.</p>
+
+      <ul class="clean">
+        <li><span class="m bad">✕</span><span><b>마크를 증거로 쓰지 않는다.</b> 표절 판정, 계약 위반 주장, 채용 심사 어디에도 근거가 되지 못한다. 판정에 필요한 위양성률이 공개되지 않았고, 문서 자체가 결정적이지 않다고 적었다.</span></li>
+        <li><span class="m bad">✕</span><span><b>코드 출처 추적을 워터마크에 걸지 않는다.</b> 저엔트로피 구간에는 신호가 실리기 어렵고, PR 을 통과한 뒤에도 남는지에 대한 앤트로픽의 테스트가 없다.</span></li>
+        <li><span class="m">✓</span><span><b>provenance 가 필요하면 직접 남긴다.</b> model ID, prompt 버전, 응답 시각, 원본 출력의 해시, 사용자에게 가거나 저장소에 들어가기 전까지의 변경 이력. The New Stack 이 권하는 항목이 이것이다.</span></li>
+        <li><span class="m">✓</span><span><b>EU 에서 Claude 로 제품을 만든다면 Article 50 의무를 따로 판단한다.</b> 앤트로픽이 사용자에게 넘긴다고 문서에 명시했다. 모델이 마킹한다고 배포자 의무가 자동으로 해소되지 않는다.</span></li>
+        <li><span class="m">✓</span><span><b>기다릴 것을 목록으로 둔다.</b> 탐지 수단의 형태, 최소 길이와 위양성률, 키 로테이션과 과거 콘텐츠 처리, 지연시간과 비용. 넷 중 하나라도 나오면 04 장부터 06 장의 서술을 다시 맞춰야 한다.</span></li>
+        <li><span class="m">✓</span><span><b>기술 문서가 나오면 볼 숫자는 워터마크의 강도가 아니라 탐지기의 위양성률이다.</b> 강도는 앤트로픽이 얼마나 잘 심었는지를 말하고, 위양성률은 남의 글이 잘못 걸릴 확률을 말한다. 판정이 사람의 기록에 남는 곳에서는 1% 도 큰 수다.</span></li>
+      </ul>
+
+      <p class="note">모델 쪽에는 손댈 것이 없다. 워터마킹은 모델 레벨에서 자동으로 적용되고 켜고 끌 선택지가 없으므로 그 자체는 대응 대상이 아니다. 바꿔야 하는 것은 제품 쪽 두 가지다. 출처를 증명해야 하는 경로에 로그를 남기는 것, 그리고 EU 배포자 의무를 따로 판단하는 것. 나머지는 마크를 무엇으로 해석하지 <b>않을지</b>를 정해두면 된다.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">open-questions</p>
+      <h2>열린 질문. 기술 문서가 나오면 이 아홉 가지를 확인해야 한다</h2>
+      <p class="dek">앞 장까지가 지금 답할 수 있는 것이었다. 아래는 코퍼스 어디에도 답이 없어서 이 문서가 답을 만들지 않은 것들이다. 답이 없어서 무엇이 막히는지를 함께 적어 두면, 앤트로픽 문서가 나왔을 때 어디를 펴야 할지가 정해진다.</p>
+
+      <div class="tablewrap">
+        <table class="wrapcell">
+          <thead><tr><th>질문</th><th>답이 없으면 막히는 것</th></tr></thead>
+          <tbody>
+            <tr><td>지금 마킹되는 model ID 목록</td><td>날짜 규칙만 있고 목록이 없다. 우리 config 에 핀된 스냅샷이 오늘 마킹되는지 알 수 없다. "기존 모델도 작업 중"은 <b>버전 번호가 안 바뀌어도 출력 성질이 바뀔 수 있다</b>는 뜻이라 계약 걸린 파이프라인에서 첫 질문이 된다</td></tr>
+            <tr><td>opt-out 이 정말 없는가</td><td>이 문서의 "켜고 끌 선택지가 없다"는 모델 레벨 적용에서 끌어낸 추론이다. 지원 문서가 opt-out 부재를 명시한 문장은 없다. 조달 협상에서 진술과 추론은 다른 카드다</td></tr>
+            <tr><td>C2PA manifest 에 실리는 필드</td><td>계정 ID, 조직 ID, 생성 시각 중 무엇이 고객 납품물에 딸려 나가는지가 정해지지 않는다. 이 문서에서 "무엇이 남는가"에 가장 직접적인 항목인데 비어 있다</td></tr>
+            <tr class="hero"><td>비밀 키가 전역인가 tenant 별인가</td><td>13 장 spoofing 행의 피해 크기가 여기서 갈린다. tenant 별이면 마크가 "Claude 를 거쳤다"가 아니라 "이 조직의 Claude 를 거쳤다"가 되고, 8 장과 13 장의 위험 계산이 전부 달라진다</td></tr>
+            <tr><td>탐지기의 위양성률</td><td>판정이 사람의 기록에 남는 자리에서 실제 피해와 가장 가까운 숫자다. 워터마크의 강도가 아니라 이 값이 쓸 수 있는지를 정한다</td></tr>
+            <tr><td>structured output 과 determinism</td><td>JSON mode, tool call argument, constrained decoding 은 전부 저엔트로피 구간이다. logit 을 건드리면 seed 고정 출력의 재현성과 snapshot test, 응답 캐시가 영향을 받는데 7 장의 품질 논의는 human preference 만 다룬다</td></tr>
+            <tr><td>학습 데이터로 쓸 때 전이되는가</td><td>Claude 출력을 fine-tuning 이나 distillation 에 쓰는 팀에게는 "우리 데이터셋과 파생 모델이 추적 가능해졌는가"가 최대 함의다. 이 문서는 텍스트에 무엇이 남는지만 다루고 모델에 무엇이 남는지는 다루지 않는다</td></tr>
+            <tr><td>마크 제거가 허용되는가</td><td>11 장은 패러프레이즈로 지워진다는 기술적 답을 주고, 14 장은 배포자 의무가 남는다고 한다. 출력을 rewriter 에 태우는 후처리를 승인해도 되는지는 두 진술을 합쳐도 나오지 않는다</td></tr>
+            <tr><td>다중 provider 파이프라인</td><td>Claude 출력이 다시 Claude 를 거치거나 SynthID 가 걸린 Gemini 를 거칠 때 마크가 겹치는지, 상쇄되는지, 어느 쪽으로 판정되는지. 흔한 구성인데 어느 자료도 다루지 않는다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note">아홉 개 모두 이 문서가 <b>답하지 않기로 한</b> 것이지 조사하다 빠뜨린 것이 아니다. 코퍼스에 답이 없고, 추정으로 채우면 앞 장에서 세운 진술과 추론의 구분이 무너진다. 강조한 행은 이 문서 안의 다른 주장을 실제로 흔드는 것이라 우선순위가 다르다.</p>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론. 규제 준수가 시작됐고, 탐지 기술은 아직 도착하지 않았다</h2>
+      <p class="dek">앤트로픽이 발표한 것은 마킹을 하겠다는 약속과 그 적용 범위다. 원리, 임계값, 탐지 수단은 전부 아직 없다. 그 공백 위에 이 발표를 AI 탐지 문제의 해결로 읽으면 두 방향으로 틀린다.</p>
+
+      <p>워터마크는 서명이 아니라 통계적 신호다. 신호는 고를 수 있는 단어가 많은 자리에만 실리고, 글이 길어야 판정이 서고, 다시 쓰면 옅어진다. 그래서 코드와 짧은 답변은 원리적으로 가장 안 잡히는 쪽이고, 길고 자유로운 산문은 가장 잘 잡히는 쪽이다. 이 성질은 KGW 와 SynthID-Text 가 공유하고, 코드에서 무너지는 지점을 SWEET 이 같은 이유로 지목한다. 앤트로픽이 이 계열을 골랐다면 같은 성질을 물려받는다.</p>
+
+      <p>마크의 의미는 한 방향으로만 읽힌다. 마크가 있으면 Claude 를 거쳤을 수 있다는 뜻이고, 마크가 없으면 아무것도 증명되지 않는다. 여기에 spoofing 이 더해지면 마크의 존재조차 한 방향으로만 읽을 수 없게 된다. 공식 문서는 앞의 두 가지를 인정하고, 마지막 하나는 다루지 않는다.</p>
+
+      <p><b>다시 확인해야 할 조건.</b> 앤트로픽이 기술 문서를 내면 세 가지가 결정된다. 탐지기가 누구에게 열리는가, 최소 길이와 위양성률이 얼마인가, 코드에 어떤 처리를 하는가. 첫 번째는 12 장의 딜레마를, 두 번째는 05 장의 표를, 세 번째는 06 장의 결론을 각각 바꾼다. 셋 중 실제 피해와 가장 가까운 것은 두 번째의 위양성률이다.</p>
+
+      <p class="note">이 문서는 Claude 워터마크를 실측하지 않았다. 탐지기가 없어 불가능하다. 여기 적힌 메커니즘은 KGW 와 SynthID-Text 논문에서 확인한 것이고, Claude 가 그 계열인지는 앤트로픽이 밝히지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처. 앤트로픽의 진술과 공개 연구를 분리해서 적는다</h2>
+      <p class="dek">Claude 워터마크에 대한 1차 자료는 지원 문서 하나뿐이다. 나머지는 전부 다른 방식에 대한 연구이며, 이 문서에서 어떤 주장을 어느 쪽에 기댔는지가 구분되어야 한다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">1차 자료와 보도</span>
+          <div class="src">
+            <a href="https://support.claude.com/en/articles/16266773-how-claude-marks-ai-generated-content">Anthropic. How Claude marks AI-generated content</a>
+            <span class="t">2026-08-11 갱신 표기. 02, 03, 08, 09, 13, 14, 15 장의 모든 인용</span>
+            <a href="https://x.com/alexcdot/status/2087078010524406137">Alex Cui (GPTZero CTO). X 포스트</a>
+            <span class="t">2026-08-11 07:25 UTC. 취득 시점 조회수 1,095,989. 04, 07, 09, 11, 12 장</span>
+            <a href="https://www.threads.com/@choi.openai/post/Db7TvcDD-oq">@choi.openai. Threads 스레드 (1/ ~ 18/)</a>
+            <span class="t">이 조사의 출발점. 06, 09, 12, 13, 14 장. 메커니즘 설명의 출처를 스스로 Alex Cui 로 밝힌다</span>
+            <a href="https://thenewstack.io/anthropic-claude-text-watermark/">The New Stack. Anthropic's watermark survives copy-paste, but not the real dev workflow</a>
+            <span class="t">2026-08-11. 03 장의 공백 지적과 14 장의 기록 권고</span>
+            <a href="https://digital-strategy.ec.europa.eu/en/news/strong-backing-code-practice-transparency-ai-generated-content">European Commission. Strong backing for the Code of Practice on Transparency of AI-generated Content</a>
+            <span class="t">2026-07-31. 09 장의 서명자 수치</span>
+          </div>
+        </div>
+        <div class="card">
+          <span class="tag">워터마킹 연구</span>
+          <div class="src">
+            <a href="https://arxiv.org/abs/2301.10226">Kirchenbauer et al. A Watermark for Large Language Models. arXiv:2301.10226v4</a>
+            <span class="t">02, 04, 05, 06, 12 장의 수치와 알고리즘 전부</span>
+            <a href="https://www.nature.com/articles/s41586-024-08025-4">Dathathri et al. Scalable watermarking for identifying large language model outputs. Nature 634:818-823</a>
+            <span class="t">02, 06, 07 장. DOI 10.1038/s41586-024-08025-4, 오픈 액세스 PMC11499265</span>
+            <a href="https://arxiv.org/abs/2402.19361">Watermark Stealing in Large Language Models. arXiv:2402.19361v2</a>
+            <span class="t">02, 11, 13 장. 초록만 읽었다</span>
+            <a href="https://arxiv.org/abs/2311.04378">Watermarks in the Sand. arXiv:2311.04378v5</a>
+            <span class="t">11, 12 장. 초록만 읽었다</span>
+            <a href="https://arxiv.org/abs/2305.15060">SWEET. Who Wrote this Code? arXiv:2305.15060v4</a>
+            <span class="t">06 장. 초록만 읽었다</span>
+            <a href="https://arxiv.org/abs/2310.07710">DiPmark. arXiv:2310.07710v2</a>
+            <span class="t">07 장. 제목에 DiPmark 이 없어 초록에서 확인했다</span>
+            <a href="https://arxiv.org/abs/2306.09194">Undetectable Watermarks for Language Models. arXiv:2306.09194v1</a>
+            <span class="t">07 장. 제목과 식별자만 확인했다</span>
+          </div>
+        </div>
+      </div>
+
+      <p class="note">Cui 가 언급한 나머지 기법도 식별자를 확인해 두었다. SIR arXiv:2310.06356v3, Adaptive Text Watermark arXiv:2401.13927v2, SemStamp arXiv:2310.03991v2, PostMark arXiv:2406.14517v2, EWD arXiv:2403.13485v4. 본문은 열지 않았고, 이 문서는 이름과 역할만 인용한다.</p>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 17</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>

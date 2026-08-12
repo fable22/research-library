@@ -1,0 +1,20 @@
+{
+  "title": "Claude 텍스트 워터마크: 마크는 Claude 를 거쳤다는 신호까지만 증명한다",
+  "date": "2026-08-12",
+  "seq": 10,
+  "summary": "앤트로픽은 워터마크를 넣는다고만 밝히고 원리는 적지 않았다. KGW 원논문과 SynthID-Text 논문에서 임계값, 최소 길이, 엔트로피 의존성을 확인해 코드와 짧은 글에 신호가 실리지 않는 이유를 정리하고, C2PA 서명과의 차이, EU AI Act Article 50(2)라는 동기, 그리고 지우기보다 도용이 더 큰 위험인 이유를 다룬다.",
+  "category": "topic",
+  "format": "deck",
+  "tags": [
+    "watermark",
+    "C2PA",
+    "EU AI Act",
+    "provenance",
+    "AI detection",
+    "LLM sampling"
+  ],
+  "source": {
+    "label": "support.claude.com + arXiv:2301.10226",
+    "url": "https://support.claude.com/en/articles/16266773-how-claude-marks-ai-generated-content"
+  }
+}
