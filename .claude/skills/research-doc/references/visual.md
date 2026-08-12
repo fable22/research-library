@@ -127,6 +127,34 @@ or a label.
 
 Length and position are read accurately; angle, area, and depth are not.
 
+## The source's own figures
+
+Redrawing is the default, for the reasons above. It stops being the default at the point
+where redrawing would mean inventing what the figure shows.
+
+| The figure is | Do |
+|---|---|
+| a table, or a bar/line chart whose values are printed | retype it. Numbers stay selectable and the chart follows the theme |
+| the source's architecture or mechanism diagram | embed it. Redrawing is asserting a shape you did not verify |
+| a qualitative sample, a screenshot, a rendered output | embed it. There is nothing to redraw |
+| a plot whose claim is one crossing or one gap | redraw that part, and say in the caption that the source's plot holds more |
+
+**Embed only a figure you have opened and read.** One pulled in because it looked relevant
+is decoration, and a caption written from a filename is a fabricated claim with a picture
+around it. `notes/figures.md` from the pinning step is where the one-sentence descriptions
+already are.
+
+**Name the source's central figure somewhere.** Either it is in the document, or the
+coverage chapter says why not. A reader who has seen the paper looks for it first, and its
+silent absence reads as an oversight even when it was a decision.
+
+Mechanics: a `data:` URI inside `.plate`, which holds a white background under a
+light-source figure so it survives dark mode. `alt` says what the figure shows; the caption
+carries the source's own identifier (`논문 Figure 3`) so the reader can find it there.
+Check the byte cost before embedding rather than after, because the whole file has 1 MB and
+base64 is a third larger than the file it encodes. When a figure will not fit, redraw the
+part that carries the claim and say so.
+
 ## Do not
 
 - **No external chart library, no remote images.** The gate blocks them.

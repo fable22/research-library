@@ -28,12 +28,12 @@ For each number, check four things.
 
 **Value.** Is that number in the source?
 
-**Direction.** Rising or falling, ahead or behind. This is where accidents happen. Real
-case: Table 9 gaps went 7.5/12.8/9.6 → 5.1/10.5/16.9, which is **narrowing**, and the
+**Direction.** Rising or falling, ahead or behind. This is where accidents happen.
+Table 9 gaps going 7.5/12.8/9.6 → 5.1/10.5/16.9, which is **narrowing**, and the
 document said widening, then layered an interpretation ("weaker models benefit more from
 structure") on top. A flipped direction takes the whole reading with it.
 
-**Unit.** What was counted. Real case: 2.5–3.9 was read as tool calls when it was pages
+**Unit.** What was counted. 2.5–3.9 read as tool calls when it was pages
 read per query, and a rebuttal built on it collapsed. Percentage points and percent get
 mixed constantly: "42pp drop" and "42% drop" are different claims.
 

@@ -1,9 +1,9 @@
 ---
 name: research-verify
-description: Adversarially reviews a finished research document draft. Runs three lenses
-  (adoption decider, number checker, prose auditor) in separate fresh contexts, extracts
-  claims from the sentences that shipped, and machine-verifies them against the pinned
-  corpus with check-claims.mjs and check-doc.mjs.
+description: Adversarially reviews a finished research document draft. Runs four lenses
+  (adoption decider, number checker, prose auditor, completeness critic) in separate fresh
+  contexts, extracts claims from the sentences that shipped, and machine-verifies them
+  against the pinned corpus with check-claims.mjs and check-doc.mjs.
 when_to_use: After finishing or editing a draft under research/<slug>/, before committing
   or publishing, and when asked to review, fact-check, or confirm a document is correct.
 ---
@@ -20,7 +20,7 @@ claim repeated six times, an anchor pointing at the wrong slide — none of thes
 until sentences do. So `claims.jsonl` is extracted **from the draft** rather than carried
 forward from research, and the verifier reads the same text the reader will.
 
-**Run the three lenses as separate subagents, and do not let them see each other.** A
+**Run the lenses as separate subagents, and do not let them see each other.** A
 context that wrote a sentence knows why, and re-reading it reaches the same conclusion by
 the same route. If one lens reports a section is fine, another stops looking there.
 
@@ -97,16 +97,26 @@ Do not shred sentences into minimal units. Each verifier has an atomicity where 
 confidence peaks, and going finer makes verification worse. One sentence, one claim is
 usually right.
 
-### 3. Launch the three lenses together
+### 3. Launch the lenses
 
-Read the three files in `references/` and hand each one to a **separate subagent**,
-all in the same message so none of them sees another's work.
+Read A, B and C from `references/` and hand each one to a **separate subagent**, all in the
+same message so none of them sees another's work.
+
+Spawning them is the step, not a permission to go and ask for. The separation is the
+mechanism: a review run inside the authoring context returns the author's own conclusions.
+If they genuinely cannot be spawned, the review is reduced, not skipped. Run what you can
+and declare the gap at the top of the report, the same way a missing `sources.jsonl` is
+declared.
 
 | Lens | File | Looks at |
 |---|---|---|
 | A | `references/lens-adoption.md` | Can a developer decide adopt/hold from this? What is missing? |
 | B | `references/lens-numbers.md` | Every number against the pinned source: value, direction, unit, range |
 | C | `references/lens-prose.md` | Repo writing rules, repetition, internal references, accessibility |
+| D | `references/lens-completeness.md` | What none of the others could see: a claim no lens covered, a pinned source nothing leans on, a modality never run |
+
+D runs **after** A, B and C report, because what it examines is the shape of their output.
+Hand it their three reports along with the document.
 
 Each lens needs: the document path, `sources.jsonl`, the corpus checkout location, and
 the coverage chapter. Lens B has to reopen the source itself, so without a checkout or a
@@ -130,7 +140,7 @@ here — they change with the code.
 
 ### 5. Report
 
-Merge the three lenses and the script output into one Korean report. Follow
+Merge the lens reports and the script output into one Korean report. Follow
 `../research-doc/references/prose-ko.md`. Shape:
 
 ```
@@ -153,6 +163,29 @@ riskiest part of the document.
 
 Do not list what passed. Give a count if the scale matters.
 
+### 6. Fix, then re-verify what changed
+
+The report is not the end of the chain. Findings go back to the author, the author fixes,
+and the changed slides go through the lenses again. The changed slides, not the document.
+
+**Must-fix items are the author's to resolve without asking.** A wrong number, a flipped
+direction, a truncated quote, a dead cross-reference: each has one correct answer, so
+asking about it only moves the work to the user.
+
+**Needs-judgment items are the author's too, except where the fix changes what the document
+concludes or how much of it exists.** Retitling, cutting a chapter, adding one, reopening
+the corpus: those are the user's. Collect them and ask once, rather than one at a time as
+they surface.
+
+Do not wait for every lens before fixing. A lens that returns first has must-fix items
+that are already actionable, and the others will not change them.
+
+Re-run the machine checks after fixing, and re-run a lens over the slides it touched. Stop
+when a round turns up no new must-fix item, not when the first round is cleared. Fixes
+introduce their own errors and it is the second round that finds them. Say whether the
+rendered page was opened after the fixes, not before them, and put the remaining
+needs-judgment items to the user in one message.
+
 ## What this procedure structurally cannot catch
 
 Say these alongside the findings so the reader knows the shape of the gap.
@@ -174,6 +207,25 @@ a claim leans on and opening them.
 fact-checking natural-language prose against web sources. Nobody has shown they work for
 `file:line` code analysis. Use the procedure; do not report its output as if the procedure
 were proven.
+
+## Common rationalizations
+
+| The excuse | Why it does not hold |
+|---|---|
+| Subagents cannot be spawned here, so this skill cannot run | Step 1 has a reduced path. A judgment reached without opening the skill is not a judgment |
+| I wrote this document, so I already know where it is weak | That is the reason the lenses are separated. The context that wrote a sentence reaches the same conclusion by the same route |
+| Both gates passed, so the document is correct | The gates are static. A truncated quote and a flipped direction pass both |
+| This one needs judgment, so it goes to the user | Step 6 assigns the owner. Only what changes the conclusion or the size of the document is theirs |
+| I checked the number against the document's own explanation | That is checking the document against itself. Reopen the source |
+| The report is written, so verify is finished | Step 6 is inside this skill. Fixing and re-checking the changed slides is not something that happens after it |
+
+## Red flags
+
+- The report has findings and an empty `검증하지 못한 것` section.
+- A lens ran once, and not again over the slides its findings changed.
+- A number passed because the document explained where it came from.
+- The rendered page was opened before the fixes and not after.
+- Needs-judgment items went to the user one at a time as they surfaced.
 
 ## Do not
 

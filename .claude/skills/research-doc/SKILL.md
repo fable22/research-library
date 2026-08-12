@@ -20,8 +20,8 @@ Read before writing:
 
 - `references/prose-ko.md` — always. This is where Korean output quality is decided.
 - `references/visual.md` — whenever the document has a mechanism, an architecture, a
-  loop, or a comparison in it, which is nearly always. Half of what a reader takes away
-  from these documents comes from the figures.
+  loop, or a comparison in it, which is nearly always. A shape drawn wrong is read as
+  fact and never checked against the source.
 - `references/paper.md` or `references/oss.md` — pick by what the corpus is.
 
 The reader is a developer deciding whether to use this thing next week. Not a general
@@ -225,9 +225,10 @@ Constraints the gate enforces, so build them in rather than repairing them later
   writing that label first as the test of whether the figure is worth drawing.
 - No `.stat` without a `.sub`, no em dashes, one `.rail-item` per slide, 1 MB total.
 
-Draw rather than embed. Anything you can build in inline SVG or CSS costs a few hundred
-bytes, scales, and follows the theme; a raster image does none of that and base64 adds
-another 33% on top. Compress the ones you genuinely need.
+Draw rather than embed, except where redrawing would invent what the source shows.
+Anything you can build in inline SVG or CSS costs a few hundred bytes, scales, and follows
+the theme; a raster image does none of that and base64 adds another 33% on top. `visual.md`
+splits the two cases and covers embedding the source's own figures.
 
 ## Gates
 
@@ -239,11 +240,28 @@ node scripts/build-index.mjs
 `--help` lists the rules; they change with the code, so read them there rather than from
 memory. Both are pass/fail, with `--allow=<rule-id>` as the only escape.
 
-Then run **research-verify** on the draft. Passing the static gate and being correct are
-different things, and the errors that matter are only visible once sentences exist.
-
 Say plainly whether you looked at the rendered page. If no headless browser was
 available, say that instead of implying you checked.
+
+## Hand off
+
+When both gates pass, continue with `../research-verify/SKILL.md`. Do not stop to ask
+first. Passing the static gate and being correct are different things, and the errors that
+matter are only visible once sentences exist, so the draft is not finished until verify has
+run on it.
+
+**Break the context here.** The rule that kept research-source and research-doc in one
+context inverts at this step: the context that wrote a sentence reaches the same conclusion
+by the same route, so verify's lenses run where this context cannot reach them.
+
+## Common rationalizations
+
+| The excuse | Why it does not hold |
+|---|---|
+| The gates pass and it reads well, so the draft is done | The gates are static. Hand off to research-verify; that is where the errors that matter surface |
+| Verification needs subagents, so ask before starting it | The chain does not stop for permission. Start it, and declare a reduced review if it comes to that |
+| The source's figure is not essential, the prose covers it | Decide that in the coverage chapter where a reader can see the decision, not silently |
+| I could not confirm this number, so soften the sentence | Hedging with no named gap is worse than the gap. Name what is missing |
 
 ## Do not
 

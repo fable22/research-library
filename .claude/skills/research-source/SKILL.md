@@ -153,6 +153,18 @@ gives what the HTML was converted from. Conversion drops cells, merges columns, 
 reflows multi-row headers often enough that a table read only through HTML is a number you
 have not actually confirmed.
 
+**Take the figures while the corpus is open.** The same `e-print` tarball holds the figure
+files the HTML render points at, and going back for them after the draft exists means
+re-deriving which figure went with which claim. Write `notes/figures.md`, one line each:
+the identifier the source uses (`Figure 3`, `Table 2`), one sentence on what it shows, the
+retrievable URL, and the byte size. The sentence is the part that earns its place, because
+it is what lets the writing step decide whether a figure carries a claim the document is
+making without reopening all of them.
+
+A repository's equivalent lives in `docs/`, the README, and the `*.svg` and `*.png` beside
+them. A diagram a maintainer drew is worth more than any architecture you reconstruct from
+the file tree, and it is evidence of what they think the system is.
+
 **Take one step out on citations.** What a paper claims to replace comes from its own
 related-work section, which is the part with the strongest incentive to be unfair. Who
 cites it, and what it cites for its own comparison, usually costs one call and is the

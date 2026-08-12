@@ -30,6 +30,10 @@ when that is not obvious. Not four.
 **Worked specimens** — a ✗/✓ pair, a markup skeleton, a real caption. These earn their
 length because they lose meaning when abstracted. `references/prose-ko.md` is the model.
 
+**Where the chain goes next, in its own section.** A skill that hands to another names the
+file, says whether to keep or break the context, and says when its own step is done. Folded
+into a paragraph it reads as a suggestion, and the chain stops at whichever skill buried it.
+
 ## Posture
 
 Give direction, not specification. Tightening every detail removes the judgment the work

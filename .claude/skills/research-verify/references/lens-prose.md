@@ -45,13 +45,13 @@ every paragraph.
 
 ## Structure
 
-**Is the same claim made repeatedly?** In a past document the compilation-cost gap
-appeared **six times**. Consolidate the argument in one place and have the rest point
+**Is the same claim made repeatedly?** A compilation-cost gap that appears **six times**
+is one argument and five echoes. Consolidate the argument in one place and have the rest point
 there. Repetition is only visible by reading the whole document, which makes it this
 lens's particular job.
 
 **Do internal references resolve?** Does the "reading path" or an inline "as seen
-earlier" point at a slide that actually holds that content? Real case: a reading path
+earlier" point at a slide that actually holds that content? A reading path
 claimed to point at the ablation slide while both stops linked the conclusion. When
 slide numbers shift, the links have to follow.
 
