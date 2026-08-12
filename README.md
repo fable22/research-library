@@ -12,6 +12,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 
 | 날짜 | 문서 | 분류 |
 |---|---|---|
+| 2026-08-12 | [omo 5.0 native: opencode 플러그인을 떠나 자기 호스트를 갖는다](https://fable22.github.io/research-library/research/2026-08-12-omo-native-vs-opencode-plugin/) | 주제 리서치 |
 | 2026-08-12 | [Cerebras Knowledge: 사내 지식을 RAG로 중앙집중화할 때 남는 문제](https://fable22.github.io/research-library/research/2026-08-12-cerebras-knowledge-base/) | 주제 리서치 |
 | 2026-08-12 | [Claude 텍스트 워터마크: 마크는 Claude 를 거쳤다는 신호까지만 증명한다](https://fable22.github.io/research-library/research/2026-08-12-claude-text-watermark/) | 주제 리서치 |
 | 2026-08-11 | [addyosmani/agent-skills: 강제는 산문에 맡기고, CI 는 스킬 자체에 건다](https://fable22.github.io/research-library/research/2026-08-11-addyosmani-agent-skills/) | 주제 리서치 |
