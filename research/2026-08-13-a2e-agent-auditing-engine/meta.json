@@ -1,0 +1,7 @@
+{
+  "title": "A2E Agent Auditing Engine: 정답률은 0.11 폭에 몰리고 토큰은 최소 3.5배 벌어진다",
+  "date": "2026-08-13",
+  "seq": 13,
+  "summary": "9개 harness × 23개 벤치마크 1,035회 실행. harness 평균 정답률은 0.57에서 0.68 사이에 몰리는데 토큰은 최소 3.5배 벌어진다. 그리고 표의 Claude Agent SDK 행은 Claude Agent SDK 가 아니다.",
+  "category": "paper"
+}
