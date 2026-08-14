@@ -40,9 +40,8 @@ rules for that, and revisions go through `skill-creator`. Why a rule exists live
 `docs/method-provenance.md`, deliberately outside the skills so running one does not pay
 for it.
 
-`research-verify` is the opposite: always break it. The context that wrote the document
-knows why it wrote each sentence, so it reaches the same conclusion from the same
-reasoning. Self-review confirms what it already believes.
+`research-verify` is the opposite: always break it, for the reason that skill states at its
+top — a context re-reading its own sentences confirms what it already believes.
 
 Not being able to separate them reduces the review; the skill carries the reduced path.
 Skipping verify is not one of the options.
@@ -96,3 +95,7 @@ resolving it silently.
 
 One line in the subject saying what was done. The body records the document's topic and
 the sources it rests on. Adding one document is one commit.
+
+A PR takes that subject as its title. What the repository gained is what a PR list is read
+for; a document's own title says what the document is on, so pasting it there leaves the
+reader looking at a claim with no action attached.

@@ -54,8 +54,8 @@ ls .research/<slug>/sources.jsonl      # corpus identity (may be absent)
 ```
 
 `sources.jsonl` fixes what the numbers are checked against: `repo` + `commit` for code,
-`arxiv_id` + `version` for papers. **No local paths.** A stored path makes the document
-verifiable on one machine only, and nobody else can pull the same commit and check it.
+`arxiv_id` + `version` for papers, and no local paths. `../research-source/SKILL.md` owns
+that rule; here a path that leaked in is a finding.
 
 **If `sources.jsonl` is missing, do not stop — run a reduced review.** Documents written
 before this harness existed do not have one.
@@ -76,7 +76,8 @@ audits it**: check the stated numbers against each other and against `sources.js
 document claiming 23 of 65 files with four unread directories totalling 34 has eight files
 unaccounted for, and that is a finding.
 
-Coverage is disclosure, not a requirement. A long unread list is not a defect.
+Coverage is disclosure, not a requirement (`../research-source/SKILL.md` §8). A long unread
+list is not a defect; a list that does not add up is.
 
 ### 2. Extract claims from the shipped sentences
 
@@ -213,14 +214,13 @@ needs-judgment items to the user in one message.
 
 Say these alongside the findings so the reader knows the shape of the gap.
 
-**Absence claims.** "This is not configurable", "there is no retry path" have no
-location to cite. `check-claims.mjs` therefore requires a re-runnable search command.
-Without one the claim is outside the verified set, and that fact belongs in the report.
+**Absence claims.** "This is not configurable", "there is no retry path" have no location
+to cite, so the only evidence available is a search that came back empty. Without one the
+claim is outside the verified set, and that fact belongs in the report.
 
 **Behavioral claims.** Reading code cannot establish runtime behavior; asserting it from
-source is checking the README against the README. There is no execution step here, so
-only "the code is written this way" is established. That is why `kind:"behavioral"`
-requires a `limits` field.
+source is checking the README against the README. There is no execution step here, so only
+"the code is written this way" is established.
 
 **Claims that depend on unread code.** A claim about what a function does, written from
 the caller alone, is a guess about the callee. Catching these means following the symbols
@@ -236,7 +236,7 @@ were proven.
 | The excuse | Why it does not hold |
 |---|---|
 | Subagents cannot be spawned here, so this skill cannot run | Step 1 has a reduced path. A judgment reached without opening the skill is not a judgment |
-| I wrote this document, so I already know where it is weak | That is the reason the lenses are separated. The context that wrote a sentence reaches the same conclusion by the same route |
+| I wrote this document, so I already know where it is weak | That is the reason the lenses are separated — the second rule at the top of this file |
 | Both gates passed, so the document is correct | The gates are static. A truncated quote and a flipped direction pass both |
 | This one needs judgment, so it goes to the user | Step 6 assigns the owner. Only what changes the conclusion or the size of the document is theirs |
 | I checked the number against the document's own explanation | That is checking the document against itself. Reopen the source |

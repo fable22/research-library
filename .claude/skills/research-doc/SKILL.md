@@ -107,8 +107,8 @@ which the listing prints directly under the title, and to the conclusion chapter
 room to qualify it; a title has none.
 
 The same string goes in four places and they must agree: `meta.json` `title`, `<title>`,
-`og:title`, and the cover `h1`. `check-doc.mjs` blocks a title that shares no word with
-the slug, which catches the missing name but cannot tell you the title is dull.
+`og:title`, and the cover `h1`. No gate can judge a title and nothing downstream re-reads
+one, so this section is where it gets decided.
 
 ## Slide grammar
 
@@ -183,9 +183,8 @@ README, so constrain the sentence to what you actually have:
 
 The second sentence is shorter on confidence and longer on use. A reader can act on it.
 
-`check-claims.mjs` requires `limits` on `kind:"behavioral"` claims and a re-runnable
-search command on `kind:"absence"` claims, for the same reason: "there is no retry path"
-has no line to cite, so the evidence has to be the search that came back empty.
+The gate asks the same thing in its own way, and its `--help` says how. "There is no retry
+path" has no line to cite, so the evidence has to be the search that came back empty.
 
 ### README against code
 
@@ -262,8 +261,8 @@ matter are only visible once sentences exist, so the draft is not finished until
 run on it.
 
 **Break the context here.** The rule that kept research-source and research-doc in one
-context inverts at this step: the context that wrote a sentence reaches the same conclusion
-by the same route, so verify's lenses run where this context cannot reach them.
+context inverts at this step, and `../research-verify/SKILL.md` opens with why: its lenses
+have to run where this context cannot reach them.
 
 ## Common rationalizations
 
