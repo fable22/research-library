@@ -4,7 +4,7 @@ description: Adversarially reviews a finished research document draft. Four lens
   (adoption decider, number checker, prose auditor, completeness critic) read the draft in
   separate contexts, claims are extracted from the sentences that shipped, and
   check-claims.mjs machine-verifies them against the pinned corpus. Usually this runs as a
-  phase of the /research workflow; invoke it directly when a draft already exists.
+  phase of the /research-chain workflow; invoke it directly when a draft already exists.
   Separation is the mechanism, but losing it reduces the review rather than cancelling it,
   so verification never gets skipped for want of subagents.
 when_to_use: After finishing or editing a draft under research/<slug>/, before committing
@@ -29,7 +29,7 @@ the same route. If one lens reports a section is fine, another stops looking the
 
 ## Where this runs
 
-`.claude/workflows/research.js` holds this procedure as phase 2, so the usual
+`.claude/workflows/research-chain.js` holds this procedure as phase 2, so the usual
 path is that the workflow has already launched the lenses and you are reading this because
 one of them is you. Follow the lens file you were handed and ignore the orchestration
 below.

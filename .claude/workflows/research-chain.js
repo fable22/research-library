@@ -1,5 +1,5 @@
 export const meta = {
-  name: 'research',
+  name: 'research-chain',
   description: 'Pin a corpus, write the document, verify it with four separated lenses, fix until a round comes back clean, and open a draft PR',
   whenToUse: 'One research target, already resolved to a concrete identity, that should go all the way to a reviewable PR without stopping to ask.',
   phases: [
