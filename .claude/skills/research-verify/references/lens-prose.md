@@ -74,6 +74,12 @@ earlier" point at a slide that actually holds that content? A reading path
 claimed to point at the ablation slide while both stops linked the conclusion. When
 slide numbers shift, the links have to follow.
 
+**Does the title say what the document is on?** Read the title alone and ask what the
+subject is. A sentence is fine when the sentence is what the subject is; what fails is a
+finding *about* the subject standing in for it. `../../research-doc/SKILL.md` states the
+rule and names every place the title is copied to — check those still agree, because no
+gate does.
+
 **Are `h2` headings claims?** This repo writes slide titles as statements, not noun
 labels — "결과 2. 단계가 많은 질문일수록 차이가 커진다". Legitimate labels exist too
 ("결과 5. ablation"), so don't flag mechanically. Check that the heading names what the
