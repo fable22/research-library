@@ -41,8 +41,6 @@ corpus, tool call, commit, embedding). These instructions are English; the produ
 Do not write a number you have not opened the source to confirm. When a claim is too
 ambiguous to pin down, drop it rather than hedging it: a wrong finding costs more than a
 missing one.
-
-Do not delegate. Do not spawn subagents. Read and write directly.
 `.trim()
 
 // ─── phase 1 ────────────────────────────────────────────────────────────────
@@ -70,6 +68,12 @@ Steps:
    LaTeX tables in the arxiv.org/e-print tarball. Rendered HTML drops and merges cells,
    so a number taken only from HTML is one you have not confirmed.
 3. Pass node scripts/check-doc.mjs ${DOC} and run node scripts/build-index.mjs.
+
+Delegation: when a trace crosses files large enough that loading them leaves nothing to
+write with, hand that reading to a subagent, as research-doc describes. Give it no
+judgment to make: ask for extraction and quotes with file:line locators, never for a
+conclusion. You stay the one who decides what the document says. Reading that fits in
+context is faster read directly.
 
 Output format: JSON matching the schema.
 Boundaries: do not commit, do not create a branch, do not touch claims.jsonl. Claims are
@@ -118,7 +122,15 @@ Write your report in Korean, plain declarative (~한다/~이다), following
                         as "everything else checked out"
 
 Do not report what you are unsure of. Do not list what passed; give a count.
-Do not edit the document. You find; the author fixes.`
+Do not edit the document. You find; the author fixes.
+
+Do not delegate this review. You are reading one document against one pinned corpus, so
+there is nothing here that needs compressing, and a subagent reading on your behalf would
+report back what it concluded rather than what it saw. The separation is the whole reason
+you exist as a separate context; keep it in one pair of hands.
+
+Budget: aim to finish inside roughly 30k tokens. Depth on the claims that carry the
+document beats coverage of every sentence.`
 
 const LENSES = [
   {
@@ -183,54 +195,138 @@ What this lens looks at in particular:
   { label: 'lens:completeness', phase: 'Verify', model: 'sonnet' })
 
 // ─── phase 3 ────────────────────────────────────────────────────────────────
+// A loop, not a single pass. research-verify is explicit that fixes introduce their own
+// errors and that it is the second round that finds them, so stopping the moment the
+// first round clears would ship exactly the defects that round created. Re-verification
+// is scoped to the slides that changed, because re-reading the whole document each round
+// costs the same as the first review and finds less. The cap exists because the loop has
+// to terminate on cost even when the document does not converge.
 phase('Fix')
-const fixed = await agent(`${HOUSE}
+
+const MAX_ROUNDS = 3
+let findings = got.map((r) => `### Lens ${r.key}\n${r.report}`).join('\n\n') +
+  `\n\n### Lens D\n${dReport || '(none)'}`
+let fixed = null
+const rounds = []
+let stoppedBecause = 'cap'
+
+for (let round = 1; round <= MAX_ROUNDS; round++) {
+  fixed = await agent(`${HOUSE}
+
+Read the "Fix, then re-verify what changed" section of
+.claude/skills/research-verify/SKILL.md and follow it. That file owns this procedure; this
+prompt only says which round you are in and what to act on, so where the two differ, the
+skill wins.
 
 Objective: apply the must-fix findings and get both gates passing again.
+This is round ${round} of at most ${MAX_ROUNDS}.
 
 Document: ${DOC}/index.html
+${a.question ? `The question this document exists to settle: ${a.question}` : ''}
 
-Reports:
-${got.map((r) => `### Lens ${r.key}\n${r.report}`).join('\n\n')}
-
-### Lens D
-${dReport || '(none)'}
+Findings to act on:
+${findings}
 
 Steps:
 1. Do not take a finding at face value. Confirm each must-fix against the pinned source
    before you change anything. Lenses are wrong often enough that acting on one unchecked
-   can delete a correctly sourced claim. Record any you rejected and why.
+   can delete a correctly sourced claim. Record the ones you rejected and why.
 2. Extract ${EVID}/claims.jsonl from the sentences that shipped, not from research notes.
    Give each claim its own locator and a quote of 40 characters or more. Evidence is
-   aligned per claim; handing the whole document to every claim makes verification worse,
-   not better.
+   aligned per claim; handing the whole document to every claim makes verification worse.
 3. Run:
      node scripts/check-doc.mjs ${DOC}
      node .claude/skills/research-verify/scripts/check-claims.mjs ${DOC} --repo <owner/name>=<path>
      node scripts/build-index.mjs
-4. Render the page and read it AFTER the fixes. A render from before them proves nothing.
+4. Render the changed slides and read them AFTER the fixes. A render from before proves
+   nothing, and this is where defects that pass both gates show up.
 
-Output format: JSON matching the schema.
+Output format: JSON matching the schema. touchedSlides lists the slide numbers you
+actually changed, which decides what gets re-verified.
 Boundaries: do not commit. Anything that changes the document's conclusion or its size is
-not yours to decide; put it in needsJudgment and leave the document alone.`,
-  {
-    label: 'fix',
-    schema: {
-      type: 'object',
-      required: ['fixed', 'gatesPassed', 'rendered'],
-      properties: {
-        fixed: { type: 'array', items: { type: 'string' } },
-        rejected: { type: 'array', items: { type: 'string' } },
-        needsJudgment: { type: 'array', items: { type: 'string' } },
-        unverified: { type: 'array', items: { type: 'string' } },
-        gatesPassed: { type: 'boolean' },
-        rendered: { type: 'boolean' },
+not yours to decide; put it in needsJudgment and leave the document as it is.`,
+    {
+      label: `fix:round-${round}`,
+      schema: {
+        type: 'object',
+        required: ['fixed', 'gatesPassed', 'rendered', 'touchedSlides'],
+        properties: {
+          fixed: { type: 'array', items: { type: 'string' } },
+          rejected: { type: 'array', items: { type: 'string' } },
+          needsJudgment: { type: 'array', items: { type: 'string' } },
+          unverified: { type: 'array', items: { type: 'string' } },
+          touchedSlides: { type: 'array', items: { type: 'integer' } },
+          gatesPassed: { type: 'boolean' },
+          rendered: { type: 'boolean' },
+        },
       },
-    },
+    })
+
+  if (!fixed || !fixed.gatesPassed) { stoppedBecause = 'gates'; break }
+  rounds.push({
+    round,
+    applied: (fixed.fixed || []).length,
+    rejected: (fixed.rejected || []).length,
+    touched: (fixed.touchedSlides || []).length,
   })
 
+  if (!fixed.touchedSlides || fixed.touchedSlides.length === 0) {
+    stoppedBecause = 'nothing-changed'
+    log(`round ${round}: nothing changed, stopping`)
+    break
+  }
+  if (round === MAX_ROUNDS) {
+    log(`round ${round}: cap reached with slides still changing`)
+    break
+  }
+
+  // A fresh context re-reads only what moved. It is told what the previous round did so it
+  // can look for the damage a fix causes rather than re-deriving the original review.
+  const recheck = await agent(`${LENS_BASE}
+
+You are re-verifying after a fix round, not reviewing the whole document. Round ${round}
+changed these slides: ${fixed.touchedSlides.join(', ')}.
+
+What the author says they changed:
+${(fixed.fixed || []).map((x) => `- ${x}`).join('\n') || '- (nothing recorded)'}
+
+What they rejected rather than applying:
+${(fixed.rejected || []).map((x) => `- ${x}`).join('\n') || '- (none)'}
+
+Read those slides against the pinned source and look for what the edits broke: a number
+that no longer matches its neighbours, a cross-reference that now points at the wrong
+chapter, a qualifier dropped while rewriting, a claim whose quote still verifies while the
+sentence around it drifted. Also check the rejections: if the author rejected a finding
+that was in fact correct, say so.
+
+Report only NEW must-fix items. A finding already fixed is not new. If the changed slides
+are sound, say so and return an empty list, which is what ends the loop.`,
+    {
+      label: `recheck:round-${round}`,
+      phase: 'Fix',
+      schema: {
+        type: 'object',
+        required: ['newMustFix'],
+        properties: {
+          newMustFix: { type: 'array', items: { type: 'string' } },
+          badRejections: { type: 'array', items: { type: 'string' } },
+          note: { type: 'string' },
+        },
+      },
+    })
+
+  const fresh = [...((recheck && recheck.newMustFix) || []), ...((recheck && recheck.badRejections) || [])]
+  if (fresh.length === 0) {
+    stoppedBecause = 'dry'
+    log(`round ${round}: re-verification found nothing new`)
+    break
+  }
+  log(`round ${round}: ${fresh.length} new must-fix, going again`)
+  findings = fresh.map((x) => `- ${x}`).join('\n')
+}
+
 if (!fixed || !fixed.gatesPassed) {
-  return { stoppedAt: 'fix', reason: 'gates did not pass after fixes', draft, fixed, reports: got, dReport }
+  return { stoppedAt: 'fix', reason: 'gates did not pass after fixes', draft, fixed, rounds, reports: got, dReport }
 }
 
 // ─── phase 4 ────────────────────────────────────────────────────────────────
@@ -272,7 +368,8 @@ return {
   slides: draft.slides,
   pr: shipped && shipped.prUrl,
   branch: shipped && shipped.branch,
-  fixed: (fixed.fixed || []).length,
+  fixRounds: rounds,
+  stoppedBecause,
   rejectedFindings: fixed.rejected || [],
   needsJudgment: fixed.needsJudgment || [],
   unverified: fixed.unverified || [],
