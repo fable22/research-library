@@ -14,7 +14,7 @@ Technical terms stay English (RAG, embedding, corpus, ablation, tool call, F1, m
 | Path | Contents | git |
 |---|---|---|
 | `research/<slug>/` | The publication. `index.html` and `meta.json` only | committed |
-| `.research/<slug>/` | Working artifacts. `sources.jsonl`, `claims.jsonl`, `notes/` | ignored |
+| `.research/<slug>/` | Working artifacts. `sources.jsonl`, `evidence.jsonl`, `claims.jsonl`, `notes/` | ignored |
 
 The two trees always use the **same directory name**. There is no mapping file, so a
 mismatch means the document and its evidence can no longer be connected. Directory names

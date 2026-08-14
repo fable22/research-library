@@ -178,11 +178,17 @@ async function create(slug, kind, opts) {
     (kind === 'paper'
       ? '// {"id":"p1","kind":"paper","arxiv_id":"2605.25480","version":"v1","sections_read":["1-7","A"]}\n'
       : '// {"id":"r1","kind":"repo","repo":"owner/name","commit":"019ee16","shallow":true,"history_available":false}\n'));
+  await writeFile(join(workDir, 'evidence.jsonl'),
+    '// 소스를 연 채로 인용을 적는다. 요약이 아니라 원문과 그 위치다.\n' +
+    '// 여기가 비어 있으면 산문을 시작하지 않는다.\n' +
+    (kind === 'paper'
+      ? '// {"id":"e1","source":"p1","locator":"§6.1 (sections/experiment.tex:123)","quote":"40자 이상 원문 그대로","why":"이 인용이 무엇을 위한 것인지 한 줄"}\n'
+      : '// {"id":"e1","source":"r1","locator":"src/registry.py:427","quote":"40자 이상 원문 그대로","why":"이 인용이 무엇을 위한 것인지 한 줄"}\n'));
   await writeFile(join(workDir, 'claims.jsonl'),
     '// 초고가 나온 뒤 실린 문장에서 추출한다. 조사 단계에서 미리 쓰지 않는다.\n');
 
   console.log(`research/${slug}/          index.html, meta.json (seq ${seq})`);
-  console.log(`.research/${slug}/         sources.jsonl, claims.jsonl, notes/`);
+  console.log(`.research/${slug}/         sources.jsonl, evidence.jsonl, claims.jsonl, notes/`);
   console.log(`\n출발용 ${chapters.length}장 (${kind}). eyebrow 는 내용을 가리키는 이름으로 바꾸고, 장은 필요한 만큼 늘린다.`);
   console.log('읽은 범위는 조사를 마친 뒤 ⑦장에 직접 적는다.');
 }
@@ -254,7 +260,7 @@ if (!argv.length || argv.includes('--help') || argv.includes('-h')) {
   console.log('  --summary <설명>     목록과 og:description 에 들어간다\n');
   console.log('만드는 것:');
   console.log('  research/<slug>/     index.html (출발용 골격), meta.json');
-  console.log('  .research/<slug>/    sources.jsonl, claims.jsonl, notes/\n');
+  console.log('  .research/<slug>/    sources.jsonl, evidence.jsonl, claims.jsonl, notes/\n');
   console.log('두 트리는 항상 같은 이름을 쓴다. 이름을 바꿀 때는 rename 을 쓸 것.');
   console.log('직접 옮기면 두 트리가 어긋나 문서와 근거를 이어붙일 수 없다.');
   process.exit(0);
