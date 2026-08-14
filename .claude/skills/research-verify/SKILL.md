@@ -1,9 +1,12 @@
 ---
 name: research-verify
-description: Adversarially reviews a finished research document draft. Runs four lenses
-  (adoption decider, number checker, prose auditor, completeness critic) in separate fresh
-  contexts, extracts claims from the sentences that shipped, and machine-verifies them
-  against the pinned corpus with check-claims.mjs and check-doc.mjs.
+description: Adversarially reviews a finished research document draft. Four lenses
+  (adoption decider, number checker, prose auditor, completeness critic) read the draft in
+  separate contexts, claims are extracted from the sentences that shipped, and
+  check-claims.mjs machine-verifies them against the pinned corpus. Usually this runs as a
+  phase of the /research-chain workflow; invoke it directly when a draft already exists.
+  Separation is the mechanism, but losing it reduces the review rather than cancelling it,
+  so verification never gets skipped for want of subagents.
 when_to_use: After finishing or editing a draft under research/<slug>/, before committing
   or publishing, and when asked to review, fact-check, or confirm a document is correct.
 ---
@@ -23,6 +26,21 @@ forward from research, and the verifier reads the same text the reader will.
 **Run the lenses as separate subagents, and do not let them see each other.** A
 context that wrote a sentence knows why, and re-reading it reaches the same conclusion by
 the same route. If one lens reports a section is fine, another stops looking there.
+
+## Where this runs
+
+`.claude/workflows/research-chain.js` holds this procedure as phase 2, so the usual
+path is that the workflow has already launched the lenses and you are reading this because
+one of them is you. Follow the lens file you were handed and ignore the orchestration
+below.
+
+Run it here instead when a draft already exists and no workflow is going: a document
+someone edited by hand, a review asked for after the fact, or a build where workflows are
+turned off. The steps below are that path.
+
+The difference is only who holds the sequence. A script cannot decide to skip a phase; a
+context can, and the failure is invisible afterwards because a document that was never
+verified looks exactly like one that passed.
 
 ## Procedure
 
@@ -113,7 +131,12 @@ declared.
 | A | `references/lens-adoption.md` | Can a developer decide adopt/hold from this? What is missing? |
 | B | `references/lens-numbers.md` | Every number against the pinned source: value, direction, unit, range |
 | C | `references/lens-prose.md` | Repo writing rules, repetition, internal references, accessibility |
-| D | `references/lens-completeness.md` | What none of the others could see: a claim no lens covered, a pinned source nothing leans on, a modality never run |
+| D | `references/lens-completeness.md` | What none of the others could see: a claim no lens covered, a pinned source nothing leans on, a modality never run, **a quote that is accurate while the reading built on it is not** |
+
+D owns that last one because nothing else can reach it. `check-claims.mjs` confirms the
+quote sits at its locator, and a quote can be verbatim while the sentence around it says
+something the source never said, usually by widening a narrow fact or joining two facts
+the source keeps apart. Give D the reading to attack, not just the citation.
 
 D runs **after** A, B and C report, because what it examines is the shape of their output.
 Hand it their three reports along with the document.
