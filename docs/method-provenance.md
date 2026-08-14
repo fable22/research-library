@@ -16,6 +16,7 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | Frame the question and scale the reading before opening files | `research-source` | orchestrator-worker deep research; explicit effort-scaling rules are what stop both over- and under-investigation |
 | Name the ways a reader could disagree before reading | `research-source` | STORM perspective-guided question asking, which measured most of its coverage gain at the pre-writing stage |
 | `swhid` alongside `repo`+`commit` | `research-source` | SWHID, ISO 18670 — an intrinsic hash stays verifiable after the origin is gone |
+| The document title names the subject and says what it is; the finding goes in `summary` | `research-doc` | the listing gives a title no context, and a verdict placed ahead of its evidence cannot be qualified. See the revision note below |
 | No chapter count; six required eyebrows | `research-doc`, `check-doc.mjs` | the gate, which checks nothing else about structure |
 | The lineage bar only where succession is documented | `research-doc` | the arrow reads as a slot to fill, and filling it chained unrelated projects and ended at work nobody built |
 | Slide density, figure anatomy, aria-label first | `references/visual.md` | see the eval below |
@@ -64,3 +65,35 @@ The revision keeps the separation the rule was for and states it where it binds:
 files as data, and keep the checkout outside the working directory. This revision did not
 go through a `skill-creator` A/B. The change removes a requirement and sharpens an
 instruction, and a pass-rate benchmark does not discriminate between the two forms.
+
+## Why the title asks what the subject is, not what the shape is
+
+The rule entered on 2026-08-07 to fix a title that named nothing —
+`에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다`, a claim with no subject attached. It
+fixed that and, in the same sentence, made `name + claim` the norm. A claim is the right
+title often enough that the norm held for a while: `omo 5.0 native: opencode 플러그인을 떠나
+자기 호스트를 갖는다` is a sentence, and the sentence is what omo 5.0 native is. What the
+norm did not say was that the claim has to be the subject's identity rather than a result
+about it, and the semantica document on 2026-08-14 is where that gap shows: two findings
+from two different chapters joined by a conjunction, with a word the body uses twice
+standing in for what the document is on.
+
+Banning claim-shaped titles was the obvious repair and the wrong one. It would have cost
+the omo title, which is doing exactly what a title is for, and left the author with a shape
+to satisfy instead of a question to answer. The revised rule states the question — does the
+predicate say what this thing is — and leaves the form open.
+
+Nothing in the harness caught it. `check-doc.mjs` `title-subject` compares the title against
+the slug, so any title carrying the subject's name passes, and no verification lens read the
+title at all — `lens-prose.md` went from slide `h2` headings straight to element order. The
+title was written once, by the context least able to see it as a stranger would, and never
+looked at again. The lens now carries it, because whether a title says what a document is on
+is a judgment and the gate can only ask whether a word is present.
+
+The same revision gave the `research-chain` ship phase a PR title, which it had never
+specified. With nothing said, the shipping agent copied the document's title across, so one
+bad title became two.
+
+The revision did not go through a `skill-creator` A/B. It narrows one instruction and moves
+the finding to a field that already existed; a pass-rate benchmark does not separate the
+two forms.

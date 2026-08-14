@@ -292,8 +292,8 @@ const shipped = await agent(`${HOUSE}
 Objective: put the document on a branch and open a draft PR.
 
 Branch doc/${a.slug} off main. Stage ${DOC}/ plus the README.md and index.html that
-build-index.mjs rewrote. Write the message per the Commits section of AGENTS.md, then push
-and open the PR.
+build-index.mjs rewrote. Write the message per the Commits section of AGENTS.md, which also
+says what the PR is titled with, then push and open the PR.
 
 Open it as a draft when the list below has anything in it, because the document really is
 waiting on a decision then; open it ready for review when the list is empty.
