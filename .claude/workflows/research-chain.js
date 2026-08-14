@@ -267,8 +267,16 @@ const shipped = await agent(`${HOUSE}
 Objective: put the document on a branch and open a draft PR.
 
 Branch doc/${a.slug} off main. Stage ${DOC}/ plus the README.md and index.html that
-build-index.mjs rewrote. Write the message per the Commits section of AGENTS.md. Push and
-open it with gh pr create --draft.
+build-index.mjs rewrote. Write the message per the Commits section of AGENTS.md, then push
+and open the PR.
+
+Open it as a draft when the list below has anything in it, because the document really is
+waiting on a decision then; open it ready for review when the list is empty.
+
+Then open ${DOC}/index.html locally so the person can look at the rendering before deciding
+anything. The document is a deck and most of what is wrong with one is only visible once it
+is on screen. Use whatever opens a browser on this machine; if nothing does, say so and put
+the path in your result rather than treating it as a failure.
 
 Put these in the PR body, under headings of their own:
 
@@ -294,6 +302,8 @@ return {
   slides: draft.slides,
   pr: shipped && shipped.prUrl,
   branch: shipped && shipped.branch,
+  isDraft: shipped && shipped.isDraft,
+  docPath: shipped && shipped.docPath,
   fixRounds: rounds,
   stoppedBecause,
   rejectedFindings: fixed.rejected || [],
