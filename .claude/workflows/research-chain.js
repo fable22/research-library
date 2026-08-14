@@ -175,6 +175,9 @@ let findings = got.map((r) => `### Lens ${r.key}\n${r.report}`).join('\n\n') +
 let fixed = null
 const rounds = []
 let stoppedBecause = 'cap'
+// Must-fix items the last round confirmed but had no round left to act on. Empty unless the
+// loop ends on the cap.
+let openFindings = []
 
 for (let round = 1; round <= MAX_ROUNDS; round++) {
   fixed = await agent(`${HOUSE}
@@ -231,11 +234,10 @@ not yours to decide; put it in needsJudgment and leave the document alone.`,
     stoppedBecause = 'nothing-changed'
     break
   }
-  if (round === MAX_ROUNDS) {
-    log(`round ${round}: cap reached with slides still changing`)
-    break
-  }
 
+  // The cap is checked below, after this runs, not before it. A fix round is finished when
+  // a context that did not make the edits has read them, so the last round needs re-reading
+  // exactly like the others — and the last round is the one carrying the freshest edits.
   const recheck = await agent(`${NOT_THE_AUTHOR}
 
 You are re-verifying after a fix round, not reviewing the whole document. Round ${round}
@@ -269,10 +271,27 @@ Output: JSON matching the schema. No prose report this round.`,
       },
     })
 
-  const fresh = [...((recheck && recheck.newMustFix) || []), ...((recheck && recheck.badRejections) || [])]
+  // A dead agent returns null, and null must not arrive here as an empty finding list: that
+  // is a round nobody read wearing the shape of a round that came back clean.
+  if (!recheck) {
+    stoppedBecause = 'recheck-failed'
+    openFindings = [`라운드 ${round}의 재검증이 결과를 내지 못했다. 그 라운드가 고친 슬라이드 ${fixed.touchedSlides.join(', ')} 는 편집한 컨텍스트 말고는 아무도 읽지 않았다.`]
+    log(`round ${round}: re-verification agent returned nothing; not treating that as clean`)
+    break
+  }
+
+  const fresh = [...(recheck.newMustFix || []), ...(recheck.badRejections || [])]
   if (fresh.length === 0) {
     stoppedBecause = 'dry'
     log(`round ${round}: re-verification found nothing new`)
+    break
+  }
+  if (round === MAX_ROUNDS) {
+    // Read, confirmed, and out of budget to fix. That is a different thing from unverified,
+    // and phase 4 carries it to the PR under its own heading so it is not read as clean.
+    stoppedBecause = 'cap'
+    openFindings = fresh
+    log(`round ${round}: cap reached with ${fresh.length} must-fix confirmed and unfixed`)
     break
   }
   log(`round ${round}: ${fresh.length} new must-fix, going again`)
@@ -295,8 +314,8 @@ Branch doc/${a.slug} off main. Stage ${DOC}/ plus the README.md and index.html t
 build-index.mjs rewrote. Write the message per the Commits section of AGENTS.md, which also
 says what the PR is titled with, then push and open the PR.
 
-Open it as a draft when the list below has anything in it, because the document really is
-waiting on a decision then; open it ready for review when the list is empty.
+Open it as a draft when any list below has anything in it, because the document really is
+waiting on a decision then; open it ready for review when all of them are empty.
 
 Then open ${DOC}/index.html locally so the person can look at the rendering before deciding
 anything. The document is a deck and most of what is wrong with one is only visible once it
@@ -310,6 +329,14 @@ ${(fixed.needsJudgment || []).map((x) => `- ${x}`).join('\n') || '- (none)'}
 
 Not verified:
 ${(fixed.unverified || []).map((x) => `- ${x}`).join('\n') || '- (none)'}
+
+Found and not fixed:
+${openFindings.map((x) => `- ${x}`).join('\n') || '- (none)'}
+${openFindings.length ? `
+Say in the PR body that the fix loop stopped at its round cap of ${MAX_ROUNDS} rather than
+on a clean round, and that the items above were confirmed by a re-verification that ran
+after the last fix round. They are known defects, not open questions — do not file them
+under either of the other two headings.` : ''}
 
 Output: JSON matching the schema.
 Boundaries: do not merge, do not mark it ready for review, do not push to main.`,
@@ -336,4 +363,5 @@ return {
   rejectedFindings: fixed.rejected || [],
   needsJudgment: fixed.needsJudgment || [],
   unverified: fixed.unverified || [],
+  openFindings,
 }

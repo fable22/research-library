@@ -210,6 +210,11 @@ introduce their own errors and it is the second round that finds them. Say wheth
 rendered page was opened after the fixes, not before them, and put the remaining
 needs-judgment items to the user in one message.
 
+**A round only the author has read is not finished, and that includes the last one.** A run
+that stops on a budget or a round cap still re-verifies what it just changed, and reports
+what that turned up as found-and-unfixed — a category of its own, not folded into what was
+verified. Stopping one step earlier leaves the freshest edits as the only unread ones.
+
 ## What this procedure structurally cannot catch
 
 Say these alongside the findings so the reader knows the shape of the gap.
