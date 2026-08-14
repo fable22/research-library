@@ -295,6 +295,11 @@ Branch doc/${a.slug} off main. Stage ${DOC}/ plus the README.md and index.html t
 build-index.mjs rewrote. Write the message per the Commits section of AGENTS.md, then push
 and open the PR.
 
+Title the PR with that commit subject, not with the document's title. A PR title says what
+was done to the repository; a document title says what the document is on, and the two are
+different sentences. Copying the document's title across loses the first and puts a reader
+of the PR list in front of a claim with no action attached.
+
 Open it as a draft when the list below has anything in it, because the document really is
 waiting on a decision then; open it ready for review when the list is empty.
 

@@ -82,18 +82,29 @@ you are speculating.
 **⑦ is the strongest chapter and is easy to skip.** It is what separates this from a
 summary someone wrote off an abstract. Include it every time.
 
-## The title has to name what it is about
+## The title says what the document is on
 
-The title is read in the listing next to twenty others, with nothing around it. A claim
-alone does not survive there, because the reader cannot tell what the claim is about:
+The title is read in the listing next to twenty others, with nothing around it. Lead with
+the library, system, or paper name, then say what that thing is. A sentence does that as
+well as a noun phrase — the form is not the rule:
 
 ```
-✗ 에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다
-✓ Cloudflare computer: 에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다
+✓ omo 5.0 native: opencode 플러그인을 떠나 자기 호스트를 갖는다
+✓ semantica: vector 검색 옆에 그래프 갈래를 하나 더 두는 컨텍스트 인프라
+✗ 그래프는 RAG 위에 얹히고, 벤치마크는 저장소에 없다
+✗ semantica: 그래프는 RAG 위에 얹히고, 벤치마크는 저장소에 없다
 ```
 
-Lead with the library, system, or paper name, then the claim. The name is the part a
-reader is scanning for; the claim is what makes them open it. Keep both.
+The first two answer *what is this thing*, one as a sentence and one as a noun phrase. The
+third names nothing, so a reader cannot tell what the claim is about. The fourth names the
+subject and then spends the line on two findings from two different chapters, neither of
+which the subject is — and the reader still cannot say what the document is on.
+
+The test is what the predicate does. A claim belongs in the title when it **is** the
+subject's identity, the thing it turned out to be. A finding *about* the subject — one the
+reader would have had to read the document to care about — goes to `meta.json` `summary`,
+which the listing prints directly under the title, and to the conclusion chapter. Both have
+room to qualify it; a title has none.
 
 The same string goes in four places and they must agree: `meta.json` `title`, `<title>`,
 `og:title`, and the cover `h1`. `check-doc.mjs` blocks a title that shares no word with
