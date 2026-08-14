@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>semantica: 그래프는 RAG 위에 얹히고, 벤치마크는 저장소에 없다</title>
+<title>semantica: vector 검색 옆에 그래프 갈래를 하나 더 두는 컨텍스트 인프라</title>
 <meta name="description" content="graph-native 를 내세우는 semantica 의 검색 경로는 vector lane 을 그대로 두고 graph lane 을 병렬로 붙인 뒤 embedding cosine 으로 재정렬한다. README 의 수치는 CHANGELOG 한 줄로 거슬러 올라가고, evals 모듈은 빈 stub 이며, CI 는 테스트를 한 번도 돌리지 않는다.">
 <meta property="og:type" content="article">
-<meta property="og:title" content="semantica: 그래프는 RAG 위에 얹히고, 벤치마크는 저장소에 없다">
+<meta property="og:title" content="semantica: vector 검색 옆에 그래프 갈래를 하나 더 두는 컨텍스트 인프라">
 <meta property="og:description" content="graph-native 를 내세우는 semantica 의 검색 경로는 vector lane 을 그대로 두고 graph lane 을 병렬로 붙인 뒤 embedding cosine 으로 재정렬한다. README 의 수치는 CHANGELOG 한 줄로 거슬러 올라가고, evals 모듈은 빈 stub 이며, CI 는 테스트를 한 번도 돌리지 않는다.">
 <meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-14-semantica-graph-native-context/">
 <meta name="twitter:card" content="summary">
@@ -380,7 +380,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <section class="slide" data-active="true">
     <div class="slide-inner">
       <p class="eyebrow">index</p>
-      <h1>semantica: 그래프는 RAG 위에 얹히고, 벤치마크는 저장소에 없다</h1>
+      <h1>semantica: vector 검색 옆에 그래프 갈래를 하나 더 두는 컨텍스트 인프라</h1>
       <p class="dek">semantica 는 스스로를 <b>Graph-Native Infrastructure for Context and Accountable AI Systems</b> 라고 부른다. 문서 청킹과 임베딩을 그래프로 갈아치웠다는 뜻으로 읽히지만, 코드에서는 청킹도 임베딩도 그대로 남아 있고 그래프가 한 갈래 더 붙는다. 이 문서는 그 구조를 검색 경로에서 확인하고, 저장소가 내세우는 강점 각각에 대해 뒷받침하는 실증이 저장소 안에 있는지 하나씩 대조한다.</p>
       <div class="stats">
         <div class="stat hero"><span class="lab">코퍼스</span><span class="val">1,026<span class="u"> 파일</span></span><span class="sub">commit 611874e, shallow clone</span></div>

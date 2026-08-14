@@ -1,5 +1,5 @@
 {
-  "title": "semantica: 그래프는 RAG 위에 얹히고, 벤치마크는 저장소에 없다",
+  "title": "semantica: vector 검색 옆에 그래프 갈래를 하나 더 두는 컨텍스트 인프라",
   "date": "2026-08-14",
   "seq": 14,
   "summary": "graph-native 를 내세우는 semantica 의 검색 경로는 vector lane 을 그대로 두고 graph lane 을 병렬로 붙인 뒤 embedding cosine 으로 재정렬한다. README 의 수치는 CHANGELOG 한 줄로 거슬러 올라가고, evals 모듈은 빈 stub 이며, CI 는 tests/ 의 4,704개 테스트를 한 번도 돌리지 않는다.",
