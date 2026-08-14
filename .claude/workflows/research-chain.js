@@ -44,12 +44,24 @@ ${a.angle ? `Required angle: ${a.angle}` : ''}
 
 Steps:
 1. Read .claude/skills/research-source/SKILL.md and follow it.
-2. Staying in the same context, continue with .claude/skills/research-doc/SKILL.md and
+2. Before writing prose, enumerate what the corpus contains: a paper's section list, a
+   repository's tree by directory. You cannot report what you did not read without first
+   knowing what there was to read, and chapter 7 is built from this.
+3. Fill ${EVID}/evidence.jsonl as you read, per that skill. Quotes and locators, taken
+   while the file is open. Do not begin a chapter with it still empty.
+4. Staying in the same context, continue with .claude/skills/research-doc/SKILL.md and
    write ${DOC}/index.html.
-3. Pass node scripts/check-doc.mjs ${DOC}, then run node scripts/build-index.mjs.
+5. Pass node scripts/check-doc.mjs ${DOC}, then run node scripts/build-index.mjs.
+
+Steps 2 and 3 are what stops a thin read. Reading and writing share one context window,
+and the first thing to give out under that pressure is the ability to find a passage again
+rather than the memory of having seen it. A span copied out when you found it costs nothing
+later; one you must go back for costs a re-read you will not budget.
 
 Delegation: research-doc describes when to hand reading to a compression subagent and what
-to constrain it to. Follow that. Reading that fits in context is faster read directly.
+to constrain it to. Follow that, with one exception: extract the evidence spans yourself.
+A subagent returns what it concluded, and the conclusion is what you were meant to reach
+from the words.
 
 Output: JSON matching the schema.
 Boundaries: do not commit, do not create a branch, do not touch claims.jsonl. Claims are
@@ -58,12 +70,17 @@ extracted later, from the sentences that shipped.`,
     label: `draft:${a.slug}`,
     schema: {
       type: 'object',
-      required: ['slides', 'gatesPassed', 'summary'],
+      required: ['slides', 'gatesPassed', 'summary', 'evidenceCount', 'corpusEnumerated', 'notRead'],
       properties: {
         slides: { type: 'integer' },
         gatesPassed: { type: 'boolean' },
         checkoutPath: { type: 'string' },
         summary: { type: 'string' },
+        // What was read, in the shape chapter 7 needs. Reporting these is what makes a
+        // thin read visible; a prompt line asking for depth is not.
+        evidenceCount: { type: 'integer' },
+        corpusEnumerated: { type: 'array', items: { type: 'string' } },
+        notRead: { type: 'array', items: { type: 'string' } },
         openQuestions: { type: 'array', items: { type: 'string' } },
       },
     },
@@ -72,7 +89,10 @@ extracted later, from the sentences that shipped.`,
 if (!draft || !draft.gatesPassed) {
   return { stoppedAt: 'draft', reason: 'check-doc.mjs did not pass', draft }
 }
-log(`draft complete: ${draft.slides} slides`)
+if (!draft.evidenceCount) {
+  return { stoppedAt: 'draft', reason: 'evidence.jsonl is empty; the document was written without recorded spans', draft }
+}
+log(`draft complete: ${draft.slides} slides, ${draft.evidenceCount} evidence spans`)
 
 // ─── phase 2 ────────────────────────────────────────────────────────────────
 // A judge marks its own failing output as satisfied far more often than someone else's,
@@ -82,6 +102,7 @@ const NOT_THE_AUTHOR = `${HOUSE}
 
 Document: ${DOC}/index.html
 Corpus identity: ${EVID}/sources.jsonl
+Evidence the author recorded while reading: ${EVID}/evidence.jsonl
 Checkout: ${draft.checkoutPath || '(none given; fetch it from the pinned identity)'}
 
 You did not write this document. The author's confidence was not passed to you and should
@@ -105,7 +126,10 @@ Do not report what you are unsure of. Do not list what passed; give a count.`
 
 const LENSES = [
   { key: 'A', label: 'lens:adoption', file: 'lens-adoption.md' },
-  { key: 'B', label: 'lens:numbers', file: 'lens-numbers.md' },
+  { key: 'B', label: 'lens:numbers', file: 'lens-numbers.md',
+    extra: `Where evidence.jsonl holds a span for a number, check the document against the
+span and the span against the source. A span that no sentence uses is worth reporting too:
+either the reading found something the writing dropped, or the span was never needed.` },
   { key: 'C', label: 'lens:prose', file: 'lens-prose.md' },
 ]
 
@@ -113,7 +137,8 @@ const reports = await parallel(LENSES.map((L) => () =>
   agent(`Read .claude/skills/research-verify/references/${L.file} and review through that lens.
 
 ${NOT_THE_AUTHOR}
-${REPORT_SHAPE}`, { label: L.label, phase: 'Verify' })
+${REPORT_SHAPE}
+${L.extra || ''}`, { label: L.label, phase: 'Verify' })
     .then((r) => ({ key: L.key, label: L.label, report: r }))
 ))
 
@@ -304,6 +329,8 @@ return {
   branch: shipped && shipped.branch,
   isDraft: shipped && shipped.isDraft,
   docPath: shipped && shipped.docPath,
+  evidenceCount: draft.evidenceCount,
+  notRead: draft.notRead || [],
   fixRounds: rounds,
   stoppedBecause,
   rejectedFindings: fixed.rejected || [],

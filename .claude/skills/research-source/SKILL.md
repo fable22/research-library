@@ -177,7 +177,39 @@ difference between chapter 5 repeating the paper's framing and checking it.
 When a blog or community post disagrees with the paper, the paper wins, and the document
 says which was which. This happens often enough to be worth checking rather than assuming.
 
-## 7. Coverage is disclosed, not required
+## 7. Write the evidence down while the source is open
+
+Keep `.research/<slug>/evidence.jsonl` as you read, one span per line. Not a summary of
+what a file says. The words, and where they are.
+
+```json
+{"id":"e1","source":"r1","locator":"task/runners/registry.py:427",
+ "quote":"\"claude-sdk\":    {\"build\": _build_claude_sdk,    \"framework\": \"anthropic\"",
+ "why":"the registry maps this harness to the anthropic instrumentor"}
+{"id":"e2","source":"p1","locator":"§6.1 (sections/experiment.tex:123)",
+ "quote":"correctness spans only $0.568$ to $0.663$ while mean token cost spans $3.5\\times$",
+ "why":"the paper's own statement of the spread"}
+```
+
+**This is the layer that survives your context.** Reading and writing compete for one
+window, and what gives out first is not memory but the ability to find the passage again:
+accuracy on the same task drops sharply as the input grows, and locating relevant text
+inside it degrades with it. A quote you copied out at the moment you found it costs
+nothing to reuse. One you have to go back for costs a re-read you may not budget for.
+
+It also has a reader other than you. `check-claims.mjs` can open a file; it cannot open
+your context. Evidence that lives only in the window is evidence nothing can check.
+
+`why` is one line on what the span is for. Written months later it is a guess; written with
+the file open it is the reason you stopped to copy it.
+
+Extract these yourself rather than sending a subagent for them. A subagent hands back what
+it concluded, and the conclusion is the part you were supposed to reach from the words.
+
+Three or four spans is a thin read of anything substantial. Fifty is usually a sign of
+copying rather than choosing. Neither number is a target.
+
+## 8. Coverage is disclosed, not required
 
 Before writing, list what the corpus actually contains and compare it against what you
 opened:
@@ -200,11 +232,15 @@ unread has to account for the total, or the gap hides files nobody will look for
 
 ## Hand off
 
-When `sources.jsonl` exists and you know where the interesting code or sections are,
-continue in the **same context** with `../research-doc/SKILL.md`. Do not hand the corpus
-to a fresh context to write it up. The value of having read the source is that you can
-reopen it mid-sentence when a claim gets shaky, and that is lost across a context
-boundary.
+When `sources.jsonl` and `evidence.jsonl` both exist and you know where the interesting
+code or sections are, continue in the **same context** with `../research-doc/SKILL.md`. Do
+not hand the corpus to a fresh context to write it up. The value of having read the source
+is that you can reopen it mid-sentence when a claim gets shaky, and that is lost across a
+context boundary.
+
+Do not start prose with `evidence.jsonl` still empty. A chapter written before the spans
+exist is written from what you remember reading, which is the failure this step is here to
+prevent.
 
 ## Do not
 
