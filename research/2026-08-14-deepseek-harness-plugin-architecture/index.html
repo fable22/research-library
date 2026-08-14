@@ -468,14 +468,14 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
             </tbody>
           </table>
         </div>
-        <figcaption>9개 중 6개만 실었다. 빨간 칸은 upstream 이 이미 원 저자 조직이 아니라 <code class="wl">deepseek-harness</code> 포크인 항목이다. 커널 본체(<code class="wl">cordis/</code>)와 loader 만 아직 <code class="wl">cordiverse/cordis</code> 를 가리킨다. 벤더링한 커밋 <code class="wl">56b3d4f</code> 시점에서 그 둘은 <code class="wl">4.0.0-rc.7</code>·<code class="wl">1.0.0-rc.5</code>, 둘 다 rc 였다. 그 뒤 upstream 이 안정 릴리스를 냈는지는 저장소를 열지 않아 모른다(15장).</figcaption>
+        <figcaption>9개 중 6개만 실었다. 빨간 칸은 upstream 이 이미 원 저자 조직이 아니라 <code class="wl">deepseek-harness</code> 포크인 항목이다. 커널 본체(<code class="wl">cordis/</code>)와 loader 만 아직 <code class="wl">cordiverse/cordis</code> 를 가리킨다. 벤더링한 커밋 <code class="wl">56b3d4f</code> 시점에서 그 둘은 <code class="wl">4.0.0-rc.7</code>, <code class="wl">1.0.0-rc.5</code> 로 둘 다 rc 였다. 그 뒤 upstream 이 안정 릴리스를 냈는지는 저장소를 열지 않아 모른다(15장).</figcaption>
       </figure>
 
-      <p>왜 npm 의존이 아닌지는 저장소가 직접 답한다. <code class="wl">vendor/README.md:3</code>: "They are copied into this monorepo instead of being depended on via npm, so that the harness fully owns its framework layer (auditable, patchable, pinned)." 실제로 고쳤다. 같은 파일의 local-modification 로그는 18개 항목인데, 이 18은 커널 하나의 수가 아니라 위 9개 패키지 전체를 덮는 수다. <code class="wl">vendor/README.md:31</code> 이 로그를 빠짐없이 유지하라고, 즉 upstream 과의 모든 차이를 여기 적으라고 요구한다. 항목 이름으로 <code class="wl">cordis/src</code> 를 지목하는 것은 그중 셋(<code class="wl">:38</code>·<code class="wl">:39</code>·<code class="wl">:47</code>)이고, 거기에는 주석 정리(<code class="wl">:39</code> JSDoc enrichment)뿐 아니라 커널의 해제 순서를 바꾸는 항목(<code class="wl">:38</code>, <code class="wl">cordis/src/fiber.ts</code> lifecycle hardening)이 들어 있다. 여러 벤더 패키지에 걸치는 항목 다섯(<code class="wl">:34</code>·<code class="wl">:35</code>·<code class="wl">:36</code>·<code class="wl">:42</code>·<code class="wl">:49</code>)도 커널에 닿지만, 18 이라는 수 자체는 커널의 것이 아니다. 패치 알고리즘 자체를 바꾸는 항목(<code class="wl">:43</code>)은 커널이 아니라 <code class="wl">include</code> 플러그인의 것이다.</p>
+      <p>왜 npm 의존이 아닌지는 저장소가 직접 답한다. <code class="wl">vendor/README.md:3</code>: "They are copied into this monorepo instead of being depended on via npm, so that the harness fully owns its framework layer (auditable, patchable, pinned)." 실제로 고쳤다. 같은 파일의 local-modification 로그는 18개 항목인데, 이 18은 커널 하나의 수가 아니라 위 9개 패키지 전체를 덮는 수다. <code class="wl">vendor/README.md:31</code> 이 로그를 빠짐없이 유지하라고, 즉 upstream 과의 모든 차이를 여기 적으라고 요구한다. 항목 이름으로 <code class="wl">cordis/src</code> 를 지목하는 것은 그중 셋(<code class="wl">:38</code>·<code class="wl">:39</code>·<code class="wl">:47</code>)이고, 거기에는 주석 정리(<code class="wl">:39</code> JSDoc enrichment)뿐 아니라 커널의 해제 순서를 바꾸는 항목(<code class="wl">:38</code>, <code class="wl">cordis/src/fiber.ts</code> lifecycle hardening)이 들어 있다. 여러 벤더 패키지에 걸치는 항목은 아홉인데, 그중 커널까지 포함하면서 앞의 셋에 들지 않는 것이 다섯(<code class="wl">:34</code>·<code class="wl">:35</code>·<code class="wl">:36</code>·<code class="wl">:42</code>·<code class="wl">:49</code>)이다. 이들도 커널에 닿지만, 18 이라는 수 자체는 커널의 것이 아니다. 패치 알고리즘 자체를 바꾸는 항목(<code class="wl">:43</code>)은 커널이 아니라 <code class="wl">include</code> 플러그인의 것이다.</p>
 
       <p>패치 알고리즘 수정은 이 아키텍처가 성립하기 위한 조건이었다. <code class="wl">vendor/README.md:43</code>: "<code class="wl">applyEntryPatches</code> also indexes each <code class="wl">insert</code>ed entry as it is added, so a later patch in the same list can configure or disable a row an earlier patch inserted; upstream built the id index once before the patch loop, <b>leaving inserted rows silently unpatchable</b>." upstream 그대로였다면 번들이 삽입한 78개 행을 사용자가 건드릴 수 없었다. 5장에서 볼 레이어 구조는 이 수정 위에 서 있다.</p>
 
-      <p class="note">커널 소스 자체는 열지 않았다. <code class="wl">vendor/cordis/src</code> 는 9개 파일 2,693줄이고, 이 장의 진술은 파일 목록·줄 수와 <code class="wl">vendor/README.md</code>·<code class="wl">docs/cordis-primer.md</code> 를 근거로 한다. 수정 로그가 실제 코드와 일치하는지는 확인하지 않았다.</p>
+      <p class="note">커널 소스 자체는 열지 않았다. <code class="wl">vendor/cordis/src</code> 는 9개 파일 2,693줄이고, 이 장의 진술은 파일 목록·줄 수와 <code class="wl">vendor/README.md</code>, <code class="wl">docs/cordis-primer.md</code> 를 근거로 한다. 수정 로그가 실제 코드와 일치하는지는 확인하지 않았다.</p>
     </div>
   </section>
 
@@ -787,7 +787,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
 
       <ul class="clean" style="margin-top:14px">
         <li><span class="m bad">✗</span><span><b>실행하지 않았다.</b> 부팅 순서, 패치 적용, 언로드가 런타임에 문서대로 되는지 확인하지 않았다. 4~9장은 전부 소스를 읽은 결과다.</span></li>
-        <li><span class="m bad">✗</span><span><b>테스트를 열지 않았다.</b> <code class="wl">.spec.ts</code>·<code class="wl">.e2e.ts</code> 파일이 821개 있다는 것만 세었다. 무엇이 덮이고 무엇이 안 덮이는지 이 문서는 모른다.</span></li>
+        <li><span class="m bad">✗</span><span><b>테스트를 열지 않았다.</b> <code class="wl">.spec.ts</code>, <code class="wl">.e2e.ts</code> 파일이 821개 있다는 것만 세었다. 무엇이 덮이고 무엇이 안 덮이는지 이 문서는 모른다.</span></li>
         <li><span class="m bad">✗</span><span><b>이슈가 없다.</b> <code class="wl">has_issues: false</code>, Discussions 만 열려 있다. 알려진 버그와 회귀를 저장소에서 읽을 방법이 없다. 응답 기대치만은 <code class="wl">CONTRIBUTING.md:12</code> 가 적어 두었다. "We are a very small team and may not be able to reply to every post, but we monitor them and consider them when allocating resources."</span></li>
         <li><span class="m bad">✗</span><span><b>라이선스가 최근에 바뀌었다.</b> npm 의 <code class="wl">0.0.1-rc.5</code>(08-12)까지 BSD-3-Clause, <code class="wl">0.1.0-rc.2</code>(08-13)부터 MIT 다. 공개 전에 설치한 사본은 다른 라이선스다.</span></li>
         <li><span class="m bad">✗</span><span><b>이 문서가 만든 비율은 원문에 없다.</b> 6장의 3.0%, 8장의 나이 대비 비교는 여기서 계산한 것이다.</span></li>
@@ -887,7 +887,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         <span class="t">벤더 매니페스트가 가리키는 커밋 <code class="wl">56b3d4f725681cf4556c1a8695a709cc3b6eed74</code>. upstream 저장소는 열지 않았고, 4장의 대조는 <code class="wl">vendor/README.md</code> 의 수정 로그를 근거로 한다.</span></p>
       </div>
 
-      <p class="note">렌더 확인: 정적 게이트(<code class="wl">check-doc.mjs</code>)와 인용 대조(<code class="wl">check-claims.mjs</code>, 주장 54건)를 통과했다. 검증은 세 라운드를 돌았다. 3차에서 고친 슬라이드는 1·4·10·13 과 이 문단이 있는 15 이고, 고친 뒤에 headless Chrome 1440x1000 과 1440x1500 으로 다시 그려 읽었다. 나머지 슬라이드는 이번 라운드에 손대지 않았고 다시 그리지도 않았다. 2차에서 고친 1·2·4·5·7·8·10·11·12·13·14·15 는 그 라운드에 같은 방식으로 확인했다.</p>
+      <p class="note">렌더 확인: 정적 게이트(<code class="wl">check-doc.mjs</code>)와 인용 대조(<code class="wl">check-claims.mjs</code>, 주장 54건)를 통과했다. 검증은 세 라운드를 돌았다. 3차에서 고친 슬라이드는 1·4·10·13 과 이 문단이 있는 15 이고, 고친 뒤에 headless Chrome 1440x1000 과 1440x1500 으로 다시 그려 읽었다. 나머지 슬라이드는 이번 라운드에 손대지 않았고 다시 그리지도 않았다. 2차에서 고친 1·2·4·5·7·8·10·11·12·13·14·15 는 그 라운드에 같은 방식으로 확인했다. 3차는 상한에 걸려 라운드 안에서 재검증을 받지 못했으므로, 3차가 고친 슬라이드만 라운드가 끝난 뒤 별도 컨텍스트에서 다시 읽었다. 그 검증이 4장에서 둘, 15장에서 하나를 더 찾았다. 그중 하나는 모노스페이스에서 가운뎃점이 마침표처럼 앉아 두 토막이 한 덩어리로 읽히는 결함이었고, 같은 모양이 4장에 하나, 12장에 하나 더 있어 함께 고쳤다. 고친 뒤 1·4·12·15 를 다시 그려 읽었다(12장은 2.6배, 4장의 문제 구간은 3배). 제목을 네 곳에서 바꾼 것도 그 사이의 일이다.</p>
     </div>
   </section>
 
