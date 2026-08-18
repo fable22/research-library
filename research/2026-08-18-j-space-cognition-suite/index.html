@@ -792,7 +792,7 @@ strictly worse than plain instruction.</pre>
           <tr class="hero"><td class="wrap">monitoring은 반드시 행동을 선택해야 한다</td><td class="wrap">arXiv:2605.14186, 48.3에서 56.9로</td><td class="win">직접</td><td class="wrap">밝힌다</td></tr>
           <tr><td class="wrap">중간 단계를 페이지에 외화한다</td><td class="wrap">GSM8K CoT가 J-space ablation에 강건</td><td class="win">직접</td><td class="wrap">밝힌다</td></tr>
           <tr><td class="wrap">입력을 한 줄로 다시 인코딩한다</td><td class="wrap">arXiv:2309.06275, 재읽기 효과</td><td class="win">직접</td><td class="wrap">밝힌다</td></tr>
-          <tr><td class="wrap">활성 항목을 1~2개로 제한한다</td><td class="wrap">J-space 활성 벡터 수, 논쟁 있는 해석</td><td>부분</td><td class="wrap">밝힌다</td></tr>
+          <tr><td class="wrap">활성 항목을 1~2개로 제한한다</td><td class="wrap">capacity.md가 science.md의 한정을 지운다</td><td>부분</td><td class="wrap">일부만</td></tr>
           <tr><td class="wrap">marker가 상태를 바꾼다</td><td class="wrap">emotion vector 주입 실험, 22%에서 72%로</td><td class="lose">추론</td><td class="wrap">밝힌다</td></tr>
           <tr><td class="wrap">일인칭 서술이 workspace에 쓰기를 한다</td><td class="wrap">counterfactual reflection training</td><td class="lose">추론</td><td class="wrap">일부만</td></tr>
           <tr><td class="wrap">premise를 열 번 반복하면 유지된다</td><td class="wrap">언급이 J-space 존재감을 높인다는 결과</td><td class="lose">서사</td><td class="wrap">밝히지 않는다</td></tr>
@@ -803,8 +803,29 @@ strictly worse than plain instruction.</pre>
 
     <p class="small" style="margin-bottom:14px">
       이 등급 분류는 저장소에 없다. j-space-science.md와 induction-playbook.md를 읽고 이 문서가 매긴 것이다.
-      직접은 인용된 실험의 조작 대상과 규칙의 조작 대상이 같은 경우, 부분은 조작 대상은 같지만 규칙이 쓰는 수치가
-      그 측정의 논쟁적인 해석에서 나온 경우, 추론은 조작 대상이 다른 경우, 서사는 대응되는 실험이 없는 경우다.
+      직접은 인용된 실험의 조작 대상과 규칙의 조작 대상이 같은 경우, 부분은 조작 대상은 같지만 규칙 파일이
+      참고 파일에 적힌 한정을 지우고 단정으로 바꾼 경우, 추론은 조작 대상이 다른 경우, 서사는 대응되는 실험이 없는 경우다.
+    </p>
+
+    <h3>부분 등급은 같은 사실을 두 파일이 다르게 적는 데서 나온다</h3>
+    <pre><b>references/j-space-science.md:430-433</b>
+the count of simultaneously active representations (~25) <b>is somewhat
+arbitrary</b>. Dehaene &amp; Naccache <b>argue</b> that number is inflated by the
+measurement method and that genuinely coherent thoughts <b>may</b> number
+one or two. This suite plans against one or two.
+
+<b>modules/capacity.md:28-30</b>
+What is genuinely live at once is one or two coherent ideas — the counts
+of active vectors <b>are</b> a measurement artefact, not your working capacity.
+Plan against one or two.</pre>
+
+    <p style="margin-bottom:14px">
+      규칙이 쓰는 1~2라는 수치 자체는 논쟁의 산물이 아니다. j-space-science.md:46-48이
+      <code>roughly one or two coherent ideas</code>라고 직접 적고, Dehaene &amp; Naccache도 같은 값에 도달한다.
+      논쟁 대상인 수치는 약 25이고 규칙은 그것을 쓰지 않는다. 강등되는 이유는 수치가 아니라 서술이다.
+      참고 파일은 <code>somewhat arbitrary</code>, <code>argue</code>, <code>may</code>로 세 번 한정하는데,
+      실제로 모델이 읽는 규칙 파일에서는 그 한정이 <code>are</code> 하나로 사라진다.
+      결론은 같고, 그 결론이 얼마나 확정적인지에 대한 정보만 없어진다.
     </p>
 
     <h3>marker 규칙의 근거가 추론이라는 것은 저장소가 먼저 적는다</h3>
@@ -817,7 +838,7 @@ rather than assumed.</pre>
     <p>
       §13 <code>What this method cannot see</code>도 같은 방식으로 쓰여 있다. J-lens가 단일 토큰 개념만 식별한다는 점,
       under 10퍼센트라는 수치가 임계값 설정에 의존한다는 점, 무엇이 J-space에 들어가는지는 알려지지 않았다는 점을 적는다.
-      등급 표시가 온전하지 않은 것은 위 표의 아래 세 줄이고, 그 세 줄에서는 이 태도가 유지되지 않는다.
+      이 태도가 유지되지 않는 것은 위 표에서 등급 표시가 온전하지 않은 네 줄, 곧 활성 항목 규칙과 아래 세 줄이다.
     </p>
 
     <div class="note">
@@ -1170,7 +1191,7 @@ README.md
           <tr><td class="wrap">효율 수치의 스케일 계수를 공개하지 않는다</td><td class="wrap">저작자</td><td class="wrap">README.md:278</td></tr>
           <tr><td class="wrap">marker 근거는 직접이 아니라 추론이다</td><td class="wrap">저작자</td><td class="wrap">j-space-science.md:344-350</td></tr>
           <tr><td class="wrap">J-lens는 단일 토큰 개념만 본다</td><td class="wrap">저작자</td><td class="wrap">j-space-science.md:428-438</td></tr>
-          <tr class="hero"><td class="wrap">검증 게이트가 어휘 검사이고 영어 전용이다</td><td class="wrap">이 문서 (직접)</td><td class="wrap">jspace.py:78-86, 실행으로 확인</td></tr>
+          <tr class="hero"><td class="wrap">검증 게이트가 어휘 검사이고 영어 전용이다</td><td class="wrap">이 문서 (직접)</td><td class="wrap">jspace.py:79-86, 실행으로 확인</td></tr>
           <tr class="hero"><td class="wrap">근거 저장소에 데이터가 한 건도 없다</td><td class="wrap">이 문서 (직접)</td><td class="wrap">git ls-tree cf945a59</td></tr>
           <tr class="hero"><td class="wrap">진입 조건이 자기 보고에 걸려 있어 불필요하게 멈춘다. 인용된 recall 약 20퍼센트는 최고 성능 모델 값이다</td><td class="wrap">이 문서 (추론)</td><td class="wrap">SKILL.md:51-53 대 j-space-science.md:359-367. 측정된 조작이 달라 08장 척도로도 추론이고, 07장에 그렇게 적었다</td></tr>
           <tr class="hero"><td class="wrap">premise 972자가 열 번 중복된다</td><td class="wrap">이 문서 (직접)</td><td class="wrap">10개 파일에서 측정</td></tr>
