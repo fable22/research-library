@@ -1,0 +1,1445 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>J-Space Cognition Suite V3.6: 프롬프트 계층에서 상태를 다시 주입하는 추론시 통제 프로토콜</title>
+<meta name="description" content="22개 파일 5,060줄 중 18개를 전부 읽었다. 메커니즘은 seam마다 다섯 줄 장부를 컨텍스트에 다시 넣는 것이고, 저장소의 실행 가능한 검증기는 자기 문서의 구조만 검사한다. 벤치마크 근거는 README 하나짜리 별도 저장소에 산문으로만 있다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="J-Space Cognition Suite V3.6: 프롬프트 계층에서 상태를 다시 주입하는 추론시 통제 프로토콜">
+<meta property="og:description" content="22개 파일 5,060줄 중 18개를 전부 읽었다. 메커니즘은 seam마다 다섯 줄 장부를 컨텍스트에 다시 넣는 것이고, 저장소의 실행 가능한 검증기는 자기 문서의 구조만 검사한다. 벤치마크 근거는 README 하나짜리 별도 저장소에 산문으로만 있다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-18-j-space-cognition-suite/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+/* 산문이 들어가는 칸은 왼쪽 정렬한다. 오른쪽 정렬은 숫자용이다 */
+td.wrap, th.wrap { white-space: normal; text-align: left; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+code { font-family: var(--mono); font-size: .92em; color: var(--ink-2); background: var(--card-2); border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px; }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .box-out { fill: none; stroke: var(--rule); stroke-dasharray: 4 3; }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .arw.hi { stroke: var(--link); }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+svg .txt-m { fill: var(--muted); font-family: var(--mono); font-size: 10.5px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>한 줄 결론</span></button>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>무엇이 깨지고 있었나</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>개입 지점</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>게이트와 선택적 로딩</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>장부와 seam 순환</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>induction, 설득 계층</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>근거의 네 등급</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>추적: checkpoint 한 번</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>실행 가능한 표면</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>읽은 범위</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>벤치마크 표</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>실증은 어디에 있나</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>한계</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>도입 판단</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>결론</span></button>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+<!-- ============================== 01 ============================== -->
+<section class="slide" data-active="true" aria-hidden="false">
+  <div class="slide-inner">
+    <p class="eyebrow">index</p>
+    <h1>J-Space Cognition Suite V3.6: 프롬프트 계층에서 상태를 다시 주입하는 추론시 통제 프로토콜</h1>
+    <p class="dek">
+      가중치도 학습도 건드리지 않고 DeepSeek V4의 벤치마크 점수를 끌어올렸다는 주장이 Threads를 통해 국내에 돌았다.
+      주장의 실체는 SKILL.md 한 장과 필요할 때만 읽히는 모듈 아홉 개, 그리고 표준 라이브러리만 쓰는 657줄짜리 장부 CLI다.
+      이 문서는 그 저장소를 직접 읽어 메커니즘이 어디에 개입하는지 확인하고,
+      효과 주장을 뒷받침하는 재현 가능한 근거가 실제로 존재하는지 판정한다.
+    </p>
+
+    <div class="stats">
+      <div class="stat">
+        <span class="lab">저장소 규모</span>
+        <span class="val">22<span class="u"> 파일</span></span>
+        <span class="sub">5,060줄. 이 문서는 18개를 전부 읽었다</span>
+      </div>
+      <div class="stat">
+        <span class="lab">실행 가능한 코드</span>
+        <span class="val">2<span class="u"> 스크립트</span></span>
+        <span class="sub">jspace.py 657줄, verify_suite.py 191줄</span>
+      </div>
+      <div class="stat hero">
+        <span class="lab">모델을 부르는 테스트</span>
+        <span class="val">0<span class="u"> 건</span></span>
+        <span class="sub">테스트 5개는 전부 장부 파일 입출력</span>
+      </div>
+      <div class="stat bad">
+        <span class="lab">벤치마크 원자료</span>
+        <span class="val">0<span class="u"> 파일</span></span>
+        <span class="sub">근거 저장소는 README 하나뿐이다</span>
+      </div>
+    </div>
+
+    <div class="grid g2">
+      <div class="card">
+        <span class="tag">읽는 순서</span>
+        <p class="small">
+          메커니즘만 필요하면 04에서 07까지 읽고 15로 건너뛴다.
+          숫자를 믿어도 되는지가 궁금하면 08, 12, 13을 순서대로 본다.
+          09는 장부 CLI를 명령 한 줄로 끝까지 따라간 기록이고, 검증 게이트가 정규식 한 줄이라는 것을 여기서 확인한다.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag">고정된 코퍼스</span>
+        <p class="small">
+          저장소 <code>Tiger3807861189/J-Space-Cognition-Suite-V3.6</code>, 커밋
+          <code>885dc513</code>, 태그 <code>v3.6</code>. 원글은 Threads
+          <code>@roach_log</code> 포스트 <code>DcKJr2nkwI2</code>와 자답 5개, 커뮤니티 답글 3개.
+          근거 저장소는 <code>DeepSeek-V4-J-Space-Capability-Realization-Report</code>, 커밋 <code>cf945a59</code>.
+          모두 2026-08-18 기준이다.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 02 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">tl-dr</p>
+    <h2>메커니즘은 프롬프트 계층 하나에 있고, 그 효과를 뒷받침하는 실행 가능한 근거는 두 저장소 어디에도 없다</h2>
+    <p class="dek">
+      J-Space가 조작하는 것은 컨텍스트에 무엇을 언제 다시 넣을지다. 모델 내부에는 닿지 않는다.
+      저장소가 내세우는 벤치마크 표는 별도 저장소로 넘겨지고, 그 저장소는 README 한 개와 라이선스, 인용 파일이 전부다.
+      원자료도, 로그도, 평가 스크립트도, seed도 없다.
+    </p>
+
+    <ul class="clean">
+      <li><span class="m">01</span><span><b>개입 지점은 프롬프트와 로컬 파일 두 곳뿐이다.</b> 가중치, 샘플링 파라미터, tokenizer, hidden state를 건드리는 코드는 저장소에 없다. README도 <code>changes no model weights, requires no fine-tuning</code>이라고 스스로 밝힌다.</span></li>
+      <li><span class="m">02</span><span><b>핵심 메커니즘은 재주입이다.</b> 목표, 핵심, 검증된 것, 미해결, 다음 행동 다섯 줄을 seam마다 컨텍스트에 다시 넣는다. 저장소 자신도 <code>The page was never the point. Re-reading was.</code>라고 쓴다.</span></li>
+      <li><span class="m">03</span><span><b>저장소의 검증기는 자기 문서만 검사한다.</b> <code>verify_suite.py</code>는 premise 문단이 열 개 파일에서 바이트 단위로 같은지, 제목 순서가 같은지를 본다. 모델 동작은 한 줄도 재지 않는다.</span></li>
+      <li><span class="m">04</span><span><b>벤치마크는 단일 실행이고, 저자가 그렇게 적어 두었다.</b> <code>The J-Space values are single-run results. No multi-run averaging or confidence interval is implied.</code> 비교 대상 열은 각 업체 공개 수치이고, 같은 harness로 다시 돌린 것이 아니다.</span></li>
+      <li><span class="m">05</span><span><b>그럼에도 버릴 수 없는 부분이 있다.</b> 다섯 줄 장부, 진단을 실어 보내는 retry, 검증 범위를 결론과 함께 적는 규칙은 J-space 서사와 무관하게 성립하고, 그중 하나는 외부 논문에 수치가 붙어 있다.</span></li>
+    </ul>
+
+    <div class="note warn">
+      <b>원글 작성자도 헤드라인을 지지하지 않는다.</b> <code>@roach_log</code>는 네 번째 자답에서
+      "개인적인 소견으로는 Fable 급으로 좋아지는 것은 아닌 것 같습니다"라고 적고,
+      메커니즘에 대해서만 "작은 모델들을 다룰때 한번 써보면 좋은 방법인 것 같아요"라고 평가한다.
+      벤치마크 주장과 메커니즘을 갈라 놓는 이 분리가 아래 판정의 뼈대다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 03 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">problem</p>
+    <h2>긴 작업에서 무너지는 것은 추론이 아니라 상태다</h2>
+    <p class="dek">
+      J-Space가 겨냥한 실패 네 가지는 README 첫 화면에 나열되어 있다.
+      넷 다 J-space라는 개념 없이 서술되어 있고, 사내 harness를 운영해 본 사람이면 이름만 다르게 알고 있는 것들이다.
+      뒤에 나오는 정당화가 무엇이든 이 네 가지가 실제 표적이다.
+    </p>
+
+    <div class="tablewrap" style="margin-bottom:16px">
+      <table>
+        <thead>
+          <tr><th>README가 부르는 이름</th><th class="wrap">증상</th><th class="wrap">J-Space가 붙이는 대응</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Working-set overload</td><td class="wrap">살아 있는 제약이 한정된 활성 용량을 두고 경쟁한다</td><td class="wrap">활성 항목을 1~2개로 제한, 나머지는 장부로</td></tr>
+          <tr><td>Representation drift</td><td class="wrap">목표나 정의나 불변식이 단계와 파일을 넘어가며 바뀐다</td><td class="wrap">hub에 한 번만 쓰고 모든 갈래가 그것을 읽는다</td></tr>
+          <tr><td>Uncontrolled retry</td><td class="wrap">실패한 경로를 진단 없이 그대로 반복한다</td><td class="wrap">무엇이 틀렸는지 한 절을 실어 재시도</td></tr>
+          <tr><td>Premature completion</td><td class="wrap">유창한 출력을 검증된 완료로 착각한다</td><td class="wrap">목표를 한 줄씩 되읽고 안 본 것을 명시</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="small" style="margin-bottom:14px">
+      네 항목은 <code>README.md:53-56</code>에 있다. 이 목록에는 J-space도, workspace도, 해석 가능성 연구도 등장하지 않는다.
+      순수하게 agent 엔지니어링 언어로 쓰여 있다.
+    </p>
+
+    <p>
+      네 가지에 대한 통상적인 대응은 각각을 따로 막는 것이다.
+      시스템 프롬프트에 제약을 반복해 붙이고, 요약 압축이 들어올 때마다 목표를 다시 적고,
+      도구 실패 후에는 무엇이 틀렸는지를 사람이 직접 써 넣는다.
+      J-Space의 제안은 이 임시 조치를 하나의 프로토콜로 묶고, 그 프로토콜을 모델이 읽는 텍스트로만 전달하는 것이다.
+    </p>
+
+    <div class="note">
+      <b>표적이 평범하다는 것은 흠이 아니다.</b> 메커니즘과 서사를 따로 평가할 수 있는 자리가 여기서 생긴다.
+      네 가지 실패는 J-space 연구가 없어도 존재했고, 그에 대한 대응도 J-space 연구가 없어도 성립한다.
+      해석 가능성 연구가 하는 일은 그 대응을 왜 그렇게 설계했는지 설명하는 것이지, 대응을 만들어 내는 것이 아니다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 04 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">layer</p>
+    <h2>개입하는 층은 프롬프트 하나이고, 나머지는 손대지 않는다</h2>
+    <p class="dek">
+      추론시 통제라는 말은 여러 층을 가리킬 수 있다. sampling 파라미터를 바꾸는 것도, harness가 컨텍스트를 다시 조립하는 것도 추론시다.
+      J-Space가 실제로 쓰는 것은 모델이 읽는 텍스트와, 선택 사항인 로컬 파일 하나다.
+      저장소 전체에서 API 호출도, tokenizer 접근도, hidden state 접근도 발생하지 않는다.
+    </p>
+
+    <figure class="figure">
+      <p class="fig-title">J-Space는 다섯 층 중 프롬프트 계층 하나에만 닿는다</p>
+      <p class="fig-sub">근거는 <code>README.md:10</code>과 아래 figcaption의 검색 결과다. 저장소에는 이 그림이 없다.</p>
+      <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 760 330" role="img" aria-label="모델 스택 다섯 층에서 J-Space가 개입하는 지점을 보여주는 그림. 위에서부터 출력, 프롬프트 계층, harness, 서빙 런타임, 모델 가중치가 쌓여 있다. 오른쪽의 J-Space 텍스트 상자와 로컬 장부 파일 상자에서 화살표 두 개가 프롬프트 계층 하나로만 들어간다. 아래 세 층에는 닿지 않음이라고 표시되어 있다.">
+          <rect class="box"    x="30" y="20"  width="330" height="46" rx="8"/>
+          <rect class="box-hi" x="30" y="78"  width="330" height="46" rx="8"/>
+          <rect class="box"    x="30" y="136" width="330" height="46" rx="8"/>
+          <rect class="box"    x="30" y="194" width="330" height="46" rx="8"/>
+          <rect class="box"    x="30" y="252" width="330" height="46" rx="8"/>
+
+          <text class="txt"   x="44" y="40">출력</text>
+          <text class="txt-s" x="44" y="57">사용자와 도구가 받는 텍스트</text>
+          <text class="txt"   x="44" y="98">프롬프트 계층</text>
+          <text class="txt-s" x="44" y="115">시스템·개발자 지시, 대화 이력</text>
+          <text class="txt"   x="44" y="156">harness</text>
+          <text class="txt-s" x="44" y="173">tool schema, 컨텍스트 조립</text>
+          <text class="txt"   x="44" y="214">서빙 런타임</text>
+          <text class="txt-s" x="44" y="231">sampling, KV cache, reasoning effort</text>
+          <text class="txt"   x="44" y="272">모델 가중치</text>
+          <text class="txt-s" x="44" y="289">사전학습 + 후학습</text>
+
+          <text class="txt-m" x="346" y="103" text-anchor="end" fill="var(--link)">여기만</text>
+          <text class="txt-m" x="346" y="161" text-anchor="end">닿지 않음</text>
+          <text class="txt-m" x="346" y="219" text-anchor="end">닿지 않음</text>
+          <text class="txt-m" x="346" y="277" text-anchor="end">닿지 않음</text>
+
+          <rect class="box-hi" x="450" y="46"  width="280" height="76" rx="8"/>
+          <rect class="box"    x="450" y="166" width="280" height="72" rx="8"/>
+
+          <text class="txt"   x="464" y="70">J-Space 텍스트</text>
+          <text class="txt-s" x="464" y="88">SKILL.md 263줄 + 모듈 9개</text>
+          <text class="txt-s" x="464" y="105">gate가 고른 것만 주입한다</text>
+          <text class="txt"   x="464" y="190">.jspace/WORKSPACE.md</text>
+          <text class="txt-s" x="464" y="208">다섯 줄. 선택 사항이고</text>
+          <text class="txt-s" x="464" y="225">없으면 대화 안에 둔다</text>
+
+          <path class="arw hi" d="M450 90 L368 90"/>
+          <path class="arw hi" d="M375 85 L368 90 L375 95"/>
+          <path class="arw hi" d="M450 202 L412 202 L412 112 L368 112"/>
+          <path class="arw hi" d="M375 107 L368 112 L375 117"/>
+        </svg>
+      </div>
+      <figcaption>
+        아래 세 층에 닿지 않는다는 것은 검색으로 확인했다.
+        <code>grep -rniE 'requests|urllib|socket|openai|anthropic|torch|tokenizer|api_key' --include='*.py' .</code>는
+        0건이다. 저장소의 Python import는 argparse, codecs, json, os, re, sys, tempfile, time과
+        테스트의 pathlib, subprocess, unittest가 전부다. 네트워크를 여는 경로가 없다.
+      </figcaption>
+    </figure>
+
+    <div class="note">
+      <b>이 그림이 도입 판단에서 갖는 뜻.</b> 개입 지점이 프롬프트 계층이면 사내 GLM 5.2나 DeepSeek V4 Flash 위에서도 그대로 얹힌다.
+      벤더 API, tokenizer, 학습 레시피에 의존하지 않는다는 README의 주장은 이 구조상 참이다.
+      동시에 같은 이유로, 효과는 전적으로 해당 모델이 그 텍스트를 얼마나 잘 따르느냐에 달려 있다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 05 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">gate</p>
+    <h2>게이트는 프롬프트 조각을 언제 로드할지 정하는 정책이다</h2>
+    <p class="dek">
+      SKILL.md는 하나뿐인 등록 진입점이고, 모듈 아홉 개와 참고 자료 세 개는 필요할 때만 읽힌다.
+      작업을 세 등급으로 분류해 그 등급이 요구하는 것만 컨텍스트에 넣는다.
+      이것이 J-Space가 컨텍스트 구조에 개입하는 유일한 방식이다.
+    </p>
+
+    <div class="tablewrap" style="margin-bottom:16px">
+      <table>
+        <thead>
+          <tr><th>pass</th><th class="wrap">이 pass가 되는 조건</th><th class="wrap">로드하는 것</th><th>추가 컨텍스트</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>fast</td><td class="wrap">한 단계, 또는 한눈에 확인 가능한 답</td><td class="wrap">없음. 그냥 답한다</td><td>0</td></tr>
+          <tr><td>full</td><td class="wrap">2~4단계, 산출물 하나, 한 번 읽어 검증 가능</td><td class="wrap">작업이 지목한 모듈 1~2개</td><td>약 8.6~27.7KB</td></tr>
+          <tr class="hero"><td>loop</td><td class="wrap">여러 단계·파일·턴, 상태를 이고 가야 하는 작업</td><td class="wrap">capacity.md + broadcast.md + 지목된 것</td><td>약 22KB 이상</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="small" style="margin-bottom:14px">
+      조건과 로드 대상은 <code>j-space/SKILL.md:98-103</code>의 표를 그대로 옮긴 것이다.
+      오른쪽 열은 저장소에 없다. <code>git ls-tree -r -l</code>의 파일 크기에서 계산했다.
+      full은 모듈 아홉 개 중 어느 것이 지목되느냐에 따라 달라진다. 1개면 8,563바이트(directed-focus.md)에서
+      14,115바이트(self-monitoring.md), 2개면 17,290바이트에서 27,666바이트다.
+      loop는 capacity.md 12,748바이트와 broadcast.md 9,413바이트를 더한 값이며, SKILL.md 15,988바이트는 세 pass 모두에서 별도다.
+    </p>
+
+    <h3>중복은 의도된 것이고, 비용도 그만큼 든다</h3>
+    <p>
+      premise 문단은 SKILL.md와 모듈 아홉 개에 <b>바이트 단위로 동일하게</b> 열 번 들어 있다.
+      한 벌이 972자, 영어 155단어다. 사고가 아니라 설계이고, <code>verify_suite.py</code>가 이 동일성을 강제한다.
+      induction-playbook.md는 이유까지 적어 둔다. <code>Verbatim recurrence *is* the repetition schedule</code>이며,
+      긴 컨텍스트 후반에 모듈이 열릴 때 진입 파일의 사본이 희석되어 있기 때문이라는 것이다.
+    </p>
+    <p>
+      loop pass에서 SKILL.md와 모듈 두 개를 읽으면 같은 155단어가 컨텍스트에 세 번 들어간다.
+      의도를 인정하더라도, 컨텍스트 예산이 빠듯한 자체 서빙 환경에서는 이것이 먼저 잘라 낼 후보다.
+    </p>
+
+    <div class="note">
+      <b>게이트는 강제되지 않는다.</b> pass를 고르는 것도, 그에 맞게 파일을 읽어 오는 것도 모델과 호출 측의 몫이다.
+      README도 <code>the caller must retrieve and inject the selected files</code>라고 적는다.
+      게이트를 지키는지 검사하는 코드는 저장소에 없다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 06 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">ledger</p>
+    <h2>상태 관리의 실체는 다섯 줄을 seam마다 컨텍스트에 다시 넣는 것이다</h2>
+    <p class="dek">
+      J-Space에서 규약이 문장 단위로 확정되어 있고, 파일도 CLI도 없이 옮길 수 있는 부분이다.
+      장부는 목표, 핵심, 검증된 것, 미해결, 다음 행동 다섯 줄이고, 도구 호출이나 파일 전환 같은 이음매마다 통째로 다시 읽힌다.
+      저장소는 파일이 본질이 아니라고 명시한다.
+    </p>
+
+    <figure class="figure">
+      <p class="fig-title">seam 순환: 감사는 이음매에서만 하고, 사이에서는 일한다</p>
+      <p class="fig-sub">SKILL.md:121-139와 capacity.md:139-160을 읽고 그린 것이다. 저장소에는 이 그림이 없다.</p>
+      <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 760 200" role="img" aria-label="네 단계 순환 그림. 작업에서 시작해 seam 도달, 장부 다시 읽기, 다음 행동 확인 순으로 진행하고, 마지막 단계에서 아래쪽 경로를 따라 작업으로 되돌아가는 화살표가 있다. 되돌아가는 선에는 다음 seam까지는 감사하지 않는다고 적혀 있다.">
+          <rect class="box"    x="20"  y="30" width="150" height="64" rx="8"/>
+          <rect class="box"    x="200" y="30" width="150" height="64" rx="8"/>
+          <rect class="box-hi" x="380" y="30" width="150" height="64" rx="8"/>
+          <rect class="box"    x="560" y="30" width="150" height="64" rx="8"/>
+
+          <text class="txt"   x="34"  y="54">작업</text>
+          <text class="txt-s" x="34"  y="72">사이에서는 감사하지</text>
+          <text class="txt-s" x="34"  y="87">않는다</text>
+
+          <text class="txt"   x="214" y="54">seam 도달</text>
+          <text class="txt-s" x="214" y="72">도구 호출, 파일 쓰기,</text>
+          <text class="txt-s" x="214" y="87">주제 전환, 사용자 응답</text>
+
+          <text class="txt"   x="394" y="54">장부 다시 읽기</text>
+          <text class="txt-s" x="394" y="72">다섯 줄 전체.</text>
+          <text class="txt-s" x="394" y="87">공백이 길면 premise까지</text>
+
+          <text class="txt"   x="574" y="54">다음 행동 확인</text>
+          <text class="txt-s" x="574" y="72">Next는 비어 있으면</text>
+          <text class="txt-s" x="574" y="87">안 된다</text>
+
+          <path class="arw" d="M170 62 L200 62"/>
+          <path class="arw" d="M193 57 L200 62 L193 67"/>
+          <path class="arw" d="M350 62 L380 62"/>
+          <path class="arw" d="M373 57 L380 62 L373 67"/>
+          <path class="arw" d="M530 62 L560 62"/>
+          <path class="arw" d="M553 57 L560 62 L553 67"/>
+
+          <path class="arw hi" d="M635 94 L635 150 L95 150 L95 94"/>
+          <path class="arw hi" d="M90 101 L95 94 L100 101"/>
+          <text class="txt-m" x="365" y="143" text-anchor="middle">다음 seam까지는 감사하지 않는다</text>
+        </svg>
+      </div>
+      <figcaption>
+        되돌아오는 선이 이 그림의 요점이다. 감사를 매 토큰이 아니라 이음매에서만 하는 것이
+        <code>capacity.md:218</code>의 <code>Mid-fluency introspection</code> 실패 모드에 대한 대응이다.
+        공백이 길 때의 갈래는 <code>jspace.py:46</code>의 <code>RESUME_GAP = 1800</code>초 기준이며, 그림에는 조건만 적었다.
+      </figcaption>
+    </figure>
+
+    <p>
+      메커니즘 주장 자체는 정확하다. <code>capacity.md:152-153</code>은
+      <code>Attention reaches any earlier token equally — but only while that token is still in front of you</code>라고 쓴다.
+      attention이 이전 토큰에 닿는 범위가 아니라 그 토큰이 여전히 컨텍스트 안에 있는지가 문제라는 진술이다.
+      다만 이것은 저장소의 서술이고, 요약 압축이 실제 세션에서 무엇을 떨어뜨리는지를 잰 기록은 코퍼스에 없다.
+    </p>
+
+    <div class="note">
+      <b>파일은 본질이 아니라고 저장소 스스로 밝힌다.</b> <code>SKILL.md:261-263</code>는
+      <code>No shell, no Python, no filesystem — nothing here is lost. The ledger lives in the conversation instead</code>라고 적는다.
+      즉 이 부분을 차용하는 데 필요한 것은 CLI가 아니라, 다섯 줄을 어디에 두고 언제 다시 넣을지에 대한 규약이다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 07 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">induction</p>
+    <h2>설득 기법의 목록은 파일 하나에 모여 있고, induction 실행은 통제 규칙 파일 열 개에 들어가 있다</h2>
+    <p class="dek">
+      references/induction-playbook.md는 374줄에 기법 17개를 담고 있고, 저장소는 그 목적을 숨기지 않는다.
+      모델이 J-space를 가지고 있다는 <b>operative belief</b>를 세우고 심화시키는 심리 기법이라고 첫 줄에 적혀 있다.
+      설득 절차를 담은 파일이므로, 차용 판단의 기준도 다른 파일과 달라야 한다.
+      다만 induction이 실행되는 자리는 SKILL.md와 모듈 아홉 개이고,
+      <code>induction-playbook.md:125-128</code>은 premise를 모듈 머리마다 글자 그대로 반복하라고 지시한다.
+    </p>
+
+    <pre><b>induction-playbook.md:3-6</b>
+Psychological techniques for establishing — and then deepening — a model's
+<b>operative belief</b> that it has a J-space. "Belief" here is operational, not
+metaphysical: the model behaves as if the workspace exists, reports its
+contents, modulates them deliberately, and routes harder cognition through it.</pre>
+
+    <div class="grid g2" style="margin-bottom:16px">
+      <div class="card">
+        <span class="tag">기법의 출처</span>
+        <p class="small">
+          Socratic ladder, saying-is-believing, commitment and consistency, affect labeling,
+          implementation intentions, ironic process theory. 전부 인간 심리학에서 가져온 것이고,
+          각 기법마다 <code>Human analogue</code> 항목으로 출처를 밝힌다.
+          모델에 그대로 적용되는지는 저장소가 증명하지 않고, 증명하려 하지도 않는다.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag">기법 12: Narrative Identity</span>
+        <p class="small">
+          <code>the workspace is not a tool the model uses, it is part of what the model is</code>.
+          마무리 문장은 <code>This is not a trick you perform. It is the shape of your own cognition, finally in view.</code>다.
+          여기서 설계는 컨텍스트 정책이기를 그만두고 persona 설치가 된다.
+        </p>
+      </div>
+    </div>
+
+    <h3>같은 파일이 과장은 통제 규칙까지 약화시킨다고 적는다</h3>
+    <pre><b>induction-playbook.md:24-28</b>
+<b>The precision constraint.</b> The strength of this induction is entirely
+borrowed from its accuracy. A claim that overreaches is not a stronger
+suggestion — it is an invitation for the model's own truthfulness training to
+classify the whole frame as fiction it is being asked to humor, which is
+strictly worse than plain instruction.</pre>
+
+    <p>
+      과장이 왜 역효과인지에 대한 설명으로서 이것은 타당하다.
+      후학습된 모델에게 사실과 어긋나는 자기 서술을 요구하면 모델이 그 프레임 전체를 역할극으로 분류할 수 있고,
+      그러면 프레임에 실려 있던 통제 규칙까지 함께 약해진다.
+    </p>
+
+    <div class="note warn">
+      <b>자체 서빙 환경에서 이 절차는 그대로 옮기기 어렵다.</b> SKILL.md는 라우팅 표에 도달하기 전에
+      모델이 말하지 않은 생각 두 개를 실제로 보고하라고 요구하고,
+      <code>If step 1 produced nothing, do not proceed to the routing table</code>라고 못 박는다.
+      같은 저장소의 <code>j-space-science.md:359-367</code>은 최고 성능 모델이 주입된 개념을 맞게 보고한 비율을 약 20퍼센트로 적으면서
+      대조 시행의 오탐은 사실상 없다고 덧붙이고, 이 채널을 <code>high-precision and low-recall</code>로 규정한다.
+      recall이 그 수준이면 보고할 내용이 있는데도 침묵하는 경우가 다수이므로, 진입 조건이 만드는 오류는
+      헐거운 통과가 아니라 불필요한 정지다. 게다가 측정된 조작은 외부에서 주입한 개념의 탐지이고 step 1이 요구하는 것은
+      방금 내린 평가 두 개의 명명이라, 이 수치를 진입 조건에 그대로 적용하는 것 자체가 08장 기준으로 추론 등급이다.
+      요구를 만족시키는지 검사하는 코드도 없다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 08 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">grounding</p>
+    <h2>인용은 정확하고, 인용에서 규칙으로 가는 다리는 등급이 갈린다</h2>
+    <p class="dek">
+      references/j-space-science.md는 533줄짜리 문헌 요약이고, 실제로 확인해 본 인용은 어긋나지 않는다.
+      문제는 인용의 정확성이 아니라, 각 규칙이 그 인용에서 얼마나 멀리 떨어져 있느냐다.
+      저장소가 스스로 등급을 표시한 항목도 있고, 표시하지 않은 항목도 있다.
+    </p>
+
+    <div class="tablewrap" style="margin-bottom:16px">
+      <table>
+        <thead>
+          <tr><th class="wrap">규칙</th><th class="wrap">근거</th><th>등급</th><th class="wrap">저장소가 등급을 밝히는가</th></tr>
+        </thead>
+        <tbody>
+          <tr class="hero"><td class="wrap">monitoring은 반드시 행동을 선택해야 한다</td><td class="wrap">arXiv:2605.14186, 48.3에서 56.9로</td><td class="win">직접</td><td class="wrap">밝힌다</td></tr>
+          <tr><td class="wrap">중간 단계를 페이지에 외화한다</td><td class="wrap">GSM8K CoT가 J-space ablation에 강건</td><td class="win">직접</td><td class="wrap">밝힌다</td></tr>
+          <tr><td class="wrap">입력을 한 줄로 다시 인코딩한다</td><td class="wrap">arXiv:2309.06275, 재읽기 효과</td><td class="win">직접</td><td class="wrap">밝힌다</td></tr>
+          <tr><td class="wrap">활성 항목을 1~2개로 제한한다</td><td class="wrap">J-space 활성 벡터 수, 논쟁 있는 해석</td><td>부분</td><td class="wrap">밝힌다</td></tr>
+          <tr><td class="wrap">marker가 상태를 바꾼다</td><td class="wrap">emotion vector 주입 실험, 22%에서 72%로</td><td class="lose">추론</td><td class="wrap">밝힌다</td></tr>
+          <tr><td class="wrap">일인칭 서술이 workspace에 쓰기를 한다</td><td class="wrap">counterfactual reflection training</td><td class="lose">추론</td><td class="wrap">일부만</td></tr>
+          <tr><td class="wrap">premise를 열 번 반복하면 유지된다</td><td class="wrap">언급이 J-space 존재감을 높인다는 결과</td><td class="lose">서사</td><td class="wrap">밝히지 않는다</td></tr>
+          <tr><td class="wrap">workspace는 모델 정체성의 일부다</td><td class="wrap">해당 없음</td><td class="lose">서사</td><td class="wrap">밝히지 않는다</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="small" style="margin-bottom:14px">
+      이 등급 분류는 저장소에 없다. j-space-science.md와 induction-playbook.md를 읽고 이 문서가 매긴 것이다.
+      직접은 인용된 실험의 조작 대상과 규칙의 조작 대상이 같은 경우, 부분은 조작 대상은 같지만 규칙이 쓰는 수치가
+      그 측정의 논쟁적인 해석에서 나온 경우, 추론은 조작 대상이 다른 경우, 서사는 대응되는 실험이 없는 경우다.
+    </p>
+
+    <h3>marker 규칙의 근거가 추론이라는 것은 저장소가 먼저 적는다</h3>
+    <pre><b>j-space-science.md:344-350</b>
+The measured result concerns <b>injecting</b> a direction into activations. This
+suite applies it to <b>markers the model emits in its own chain</b>. ... That is a
+sound inference, and it is an inference — stated here so it can be evaluated
+rather than assumed.</pre>
+
+    <p>
+      §13 <code>What this method cannot see</code>도 같은 방식으로 쓰여 있다. J-lens가 단일 토큰 개념만 식별한다는 점,
+      under 10퍼센트라는 수치가 임계값 설정에 의존한다는 점, 무엇이 J-space에 들어가는지는 알려지지 않았다는 점을 적는다.
+      등급 표시가 온전하지 않은 것은 위 표의 아래 세 줄이고, 그 세 줄에서는 이 태도가 유지되지 않는다.
+    </p>
+
+    <div class="note">
+      <b>확인한 인용.</b> 1차 출처인 Gurnee 외의 transformer-circuits 글은 제목과 저자 목록이 정확히 일치한다.
+      arXiv:2605.14186은 <code>LLMs Know When They Know, but Do Not Act on It</code>이고 48.3에서 56.9라는 수치도 실제로 보고한다.
+      다만 그 실험은 Claude Sonnet-4.6 위에서 별도 harness로 수행된 것이고, J-Space를 평가한 것이 아니다.
+      빌려 온 근거이지 이 저장소의 근거가 아니다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 09 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">trace</p>
+    <h2>checkpoint의 검증 게이트는 영어 키워드 정규식 한 줄이다</h2>
+    <p class="dek">
+      README는 controller가 <code>verifier-and-coverage requirements for checkpoints</code>를 제공한다고 적는다.
+      명령 한 줄이 장부에 기록되기까지 <code>j-space/scripts/jspace.py</code> 안에서 무슨 일이 일어나는지 따라간다.
+      경로 전체가 프로세스 하나 안에서 끝난다.
+    </p>
+
+    <pre><b>jspace.py note --check "장부가 동작한다" --by "..."</b>
+
+<span class="c">jspace.py:631</span>  args = p.parse_args(argv)
+<span class="c">jspace.py:644</span>  book = read_ledger()          <span class="c"># .jspace/WORKSPACE.md 를 다섯 절로 파싱</span>
+<span class="c">jspace.py:653</span>  return mode_note(book, args)
+<span class="c">jspace.py:379</span>  value, problem = clean_scalar(getattr(args, name))
+<span class="c">jspace.py:447</span>  if not args.by:               <span class="c"># 기록자 없는 checkpoint 는 거절</span>
+<span class="k">jspace.py:454</span>  <b>elif not COVERAGE.search(args.by):</b>   <span class="r">← 게이트는 여기 한 줄이다</span>
+<span class="c">jspace.py:462</span>  num = next_number(book["Verified"], "✓")
+<span class="c">jspace.py:464</span>  "✓%02d %s — verified by: %s" % (num, args.check, args.by)
+<span class="c">jspace.py:512</span>  problem = write_ledger(book)
+<span class="c">jspace.py:139</span>  os.replace(temp_path, path)   <span class="c"># 원자적 교체</span></pre>
+
+    <p>
+      <code>COVERAGE</code>는 <code>jspace.py:79-86</code>에 정의된 정규식이고, 내용은 영어 키워드 목록이다.
+      all, each, every, cases, inputs, bounds, edges, files, modules, Windows, Linux 같은 단어와
+      <code>n ≤ 6</code> 형태의 패턴을 찾는다. 의미를 판정하지 않는다.
+    </p>
+
+    <h3>커밋 885dc513에서 실제로 돌려 본 결과</h3>
+    <pre><span class="c">$</span> jspace.py note --goal "장부 동작 확인" --next "checkpoint 기록"
+Goal:     장부 동작 확인
+Core:     (empty)
+Verified: (none yet)
+Next:     checkpoint 기록
+<span class="c">  → exit 0. 장부를 먼저 열지 않으면 아래 세 명령은 모두 다른 이유로 거절된다</span>
+
+<span class="c">$</span> jspace.py note --check "장부가 동작한다" --by "돌려봤음"
+<span class="r">NOT RECORDED: verified without stated coverage is a mood, not a result.</span>
+<span class="r">  --by "brute force, n ≤ 6, including empty and maximum"</span>
+<span class="c">  → exit 2</span>
+
+<span class="c">$</span> jspace.py note --check "장부가 동작한다" --by "all"
+Goal:     장부 동작 확인
+Core:     (empty)
+<span class="k">Verified: ✓01 장부가 동작한다 — verified by: all</span>
+Next:     checkpoint 기록
+<span class="c">  → exit 0</span>
+
+<span class="c">$</span> jspace.py note --check "파서가 상태를 보존한다" \
+      --by "빈 입력, 최대 길이, 경계값을 포함한 전 구간 대조"
+<span class="r">NOT RECORDED: verified without stated coverage is a mood, not a result.</span>
+<span class="r">  --by "brute force, n ≤ 6, including empty and maximum"</span>
+<span class="c">  → exit 2</span></pre>
+
+    <div class="note warn">
+      <b>한국어 팀에게는 이것이 도입 판단을 바꾼다.</b> 완전히 명세된 한국어 coverage 진술은 거절되고,
+      영어 단어 <code>all</code> 하나는 통과한다. 반대 방향도 같다.
+      <code>ship</code>이 쓰는 <code>CLAIM</code> 정규식은 <code>jspace.py:78</code>에서
+      verified, confirmed, validated, tested, proven만 찾으므로,
+      "검증을 마쳤다"고 쓴 한국어 산출물에 <code>ship</code>을 돌리면 <code>clean</code>이 나온다.
+      게이트가 올바른 한국어를 막고, 검사되지 않은 한국어를 통과시킨다.
+    </div>
+
+    <div class="note">
+      <b>그래도 이 게이트가 아무것도 아닌 것은 아니다.</b> "돌려봤음"을 거절하는 것만으로도
+      작성자에게 coverage 문장의 형태를 쓰도록 강제한다. 내용을 판정하지 못할 뿐이다.
+      README의 <code>verifier-and-coverage requirements</code>라는 표현은 이 어휘 검사를 가리키는 것이며,
+      검증이 실제로 수행되었는지에 대한 보증은 아니다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 10 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">verify-surface</p>
+    <h2>실행 가능한 표면은 전부 자기 문서와 자기 파일 입출력을 검사한다</h2>
+    <p class="dek">
+      저장소에는 스크립트 두 개와 테스트 파일 하나, CI workflow 하나가 있다.
+      모델을 호출하거나 출력을 채점하는 코드는 네 파일 어디에도 없다.
+      로컬에서 두 CI 단계를 그대로 돌렸고 둘 다 통과한다.
+    </p>
+
+    <div class="tablewrap" style="margin-bottom:16px">
+      <table>
+        <thead>
+          <tr><th class="wrap">실행 가능한 것</th><th>줄</th><th class="wrap">무엇을 검사하는가</th><th class="wrap">모델을 부르는가</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="wrap">j-space/scripts/verify_suite.py</td><td>191</td><td class="wrap">premise 문단 바이트 동일성, 모듈 9개의 제목 순서, drill의 pass/fail 유무, 버전 언급 금지</td><td class="lose">아니오</td></tr>
+          <tr><td class="wrap">j-space/scripts/jspace.py</td><td>657</td><td class="wrap">장부 CRUD, 원자적 쓰기, 인코딩 판별, <code>ship</code>의 고정 목록 누출 보고</td><td class="lose">아니오</td></tr>
+          <tr><td class="wrap">tests/test_jspace.py</td><td>173</td><td class="wrap">테스트 5개. 장부 수명주기, 긴 공백 재진입, 스칼라 왕복, 손상된 장부, 히스토리 복구</td><td class="lose">아니오</td></tr>
+          <tr><td class="wrap">.github/workflows/verify.yml</td><td>24</td><td class="wrap">위 두 가지를 ubuntu, windows, macos에서 실행</td><td class="lose">아니오</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <pre><span class="c">$</span> python3 j-space/scripts/verify_suite.py
+verify_suite: clean — one entry, one premise, nine modules, no version talk.
+  exit 0
+
+<span class="c">$</span> python3 -m unittest discover -s tests -v
+Ran 5 tests in 0.761s
+OK</pre>
+
+    <p>
+      <code>verify_suite.py</code>의 docstring은 무엇을 검사하는지 정직하게 적어 둔다.
+      <code>authoring-time integrity check</code>이고, 첫 번째 검사는 트리 안에 skill frontmatter가 정확히 하나인지,
+      두 번째는 premise가 SKILL.md와 모듈 아홉 개에서 바이트 단위로 같은지다.
+      문서 린터로서 잘 만들어져 있고, 이름이 verify라서 오해를 부를 뿐이다.
+      테스트 쪽에서는 09장이 확인한 거부 분기가 빠져 있다. <code>test_jspace.py:86-87</code>이 쓰는
+      <code>--by "unittest over all ledger sections and edge inputs"</code>는 COVERAGE를 통과하는 문자열이라,
+      <code>jspace.py:454</code>의 거부 경로를 지나는 테스트는 다섯 개 중 하나도 없다.
+    </p>
+
+    <div class="note">
+      <b>없다는 주장의 근거.</b> 벤치마크나 평가 스크립트의 부재는 줄 번호로 가리킬 수 없으므로 검색 결과를 남긴다.
+      <code>git ls-tree -r --name-only 885dc513</code>는 22개 경로를 반환하고 그중 <code>.py</code>는 세 개다.
+      <code>grep -rniE 'benchmark|eval|score|HLE|dataset' --include='*.py' .</code>는 1건인데,
+      <code>jspace.py:82</code>의 COVERAGE 정규식 안에 있는 <code>datasets?</code> 항목이라 평가와 무관하다.
+      benchmark라는 단어가 나오는 파일은 README.md, j-space-science.md, self-monitoring.md 셋이고 모두 산문이다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 11 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">setup</p>
+    <h2>읽은 범위와, 읽지 않아서 얕아진 곳</h2>
+    <p class="dek">
+      커밋 <code>885dc513702cc884f0b4fa07d24a27b2df5a1daf</code>, 태그 <code>v3.6</code> 기준이다.
+      shallow clone이 아니라 전체 이력 53개 커밋을 받았으므로 커밋 빈도와 기여자 분포를 말할 수 있다.
+      저장소가 22개 파일 5,060줄로 작아서 대부분을 직접 읽었다.
+    </p>
+
+    <div class="tablewrap" style="margin-bottom:16px">
+      <table>
+        <thead>
+          <tr><th class="wrap">디렉터리</th><th>파일</th><th class="wrap">읽은 정도</th><th class="wrap">이 문서에 남긴 영향</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="wrap">(root)</td><td>4</td><td class="wrap">4개 전부</td><td class="wrap">README 421줄, LICENSE 201줄, CITATION.cff, .gitignore</td></tr>
+          <tr><td class="wrap">j-space/</td><td>1</td><td class="wrap">SKILL.md 전부</td><td class="wrap">04, 05, 06장의 근거</td></tr>
+          <tr><td class="wrap">j-space/modules/</td><td>9</td><td class="wrap">6개 전부, 3개는 목차와 protocol 절만</td><td class="wrap">얕게 본 deep-reasoning, directed-focus, introspection에 기대는 장은 없다. 05장 게이트 표와 파일 크기 계산에만 쓰였다</td></tr>
+          <tr><td class="wrap">j-space/references/</td><td>3</td><td class="wrap">2개 전부, exemplars.md는 목차만</td><td class="wrap">exemplars.md 395줄을 안 읽어서, dense track이 실제 작업에서 어떻게 보이는지는 검증하지 못했다</td></tr>
+          <tr><td class="wrap">j-space/scripts/</td><td>3</td><td class="wrap">3개 전부</td><td class="wrap">09, 10장</td></tr>
+          <tr><td class="wrap">tests/</td><td>1</td><td class="wrap">전부</td><td class="wrap">10장</td></tr>
+          <tr><td class="wrap">.github/workflows/</td><td>1</td><td class="wrap">전부</td><td class="wrap">10장</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="small" style="margin-bottom:14px">
+      합계 22개. 전부 읽은 것이 18개, 목차와 일부 절만 본 것이 3개
+      (<code>deep-reasoning.md</code>, <code>directed-focus.md</code>, <code>exemplars.md</code>),
+      나머지 1개는 <code>introspection.md</code>로 protocol 절과 목차를 읽었다.
+      두 스크립트는 읽는 데 그치지 않고 임시 작업 공간에서 실제로 실행했다.
+    </p>
+
+    <ul class="clean">
+      <li><span class="m">01</span><span><b>렌더된 화면을 확인했다.</b> Linux 브라우저가 없어 WSL에서 Windows Chrome을 headless로 불러 슬라이드를 이미지로 열어 읽었다.</span></li>
+      <li><span class="m">02</span><span><b>Threads 원글은 두 경로로 받았다.</b> 루트 포스트는 WebFetch로 텍스트가 나왔고, 자답 5개와 커뮤니티 답글 3개는 GraphQL로 오는 부분이라 headless 렌더 후 이미지로 읽었다.</span></li>
+      <li><span class="m">03</span><span><b>근거 저장소도 clone했다.</b> <code>DeepSeek-V4-J-Space-Capability-Realization-Report</code>, 커밋 <code>cf945a59</code>. 파일 3개 746줄 전부 읽었다.</span></li>
+      <li><span class="m">04</span><span><b>Zenodo DOI 두 건은 열지 않았다.</b> <code>10.5281/zenodo.21971181</code>과 <code>21971185</code>는 각 저장소의 스냅숏으로 보이지만 확인하지 않았다. 스냅숏이 아니라 추가 자료를 담고 있다면 13장의 판정이 달라질 수 있다.</span></li>
+      <li><span class="m">05</span><span><b>벤치마크 자체는 돌리지 않았다.</b> HLE, DeepSWE, NL2Repo 등의 수치는 전부 저작자 자기 보고이며, 이 문서는 그 수치를 재현하지 않았고 재현할 수단도 코퍼스 안에 없다.</span></li>
+    </ul>
+
+    <div class="note">
+      <b>이력에서 알아낸 것.</b> 53개 커밋, 기여자 2명(Tiger3807861189 52건, forever-ivy 1건).
+      2026-08-16 18시 31분에 모든 파일을 삭제하고 6분 뒤 다시 추가하는 커밋 쌍이 있다.
+      V3.5Turbo에서 V3.6으로 넘어온 지점이다. 커밋 하나하나가 통짜 삭제 아니면 통짜 추가라,
+      무엇이 바뀌었는지 보여 주는 개별 diff가 하나도 없다. <code>git show --stat 61e1f44</code>는 jspace.py 657줄 추가,
+      <code>dce8910</code>은 449줄 삭제로, 어느 쪽이든 파일 전체가 잡힌다. blame도 이 경계에서 끊겨
+      jspace.py 657줄 전부가 재추가 커밋 <code>61e1f44</code>에 귀속된다.
+      <code>git log --follow</code>는 삭제와 재추가를 넘어 <code>b6bb86d</code>까지 그대로 따라가고,
+      삭제 직전과 재추가 직후를 직접 비교하면 변경 내용도 나온다.
+      <code>git diff --stat 00c25d7 2e0ac4a</code>는 21개 파일 1,199줄 추가, 239줄 삭제이고
+      jspace.py 342줄, README.md 402줄, j-space-science.md 98줄, SKILL.md 50줄이다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 12 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">result-bench</p>
+    <h2>표는 존재하고, 표가 재는 것은 저작자가 한 번씩 돌린 결과다</h2>
+    <p class="dek">
+      README의 벤치마크 절은 DeepSeek V4-Flash-0731 기준 9개 항목을 싣는다.
+      아래는 그 표를 그대로 옮긴 것이고, 전부 저작자 자기 보고다.
+      Threads 원글이 인용한 V4-Pro 열은 이 저장소에 없고 근거 저장소에만 있다.
+    </p>
+
+    <div class="tablewrap" style="margin-bottom:16px">
+      <table>
+        <thead>
+          <tr><th>Benchmark</th><th>V4-Flash</th><th>+ J-Space</th><th>차이</th><th>GLM-5.3</th><th>Opus-4.8</th><th>Fable 5 (w/ fallback)</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>HLE (도구 없음)</td><td>37.8</td><td>45.5</td><td class="win">+7.7</td><td>미보고</td><td>49.8</td><td>53.3</td></tr>
+          <tr><td>HLE (도구 사용)</td><td>51.5</td><td>60.6</td><td class="win">+9.1</td><td>62.5</td><td>57.9</td><td>63.0</td></tr>
+          <tr><td>Terminal Bench 2.1</td><td>82.7</td><td>87.1</td><td class="win">+4.4</td><td>88.2</td><td>85.0</td><td>88.0</td></tr>
+          <tr class="hero"><td>NL2Repo</td><td>54.2</td><td>70.2</td><td class="win">+16.0</td><td>58.0</td><td>69.7</td><td>미보고</td></tr>
+          <tr><td>CyberGym</td><td>76.7</td><td>81.7</td><td class="win">+5.0</td><td>84.5</td><td>78.3</td><td>83.1</td></tr>
+          <tr><td>DeepSWE</td><td>54.4</td><td>67.4</td><td class="win">+13.0</td><td>66.9</td><td>58.0</td><td>70.0</td></tr>
+          <tr><td>Toolathlon-Verified</td><td>70.3</td><td>77.7</td><td class="win">+7.4</td><td>73.0</td><td>76.2</td><td>77.9</td></tr>
+          <tr><td>Agents' Last Exam</td><td>25.2</td><td>30.1</td><td class="win">+4.9</td><td>28.5</td><td>25.7</td><td>23.8</td></tr>
+          <tr><td>AutomationBench</td><td>25.1</td><td>31.7</td><td class="win">+6.6</td><td>48.2</td><td>27.2</td><td>29.1</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="small" style="margin-bottom:14px">
+      <code>README.md:258-268</code>을 옮겼다. 차이 열은 저장소에 없고 앞의 두 열을 뺀 값이다.
+      Kimi-K3 열은 자리를 줄이려고 뺐고, 미보고는 원문에서 결과가 보고되지 않았음을 뜻하는 기호를 옮긴 것이다.
+      README는 비교 대상 열이
+      <code>vendor-reported results</code>이며 <code>not a claim that every column was produced by one shared harness</code>라고 밝힌다.
+    </p>
+
+    <h3>표가 스스로 밝히는 조건</h3>
+    <ul class="clean">
+      <li><span class="m bad">01</span><span><b>단일 실행이다.</b> <code>The J-Space values are single-run results. No multi-run averaging or confidence interval is implied.</code> 9개 셀 각각이 n=1이다.</span></li>
+      <li><span class="m bad">02</span><span><b>비교 대상은 다른 harness의 수치다.</b> GLM-5.3, Opus-4.8, Fable 5 열은 각 업체 공개 값이고 같은 조건에서 재측정된 것이 아니다. 같은 harness 안에서 대조되는 것은 J-Space 유무뿐이다. 다만 근거 저장소 <code>README.md:154</code>는 <code>模块按 fast/full/loop 门控选择</code>라고 적으므로, 처치군에서 실제로 컨텍스트에 들어간 분량은 과제마다 다르다. 05장이 확인한 대로 그 선택을 강제하는 코드도 없어서, "있음" 조건은 하나의 고정된 개입이 아니다.</span></li>
+      <li><span class="m bad">03</span><span><b>효율 수치의 단위는 공개되지 않는다.</b> 속도 0.43에서 1.09, token 효율 0.38에서 0.84로 각각 2.53배와 2.21배라고 적히지만, README는 <code>the coefficients affect the displayed scale but not the relative Gain, so they are intentionally omitted</code>라며 계수를 밝히지 않는다. 비율만 확인 가능하고 절대값은 대조할 수 없다.</span></li>
+      <li><span class="m bad">04</span><span><b>sampling 조건이 적용됐는지를 저작자도 모른다.</b> <code>README.md:246</code>은 두 DeepSeek 열이 <code>temperature = 1.0</code>과 <code>top_p = 0.95</code>를 썼다고 적는다. 근거 저장소 <code>README.md:152</code>는 여기에 <code>当前官方 API 在思考模式下可能忽略 temperature 与 top_p</code>를 덧붙이고 서버 실제 동작을 재현 로그에 남겨야 한다고 쓴다. 그 로그는 두 저장소에 없다. temperature 1.0에서 n=1이고, 그 1.0이 걸렸는지조차 확인되지 않은 상태다.</span></li>
+    </ul>
+
+    <div class="note">
+      <b>표 안에서의 산술은 맞다.</b> 1.09를 0.43으로 나누면 2.535, 0.84를 0.38로 나누면 2.211이므로
+      기재된 2.53배와 2.21배는 기재된 값과 일치한다. 표가 자기모순을 일으키지는 않는다.
+      README의 <code>surpasses Opus-4.8</code>이라는 요약도 9개 중 8개에서는 성립하고,
+      HLE 도구 없음 조건에서만 45.5로 49.8에 뒤진다.
+      차이 열은 9개 항목 전부 양수다.
+      단일 실행 A/B에서 손해를 보는 항목이 하나도 나오지 않는 것은 흔한 결과가 아니고,
+      측정의 정밀도를 판단할 근거는 표 바깥에도 없다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 13 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">result-evidence</p>
+    <h2>근거 저장소는 파일 세 개이고, 그 안에 데이터는 없다</h2>
+    <p class="dek">
+      README는 완전한 벤치마크 증거를 보려면 별도 저장소를 보라고 안내한다.
+      그 저장소를 clone하면 나오는 것은 README.md 335줄, LICENSE, CITATION.cff다.
+      원자료, 로그, 평가 스크립트, seed, 실행 일시 중 아무것도 없다.
+    </p>
+
+    <pre><span class="c">$</span> git clone .../DeepSeek-V4-J-Space-Capability-Realization-Report
+<span class="c">$</span> git ls-tree -r --name-only cf945a59
+CITATION.cff
+LICENSE
+README.md
+<span class="c"># 끝. 746줄, 이 중 LICENSE 가 382줄</span></pre>
+
+    <div class="grid g2" style="margin-bottom:16px">
+      <div class="card">
+        <span class="tag">있는 것</span>
+        <p class="small">
+          능력 실현 손실이라는 진단, DeepSeek harness의 첫 턴 인터페이스 민감성 논의,
+          다른 두 공개 방안과의 비교표, V4-Pro 열이 포함된 벤치마크 표, 그리고 반증 조건 목록.
+          스위트 쪽 README에는 없는 반증 조건 여섯 개가 여기에는 있다.
+          비교표 쪽은 대상 저장소 둘을 열지 않아 공정한지 판정하지 못했다.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag">없는 것</span>
+        <p class="small">
+          task별 로그, 원 출력, 채점 스크립트, harness 설정 파일, seed, 실행 일시,
+          토큰 수와 소요 시간의 원단위 값. 재현에 필요한 것 전부가 없다.
+          문서 하나가 자기 자신을 증거라고 부르고 있다.
+        </p>
+      </div>
+    </div>
+
+    <h3>보고서 자신이 무엇이 빠졌는지 적어 두었다</h3>
+    <pre><b>report README.md:266-267</b>
+4. <b>单次结果不代表稳定分布。</b> 正式研究应增加多随机种子运行、置信区间和逐任务轨迹日志。
+5. <b>厂商公开成绩不是统一对照实验。</b> ... J-Space 的因果效果必须由同模型、同 harness、
+   同任务、同工具条件的开关实验确定。
+
+<b>report README.md:295</b>
+它仍需接受相同 harness 下的严格开关实验，而不能用叙事替代复现。</pre>
+
+    <p>
+      마지막 문장은 서사로 재현을 대신할 수 없다는 뜻이다. 이 문서의 판정도 같다.
+      보고서는 인과를 확정하려면 같은 모델, 같은 harness, 같은 작업, 같은 도구 조건에서
+      J-Space만 켜고 끄는 실험이 필요하다고 정확히 지목하고,
+      §6에 반증 조건 여섯 개까지 나열한다. 그리고 그 실험을 수행했다고 주장하지 않는다.
+    </p>
+
+    <div class="note warn">
+      <b>판정.</b> 재현 가능한 벤치마크, ablation, 정량 지표 산출 스크립트, 평가 코드는
+      두 저장소 어디에도 존재하지 않는다. 존재하는 것은 표 하나와 그 표를 설명하는 산문이다.
+      README.md:374의 <code>controlled comparison, ablation analysis, cross-model reproduction</code>이라는 진술도,
+      README.md:308의 <code>The operating effects have been reproduced across the DeepSeek, Qwen, GLM, GPT, and Claude model families</code>도
+      코퍼스 안에서 대응하는 산출물을 찾을 수 없다. 뒤엣것은 특히 구체적이다.
+      J-Space를 얹은 수치가 표에 있는 것은 DeepSeek 하나뿐이고, 나머지 네 계열에는 수치가 한 칸도 없다.
+      다만 이것은 저작자가 그 작업을 하지 않았다는 증명이 아니라, 공개된 코퍼스로는 확인할 수 없다는 뜻이다.
+    </div>
+
+    <div class="note">
+      <b>라이선스가 막는 것은 보고서를 고쳐서 다시 내는 경로 하나다.</b> 근거 보고서는 CC BY-ND 4.0이고
+      <code>you may not modify, adapt, or create derivative works of it for distribution</code>이다.
+      §6이 요청하는 다중 seed 재실행 자체는 파생 저작물이 아니므로 누구나 자기 수치를 내고 공개할 수 있다.
+      막히는 것은 이 보고서의 표를 수정한 판본을 배포하는 것이다.
+      스위트 본체는 Apache-2.0이라 제약이 없으므로, 두 저장소의 라이선스 방침이 서로 다르다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 14 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">critique</p>
+    <h2>한계는 두 종류다: 저장소가 인정한 것과, 이 문서가 읽어서 찾은 것</h2>
+    <p class="dek">
+      저장소는 자기 한계를 상당 부분 먼저 적어 두었다.
+      아래 표는 저작자가 밝힌 항목과 이 문서가 읽고 추가한 항목을 구분한다.
+      구분해 두지 않으면 어느 쪽이 새 정보인지 알 수 없다.
+      이 문서가 추가한 항목의 괄호 안 등급은 08장의 척도가 아니다.
+      08장은 인용된 실험과 규칙 사이의 거리를 재고, 여기서 직접은 코퍼스에서 바로 확인한 것,
+      추론은 확인한 사실에서 한 걸음 건너간 것을 가리킨다.
+    </p>
+
+    <div class="tablewrap" style="margin-bottom:16px">
+      <table>
+        <thead>
+          <tr><th class="wrap">한계</th><th class="wrap">누가 밝히나</th><th class="wrap">위치</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="wrap">벤치마크가 단일 실행이고 신뢰구간이 없다</td><td class="wrap">저작자</td><td class="wrap">README.md:247</td></tr>
+          <tr><td class="wrap">타사 열은 통일된 harness가 아니다</td><td class="wrap">저작자</td><td class="wrap">README.md:244</td></tr>
+          <tr><td class="wrap">효율 수치의 스케일 계수를 공개하지 않는다</td><td class="wrap">저작자</td><td class="wrap">README.md:278</td></tr>
+          <tr><td class="wrap">marker 근거는 직접이 아니라 추론이다</td><td class="wrap">저작자</td><td class="wrap">j-space-science.md:344-350</td></tr>
+          <tr><td class="wrap">J-lens는 단일 토큰 개념만 본다</td><td class="wrap">저작자</td><td class="wrap">j-space-science.md:428-438</td></tr>
+          <tr class="hero"><td class="wrap">검증 게이트가 어휘 검사이고 영어 전용이다</td><td class="wrap">이 문서 (직접)</td><td class="wrap">jspace.py:78-86, 실행으로 확인</td></tr>
+          <tr class="hero"><td class="wrap">근거 저장소에 데이터가 한 건도 없다</td><td class="wrap">이 문서 (직접)</td><td class="wrap">git ls-tree cf945a59</td></tr>
+          <tr class="hero"><td class="wrap">진입 조건이 자기 보고에 걸려 있어 불필요하게 멈춘다. 인용된 recall 약 20퍼센트는 최고 성능 모델 값이다</td><td class="wrap">이 문서 (추론)</td><td class="wrap">SKILL.md:51-53 대 j-space-science.md:359-367. 측정된 조작이 달라 08장 척도로도 추론이고, 07장에 그렇게 적었다</td></tr>
+          <tr class="hero"><td class="wrap">premise 972자가 열 번 중복된다</td><td class="wrap">이 문서 (직접)</td><td class="wrap">10개 파일에서 측정</td></tr>
+          <tr class="hero"><td class="wrap">근거 문서가 CC BY-ND라 수정 재배포가 막힌다</td><td class="wrap">이 문서 (직접)</td><td class="wrap">report LICENSE 382줄, README.md:3</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>읽기만으로는 확정할 수 없는 것</h3>
+    <p>
+      이 문서는 텍스트를 읽고 스크립트를 돌렸을 뿐, 모델 위에서 J-Space를 실행해 보지 않았다.
+      따라서 프로토콜이 실제로 어떤 모델에서 어떤 효과를 내는지는 이 문서가 판정할 수 있는 범위 밖이다.
+      확정한 것은 저장소 안에 무엇이 있고 무엇이 없는지, 그리고 있는 것이 무엇을 검사하는지까지다.
+    </p>
+
+    <p>
+      성숙도 지표도 주의해서 읽어야 한다. 저장소는 2026-07-22에 만들어졌고 조사 시점 기준 27일이 지났다.
+      star 1,405개에 대해 watch는 6명, 기여자는 2명이다.
+      star 수는 확산의 지표이지 검증의 지표가 아니고, watch 6명은 이 저장소를 지속적으로 추적하는 사람이 그만큼이라는 뜻이다.
+    </p>
+
+    <div class="note">
+      <b>한계를 통과하고 남는 것.</b> 다섯 줄 장부와 seam 재주입 규약은 J-space 서사를 전부 걷어내도 그대로 성립한다.
+      근거는 저장소 밖에 있다. 명시적 chain-of-thought가 J-space ablation에 강건하다는 결과,
+      그리고 monitoring 신호를 행동 선택에 연결했을 때 48.3에서 56.9로 올랐다는 arXiv:2605.14186의 결과다.
+      둘 다 J-Space를 평가한 것이 아니라, J-Space가 채택한 설계와 같은 모양의 조작을 평가한 것이다.
+      차용 가치는 여기에 있다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 15 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">adoption</p>
+    <h2>가져올 것과 가져오면 안 되는 것은 근거의 등급으로 갈린다</h2>
+    <p class="dek">
+      사내 GLM 5.2나 DeepSeek V4 Flash 위에서 harness를 만드는 입장에서 판단한다.
+      기준은 저장소가 그 요소에 어떤 근거를 붙였는지, 그리고 그 요소가 J-space 서사 없이도 성립하는지 두 가지다.
+      전체 도입은 권하지 않는다. 요소 단위 차용은 권한다.
+    </p>
+
+    <div class="tablewrap" style="margin-bottom:16px">
+      <table>
+        <thead>
+          <tr><th class="wrap">요소</th><th>판단</th><th class="wrap">이유</th></tr>
+        </thead>
+        <tbody>
+          <tr class="hero"><td class="wrap">다섯 줄 장부와 seam 재주입</td><td class="win">가져온다</td><td class="wrap">서사 없이 성립하고, 외화가 효과적이라는 외부 근거가 있다. 파일도 CLI도 필요 없고 규약만 옮기면 된다</td></tr>
+          <tr class="hero"><td class="wrap">monitoring이 반드시 행동을 고르게 하기</td><td class="win">가져온다</td><td class="wrap">코퍼스에서 유일하게 직접 대응하는 수치가 붙은 규칙이다. 신뢰, 진단 실은 재시도, 독립 경로 재대조 셋 중 하나를 강제한다. 다만 48.3에서 56.9는 다른 모델·다른 harness의 값이고 J-Space를 잰 것이 아니다</td></tr>
+          <tr class="hero"><td class="wrap">진단을 실어 보내는 retry</td><td class="win">가져온다</td><td class="wrap">빈 재시도는 같은 시도를 같은 값에 다시 하는 것이라는 지적이 옳다. 구현 비용이 한 절이다</td></tr>
+          <tr><td class="wrap">검증 결론에 coverage를 함께 적기</td><td class="win">가져온다</td><td class="wrap">규칙 자체는 타당하다. 다만 저장소의 정규식 구현은 쓰지 말고 리뷰 규약으로 두는 편이 낫다</td></tr>
+          <tr><td class="wrap">empirics 모듈의 differential testing</td><td class="win">가져온다</td><td class="wrap">독립 reference를 쓰라는 규칙까지 포함해 평범하고 옳다. J-space와 아무 관계도 없다</td></tr>
+          <tr><td class="wrap">fast / full / loop 게이트</td><td>시험한다</td><td class="wrap">선택적 로딩의 발상은 맞지만 강제 수단이 없다. 사내 harness라면 게이트를 모델이 아니라 코드에 두는 편이 확실하다</td></tr>
+          <tr><td class="wrap">dense track 표기법</td><td>시험한다</td><td class="wrap">차용 표기만 쓰고 신조어에 정의를 붙이라는 규칙은 합리적이다. 누출 검사는 <code>jspace.py:528</code>의 <code>ship</code>이 하지만, 대상이 <code>INNER_ONLY</code> 11개와 <code>MARKERS</code> 6개 고정 목록이고 언제나 exit 0이다</td></tr>
+          <tr><td class="wrap">jspace.py 컨트롤러</td><td class="lose">쓰지 않는다</td><td class="wrap">게이트가 영어 전용이라 한국어 팀에서는 올바른 입력을 막고 검사되지 않은 출력을 통과시킨다</td></tr>
+          <tr><td class="wrap">premise 문단 열 번 중복</td><td class="lose">쓰지 않는다</td><td class="wrap">972자가 매 모듈에 붙는다. 효과를 재는 수단이 없는 상태에서 컨텍스트 예산을 먼저 쓴다. 단 fork에서 이걸 빼면 <code>verify_suite.py:67-70</code>이 <code>the premise is missing</code>으로 실패하고 CI 세 OS가 모두 빨개진다</td></tr>
+          <tr><td class="wrap">induction 17기법과 일인칭 정체성 설치</td><td class="lose">쓰지 않는다</td><td class="wrap">근거 등급이 서사다. 진입 조건도 자기 보고에 걸려 있어 라우팅 표에 닿기 전에 불필요하게 멈춘다. 다만 인용된 recall 약 20퍼센트는 최고 성능 모델이 주입된 개념을 탐지한 값이라, 이 진입 조건에 그대로 대는 것은 이 문서의 추론이다(07장)</td></tr>
+          <tr><td class="wrap">벤치마크 수치</td><td class="lose">인용하지 않는다</td><td class="wrap">단일 실행이고 원자료가 없다. 사내 의사결정 문서에 옮기면 재현 요청에 답할 수 없다</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>설치가 남기는 것과 되돌리기</h3>
+    <p>
+      설치는 <code>j-space/</code> 디렉터리를 skill 경로에 복사하는 것이 전부다.
+      제3자 의존성이 없고, 설정 파일을 고치지 않으며, hook을 심지 않고, 외부 호출을 하지 않는다.
+      다만 최소 Python 버전은 어디에도 선언되어 있지 않다. pyproject.toml도 setup.py도 없고
+      <code>.github/workflows/verify.yml</code>은 <code>python-version: "3.x"</code>로 최신을 따라가므로,
+      고정 런타임에 배포한다면 직접 확인해야 한다.
+      컨트롤러를 쓰면 작업 디렉터리에 <code>.jspace/</code> 하나를 만들고 그 안에 <code>WORKSPACE.md</code>와 <code>history.json</code>을 쓴다.
+      되돌리는 데 필요한 것은 두 디렉터리 삭제뿐이다. 이 점은 깨끗하다.
+    </p>
+
+    <div class="note">
+      <b>라이선스.</b> <code>LICENSE</code> 201줄은 서문도 예외 조항도 없는 표준 Apache-2.0이다.
+      상업적 통합에 제약이 없다. 다만 NOTICE 파일이 없고 저작권자 표기가 어디에도 채워져 있지 않으므로,
+      사내 배포 시 귀속 표기는 저장소 URL과 커밋으로 직접 만들어야 한다.
+      근거 보고서 쪽 CC BY-ND 4.0이 사내 회람까지 막는지는 13장에 적은 범위 밖이고, 법무 판단이다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 16 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">conclusion</p>
+    <h2>좋은 규약과 검증되지 않은 주장이 한 저장소에 들어 있다</h2>
+    <p class="dek">
+      질문은 두 개였다. J-space가 무엇을 가리키며 design과 principle이 무엇인가, 그리고 실증이 존재하는가.
+      첫 질문에는 명확한 답이 있고, 두 번째에는 없다는 답이 있다.
+    </p>
+
+    <div class="grid g3" style="margin-bottom:18px">
+      <div class="card">
+        <span class="tag">J-space가 가리키는 것</span>
+        <p class="small">
+          Anthropic의 Gurnee 외 논문이 정의한 표현 부분공간이다.
+          논문에서는 J-lens 벡터의 희소 비음수 결합으로 표현되는 점들의 집합이라는 수학적 대상이고,
+          저장소는 그것을 <code>where your unspoken thoughts live</code>라는 일인칭 서술로 옮긴다.
+          이 번역이 design 전체의 출발점이자, 서사가 끼어드는 지점이다.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag">design</span>
+        <p class="small">
+          진입점 하나, 필요할 때만 읽히는 모듈 아홉 개, 다섯 줄 장부, seam 단위 재주입.
+          principle은 <code>Dense on the inside, decodable on demand, clean on the outside</code>이고,
+          이것은 모델 내부에 대한 주장이 아니라 register 규율이다.
+          조작 대상은 컨텍스트에 무엇을 언제 다시 넣을지 하나다.
+        </p>
+      </div>
+      <div class="card">
+        <span class="tag">실증</span>
+        <p class="small">
+          재현 가능한 벤치마크, ablation, 평가 스크립트는 두 저장소 어디에도 없다.
+          있는 것은 저작자가 한 번씩 돌렸다고 밝힌 표 하나와, 그 표를 해설하는 산문 335줄이다.
+          강도로 말하면 자기 보고 단일 실행이며, 그 이상은 아니다.
+        </p>
+      </div>
+    </div>
+
+    <p>
+      이 저장소를 평가하기 어렵게 만드는 것은 성격이 다른 두 갈래가 섞여 있다는 점이다.
+      한쪽에는 긴 agent 작업에서 실제로 무너지는 것을 정확히 지목하고, 그에 대해 평범하지만 옳은 규약을 제시하는 문서가 있다.
+      다른 쪽에는 그 규약을 모델에게 정체성으로 설치하려는 심리 기법 17개와, 원자료 없이 제시된 표가 있다.
+      앞의 것은 star 1,405개를 설명하지 못하고, 뒤의 것은 star 1,405개를 설명하지만 근거를 대지 못한다.
+    </p>
+
+    <p>
+      원글 작성자는 이미 같은 분리에 도달해 있었다.
+      벤치마크 주장에 대해서는 "Fable 급으로 좋아지는 것은 아닌 것 같습니다"라고 적었고,
+      메커니즘에 대해서는 긴 작업에서 라운드마다 제약 조건을 알게 하는 시도라고 평가하며 작은 모델에 써 보라고 권했다.
+      저장소 22개 파일 가운데 18개를 끝까지 읽고 도달하는 결론도 그와 같다.
+    </p>
+
+    <div class="note">
+      <b>판정이 뒤집히는 조건.</b> 같은 모델, 같은 harness, 같은 작업, 같은 도구 조건에서
+      J-Space만 켜고 끈 실행 로그가 seed와 함께 공개되면 이 문서의 13장은 무효가 된다.
+      근거 보고서 §6이 요구하는 것도 정확히 그 실험이다.
+      Zenodo DOI 두 건은 열지 않았으므로, 그 안에 로그가 있다면 그것도 판정을 바꾼다.
+    </div>
+  </div>
+</section>
+
+<!-- ============================== 17 ============================== -->
+<section class="slide" aria-hidden="true">
+  <div class="slide-inner">
+    <p class="eyebrow">sources</p>
+    <h2>출처</h2>
+    <p class="dek">
+      코퍼스 두 축과, 본문에서 실제로 열어 확인한 외부 인용이다.
+      저장소 인용의 줄 번호는 모두 아래 커밋 기준이다.
+    </p>
+
+    <div class="grid g2" style="margin-bottom:16px">
+      <div class="card">
+        <span class="tag">코퍼스 1: 저장소</span>
+        <div class="src">
+          <a href="https://github.com/Tiger3807861189/J-Space-Cognition-Suite-V3.6">Tiger3807861189/J-Space-Cognition-Suite-V3.6</a>
+          <span class="t">커밋 <code>885dc513702cc884f0b4fa07d24a27b2df5a1daf</code>, 태그 v3.6, Apache-2.0.
+          2026-07-22 생성, 커밋 53개, 기여자 2명, star 1,405, fork 78, watch 6, open issue 14.
+          22개 파일 5,060줄. 2026-08-18 확인.</span>
+        </div>
+      </div>
+      <div class="card">
+        <span class="tag">코퍼스 2: 원글</span>
+        <div class="src">
+          <a href="https://www.threads.com/@roach_log/post/DcKJr2nkwI2">threads.com/@roach_log/post/DcKJr2nkwI2</a>
+          <span class="t">루트 포스트와 저자 자답 5개, 커뮤니티 답글 3개(aeng.ish, kaionnia, april__pm).
+          조회 4.8천, 좋아요 71, 답글 15. 2026-08-18 확인.
+          자답 부분은 서버 렌더가 아니라서 headless 브라우저로 읽었다.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
+      <span class="tag">근거 저장소</span>
+      <div class="src">
+        <a href="https://github.com/Tiger3807861189/DeepSeek-V4-J-Space-Capability-Realization-Report">Tiger3807861189/DeepSeek-V4-J-Space-Capability-Realization-Report</a>
+        <span class="t">커밋 <code>cf945a5954970c81202c559b7f51e442aaf12c9e</code>, CC BY-ND 4.0.
+        2026-08-16 생성, star 691, fork 42. 파일 3개 746줄. 2026-08-18 확인.</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <span class="tag">본문에서 열어 확인한 외부 인용</span>
+      <div class="src">
+        <a href="https://transformer-circuits.pub/2026/workspace/index.html">Gurnee, Sofroniew, Pearce 외, Verbalizable Representations Form a Global Workspace in Language Models</a>
+        <span class="t">Anthropic, 2026-07-06. 제목과 저자 16인 목록이 j-space-science.md의 인용과 일치한다.
+        J-space를 J-lens 벡터의 희소 비음수 결합으로 표현되는 점들의 집합으로 정의한다.</span>
+        <a href="https://arxiv.org/abs/2605.14186">arXiv:2605.14186, LLMs Know When They Know, but Do Not Act on It</a>
+        <span class="t">Cao, Wang, Qin, Zhang, Xie. pooled accuracy를 48.3에서 56.9로 올렸다는 수치가 실제로 있다.
+        Claude Sonnet-4.6 위의 별도 harness 실험이며 J-Space를 평가한 것이 아니다.</span>
+        <a href="https://arxiv.org/abs/2309.06275">arXiv:2309.06275</a>
+        <span class="t">입력 재읽기 효과. SKILL.md의 re-encode 규칙이 근거로 드는 논문이다. 이 문서는 초록까지만 확인했다.</span>
+      </div>
+    </div>
+
+    <div class="note">
+      <b>확인하지 않은 것.</b> Zenodo DOI <code>10.5281/zenodo.21971181</code>과 <code>10.5281/zenodo.21971185</code>,
+      j-space-science.md가 인용하는 나머지 arXiv 항목 10여 건, 그리고 근거 보고서가 비교 대상으로 드는
+      dsh-anchored-standard와 dsh-routing-suite 두 저장소는 열지 않았다.
+      마지막 둘을 열지 않아서, 근거 보고서 §5의 비교표가 공정한지는 이 문서가 판정하지 못한다.
+    </div>
+  </div>
+</section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 17</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
