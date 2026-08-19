@@ -12,6 +12,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 
 | 날짜 | 문서 | 분류 |
 |---|---|---|
+| 2026-08-19 | [Claude Code 세션 비용 모델: 토큰 하나의 가격과 세션이 보내는 토큰의 개수](https://fable22.github.io/research-library/research/2026-08-19-claude-code-session-cost-model/) | 메모 |
 | 2026-08-18 | [J-Space Cognition Suite V3.6: 프롬프트 계층에서 상태를 다시 주입하는 추론시 통제 프로토콜](https://fable22.github.io/research-library/research/2026-08-18-j-space-cognition-suite/) | oss |
 | 2026-08-14 | [deepseek-harness: 에이전트 루프도 모델 어댑터도 설정 한 행인 하네스](https://fable22.github.io/research-library/research/2026-08-14-deepseek-harness-plugin-architecture/) | oss |
 | 2026-08-14 | [semantica: vector 검색 옆에 그래프 갈래를 하나 더 두는 컨텍스트 인프라](https://fable22.github.io/research-library/research/2026-08-14-semantica-graph-native-context/) | oss |
