@@ -1,0 +1,13 @@
+{
+  "title": "Claude Code 세션 비용 모델: 토큰 하나의 가격과 세션이 보내는 토큰의 개수",
+  "date": "2026-08-19",
+  "seq": 17,
+  "summary": "Anthropic 블로그가 설명하는 세션 비용 구조를 가격 축과 개수 축으로 다시 세웠다. 원문이 숫자 근거를 대지 않는 자리를 갈라 두고, 그중 명령 출력 임계값만은 v2.1.233에서 직접 측정했다. 30,000자를 넘으면 앞 2KB만 남고 초과분은 어떤 요청에도 들어가지 않으며, 컨텍스트 폭발은 큰 출력이 아니라 임계값 아래에 조용히 쌓이는 출력에서 온다.",
+  "category": "note",
+  "format": "deck",
+  "tags": ["claude code", "context engineering", "prompt caching", "token cost", "agent", "tooling"],
+  "source": {
+    "label": "claude.com/blog/maximizing-the-value-of-your-claude-code-sessions",
+    "url": "https://claude.com/blog/maximizing-the-value-of-your-claude-code-sessions"
+  }
+}
