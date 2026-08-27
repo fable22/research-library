@@ -1,0 +1,7 @@
+{
+  "title": "RAMP: 커밋된 AI 설정 파일을 저장소 성숙도 4단계로 재는 계기",
+  "date": "2026-08-28",
+  "seq": 19,
+  "summary": "커밋된 CLAUDE.md 와 .cursorrules 를 저장소 단위 4단계 척도로 바꾼다. agent-first 층에서 L1 의 cognitive complexity 증가는 L2+ 의 2.0배(+52.7% vs +26.7%)지만 설정이 에이전트보다 먼저 커밋된 저장소는 그 층에서 3.8%다.",
+  "category": "paper"
+}

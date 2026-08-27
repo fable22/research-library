@@ -1,0 +1,1276 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAMP: 커밋된 AI 설정 파일을 저장소 성숙도 4단계로 재는 계기</title>
+<meta name="description" content="커밋된 CLAUDE.md 와 .cursorrules 를 저장소 단위 4단계 척도로 바꾼다. agent-first 층에서 L1 의 cognitive complexity 증가는 L2+ 의 2.0배(+52.7% vs +26.7%)지만 설정이 에이전트보다 먼저 커밋된 저장소는 그 층에서 3.8%다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="RAMP: 커밋된 AI 설정 파일을 저장소 성숙도 4단계로 재는 계기">
+<meta property="og:description" content="커밋된 CLAUDE.md 와 .cursorrules 를 저장소 단위 4단계 척도로 바꾼다. agent-first 층에서 L1 의 cognitive complexity 증가는 L2+ 의 2.0배(+52.7% vs +26.7%)지만 설정이 에이전트보다 먼저 커밋된 저장소는 그 층에서 3.8%다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-28-ramp-committed-ai-config/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+/* 산문이 든 칸은 감싼다. nowrap 이면 마지막 열이 가로 스크롤 밖으로 나간다 */
+table.prose th, table.prose td { white-space: normal; vertical-align: top; }
+table.prose td:not(:first-child) { text-align: left; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+
+/* ── event study 전용 (추가 토큰 없이 기존 색 역할만 재사용) ─ */
+svg .dot-o { fill: var(--card); stroke-width: 2; }
+svg .dot-o.s1 { stroke: var(--link); }
+svg .dot-o.s2 { stroke: var(--redlink); }
+svg .vref { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
+svg .zero { stroke: var(--rule); stroke-width: 1.5; stroke-dasharray: 3 3; }
+svg .band { fill: var(--redlink-soft); opacity: .55; }
+.tag-ok  { font-family: var(--mono); font-size: 11px; color: var(--link); }
+.tag-no  { font-family: var(--mono); font-size: 11px; color: var(--redlink); }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>RAMP 척도</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>분류 파이프라인</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>척도 검증</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>성숙도 모델 비교</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>저장소 하나 추적</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>읽은 범위</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>결과 · 채택 동역학</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>결과 · 2.0배와 3.8%</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>결과 · 검정 없는 격차</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>결과 · pre-trend</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>결과 · velocity</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>결과 · 4단계 gradient</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>선행 연구 대조</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>한계 · 논문이 인정한 것</span></button>
+    <button class="rail-item" data-go="17"><span class="n">18</span><span>한계 · 이 문서가 더하는 것</span></button>
+    <button class="rail-item" data-go="18"><span class="n">19</span><span>도입 판단</span></button>
+    <button class="rail-item" data-go="19"><span class="n">20</span><span>결론</span></button>
+    <button class="rail-item" data-go="20"><span class="n">21</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 표지 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>RAMP: 커밋된 AI 설정 파일을 저장소 성숙도 4단계로 재는 계기</h1>
+      <p class="dek">arXiv:2608.25241v1 (2026-08-26). Stanford, CMU, Grid Dynamics 8인. ASE '26 (Munich, 2026-10-12~16) 채택 논문이고 본문 LaTeX 에 <code>\acmDOI{10.1145/3832783.3837546}</code> 와 accepted 2026-06-18 이 찍혀 있다. 심사 전 preprint 가 아니다.</p>
+
+      <div class="stats">
+        <div class="stat hero"><span class="lab">사내 저장소</span><span class="val">441<span class="u">개 / 27개 기업</span></span><span class="sub">Study 1. 척도를 만들고 검증한 표본</span></div>
+        <div class="stat"><span class="lab">오픈소스 treated</span><span class="val">509<span class="u">개</span></span><span class="sub">Study 2. Agarwal et al. 패널을 성숙도로 층화</span></div>
+        <div class="stat bad"><span class="lab">저자들이 초록·서론·타당성에서 반복한 자기 규정</span><span class="val">3<span class="u">회</span></span><span class="sub">hypothesis-generating (main.tex:113, 168, 1038)</span></div>
+      </div>
+
+      <p>논문 제목을 그대로 읽으면 "CLAUDE.md 를 커밋하면 품질 비용이 절반이 된다"가 된다. 저자들은 그렇게 주장하지 않는다. 이 문서는 <b>논문이 확립한 것과 시사하는 데 그친 것 사이의 거리</b>를 잰다.</p>
+
+      <ul class="clean">
+        <li><span class="m">04-07</span><span><b>계기(instrument)로서의 RAMP.</b> 커밋된 설정 파일을 4단계 누적 척도로 바꾸는 방법과, 그 척도가 통과한 검사와 통과하지 못한 검사</span></li>
+        <li><span class="m">10</span><span><b>채택 동역학 (Study 1).</b> 반박거리가 가장 적은 부분. 첫 커밋이 프로젝트 수명을 지배한다</span></li>
+        <li><span class="m">11-15</span><span><b>품질 결과 (Study 2).</b> 2.0배가 어디까지 관찰이고 어디부터 가설인가</span></li>
+        <li><span class="m">17-18</span><span><b>한계.</b> 논문이 인정한 것과 이 문서가 주장하는 것을 표기로 구분한다</span></li>
+      </ul>
+
+      <p class="note">이 문서는 Study 1 숫자와 Study 2 숫자를 다르게 표기한다. Study 1 코퍼스는 27개 기업과의 연구 협약 아래 있어 비공개이므로 <b>논문 대조</b>까지만 가능하다. Study 2 는 Zenodo 리플리케이션 패키지에 데이터와 결과 CSV 가 들어 있어 <b>데이터 대조</b>가 가능하다. 09장이 어느 숫자가 어느 쪽인지 밝힌다.</p>
+    </div>
+  </section>
+
+  <!-- 02 요약 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약. 격차는 크고 그 격차를 만든 원인은 이 설계로 갈리지 않는다</h2>
+      <p class="dek">이 문서의 답은 세 조각이다. 계기는 검증을 통과했고 채택 동역학은 관찰만으로 성립한다. 남은 조각인 품질 격차는 크지만 그 크기를 만든 것이 설정 파일인지는 이 설계로 갈리지 않는다. 저자들이 초록·서론·타당성에서 세 번 hypothesis-generating 이라고 표시한 것이 그 조각이다.</p>
+
+      <div class="stats">
+        <div class="stat bad"><span class="lab">L1 cognitive complexity</span><span class="val">+52.7<span class="u">%</span></span><span class="sub">β=0.423 (SE 0.118), p&lt;0.001 · Table 5</span></div>
+        <div class="stat hero"><span class="lab">L2+ cognitive complexity</span><span class="val">+26.7<span class="u">%</span></span><span class="sub">β=0.236 (SE 0.077), p&lt;0.01 · 비 2.0배</span></div>
+        <div class="stat"><span class="lab">설정이 에이전트보다 먼저 온 비율</span><span class="val">3.8<span class="u">%</span></span><span class="sub">agent-first 층 L2+ 기준 · §7.2</span></div>
+      </div>
+
+      <p>세 가지가 이 문서의 결론이다. 첫째, <b>계기는 견고하다.</b> Guttman CR=0.997, 매핑 permutation p=0.0074, 저장소 단위 인간 검증 34/35. RAMP 는 설문도 계측도 대상 팀의 협조도 없이 저장소에서 바로 돌아간다.</p>
+      <p>둘째, <b>Study 1 의 채택 사실은 반박하기 어렵다.</b> 아티팩트의 73.8%가 한 번 커밋되고 다시 수정되지 않는다. 되돌아간 사례는 0%다. 첫 설정이 프로젝트 수명 내내 지배한다.</p>
+      <p>셋째, <b>Study 2 의 인과는 확립되지 않았다.</b> 저자들이 직접 적은 이유는 두 가지다. 모델 성능 차이를 설계상 배제하지 못하고(저자 표현으로 first-order interpretive limitation), 성숙도는 무작위 배정이 아니다. 이 문서는 여기에 리플리케이션 패키지에서 계산한 것 두 개를 더한다. 논문은 두 층의 차이 자체를 검정하지 않으며(12장), warnings 의 L1 격차는 에이전트 도입 전에 이미 있다(13장).</p>
+
+      <p class="note">"절반이 된다"와 "절반인 저장소들이 있다"는 다른 문장이다. 논문이 쓴 것은 뒤쪽이다. 앞쪽을 쓰려면 설정을 먼저 고정한 뒤 도입을 관찰하는 설계가 필요하고, 저자들도 결론에서 그것을 다음 과제로 남긴다.</p>
+    </div>
+  </section>
+
+  <!-- 03 문제 정의 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>문제 정의. 평균 효과는 두 집단 어느 쪽도 설명하지 않는다</h2>
+      <p class="dek">코딩 에이전트 연구는 채택자 전체의 평균만 보고한다. 그 평균이 서로 다른 두 궤적을 뭉갠 값이면, 어느 팀도 그 숫자를 자기 예측으로 쓸 수 없다. 팀마다 설정 방식이 다르다는 사실은 관찰되지만 아무도 그것을 결과와 연결하지 않았다.</p>
+
+      <blockquote class="q">All studies in this literature report average effects across adopters. None examine whether the presence of committed AI configuration artifacts in a repository is associated with different outcomes.
+      <cite>arXiv:2608.25241v1 §2.1 (main.tex:192)</cite></blockquote>
+
+      <p>구멍은 두 군데다. <b>선행 연구 쪽</b>에서는 Agarwal et al. (MSR '26) 이 채택자 전체 평균으로 complexity +39%, He et al. (MSR '26) 이 Cursor 채택자에서 warnings +30% / complexity +41% 를 보고한다. 둘 다 저장소가 AI 를 <em>어떻게</em> 구조화했는지는 재지 않는다.</p>
+      <p><b>성숙도 모델 쪽</b>은 재는 단위가 어긋나 있다. CMM 과 DORA 로 이어지는 30년 계보가 있고 최근 1년 사이 SEI 와 대형 컨설팅사가 각각 AI 성숙도 모델을 내놨다. 전부 리더십 설문과 자기평가로 조직을 점수화한다. 품질 결과는 코드베이스의 속성이므로 조직 점수에 붙지 않는다.</p>
+
+      <blockquote class="q">Quality outcomes are properties of a codebase, so practice must be measured at the same unit; and many adoption events have already happened, so the measurement must come from what teams left behind.
+      <cite>arXiv:2608.25241v1 §1 (main.tex:156-157)</cite></blockquote>
+
+      <p>두 번째 조건이 설계를 결정한다. 이미 일어난 도입을 사후에 재려면 팀에게 물어볼 수 없고 팀이 남기고 간 것만 남는다. 그것이 버전 관리에 커밋된 설정 파일이다.</p>
+
+      <p class="note">이 장은 문제가 실재한다는 것까지만 말한다. 커밋된 파일이 그 문제의 <em>좋은</em> 대리 지표인지는 별개 질문이고 06장과 17장이 그것을 다룬다. 설정을 커밋하지 않고 AI 를 쓰는 팀은 전부 L1 으로 떨어진다.</p>
+    </div>
+  </section>
+
+  <!-- 04 RAMP 척도 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">ramp-scale</p>
+      <h2>원리 1. 파일 하나가 레벨을 올리고 레벨은 되돌아가지 않는다</h2>
+      <p class="dek">RAMP 는 9개 의미 카테고리를 4단계에 매핑하고 저장소의 레벨을 <b>아티팩트가 하나라도 있는 가장 높은 단계</b>로 정한다. 누적 척도이므로 상위 레벨 저장소는 하위 레벨 아티팩트도 갖고 있으리라 기대되는데 논문은 그 기대를 전제로 깔지 않고 검사한다.</p>
+
+      <div class="tablewrap">
+        <table class="prose">
+          <thead><tr><th>레벨</th><th>카테고리 (하나만 있어도 충분)</th><th>무엇이 달라지는가</th><th>사내 441</th><th>OSS 509</th></tr></thead>
+          <tbody>
+            <tr><td>L1 Unconfigured</td><td>커밋된 AI 파일 없음</td><td>세션마다 백지에서 시작한다</td><td>294 (66.7%)</td><td>236</td></tr>
+            <tr class="hero"><td>L2 Grounded Prompting</td><td>rules · config · architecture · code-style</td><td>프로젝트 맥락이 모든 기여자에게 공유된다</td><td>109 (24.7%)</td><td>210</td></tr>
+            <tr><td>L3 Agent-Augmented</td><td>agents · commands · skills</td><td>역할이 정해진 반복 작업을 수행한다</td><td>38 (8.6%)</td><td>23</td></tr>
+            <tr><td>L4 Orchestration</td><td>flows · session-logs</td><td>여러 에이전트가 정의된 handoff 로 이어진다</td><td><b>0</b></td><td>40</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">Table 1 · §3.2.1 (사내) / §5.1 (오픈소스). L4 는 모델에 정의돼 있지만 사내 표본 441개에서 <b>하나도 관측되지 않는다</b>. 오픈소스 표본에는 40개가 있다.</p>
+
+      <p>레벨 사이의 차이를 논문은 기능으로 설명한다. L2 는 AI 에게 <em>어떻게 행동할지</em>를 말한다("never use magic numbers"). L3 는 <em>일하는 법</em>을 가르친다("here is how we do database migrations"). L4 는 에이전트끼리 작업을 넘기는 방식을 정의한다.</p>
+      <p>레벨은 도구와 무관하다. <code>.cursorrules</code> 하나만 있는 Cursor 사용자는 L2 고 같은 도구로 agents 와 workflows 를 두면 L4 다. 아티팩트 수는 레벨을 따라 가파르게 늘어난다. L1 평균 0.5개, L2 평균 2.7개(중앙값 1), L3 평균 15.8개(중앙값 8.5).</p>
+
+      <p class="note">이 척도가 재는 것은 <b>존재</b>다. 내용은 재지 않는다. 저자들이 §6.2 에 직접 적는다. "we measure the presence of committed artifacts, not the quality of their content or enforcement." 껍데기 rules 파일과 관리된 rules 파일이 같은 L2 다.</p>
+    </div>
+  </section>
+
+  <!-- 05 분류 파이프라인 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">ramp-pipeline</p>
+      <h2>원리 2. 신호 세 개를 우선순위로 합쳐 파일마다 카테고리 하나를 붙인다</h2>
+      <p class="dek">파일 이름만으로는 갈리지 않는다. <code>.cursorrules</code> 와 <code>CLAUDE.md</code> 는 이름이 다르고 같은 것을 담을 수 있다. 그래서 2단계에서 내용을 embedding 으로 분류하고 도구 패턴이 있으면 그쪽을 우선한다.</p>
+
+      <div class="figure">
+        <p class="fig-title">RAMP 분류 파이프라인 3단계</p>
+        <p class="fig-sub">논문 Figure 2 를 TikZ 소스(main.tex:452-616)에서 다시 그렸다. 상자 안 숫자는 §3.1 본문 값이다.</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 760 340" role="img" aria-label="RAMP 분류 파이프라인 3단계 흐름도. Stage 1 은 계층적 탐색으로 12개 도구 43개 패턴, 도구 폴더와 루트의 cross-tool 패턴, 나머지 markdown 순으로 훑어 약 4,300개 후보 파일을 낸다. 앞 단계에서 찾은 파일은 뒤 단계에서 다시 보지 않는다. Stage 2 는 9개 카테고리 템플릿을 768차원 벡터로 embedding 해두고, S1 도구 패턴 결정론적 매핑, S2 경로 토큰 embedding 코사인 유사도, S3 본문 embedding 코사인 유사도 세 신호를 만든 뒤 S1 우선, S2와 S3 일치, S3, S2 순으로 하나를 고른다. Stage 3 은 아티팩트가 하나라도 있는 가장 높은 레벨을 저장소 레벨로 삼아 L1에서 L4 중 하나를 배정하며, L2 근거 없이 L4 가 나오면 coherence warning 을 붙이되 레벨은 그대로 L4 로 둔다.">
+          <text class="txt" x="8" y="18">Stage 1 · 아티팩트 탐색</text>
+          <rect class="box" x="8" y="28" width="200" height="86" rx="8"/>
+          <text class="txt-s" x="20" y="48">1. 도구 패턴 43개 / 12개 도구</text>
+          <text class="txt-s" x="20" y="66">2. cross-tool (AGENTS.md, *mcp*.json)</text>
+          <text class="txt-s" x="20" y="84">3. 나머지 markdown (통계용)</text>
+          <text class="txt-s" x="20" y="104">계층적: 앞에서 찾은 파일은 제외</text>
+          <path class="arw" d="M208 71 L246 71"/><path class="arw" d="M239 66 L246 71 L239 76"/>
+          <text class="txt-s" x="212" y="90">4,300개</text>
+
+          <text class="txt" x="256" y="18">Stage 2 · 의미 분류</text>
+          <rect class="box" x="256" y="28" width="212" height="40" rx="8"/>
+          <text class="txt-s" x="268" y="45">카테고리 템플릿 9개 (40~120단어)</text>
+          <text class="txt-s" x="268" y="61">nomic-embed-text-v1.5 · 768차원</text>
+          <path class="arw" d="M362 68 L362 84"/><path class="arw" d="M357 77 L362 84 L367 77"/>
+
+          <rect class="box" x="256" y="88" width="66" height="54" rx="6"/>
+          <text class="txt-s" x="264" y="106">S1 도구</text><text class="txt-s" x="264" y="122">패턴 매칭</text><text class="txt-s" x="264" y="136">결정론적</text>
+          <rect class="box" x="329" y="88" width="66" height="54" rx="6"/>
+          <text class="txt-s" x="337" y="106">S2 경로</text><text class="txt-s" x="337" y="122">토큰 embed</text><text class="txt-s" x="337" y="136">코사인</text>
+          <rect class="box-hi" x="402" y="88" width="66" height="54" rx="6"/>
+          <text class="txt-s" x="410" y="106">S3 본문</text><text class="txt-s" x="410" y="122">전문 embed</text><text class="txt-s" x="410" y="136">코사인</text>
+
+          <path class="arw" d="M289 142 L289 160 L362 160"/>
+          <path class="arw" d="M362 142 L362 160"/>
+          <path class="arw" d="M435 142 L435 160 L362 160"/>
+          <path class="arw" d="M362 160 L362 176"/><path class="arw" d="M357 169 L362 176 L367 169"/>
+          <rect class="box-hi" x="256" y="178" width="212" height="38" rx="8"/>
+          <text class="txt-s" x="268" y="195">우선순위 S1 &gt; S2·S3 일치 &gt; S3 &gt; S2</text>
+          <text class="txt-s" x="268" y="211">파일 1개 → 카테고리 1개 (9개 중)</text>
+
+          <text class="txt" x="516" y="18">Stage 3 · 레벨 배정</text>
+          <path class="arw" d="M468 197 L500 197"/><path class="arw" d="M493 192 L500 197 L493 202"/>
+          <rect class="box" x="500" y="28" width="252" height="40" rx="8"/>
+          <text class="txt-s" x="512" y="45">L1 아티팩트 없음</text><text class="txt-s" x="512" y="61">L2 rules · config · architecture · code-style</text>
+          <rect class="box" x="500" y="74" width="252" height="40" rx="8"/>
+          <text class="txt-s" x="512" y="91">L3 agents · commands · skills</text><text class="txt-s" x="512" y="107">L4 flows · session-logs</text>
+          <rect class="box-hi" x="500" y="120" width="252" height="40" rx="8"/>
+          <text class="txt-s" x="512" y="137">저장소 레벨 = 아티팩트가 있는</text><text class="txt-s" x="512" y="153">가장 높은 레벨 (누적)</text>
+          <rect class="box" x="500" y="178" width="252" height="56" rx="8"/>
+          <text class="txt-s" x="512" y="196">L2 근거 없는 L4 →</text>
+          <text class="txt-s" x="512" y="212">coherence warning + 신뢰도 하향,</text>
+          <text class="txt-s" x="512" y="228">레벨은 그대로 L4</text>
+          <text class="txt-s" x="8" y="262">분류(무엇이 있는가)와 검증(그 구조가 성립하는가)을 분리한다. 누적성을 전제로 깔지 않았기 때문에 06장의 Guttman 검사가 의미를 갖는다.</text>
+          <text class="txt-s" x="8" y="284">S3 만으로도 저장소의 42.4% 는 전체 파이프라인과 같은 답이 나온다. 나머지 57.6% 에서 S1 과 S2 가 값을 더한다 (§3.1).</text>
+          <text class="txt-s" x="8" y="306">발견 스윕 30,216개 후보 / 1,931개 저장소 → 필터 4개 → 441개 프레임 (약 4,300개 후보 파일).</text>
+          <text class="txt-s" x="8" y="328">441개 중 217개가 검증된 아티팩트 보유 (1,046개, 210개 저장소에서 1,026개 scoreable).</text>
+        </svg>
+        </div>
+        <figcaption>필터 4개는 아티팩트 1개짜리 저장소 제거, 도구 패턴 밖에서 딸려온 boilerplate(README, LICENSE) 제거, 아티팩트 수 상위 10% 이상치 제거(확인 결과 템플릿 모음), 분류 중 발견된 근사 중복 제거다. 441개 중 231개는 scoreable 아티팩트가 없고 210개 중 63개는 레벨 없는 문서만 남아, 합쳐서 294개가 구성상 L1 이 된다.</figcaption>
+      </div>
+
+      <p class="note">embedding 파이프라인은 저자들 스스로 권하지 않는다. §6.3 은 범용 LLM judge 가 held-out 인간 레이블 기준으로 통계적으로 구별되지 않고 카테고리 일관성은 오히려 낫다고 적는다. 그리고 대부분의 연구 용도에 LLM judge 를 권한다. 남는 이점으로 저자들이 드는 것은 점수 산출 경로가 로컬에서 저비용으로 돌아간다는 것과 프라이버시다.</p>
+    </div>
+  </section>
+
+  <!-- 06 척도 검증 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">ramp-proof</p>
+      <h2>원리 3. 누적 척도라는 주장은 통과했고 레이블 정확도는 층마다 다르다</h2>
+      <p class="dek">"이 4단계가 진짜 척도인가"와 "이 레이블이 맞는가"는 다른 질문이고 논문은 둘을 따로 검사한다. 앞쪽은 세 검사를 통과한다. 뒤쪽은 저장소 단위에서는 통과하고 파일 단위 희귀 카테고리에서는 실패한다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">통과한 것</span>
+          <ul class="clean">
+            <li><span class="m">CR</span><span><b>Guttman scalogram.</b> CR=0.997 / CS=0.983 (기준 0.90 / 0.60). AI-tools 부분집합 217개에서도 0.994 / 0.937. 위반율 0.9% / 1.8%, 위반 저장소 4개 전부 L2 근거 없는 L3</span></li>
+            <li><span class="m">p</span><span><b>매핑 permutation.</b> 9개 카테고리를 레벨에 무작위 배정해 10,000회 재계산. 관측 CR 은 귀무분포의 99.3 백분위(p=0.0074), CS 는 99.5 백분위(p=0.0051). Kendall τ=0.663 (p=0.0235). leave-one-out 9개 전부 통과</span></li>
+            <li><span class="m">κ</span><span><b>인간 검증, 저장소 단위.</b> held-out 35개 저장소에서 34개 일치 (97.1%), quadratic-weighted κ=0.829. 이 35개는 개발 표본이 아니라 Study 2 오픈소스 코퍼스에서 뽑았다</span></li>
+            <li><span class="m">ρ</span><span><b>구조 정합.</b> 카테고리 수와 레벨의 Spearman ρ=0.843 (AI-tools 부분집합 0.727). L3 의 89.5% 가 L2 1차 증거 보유, 2차 포함 시 100%. 210개 저장소가 조합 25개만 사용, silhouette 0.822 대 permutation 귀무 0.731 (p&lt;0.001)</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag">통과하지 못했거나 좁은 것</span>
+          <ul class="clean">
+            <li><span class="m bad">H</span><span><b>Loevinger H=0.299.</b> 저자들이 "honest calibration"이라고 부른다. 집계 수준에서는 위계가 강하지만 항목 쌍의 함의로는 약하게만 나타난다</span></li>
+            <li><span class="m bad">L4</span><span><b>Guttman 검사가 덮는 구간.</b> 사내 표본에 L4 증거가 없으므로 이 검사는 <b>L2~L3 구간만</b> 덮는다. 4단계 전체의 타당성은 permutation 과 유병률 순서가 떠받친다. 논문이 §3.2.2 와 §7.1 에 두 번 적는다</span></li>
+            <li><span class="m bad">α</span><span><b>어노테이터 일치 α=0.572.</b> moderate. 쌍별 Cohen κ 0.50~0.81. 카테고리 경계가 사람에게도 갈리지 않는다는 뜻이고 분류기 정확도를 얼마나 날카롭게 읽을 수 있는지의 상한이 된다</span></li>
+            <li><span class="m bad">F1</span><span><b>희귀 절차 카테고리는 0 이다.</b> 부록 Table A.1: skills(n=5) F1 0.00, flows(n=3) F1 0.00, session-logs 는 인간 지지 0건. L4 를 정의하는 두 카테고리가 인간 대조로 검증된 적이 없다. LLM judge 도 같은 자리에서 같이 실패한다</span></li>
+            <li><span class="m bad">CI</span><span><b>파일 단위 81.7% [75.3, 86.7] 은 낙관적 구간이다.</b> 부록이 밝히듯 레이블 175개가 저장소 35개 안에 몰려 있어 item-i.i.d. 구간은 anti-conservative 다. 저장소 클러스터 부트스트랩(10,000회)은 <b>63.3~95.6%</b>로 벌어진다</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="note">한쪽으로만 읽으면 안 되는 지점이 하나 있다. 저장소 단위 34/35 는 level-stratified 표본에서 나온 stratum-weighted 값이라 모집단 비율이 아니다. §3.2.4 에 그렇게 적혀 있다. 그리고 Wilson 95% CI 는 85~99%, 저장소 부트스트랩은 91.4~100% 다. 97.1% 라는 한 점보다 이 구간이 계기의 실제 정확도에 가깝다.</p>
+    </div>
+  </section>
+
+  <!-- 07 성숙도 모델 비교 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">compare-instrument</p>
+      <h2>비교 1. 재는 단위를 바꾸면 협조가 필요 없어진다</h2>
+      <p class="dek">RAMP 의 새로운 지점은 4단계라는 형식이 아니다. CMM 부터 DORA 까지 단계 모델의 계보는 30년이 넘는다. 바뀐 것은 <b>측정 단위와 입력</b>이고 그 둘이 바뀌면서 사후 측정과 대규모 실행이 가능해진다.</p>
+
+      <div class="tablewrap">
+        <table class="prose">
+          <thead><tr><th>모델</th><th>측정 단위</th><th>입력</th><th>대상의 협조</th><th>코드 품질 결과와의 연결</th></tr></thead>
+          <tbody>
+            <tr><td>CMM / CMMI</td><td>조직 · 프로세스</td><td>심사, 자기평가</td><td class="lose">필수</td><td>결함률·일정 준수 (조직 단위)</td></tr>
+            <tr><td>DORA</td><td>팀 · 배포 파이프라인</td><td>개발자 설문</td><td class="lose">필수</td><td>배포 성능·안정성 (팀 단위)</td></tr>
+            <tr><td>SEI · 컨설팅사 AI 성숙도 (2025~2026)</td><td>조직</td><td>리더십 설문, 자기평가</td><td class="lose">필수</td><td class="lose">저장소에 붙지 않는다</td></tr>
+            <tr><td>Agarwal et al. 의 사전 노출 구분</td><td>저장소</td><td>PR 메타데이터</td><td class="win">불필요</td><td>이분(agent-first / IDE-first). 구조는 못 잰다</td></tr>
+            <tr class="hero"><td>RAMP</td><td>저장소</td><td>커밋된 파일 43개 패턴 / 12개 도구</td><td class="win">불필요</td><td>같은 단위에서 SonarQube 지표와 결합</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">§1, §2.2 를 표로 옮긴 것이고 <b>논문에는 이 표가 없다</b>. 마지막 열은 각 모델이 무엇과 결합될 수 있는지를 논문 서술에서 읽어낸 것이지, 각 모델의 검증 결과를 대조한 것이 아니다.</p>
+
+      <p>차이가 실무에서 갈리는 지점은 마지막 두 열이다. 설문 기반 모델은 저장소 100개에 한 번에 돌릴 수 없다. RAMP 는 계측도 설문도 없이 저장소를 있는 그대로 스캔하므로, 에이전트 전면 도입 전에 포트폴리오에서 설정이 얇은 프로젝트를 골라낼 수 있다. 논문은 §6.2 에서 이 점을 실무 도구로서의 용도로 든다.</p>
+      <p>Agarwal et al. 의 이분법과의 차이도 같은 성격이다. agent-first 와 IDE-first 는 <em>사전 노출</em>을 나눈다. 사전 노출이 같은 두 저장소가 rules 파일이 있는지에서 갈릴 수 있고 RAMP 는 그 축을 잰다.</p>
+
+      <p class="note">단위를 바꾼 대가가 있다. 도구 생태계마다 커밋 관례가 달라서, 성숙도 분포가 도구에 따라 갈린다 (chi-squared=111.3, p&lt;0.0001, Cramér's V=0.483). GitHub Copilot 저장소는 L1 에, Cursor 저장소는 L2~L3 에 몰린다. 논문은 이것을 "measurement asymmetry"라 부르고 cross-tool 비교의 first-order caveat 로 명시한다. RAMP 점수는 성숙도와 도구 선택을 부분적으로 섞어 잰다.</p>
+    </div>
+  </section>
+
+  <!-- 08 저장소 하나 추적 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">trace</p>
+      <h2>추적. 파일 4개가 저장소 하나를 Level 3 으로 만든다</h2>
+      <p class="dek">§3.1 의 worked example 을 파이프라인 3단계에 그대로 태운다. 세 파일은 도구 패턴에서 바로 갈리고 네 번째 파일만 embedding 이 판정한다. 이 한 건이 우선순위 규칙과 누적 규칙이 실제로 무엇을 하는지 보여준다.</p>
+
+      <pre>저장소 R 의 파일 4개
+├─ CLAUDE.md
+│   Stage 1  claude-code 패턴 <b>CLAUDE.md</b> (exact_path) → category=instructions
+│   Stage 2  S1 존재 → S2·S3 보지 않음. instructions 를 <b>rules</b> 로 정규화
+│   Stage 3  <b>L2</b>
+├─ .cursorrules
+│   Stage 1  cursor 패턴 <b>.cursorrules</b> (exact_path) → category=rules
+│   Stage 2  S1 존재 → <b>rules</b>
+│   Stage 3  <b>L2</b>
+├─ .claude/agents/security-reviewer.md
+│   Stage 1  claude-code 패턴 <b>.claude/agents/**/*.md</b> (glob, recursive) → category=agents
+│   Stage 2  S1 존재 → <b>agents</b>
+│   Stage 3  <b>L3</b>
+└─ docs/migration-guide.md
+    Stage 1  도구 신호 없음. cross-tool 패턴에도 안 걸림
+    Stage 2  S1 없음 → S2(경로 토큰) 와 S3(본문 전문) 비교
+             본문이 단계별 절차 + validation criteria → 템플릿 <b>skills</b> 에 가장 가까움
+    Stage 3  <b>L3</b>
+
+저장소 레벨 = max(L2, L2, L3, L3) = <b>L3</b>
+                          <span class="c">누적 규칙: 아티팩트가 하나라도 있는 가장 높은 레벨</span></pre>
+
+      <p>세 번째 파일이 없었다면 이 저장소는 L2 다. 네 번째 파일만 있었다면, 리플리케이션 패키지의 개정된 scorer 기준으로는 L1 이다. 도구 정의를 통해 귀속된 파일이 하나도 없으면 의미 신호만으로는 L1 위로 올리지 않는다(strict L1 cap). 논문 본문은 이 규칙을 적지 않고 패키지의 <code>study1/CHANGES_SINCE_SUBMISSION.md</code> 가 적는다.</p>
+
+      <p>같은 파이프라인을 이 문서가 사는 저장소(research-library)에 돌리면 결과가 갈린다. <code>AGENTS.md</code>(cross-tool, 루트) 와 <code>CLAUDE.md</code> 가 rules 로 L2 를 세우고 <code>.claude/skills/*/SKILL.md</code> 3개가 <code>.claude/skills/**/*.md</code> glob 에 걸려 skills 로 L3 를 세운다. 다단계 워크플로우 정의인 <code>.claude/workflows/research-chain.js</code> 는 <b>어느 패턴에도 걸리지 않는다</b>. claude-code 도구 정의에 L4 패턴이 없고(flows 는 windsurf 의 <code>workflows</code> 와 kiro 의 <code>hooks</code> 에서만 온다), 도구 폴더 안 markdown 을 쓸어담는 cross-tool 규칙은 <code>**/*.md</code> 라서 <code>.js</code> 파일을 지나친다. 오케스트레이션이 여기 있는데 계기가 <b>L3</b> 로 읽는다. 논문 §6.1 도 "a repository's RAMP level is a lower bound on its organization's maturity"라고 쓰지만 그 문장이 가리키는 결측은 성격이 다르다. 논문이 든 것은 wiki·온보딩 문서·리뷰 체크리스트·PR 게이트처럼 <b>저장소 밖</b>에 있어 어떤 스캐너도 원리상 볼 수 없는 거버넌스이고, 그래서 논문은 그 결측이 격차를 축소시킨다고 방향까지 못박는다. 위 사례는 정의가 저장소 <b>안</b>에 커밋돼 있고 RAMP 의 사정거리 안인데 패턴 정의가 <code>.js</code> 를 담지 않아 놓치는 경우다. 코드로 오케스트레이션을 짜는 팀이 체계적으로 저평가되는지, 그 결측이 어느 방향으로 편향되는지는 논문이 검토한 적이 없다.</p>
+
+      <p class="note">이 추적은 패턴 정의 JSON(<code>study1/collector/Artifacts/*.json</code>)과 scorer 소스(<code>study1/analyzer/src/maturity_scorer.py</code>)의 카테고리→레벨 매핑에서 확인한 경로다. 파이프라인을 실행해 본 것은 아니다. 논문이 말하는 43개 패턴과 패키지에 든 정의의 수도 어긋난다. 12개 도구 JSON 의 <code>artifact_patterns</code> 합은 40개고 cross-tool 4개를 더해 44개다. 어느 셈법이 43 을 만드는지는 확인하지 못했다.</p>
+    </div>
+  </section>
+
+  <!-- 09 읽은 범위 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>읽은 범위. 논문은 전부, 리플리케이션 패키지는 Study 2 결과까지</h2>
+      <p class="dek">코퍼스는 셋이다. arXiv v1 의 LaTeX 원본, Zenodo 리플리케이션 패키지, 그리고 선행 연구 두 편의 식별자. 세 번째는 열지 않았고 그것이 이 문서의 16장을 얕게 만든다.</p>
+
+      <div class="tablewrap">
+        <table class="prose">
+          <thead><tr><th>코퍼스</th><th>규모</th><th>연 것</th><th>안 연 것과 그 대가</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>arXiv:2608.25241v1<br>LaTeX 원본</td><td>main.tex 1,170행 / 94,271 bytes</td><td>본문 8장 전부, 부록 A·B·C 전부, Table 1~5 와 C.1, 그림 6개의 caption 과 <code>\Description</code> 대체텍스트</td><td>없음. 숫자는 HTML 변환본이 아니라 LaTeX 표 셀에서 읽었다</td></tr>
+            <tr><td>논문 그림</td><td>PDF 6개</td><td>Figure 6(event study)만 렌더해서 눈으로 봤다. Figure 1·2 는 TikZ 소스에서 다시 그렸다</td><td>Figure 3·4·5·A.1·B.1 은 대체텍스트와 본문 값으로만 읽었다. Kaplan-Meier 곡선(Fig 4)은 대체텍스트에 L1→L2 와 L2→L3 의 at-risk·event 수와 꺾이는 지점이 들어 있지만 곡선을 다시 그릴 만큼의 좌표 밀도가 없어 10장에는 L3→L4 부분만 옮겼다</td></tr>
+            <tr><td>Zenodo 10.5281/<br>zenodo.21406147</td><td>43,251,402 bytes / 파일 173개</td><td>README, SANITIZATION_LOG, study1/README, CHANGES_SINCE_SUBMISSION, 도구 패턴 JSON 13개, study2 결과 CSV 3개, study2/data 의 성숙도·코호트 파일 3개</td><td>DiffinDiff.Rmd 를 읽지 않았다. 11~15장의 계수는 저자들이 낸 결과 CSV 를 논문과 대조한 것이고 추정 코드를 재실행한 것이 아니다</td></tr>
+            <tr><td>Zenodo · human-validation</td><td>파일 31개</td><td><code>data/validation/human_labeling/sampled_repos.csv</code> 하나. 35개 저장소의 이름과 층 배정 목록이다</td><td>노트북 15 와 어노테이터 3명의 원본 xlsx, 라벨 CSV 는 열지 않았다. 그래서 06장의 α=0.572 와 34/35 가 논문 대조에 그쳤다. 그 파일들이 전부 패키지에 있으므로 재현이 막힌 숫자는 아니다</td></tr>
+            <tr><td>Zenodo · study1 코드</td><td>파일 85개 (py 35, ipynb 9)</td><td>패턴 정의 JSON 13개, README·CHANGES 문서, <code>analyzer/src/maturity_scorer.py</code> 의 카테고리→레벨 매핑과 dialect 변환표(115~152행)</td><td>collector 구현과 <code>maturity_scorer.py</code> 1,628행 중 매핑 표 바깥(embedding 판정부 포함)을 읽지 않았다. 08장의 추적은 정의와 매핑 기준이고 파이프라인 실행 결과가 아니다</td></tr>
+            <tr><td>Agarwal et al. (10.1145/<br>3793302.3793589)</td><td>MSR '26, 6쪽</td><td class="lose">안 열었다</td><td>pooled +39% complexity, +18% warnings 는 이 논문의 재서술이다. 원문 대조가 아니다</td></tr>
+            <tr><td>He et al. (10.1145/<br>3793302.3793349)</td><td>MSR '26, 13쪽</td><td class="lose">안 열었다</td><td>+30% warnings / +41% complexity 도 마찬가지다. 16장의 대조는 한쪽 서술에만 기댄다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid g2" style="margin-top:16px">
+        <div class="card">
+          <span class="tag">논문 대조만 가능한 숫자</span>
+          <p class="small">Study 1 전부. 441개 저장소 / 27개 기업의 코퍼스는 연구 협약이 저장소와 조직의 식별을 금지한다. 패키지의 <code>study1/</code> 은 코드만 들어 있고 데이터 디렉터리는 <b>설계상 비어 있다</b>(SANITIZATION_LOG). 10장의 73.8%, 633일, 154일, 0% 반전, 기여자 3.4명은 전부 이쪽이고 06장의 Guttman·permutation 도 같다. 06장의 인간 검증은 다르다. 논문 §3.2.4 가 밝히듯 그 35개 저장소는 개발 표본이 아니라 <b>Study 2 오픈소스 코퍼스</b>에서 뽑았고 데이터가 패키지에 있다. 이름도 패키지에 그대로 있다. human-validation 트리의 <code>sampled_repos.csv</code> 가 <code>airbytehq__airbyte</code>, <code>dagster-io__dagster</code> 같은 공개 저장소 35개를 층 배정과 함께 적는다. 이름을 적는 것은 이 파일이고 논문이 아니다. 34/35 와 α=0.572 를 논문 대조에 그친 것은 코퍼스가 비공개라서가 아니라 이 문서가 열지 않아서다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">데이터 대조까지 가능한 숫자</span>
+          <p class="small">Study 2 전부. 11~15장의 계수는 <code>study2/results/static_effects_*.csv</code> 와 <code>dynamic_effects_agent_subset.csv</code> 에서 논문 Table 5 와 §5.3.4 값을 그대로 확인했다. 부록 C 의 교차표(agent-first 214/155/5/22, IDE-first 22/55/18/18)도 <code>maturity_levels.csv</code> 와 코호트 목록을 결합해 재현했다. 12·13장의 계산은 이 CSV 에서 새로 한 것이고 논문에는 없다.</p>
+        </div>
+      </div>
+
+      <p class="note">렌더링은 Chrome for Testing 149.0.7827.55 headless 로 1440×1000 에서 슬라이드 21개를 전부 열어 확인했다. 수정을 끝낸 뒤에 다시 열었고, 바뀐 5개(08·09·11·19·20)는 접히는 부분까지 펼쳐서 읽었다. 다른 폭과 다른 브라우저, 인쇄 레이아웃은 확인하지 않았다. ASE '26 DOI 10.1145/3832783.3837546 은 2026-08-28 기준 doi.org 에서 HTTP 404 다. 학회가 10월이라 논문집이 아직 나오지 않았고 지금 읽을 수 있는 판본은 arXiv v1 뿐이다.</p>
+    </div>
+  </section>
+
+  <!-- 10 결과 · 채택 동역학 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-adoption</p>
+      <h2>결과 1. 첫 커밋이 프로젝트 수명 전체를 지배한다</h2>
+      <p class="dek">Study 1 은 이 논문에서 반박거리가 가장 적은 부분이다. 인과 주장이 없고 관찰 사실만 있다. 실무에서 쓸 수 있는 문장도 여기서 나온다. 아티팩트의 73.8%는 한 번 커밋되고 다시 수정되지 않으므로, 처음 쓴 설정이 사실상 최종본이다.</p>
+
+      <div class="figure">
+        <p class="fig-title">첫 아티팩트까지가 어렵고 그다음은 어렵지 않다</p>
+        <p class="fig-sub">Kaplan-Meier 중앙값, 441개 프레임 전체에서 추정하고 전이 통계는 채택자 196개 조건부다. §4 (main.tex:789-792) · 논문 대조</p>
+        <div class="bars">
+          <div class="bar-row is-hero">
+            <span class="bar-name">L1 → 첫 아티팩트</span>
+            <span class="bar-track g5"><span class="bar s2" style="--w:90.4%"></span></span>
+            <span class="bar-val">633일</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-name">L2 → L3</span>
+            <span class="bar-track g5"><span class="bar s1" style="--w:22.0%"></span></span>
+            <span class="bar-val">154일</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-name">L3 → L4</span>
+            <span class="bar-track g5"><span class="bar" style="--w:0%"></span></span>
+            <span class="bar-val">event 0</span>
+          </div>
+        </div>
+        <div class="bar-axis"><span class="ticks"><span>0</span><span>140</span><span>280</span><span>420</span><span>560</span><span>700일</span></span></div>
+        <figcaption>633일은 측정 가능한 사전 이력이 있는 87% 기준 중앙값이다. 프레임 전체 기준으로는 검증된 아티팩트 없이 관측된 기간이 최소 441일이고 첫 아티팩트를 끝내 커밋하지 않은 저장소가 right-censored 로 들어가므로 L1 기간은 하한이다. L3→L4 곡선은 37개가 at risk 인데 event 가 0건이라 관측 구간 내내 1.0 에 평평하다(논문 Figure 4).</figcaption>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">경로</span>
+          <ul class="clean">
+            <li><span class="m">95.9%</span><span>채택자는 거의 전부 L2 로 진입한다. 나머지는 L3 직행</span></li>
+            <li><span class="m">83.1%</span><span>한 레벨에서만 아티팩트를 도입하고 멈춘다. 14.9% 가 L2→L3, 2.1% 가 역순 경로</span></li>
+            <li><span class="m">0%</span><span>반전(reversal)이 없다. 포기는 0.5%, 정체는 비전이 저장소의 12.8% 로 L2 에 몰려 있다</span></li>
+            <li><span class="m">4.5:1</span><span>하위 레벨을 먼저 도입한 전이가 역순보다 약 4.5배 많다 (ρ=0.866, 단측 permutation p=0.029). 다만 다중 레벨 저장소의 3분의 1 은 두 레벨을 같은 커밋이나 같은 날에 넣는다</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag">유지보수</span>
+          <ul class="clean">
+            <li><span class="m">73.8%</span><span>아티팩트가 커밋 후 한 번도 수정되지 않는다 (set-and-forget)</span></li>
+            <li><span class="m bad">ρ=-0.072</span><span>유지보수 노력이 성숙도를 따라 늘어나는 것처럼 보이지만(Kruskal-Wallis H=60.61, p&lt;0.0001) 아티팩트 수를 통제하면 사라진다 (partial ρ=-0.072, p=0.32). 상위 레벨은 더 돌보는 것이 아니라 처음에 더 많이 넣은 것이다</span></li>
+            <li><span class="m">3.4명</span><span>스케일하는 지표는 기여자 다양성 하나다. L3 저장소의 AI 아티팩트 기여자 평균 3.4명, L1~L2 는 1.0~1.5명 (ρ=0.402). 저자들의 문장은 "Agent-level adoption is a team activity"다</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <p class="note">이 층의 숫자는 <b>논문 대조까지</b>다. 데이터가 공개돼 있지 않다. 관측창은 2025-01 부터 2026-02 로 약 14개월이고 논문이 §7.3 에서 짧은 창을 한계로 든다. 반전 0% 는 "되돌리지 않는다"보다 "14개월 안에 되돌린 사례가 없다"로 읽어야 한다. L3→L4 event 0 도 마찬가지다.</p>
+    </div>
+  </section>
+
+  <!-- 11 결과 · 2.0배와 3.8% -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-quality</p>
+      <h2>결과 2. 격차는 2.0배고 그 격차를 만들었을 설정은 3.8%에서만 먼저 왔다</h2>
+      <p class="dek">agent-first 층에서 커밋된 설정이 없는 저장소의 품질 저하가 있는 저장소의 두 배다. 같은 층에서 그 설정이 에이전트보다 먼저 커밋된 저장소는 3.8%다. 앞의 숫자만 옮기면 문서가 논문보다 강한 주장을 하게 된다.</p>
+
+      <div class="figure">
+        <p class="fig-title">agent-first 층, 에이전트 도입 후 품질 지표 변화</p>
+        <p class="fig-sub">논문 Figure 5 와 Table 5 를 다시 침. 값은 <code>study2/results/static_effects_agent_subset.csv</code> 와 자릿수까지 일치한다 · 데이터 대조</p>
+        <div class="legend"><span><i class="s2"></i>L1 (커밋된 설정 없음, n=214)</span><span><i class="s1"></i>L2+ (구조화됨, n=182)</span></div>
+        <div class="bars">
+          <div class="bar-row is-hero"><span class="bar-name">cognitive complexity · L1</span><span class="bar-track g5"><span class="bar s2" style="--w:87.8%"></span></span><span class="bar-val">+52.7%</span></div>
+          <div class="bar-row is-hero"><span class="bar-name">L2+</span><span class="bar-track g5"><span class="bar s1" style="--w:44.5%"></span></span><span class="bar-val">+26.7%</span></div>
+          <div class="bar-row"><span class="bar-name">static-analysis warnings · L1</span><span class="bar-track g5"><span class="bar s2" style="--w:40.1%"></span></span><span class="bar-val">+24.1%</span></div>
+          <div class="bar-row"><span class="bar-name">L2+</span><span class="bar-track g5"><span class="bar s1" style="--w:23.4%"></span></span><span class="bar-val">+14.0%</span></div>
+          <div class="bar-row"><span class="bar-name">duplicated line density · L1</span><span class="bar-track g5"><span class="bar s2" style="--w:25.7%"></span></span><span class="bar-val">+15.4%</span></div>
+          <div class="bar-row"><span class="bar-name">L2+</span><span class="bar-track g5"><span class="bar s1" style="--w:23.7%"></span></span><span class="bar-val">+14.2%</span></div>
+          <div class="bar-row"><span class="bar-name">comment line density · L1</span><span class="bar-track g5"><span class="bar s2" style="--w:11.8%"></span></span><span class="bar-val">+7.1%</span></div>
+          <div class="bar-row"><span class="bar-name">L2+</span><span class="bar-track g5"><span class="bar s1" style="--w:3.2%"></span></span><span class="bar-val">+1.9%</span></div>
+        </div>
+        <div class="bar-axis"><span class="ticks"><span>0</span><span>12</span><span>24</span><span>36</span><span>48</span><span>60%</span></span></div>
+        <figcaption>Table 5. 앞의 세 지표는 오를수록 나쁘고 comment line density 는 오를수록 낫다. 유의성은 complexity L1 p&lt;0.001 / L2+ p&lt;0.01, warnings L1 p&lt;0.01 / L2+ p&lt;0.05, duplicated L1 p&lt;0.05 / L2+ p&lt;0.01 이고 <b>comment line density 는 양쪽 다 비유의</b>(p=0.12, p=0.52)라 3.7배라는 비는 읽을 것이 없다. duplicated 는 이 층에서 1.1배로 사실상 갈리지 않는다. 층 사이 격차가 실제로 벌어지는 지표는 complexity 와 warnings 두 개다.</figcaption>
+      </div>
+
+      <p>이 %가 무엇의 %인지 먼저 고정해야 한다. 단위는 저장소-월이고 처치는 첫 에이전트 PR 이며 대조군은 Agarwal et al. 의 propensity-score 매칭 대조군이다. 결과변수는 전부 log 변환이라 계수가 %로 읽힌다(§5.2). +52.7% 는 매칭된 대조군 대비 <b>저장소 전체</b>의 cognitive complexity 가 늘어난 폭이지 에이전트가 새로 쓴 코드만 잰 값이 아니다. 그리고 §7.1 이 적듯 네 지표는 결함이나 유지보수성의 직접 측정이 아니라 SonarQube 대리 지표이고, 에이전트 코드가 문체 때문에 complexity 를 부풀릴 수 있다는 유보가 논문 자신에게 붙어 있다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">성숙도 스냅샷 시점</span>
+          <p class="small">성숙도는 패널 종료 시점인 2025-11 스냅샷으로 붙인다. 그래서 대부분의 설정은 에이전트보다 먼저 오지 않았다. L2+ treated 273개 중 도입월 <b>이전에</b> 첫 검증 아티팩트를 커밋한 것은 11.0%, 추정이 식별되는 agent-first 층에서는 <b>3.8%</b>다. 논문은 비율만 적는다. 개수도, 3.8% 의 분모도 적지 않는다. 273개 전체로 읽으면 약 10개고 agent-first 층 L2+ 182개로 읽으면 약 7개인데, 아티팩트 최초 커밋일이 패키지에 없어 어느 쪽인지 재현으로 가릴 수 없다. 이 문서는 뒤쪽으로 읽는다. 어느 쪽이든 10개 안팎이고, 이 문서가 택한 읽기로만 한 자릿수다. 이 선택은 뒤에 쓰는 96.2% 에도 걸린다. 앞쪽으로 읽으면 agent-first 층 L2+ 안에서 설정이 먼저 온 비율이 5.7% 라 94.3% 가 된다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">저자들의 반론과 그 성립 조건</span>
+          <p class="small">저자들은 이 편향이 격차를 <em>축소</em>시킨다고 주장한다. 근거는 인과 방향이다. 품질 문제에 대응해 설정을 커밋한 저장소는 L2+ 로 분류되면서 나쁜 결과를 L2+ 쪽에 얹으므로, 실제 격차는 관측치보다 크다는 것이다. 이 논거는 <b>사후 커밋의 지배적 동기가 문제 대응일 때만</b> 성립한다. 도입과 동시에 도구 기본 템플릿을 커밋한 경우라면 방향이 정해지지 않고 에이전트를 잘 쓰는 팀이 그 과정에서 설정도 같이 넣은 경우라면 편향은 반대로 격차를 <em>확대</em>시킨다. 논문은 사후 커밋의 동기를 재지 않는다.</p>
+        </div>
+      </div>
+
+      <blockquote class="q">of the 273 Level 2+ treated repositories, only 11.0% committed their first validated artifact before the adoption month, and only 3.8% within the agent-first stratum where the estimates are identified.
+      <cite>arXiv:2608.25241v1 §7.2 (main.tex:1041)</cite></blockquote>
+
+      <p class="note">"L2+ 저장소가 품질 저하가 적다"는 관찰이다. "설정을 커밋하면 품질 저하가 준다"는 가설이다. 3.8% 는 둘 사이를 가르는 숫자다. agent-first 층 L2+ 저장소의 96.2%에서 설정은 에이전트와 같이 왔거나 나중에 왔으므로, 설정이 원인으로 작동할 시간 순서 자체가 표본 대부분에서 성립하지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 12 결과 · 검정 없는 격차 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-gap</p>
+      <h2>결과 3. 2.0배라는 비에는 신뢰구간도 검정도 붙어 있지 않다</h2>
+      <p class="dek">논문은 층마다 따로 추정한 계수 두 개와 그 비를 싣는다. 두 계수의 <b>차이</b>가 0 과 다른지는 검정하지 않고 Table 5 에 신뢰구간이 없어 독자가 눈으로 가늠할 수도 없다. 리플리케이션 패키지의 결과 CSV 에는 구간이 들어 있다.</p>
+
+      <div class="figure">
+        <p class="fig-title">L1 과 L2+ 의 95% 신뢰구간은 두 지표 모두에서 겹친다</p>
+        <p class="fig-sub"><code>study2/results/static_effects_agent_subset.csv</code> 의 CI_Lower / CI_Upper. <b>논문에는 이 그림이 없다</b> · 데이터 대조</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 760 250" role="img" aria-label="agent-first 층의 계수 신뢰구간 비교. cognitive complexity 는 L1 이 0.423 에 95% 구간 0.192 에서 0.654, L2+ 가 0.236 에 구간 0.086 에서 0.387 이고 두 구간이 0.192 에서 0.387 구간에서 겹친다. static-analysis warnings 는 L1 이 0.216 에 구간 0.066 에서 0.366, L2+ 가 0.131 에 구간 0.002 에서 0.261 이고 0.066 에서 0.261 구간에서 겹친다. 네 구간 모두 0 을 포함하지 않아 각 층의 효과 자체는 유의하지만, 두 층 사이의 차이는 어느 지표에서도 구간이 분리되지 않는다.">
+          <rect class="band" x="316.8" y="42" width="158.6" height="62" rx="3"/>
+          <rect class="band" x="214.3" y="132" width="158.6" height="62" rx="3"/>
+
+          <line class="zero" x1="160.7" y1="30" x2="160.7" y2="206"/>
+          <text class="tick" x="152" y="222">0</text>
+          <line class="grid-l" x1="242.0" y1="30" x2="242.0" y2="206"/><text class="tick" x="232" y="222">0.1</text>
+          <line class="grid-l" x1="323.3" y1="30" x2="323.3" y2="206"/><text class="tick" x="313" y="222">0.2</text>
+          <line class="grid-l" x1="404.7" y1="30" x2="404.7" y2="206"/><text class="tick" x="395" y="222">0.3</text>
+          <line class="grid-l" x1="486.0" y1="30" x2="486.0" y2="206"/><text class="tick" x="476" y="222">0.4</text>
+          <line class="grid-l" x1="567.3" y1="30" x2="567.3" y2="206"/><text class="tick" x="557" y="222">0.5</text>
+          <line class="grid-l" x1="648.7" y1="30" x2="648.7" y2="206"/><text class="tick" x="639" y="222">0.6</text>
+          <line class="grid-l" x1="730.0" y1="30" x2="730.0" y2="206"/><text class="tick" x="716" y="222">0.7</text>
+
+          <text class="lbl-hi" x="8" y="26">cognitive complexity</text>
+          <line class="ln s2" x1="316.8" y1="60" x2="692.6" y2="60"/>
+          <line class="ln s2" x1="316.8" y1="53" x2="316.8" y2="67"/><line class="ln s2" x1="692.6" y1="53" x2="692.6" y2="67"/>
+          <circle class="dot s2" cx="504.7" cy="60" r="6"/>
+          <text class="lbl" x="8" y="64">L1 β=0.423</text>
+          <line class="ln s1" x1="230.6" y1="90" x2="475.4" y2="90"/>
+          <line class="ln s1" x1="230.6" y1="83" x2="230.6" y2="97"/><line class="ln s1" x1="475.4" y1="83" x2="475.4" y2="97"/>
+          <circle class="dot s1" cx="352.6" cy="90" r="6"/>
+          <text class="lbl" x="8" y="94">L2+ β=0.236</text>
+
+          <text class="lbl-hi" x="8" y="118">static-analysis warnings</text>
+          <line class="ln s2" x1="214.3" y1="150" x2="458.3" y2="150"/>
+          <line class="ln s2" x1="214.3" y1="143" x2="214.3" y2="157"/><line class="ln s2" x1="458.3" y1="143" x2="458.3" y2="157"/>
+          <circle class="dot s2" cx="336.3" cy="150" r="6"/>
+          <text class="lbl" x="8" y="154">L1 β=0.216</text>
+          <line class="ln s1" x1="162.3" y1="180" x2="372.9" y2="180"/>
+          <line class="ln s1" x1="162.3" y1="173" x2="162.3" y2="187"/><line class="ln s1" x1="372.9" y1="173" x2="372.9" y2="187"/>
+          <circle class="dot s1" cx="267.2" cy="180" r="6"/>
+          <text class="lbl" x="8" y="184">L2+ β=0.131</text>
+
+          <line class="axis-l" x1="120" y1="206" x2="740" y2="206"/>
+          <text class="tick" x="752" y="240" text-anchor="end">로그 변환 결과변수의 계수 β</text>
+          <text class="tick" x="8" y="240">음영은 두 구간이 겹치는 범위</text>
+        </svg>
+        </div>
+        <figcaption>구간 네 개가 모두 0 을 넘지 않으므로 <b>각 층의 효과 자체는 유의하다</b>. 겹치는 것은 두 층 사이의 차이다. 겹침만으로 차이가 비유의라고 결론지을 수는 없어서 아래에서 직접 검정한다.</figcaption>
+      </div>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>지표</th><th>β L1 − β L2+</th><th>SE (독립 가정)</th><th>z</th><th>양측 p</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>cognitive complexity</td><td>+0.187</td><td>0.141</td><td>1.33</td><td>0.18</td></tr>
+            <tr><td>static-analysis warnings</td><td>+0.084</td><td>0.101</td><td>0.83</td><td>0.40</td></tr>
+            <tr><td>duplicated line density</td><td>+0.011</td><td>0.087</td><td>0.12</td><td>0.90</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px"><b>논문에는 이 검정이 없다.</b> 패키지의 β 와 SE 로 두 표본이 독립이라고 가정하고 SE<sub>diff</sub>=√(SE<sub>1</sub>²+SE<sub>2</sub>²) 를 써서 계산했다.</p>
+
+      <p>이 계산을 그대로 결론으로 읽으면 안 되는 이유가 하나 있다. 두 층은 Agarwal et al. 의 매칭 이후에 나뉘어 <b>같은 대조군 풀</b>을 공유하므로(§5.2), 두 추정치는 양의 상관을 갖는다. 그러면 Var(차이)=SE<sub>1</sub>²+SE<sub>2</sub>²−2Cov 이고 실제 SE 는 위 표보다 작다. 따라서 위의 p 는 <b>상한</b>이다. 공분산을 쓰려면 두 층을 한 모형에 넣어 interaction 을 추정해야 하고 그 추정은 논문에도 패키지의 결과 CSV 에도 없다.</p>
+      <p>정확한 진술은 이것이다. complexity 의 2.0배는 <b>점추정치의 비</b>이고 그 비가 1.0 과 다르다는 것은 논문이 검정한 적이 없다. 독립 가정 아래 계산하면 z=1.33 으로 통상 기준에 못 미치고 공분산을 반영하면 그보다 강해지되 얼마나 강해지는지는 이 자료로 알 수 없다.</p>
+
+      <p class="note">저자들 자신이 §6.3 에서 "ideally as an interaction with treatment rather than a covariate"라고 권한다. 이 논문의 설계는 층별 개별 추정이라 그 권고를 자기 결과에는 적용하지 않았다. 결과를 무효로 만드는 지적은 아니다. "2.0배"가 통계적으로 확립된 격차가 아니라 두 추정치의 비라는 뜻이다.</p>
+    </div>
+  </section>
+
+  <!-- 13 결과 · pre-trend -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-pretrend</p>
+      <h2>결과 4. warnings 의 L1 격차는 에이전트가 오기 전에 이미 있다</h2>
+      <p class="dek">staggered DiD 는 도입 전 두 집단이 평행하게 움직였다는 가정 위에 선다. 논문은 warnings 에서 그 가정이 흔들린다고 한 문장으로 적는다. 패키지의 event study 값을 보면 흔들리는 정도가 어느 만큼인지 나온다.</p>
+
+      <div class="figure">
+        <p class="fig-title">static-analysis warnings, 첫 에이전트 PR 기준 월별 처치효과</p>
+        <p class="fig-sub">논문 Figure 6 의 6개 패널 중 warnings 패널만 <code>study2/results/dynamic_effects_agent_subset.csv</code> 값으로 다시 그렸다. 원 그림은 나머지 5개 지표도 함께 담고 있다 · 데이터 대조</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 760 300" role="img" aria-label="static-analysis warnings 의 event study. 가로축은 첫 에이전트 PR 기준 상대 월로 마이너스 6 부터 6 까지이고 마이너스 1 이 기준월이라 비어 있다. 세로축은 처치효과 계수다. L1 계열은 도입 전 마이너스 6 에서 0.408, 마이너스 5 에서 0.234, 마이너스 4 에서 0.167, 마이너스 3 에서 0.144, 마이너스 2 에서 0.135 로 내려오는데 마지막 세 개가 유의하게 양이다. 도입 후에는 0.164 에서 시작해 다섯째 달 0.373 까지 올랐다가 여섯째 달 0.062 로 떨어진다. L2+ 계열은 도입 전 마이너스 0.078 에서 0.005 사이로 0 근처에 평평하고 전부 비유의이며, 도입 후 0.085 에서 0.177 로 완만히 오른다. 두 계열의 차이는 도입 전에 이미 벌어져 있다.">
+          <line class="grid-l" x1="70" y1="231.7" x2="740" y2="231.7"/><text class="tick" x="24" y="236">-0.1</text>
+          <line class="zero" x1="70" y1="195" x2="740" y2="195"/><text class="tick" x="40" y="199">0</text>
+          <line class="grid-l" x1="70" y1="158.3" x2="740" y2="158.3"/><text class="tick" x="30" y="162">0.1</text>
+          <line class="grid-l" x1="70" y1="121.7" x2="740" y2="121.7"/><text class="tick" x="30" y="126">0.2</text>
+          <line class="grid-l" x1="70" y1="85" x2="740" y2="85"/><text class="tick" x="30" y="89">0.3</text>
+          <line class="grid-l" x1="70" y1="48.3" x2="740" y2="48.3"/><text class="tick" x="30" y="52">0.4</text>
+          <line class="vref" x1="345" y1="30" x2="345" y2="258"/>
+          <text class="tick" x="300" y="26">기준월 t=-1</text>
+
+          <polyline class="ln s2" points="70,45.4 125,109.2 180,133.8 235,142.2 290,145.5"/>
+          <polyline class="ln s2" points="400,134.9 455,144.8 510,137.8 565,122.4 620,86.5 675,58.2 730,172.3"/>
+          <circle class="dot-o s2" cx="70" cy="45.4" r="4.5"/>
+          <circle class="dot-o s2" cx="125" cy="109.2" r="4.5"/>
+          <circle class="dot s2" cx="180" cy="133.8" r="5"/>
+          <circle class="dot s2" cx="235" cy="142.2" r="5"/>
+          <circle class="dot s2" cx="290" cy="145.5" r="5"/>
+          <circle class="dot s2" cx="400" cy="134.9" r="5"/>
+          <circle class="dot-o s2" cx="455" cy="144.8" r="4.5"/>
+          <circle class="dot-o s2" cx="510" cy="137.8" r="4.5"/>
+          <circle class="dot s2" cx="565" cy="122.4" r="5"/>
+          <circle class="dot s2" cx="620" cy="86.5" r="5"/>
+          <circle class="dot s2" cx="675" cy="58.2" r="5"/>
+          <circle class="dot-o s2" cx="730" cy="172.3" r="4.5"/>
+
+          <polyline class="ln s1" points="70,223.6 125,193.2 180,213.0 235,193.2 290,203.4"/>
+          <polyline class="ln s1" points="400,163.8 455,164.9 510,170.1 565,162.4 620,147.0 675,130.1 730,131.6"/>
+          <circle class="dot-o s1" cx="70" cy="223.6" r="4.5"/>
+          <circle class="dot-o s1" cx="125" cy="193.2" r="4.5"/>
+          <circle class="dot-o s1" cx="180" cy="213.0" r="4.5"/>
+          <circle class="dot-o s1" cx="235" cy="193.2" r="4.5"/>
+          <circle class="dot-o s1" cx="290" cy="203.4" r="4.5"/>
+          <circle class="dot-o s1" cx="400" cy="163.8" r="4.5"/>
+          <circle class="dot-o s1" cx="455" cy="164.9" r="4.5"/>
+          <circle class="dot-o s1" cx="510" cy="170.1" r="4.5"/>
+          <circle class="dot-o s1" cx="565" cy="162.4" r="4.5"/>
+          <circle class="dot-o s1" cx="620" cy="147.0" r="4.5"/>
+          <circle class="dot s1" cx="675" cy="130.1" r="5"/>
+          <circle class="dot-o s1" cx="730" cy="131.6" r="4.5"/>
+
+          <line class="axis-l" x1="70" y1="258" x2="740" y2="258"/>
+          <text class="tick" x="63" y="274">-6</text><text class="tick" x="118" y="274">-5</text><text class="tick" x="173" y="274">-4</text>
+          <text class="tick" x="228" y="274">-3</text><text class="tick" x="283" y="274">-2</text>
+          <text class="tick" x="396" y="274">0</text><text class="tick" x="451" y="274">1</text><text class="tick" x="506" y="274">2</text>
+          <text class="tick" x="561" y="274">3</text><text class="tick" x="616" y="274">4</text><text class="tick" x="671" y="274">5</text><text class="tick" x="726" y="274">6</text>
+          <text class="tick" x="330" y="292">도입 기준 상대 월</text>
+          <text class="lbl" x="70" y="292">채운 점 = 유의 · 빈 점 = 비유의</text>
+          <text class="lbl-hi" x="600" y="292">붉은색 L1 · 파란색 L2+</text>
+        </svg>
+        </div>
+        <figcaption>도입 전 L1 계수 다섯 개 중 셋이 유의하게 양이다 (t=-4 0.167 [0.044, 0.289], t=-3 0.144 [0.029, 0.259], t=-2 0.135 [0.031, 0.239]). L2+ 는 다섯 개 전부 비유의이고 0 근처다. L1 표본은 에이전트가 오기 전부터 대조군 대비 warnings 가 늘고 있었다.</figcaption>
+      </div>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>지표 · 층</th><th>도입 전 평균 (t=-6~-2)</th><th>도입 후 평균 (t=0~6)</th><th>후 − 전</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>warnings · L1</td><td>+0.218</td><td>+0.198</td><td class="lose">-0.020</td></tr>
+            <tr><td>warnings · L2+</td><td>-0.028</td><td>+0.115</td><td class="win">+0.143</td></tr>
+            <tr><td>complexity · L1</td><td>+0.140</td><td>+0.375</td><td>+0.235</td></tr>
+            <tr><td>complexity · L2+</td><td>-0.024</td><td>+0.222</td><td>+0.246</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px"><b>논문에는 이 계산이 없다.</b> 패키지의 월별 계수를 도입 전 5개월과 도입 후 7개월로 나눠 단순 평균한 값이다.</p>
+
+      <p>읽는 법을 좁혀야 한다. 이것은 보정된 추정치가 <b>아니다</b>. 각 층에 상수 offset 을 허용했을 때 무엇이 남는지 보는 감도 확인이고 추세(L1 의 도입 전 계수는 0.408 에서 0.135 로 내려온다)는 반영하지 않는다. 그 조건 아래에서 두 가지가 나온다. warnings 에서는 L1 의 도입 전후가 사실상 같아 격차가 사라지고 complexity 에서는 두 층의 이동폭이 +0.235 와 +0.246 으로 거의 같아진다.</p>
+      <p>어느 읽기가 맞는지는 L1 의 도입 전 계수가 평행추세 위반인지 표본 잡음인지에 달려 있다. 논문의 설계는 잡음 쪽을 택했고 그 위에서 Table 5 가 나온다. 저자들은 warnings 에 대해서만 식별이 더 약하다고 인정하고 complexity 에 대해서는 "small relative to post-adoption effects"라고 쓴다. complexity 의 L1 도입 전 계수 다섯 개 중 둘도 유의하게 양이다(t=-6 0.221, t=-4 0.174).</p>
+
+      <p class="note">이 장이 뒤집는 것은 warnings 의 1.7배 하나다. complexity 의 2.0배는 위 계산으로도 방향이 유지된다. 도입 전후 이동폭이 거의 같다는 것은 <b>L1 이 원래 더 나쁜 저장소였다</b>는 해석과 양립하고 그 해석에서는 설정 파일이 아니라 그 파일을 커밋할 만한 팀인지가 지표를 가른다. 커밋된 markdown 은 그 팀의 흔적이 된다. 이것이 저자들이 두 번째 채널로 든 engineering discipline 이다.</p>
+    </div>
+  </section>
+
+  <!-- 14 결과 · velocity -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-velocity</p>
+      <h2>결과 5. 속도는 양쪽 다 오르고 lines added 만 방향이 반대다</h2>
+      <p class="dek">에이전트는 성숙도와 무관하게 개발을 가속한다. 품질에서 보이던 L1 페널티가 속도 지표에는 없다. 한 지표에서는 부호가 뒤집혀서, 구조화된 저장소가 에이전트 활동을 <b>더 많은 코드</b>로 바꾼다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>지표</th><th>L1 β (SE)</th><th>L1 %Δ</th><th>L2+ β (SE)</th><th>L2+ %Δ</th><th>비 (L1/L2+)</th></tr></thead>
+          <tbody>
+            <tr><td>commits</td><td>0.319 (0.074) ***</td><td>+37.6%</td><td>0.243 (0.067) ***</td><td>+27.5%</td><td>1.4배</td></tr>
+            <tr class="hero"><td>lines added</td><td>0.393 (0.191) *</td><td>+48.1%</td><td>0.523 (0.133) ***</td><td class="lose">+68.7%</td><td class="lose">0.7배</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">Table 5, agent-first 층. *** p&lt;0.001, * p&lt;0.05. 굵은 행은 L2+ 가 더 큰 유일한 결과변수다 · 데이터 대조</p>
+
+      <p>저자들의 문장은 이렇다. "if anything, structured repositories convert agent activity into more code." 커밋 수는 L1 이 더 많이 늘고 추가된 줄 수는 L2+ 가 더 많이 는다. 커밋당 크기가 층에 따라 다르다는 뜻이고 논문은 이 조합을 더 파고들지 않는다.</p>
+      <p>이 결과가 품질 해석에 걸리는 지점이 있다. 논문이 §7.1 에서 인정하듯 성숙도가 높은 저장소는 에이전트 PR 을 더 많이 낼 수 있어서, 층별 대비가 <b>처치 강도</b>와 <b>반응</b>을 부분적으로 섞는다. 논문은 에이전트 PR 볼륨을 통제하지 않는다. L2+ 가 더 많은 코드를 받으면서도 complexity 증가는 절반이라는 관측은 가드레일 해석에 유리하지만 강도를 통제하지 않은 채로는 어느 쪽으로도 결정적이지 않다.</p>
+
+      <p class="note">초록의 "28~38% more commits"는 이 표의 27.5% 와 37.6% 를 가리킨다. 속도 이득은 층을 가리지 않으므로 에이전트 도입의 이득 쪽 논거는 성숙도와 무관하게 성립한다. 이 문서가 다투는 것은 비용 쪽이다.</p>
+    </div>
+  </section>
+
+  <!-- 15 결과 · 4단계 gradient -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-gradient</p>
+      <h2>결과 6. gradient 는 L2 위에서 끊기고 L4 의 duplicated line density 에서 뒤집힌다</h2>
+      <p class="dek">이분법이 경계를 유리하게 고른 것 아니냐는 물음에 논문은 네 레벨 개별 추정으로 답한다. 답의 앞부분은 단조 감소가 맞다. 뒷부분은 그렇지 않고 논문도 L4 를 gradient 의 예외로 따로 적는다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>층 (pooled 표본)</th><th>n</th><th>cognitive complexity</th><th>static-analysis warnings</th><th>duplicated line density</th></tr></thead>
+          <tbody>
+            <tr><td>L1</td><td>236</td><td class="lose">+54.4% ***</td><td class="lose">+23.0% **</td><td class="lose">+16.0% *</td></tr>
+            <tr><td>L2</td><td>210</td><td>+39.8% ***</td><td>+16.7% **</td><td>+1.9% n.s.</td></tr>
+            <tr><td>L3</td><td>23</td><td>-21.8% n.s.</td><td>+11.1% n.s.</td><td>+0.02% n.s.</td></tr>
+            <tr class="hero"><td>L4</td><td>40</td><td>+24.7% n.s.</td><td>+24.0% n.s.</td><td class="lose">+31.4% **</td></tr>
+            <tr><td>L1~L2 결합</td><td>446</td><td>+46.6% ***</td><td>+20.9% ***</td><td>+7.5% (p=0.057)</td></tr>
+            <tr><td>L2+ 결합</td><td>273</td><td>+35.9% ***</td><td>+20.0% ***</td><td>+5.9% n.s.</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">§5.3.4 와 <code>study2/results/static_effects_full_subset.csv</code>. 이 표는 <b>pooled 표본</b>(agent-first + IDE-first)이고 11장의 주 사양(agent-first 만)과 다른 표본이다 · 데이터 대조</p>
+
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag">L4 는 예외다</span>
+          <p class="small">duplicated line density 가 <b>+31.4% (p&lt;0.01)</b> 로 오른다. L4 에서 유일하게 유의한 품질 효과이고 방향이 gradient 와 반대다. 논문은 이것을 dose-response 로 읽는다. 오케스트레이션 레벨 저장소가 에이전트를 가장 많이 쓰고 complexity 는 통계적으로 평평한데 duplicated line density 만 오른다. 이것을 단조 감소 이야기로 뭉개면 안 된다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">L3 는 사실 잡음이다</span>
+          <p class="small">complexity 점추정치가 <b>-21.8%</b> 이고 95% 구간이 [-63.8%, +69.0%] 다(로그 계수로는 β=-0.246 [-1.02, +0.52]). 표본 23개짜리 층에서 나온 값이라 방향을 읽을 것이 없다. 논문의 "monotonic decline"이라는 표현은 유의성의 순서에 대해서는 맞고 점추정치의 순서에 대해서는 맞지 않는다. L1 과 L2 구간에서만 단조다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">경계는 자의적이지 않다</span>
+          <p class="small">L1~L2 결합군은 complexity +46.6%, warnings +20.9% 로 L1 과 L2+ 사이에 놓인다. L1 &gt; L1~L2 &gt; L2+ 순서가 두 지표에서 유지되므로, L1 대 L2+ 라는 이분은 결과를 보고 고른 임계가 아니라 데이터 구조를 따라간 것이다. 저자들의 §7.4 논거이고 표에서 확인된다.</p>
+        </div>
+      </div>
+
+      <p>표본을 pooled 로 넓히면 gradient 가 희석된다. complexity 는 +54.4% 대 +35.9% 로 1.5배까지 좁아지고 warnings 는 +23.0% 대 +20.0% 로 거의 사라진다. IDE-first 저장소가 대부분 L2+ 쪽으로 들어오기 때문이다(113개 중 91개). 그래서 주 사양이 agent-first 층인데, 같은 이유로 <b>네 레벨 gradient 는 주 사양에서 추정할 수 없다</b>. agent-first 안의 L3 는 5개, L4 는 22개다(부록 C).</p>
+
+      <p class="note">이 슬라이드의 표와 11장의 표는 표본이 달라서 나란히 놓고 읽으면 안 된다. 같은 L1 인데 +54.4% 와 +52.7% 로 값이 다른 것이 그 때문이다. "L2+ 로 올리면 좋아진다"는 읽기를 L3·L4 까지 연장할 근거는 이 자료에 없다. 상위 두 층에서 나온 유일한 유의 결과는 duplicated line density 증가다.</p>
+    </div>
+  </section>
+
+  <!-- 16 선행 연구 대조 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">compare-baseline</p>
+      <h2>비교 2. 선행 연구의 평균은 두 층 어느 쪽도 아니다</h2>
+      <p class="dek">논문은 분석 전에 반증 조건을 적어 둔다. 실무 성숙도가 결과를 가른다면 구조화된 저장소는 기존 평균보다 아래, 아닌 저장소는 위에 나와야 한다는 것이다. 결과는 절반만 그렇다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>출처</th><th>표본</th><th>static-analysis warnings</th><th>cognitive complexity</th></tr></thead>
+          <tbody>
+            <tr><td>He et al. (MSR '26)</td><td>Cursor 채택 오픈소스, 이른 시기</td><td>+30%</td><td>+41%</td></tr>
+            <tr><td>Agarwal et al. (MSR '26)</td><td>에이전트 채택자 전체 pooled</td><td>+18%</td><td>+39%</td></tr>
+            <tr><td>이 논문 · L1 (agent-first)</td><td>커밋된 설정 없음, 214개</td><td>+24.1%</td><td class="lose">+52.7%</td></tr>
+            <tr class="hero"><td>이 논문 · L2+ (agent-first)</td><td>구조화됨, 182개</td><td class="win">+14.0%</td><td class="win">+26.7%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">§2.1 과 §5.3.1. He et al. 과 Agarwal et al. 의 값은 <b>이 논문의 재서술</b>이고 원문을 열어 대조하지 않았다 · 논문 대조</p>
+
+      <p>L2+ 는 네 기준선 모두보다 낮다. L1 은 두 기준선의 complexity 를 넘고, He et al. 의 warnings 30% 는 넘지 않되 Agarwal et al. 의 18% 는 넘는다. §5.3.1 이 적는 문장은 He et al. 한 쌍만 놓은 것이라("Level 1 exceeds the complexity baseline but stays below it for warnings") 반증 조건을 절반만 만족한다는 진술도 그 한 쌍에 대한 것이다. 논문은 이 비대칭을 감추지 않는다.</p>
+      <p>비교 자체에 붙는 단서도 저자들이 먼저 단다. He et al. 은 도구 하나(Cursor)를 이른 시기에 봤고 이 논문은 여러 자율 에이전트를 늦은 시기에 본다. 그 사이에 모델과 도구가 바뀌었고 <b>L2+ 저장소가 더 나은 frontier 모델을 썼을 가능성</b>을 설계가 배제하지 못한다.</p>
+
+      <blockquote class="q">Whether the lower Level 2+ effects partly reflect model-capability gains rather than practice is an alternative our design cannot rule out. 저자들이 바로 뒤에 붙인 표현은 "a first-order interpretive limitation of Study 2" 다.
+      <cite>arXiv:2608.25241v1 §5.3.1 (main.tex:943-944)</cite></blockquote>
+
+      <p>이 대조가 실제로 뒤집는 것 하나는 확실하다. Agarwal et al. 의 pooled +39% 는 agent-first 층 안에서 +52.7% 와 +26.7% 로 갈라지고 <b>두 집단 어느 쪽도 39% 를 겪지 않는다</b>. 평균을 자기 예측으로 쓰는 팀은 어느 쪽에 속하든 틀린다. 계기가 유용한 이유는 인과를 밝혀서가 아니라 층화 변수를 하나 준다는 데 있다.</p>
+
+      <p class="note">이 표의 위 두 행은 논문의 서술을 옮긴 것이라 원문의 정의와 표본이 정확히 어떻게 잡혔는지는 확인하지 못했다. 두 선행 연구를 열지 않은 대가가 여기에 있다(09장). 세 연구가 같은 SonarQube 지표군을 쓴다는 것까지는 §5.2 에 적혀 있다.</p>
+    </div>
+  </section>
+
+  <!-- 17 한계 · 논문이 인정한 것 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>한계 1. 저자들이 먼저 적는다. 세 채널을 이 설계로는 가르지 못한다</h2>
+      <p class="dek">§7 은 Wohlin 의 네 분류를 따라 한계를 나열하고 그중 여러 개가 이 문서가 따로 지적할 필요가 없을 만큼 명시적이다. 아래 표의 근거 열은 전부 논문 자신의 문장이다.</p>
+
+      <div class="tablewrap">
+        <table class="prose">
+          <thead><tr><th>무엇이 확립되지 않았나</th><th>논문의 서술</th><th>영향받는 주장</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>모델 성능 교란</td><td>§5.3.1 "an alternative our design cannot rule out", "a first-order interpretive limitation"</td><td>2.0배 전부</td></tr>
+            <tr><td>성숙도 무작위 배정 아님</td><td>§7.2 교란 5개 열거. DiD 와 매칭이 (1)(2)(4) 를 부분적으로 다루고 <b>(3) AI 사용 강도와 (5) 모델 성능은 관측 불가</b></td><td>2.0배 전부</td></tr>
+            <tr><td>타이밍 · 역인과</td><td>§7.2 agent-first 층에서 설정이 먼저 온 것은 3.8%</td><td>인과 방향</td></tr>
+            <tr><td>warnings 식별 약함</td><td>§5.3.3 "the warnings contrast is more weakly identified than complexity"</td><td>1.7배</td></tr>
+            <tr><td>처치 강도 미통제</td><td>§7.1 "we do not condition on agent PR volume"</td><td>L4 중복 +31.4%, 층별 대비 전반</td></tr>
+            <tr><td>결과변수가 대리 지표다</td><td>§7.1 "SonarQube proxies rather than direct measures of defects or maintainability", 그리고 "agent-generated code may differ stylistically in ways that inflate apparent complexity"</td><td>"품질 비용"이라는 말 전체</td></tr>
+            <tr><td>개발 표본의 조직 편중</td><td>§7.1 27개 자원 조직이라 "a few large ones with consistent internal practices could make the observed structure reflect policy rather than emergent behavior"</td><td>Study 1 의 73.8%·633일·반전 0%</td></tr>
+            <tr><td>존재만 재고 내용은 안 잼</td><td>§6.2 "not the quality of their content or enforcement"</td><td>실무 권고 전체</td></tr>
+            <tr><td>구성상 순환성</td><td>§7.1 카테고리가 레벨에 매핑되도록 정의돼 "some cumulative structure is imposed by construction"</td><td>Guttman CR=0.997</td></tr>
+            <tr><td>L1 이 이질적</td><td>§7.1 설정을 커밋하지 않고 AI 를 쓰는 팀도 L1. 격차를 <em>축소</em>시키되 L1 안에 성격이 다른 저장소가 섞인다</td><td>L1 계수의 해석</td></tr>
+            <tr><td>도구 관례 편향</td><td>§3.2.5 Cramér's V=0.483. Copilot 은 L1, Cursor 는 L2~L3 에 몰린다</td><td>RAMP 점수의 의미</td></tr>
+            <tr><td>층별 공변량 균형 미보장</td><td>§5.2 두 층이 원래 매칭의 대조군 풀을 공유한다</td><td>층별 추정치 비교</td></tr>
+            <tr><td>Guttman 검사가 덮는 구간</td><td>§3.2.2 L4 증거가 없어 "covers only the Level 2 to Level 3 transitions"</td><td>4단계 척도라는 주장</td></tr>
+            <tr><td>모집단이 다르다</td><td>§7.3 Study 1 은 사내 저장소, Study 2 는 오픈소스</td><td>두 연구를 잇는 서사</td></tr>
+            <tr><td>관측창</td><td>§7.3 event study 는 도입 후 6개월, 채택 동역학은 약 14개월. 이후 자기 교정 여부는 알 수 없다</td><td>반전 0%, 격차가 벌어진다는 서술</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid g3" style="margin-top:16px">
+        <div class="card">
+          <span class="tag">채널 1 · 가드레일</span>
+          <p class="small">커밋된 파일이 에이전트 출력을 직접 제약한다. "never use magic numbers" 같은 rules 가 모든 AI 기여에 걸린다. 논문이 든 유일한 채널 특정 증거는 pooled 표본의 duplicated line density 다. L2+ +5.9%(비유의) 대 L1 +16.0%. 논문도 "weak but specific"이라 쓰고 <b>주 사양인 agent-first 층에서는 이 대비가 유지되지 않는다</b>.</p>
+        </div>
+        <div class="card">
+          <span class="tag">채널 2 · 엔지니어링 규율의 지표</span>
+          <p class="small">AI 설정을 커밋하는 팀이 리뷰도 더 엄격하고 테스트도 더 한다. 이 채널이 참이면 설정 파일은 원인이 아니라 표지다. 계기 자체에 이 채널의 흔적이 남아 있다. 아티팩트 수를 통제한 뒤에도 커밋 속도가 성숙도와 partial ρ=0.269 로 남는다(§3.2.5).</p>
+        </div>
+        <div class="card">
+          <span class="tag">채널 3 · 조직 학습 가속</span>
+          <p class="small">공유되고 갱신 가능한 참조점이 있으면 팀이 에이전트 산출물을 다루는 법을 더 빨리 익힌다. 이 채널을 지지하거나 반박하는 증거는 논문에 없다.</p>
+        </div>
+      </div>
+
+      <p class="note">저자들의 문장은 여섯 단어다. "Our design cannot distinguish among them." 채널 1 만 참이면 "CLAUDE.md 를 커밋하라"가 처방이 된다. 채널 2 만 참이면 파일을 커밋해도 아무 일도 일어나지 않고 커밋할 만한 팀이 되는 것이 처방이다. 두 처방의 비용이 전혀 다른데 이 설계는 둘을 가르지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 18 한계 · 이 문서가 더하는 것 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique-own</p>
+      <h2>한계 2. 논문이 적지 않은 것 다섯 개</h2>
+      <p class="dek">아래는 이 문서의 주장이다. 근거는 전부 arXiv v1 원문이나 Zenodo 패키지에 있고 논문 본문에는 해당 문장이 없다.</p>
+
+      <ul class="clean">
+        <li><span class="m bad">1</span><span><b>두 층의 차이를 검정한 적이 없다.</b> Table 5 에 신뢰구간이 없고 비만 있다. 패키지의 β 와 SE 로 독립 가정 아래 계산하면 complexity 차이는 z=1.33 (p≈0.18), warnings 는 z=0.83 (p≈0.40) 이다. 대조군 풀 공유로 실제 SE 는 이보다 작으니 이 p 는 상한이다. 저자들이 §6.3 에서 권하는 interaction 추정을 자기 결과에는 적용하지 않았다 (12장)</span></li>
+        <li><span class="m bad">2</span><span><b>warnings 의 L1 격차는 도입 전에 이미 있다.</b> 도입 전 5개월 평균 +0.218, 도입 후 7개월 평균 +0.198. 도입 전 계수 다섯 개 중 셋이 유의하게 양이다. 논문은 "elevated pre-treatment coefficients"라고만 쓰고 크기를 적지 않는다 (13장)</span></li>
+        <li><span class="m bad">3</span><span><b>complexity 도 층별 이동폭은 거의 같다.</b> 상수 offset 을 허용하면 L1 +0.235, L2+ +0.246 이다. 이 감도 확인은 추세를 반영하지 않으므로 보정된 추정치가 아니지만, 2.0배가 <em>도입 후 변화량</em>의 차이인지 <em>원래 수준</em>의 차이인지를 이 자료만으로는 가를 수 없다는 것은 말해 준다 (13장)</span></li>
+        <li><span class="m bad">4</span><span><b>L4 를 정의하는 두 카테고리는 인간 대조로 검증된 적이 없다.</b> 부록 Table A.1 에서 flows 는 지지 3건에 F1 0.00, session-logs 는 인간 지지 0건, skills 는 지지 5건에 F1 0.00 이다. 사내 표본에 L4 가 0개인 것과 이 사실이 겹치면, 4단계 척도에서 실제로 검증된 것은 L1~L3 다</span></li>
+        <li><span class="m bad">5</span><span><b>L4 탐지는 파일 확장자와 도구 관례에 걸려 있다.</b> flows 카테고리는 windsurf 의 <code>workflows</code> 와 kiro 의 <code>hooks</code> 에서만 도구 신호로 들어오고 claude-code 정의에는 L4 패턴이 없다. 도구 폴더 안 markdown 을 쓸어담는 cross-tool 규칙은 <code>**/*.md</code> 라서 markdown 이 아닌 오케스트레이션 정의를 지나친다 (08장). 논문의 43개 패턴이라는 서술과 패키지에 든 정의 수(도구 40 + cross-tool 4)도 어긋난다</span></li>
+      </ul>
+
+      <p style="margin-top:18px">한계를 넘겨도 남는 것이 있고 그것이 이 논문의 실제 기여다. <b>계기는 인과 주장과 독립적으로 쓸 수 있다.</b> RAMP 는 설문도 계측도 대상 팀의 협조도 없이 저장소 하나에 바로 돌아가고 코드 품질 결과와 같은 단위에 붙는다. 저장소 마이닝 연구가 지금까지 star 수나 활동량이나 언어로 표본을 골랐다면, 여기에 "AI 를 어떻게 다루는가"라는 축이 하나 늘어난다. 도구 패턴 정의 JSON 과 카테고리 템플릿 9개가 패키지에 전부 들어 있어서 다른 코퍼스에 그대로 적용할 수 있다.</p>
+      <p>Study 1 의 관찰도 인과와 무관하게 성립한다. 아티팩트의 73.8% 가 한 번 커밋되고 끝난다는 사실은 처치 효과 추정에 기대지 않는다. 이 사실은 도구를 만드는 쪽에 바로 걸린다. 첫 설정 파일의 기본값이 프로젝트 수명 동안 그대로 남는다면, 그 기본값을 누가 정하는지가 나중의 어떤 개선보다 크게 작용한다.</p>
+
+      <p class="note">이 다섯 개 중 1·2·3 은 Study 2 결과 CSV 에서 계산한 것이라 다른 사람이 같은 파일로 재현할 수 있다. 4·5 는 논문 부록과 패키지의 패턴 정의를 읽은 결과이고 파이프라인을 실행해 확인한 것은 아니다.</p>
+    </div>
+  </section>
+
+  <!-- 19 도입 판단 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adoption</p>
+      <h2>도입 판단. 계기는 지금 쓰고 처방은 비용 기준으로 판단한다</h2>
+      <p class="dek">이 논문에서 나올 수 있는 행동은 두 종류다. RAMP 를 측정 도구로 쓰는 것과, "설정을 커밋하라"를 처방으로 받아들이는 것. 앞쪽은 인과가 필요 없고 뒤쪽은 필요하다.</p>
+
+      <div class="tablewrap">
+        <table class="prose">
+          <thead><tr><th>당신의 상황</th><th>이 논문이 주는 것</th><th>근거의 강도</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>저장소 수십~수백 개에 에이전트를 깔기 전이다</td><td>RAMP 를 돌려 설정이 얇은 프로젝트를 먼저 고른다. 패키지의 패턴 JSON 과 템플릿으로 재현 가능하다. 다만 팀마다 도구가 다르면 이 순위가 6행이 금지한 도구별 분포를 그대로 재현한다. Copilot 을 쓰는 팀이 L1 에 몰리므로 도구를 고정한 안에서 비교할 것</td><td class="win">강함. 측정 도구로서의 타당성은 검증됐다</td></tr>
+            <tr><td>rules 파일 하나 커밋하는 비용을 재고 있다</td><td>몇 페이지짜리 markdown 이다. 최악의 경우 효과가 없고 최선의 경우 complexity 비용이 절반이다</td><td class="win">비용이 낮아 인과가 약해도 결정이 선다</td></tr>
+            <tr><td>에이전트 도입 시점을 정하고 있다</td><td>설정을 <b>먼저</b> 커밋하고 도입한다. 추정이 식별되는 agent-first 층 L2+ 의 96.2% 가 그 순서를 지키지 않았으므로 논문이 이 순서의 효과를 재지 못했다</td><td>중간. 논문이 권하지만 검정하지 못한 순서다</td></tr>
+            <tr><td>이미 L2 이고 L3·L4 로 올릴지 고민이다</td><td>추가 이득의 근거가 없다. pooled 표본의 L3 는 23개, L4 는 40개고 상위 층에서 유의한 품질 결과는 duplicated line density <b>증가</b> 하나다</td><td class="lose">약함. 올릴 근거를 이 논문에서 찾지 말 것</td></tr>
+            <tr><td>설정 파일의 품질을 높이는 데 투자할지 정한다</td><td>아무것도 없다. RAMP 는 존재만 재고 내용은 재지 않는다. 저자들이 미해결 문제로 남긴다</td><td class="lose">근거 없음</td></tr>
+            <tr><td>도구 벤더 평가에 성숙도 분포를 쓰려 한다</td><td>쓰면 안 된다. 도구별 분포 차이는 관례 차이를 섞어 잰다 (Cramér's V=0.483)</td><td class="lose">저자들이 명시적으로 경고한다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">이 표는 <b>논문에 없다</b>. 각 행의 근거는 본문의 해당 절이고 강도 판정은 이 문서의 것이다.</p>
+
+      <p>둘째 행이 실무에서 가장 자주 나올 판단이다. 인과가 확립되지 않았다는 것은 "하지 마라"가 아니다. 비용이 markdown 몇 페이지고 알려진 부작용이 없으면, 기대값이 0 이상이라는 것만으로 결정이 선다. 이 문서가 다투는 것은 그 결정이 아니라 <b>결정의 근거를 어떻게 진술하느냐</b>다. "품질 비용이 절반이 된다더라"로 팀을 설득하면, 절반이 되지 않았을 때 그 실패가 무엇을 뜻하는지 아무도 모른다.</p>
+
+      <p class="note">셋째 행에는 이 논문이 뒤집힐 조건이 들어 있다. 설정을 도입 전에 고정한 저장소만 모아 다시 추정했을 때 격차가 남지 않으면, 남은 설명은 채널 2(엔지니어링 규율)다. 그 설계는 지금 자료로 가능하다. agent-first 층에서 설정이 먼저 온 저장소가 3.8% 라 표본이 10개 안팎이라는 것이 문제일 뿐이다(11장이 적듯 논문에는 비율만 있고 분모도 적혀 있지 않다).</p>
+    </div>
+  </section>
+
+  <!-- 20 결론 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론. 계기는 확립됐고 처방은 아직 가설이다</h2>
+      <p class="dek">논문은 두 가지를 한 편에 담았다. 앞쪽은 검증을 통과했고 뒤쪽은 저자들 자신이 세 번 hypothesis-generating 이라고 표시해 두었다. 문서를 쓰면서 지켜야 할 선이 그 사이에 있다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">확립된 것</span>
+          <ul class="clean">
+            <li><span class="m">계기</span><span>커밋된 설정 파일이 4단계 누적 척도로 성립한다. Guttman CR=0.997, 매핑 permutation p=0.0074, leave-one-out 9개 전부 통과, 저장소 단위 인간 검증 34/35. 다만 이 검사가 덮는 구간은 L2~L3 이고 L4 는 사내 441개에서 0개이며, 항목 쌍 수준의 Loevinger H 는 0.299 로 약하다(06장)</span></li>
+            <li><span class="m">채택</span><span>채택은 누적적이고 전진 일방이며 한 번으로 끝난다. 아티팩트의 73.8% 가 커밋 후 무수정, 반전 0%, 첫 아티팩트까지 633일 대 다음 단계 154일. 스케일하는 지표는 기여자 다양성 하나다</span></li>
+            <li><span class="m">분해</span><span>선행 연구의 평균이 두 궤적을 가린다. Agarwal et al. 의 pooled +39% 는 agent-first 층에서 +52.7% 와 +26.7% 로 갈리고 두 집단 어느 쪽도 39% 를 겪지 않는다</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <span class="tag">가설에 머문 것</span>
+          <ul class="clean">
+            <li><span class="m bad">인과</span><span>설정이 품질 비용을 낮춘다는 방향. agent-first 층 L2+ 의 96.2%(11장의 분모 읽기 기준, 다른 읽기로는 94.3%)에서 설정은 에이전트와 같이 왔거나 나중에 왔다</span></li>
+            <li><span class="m bad">채널</span><span>가드레일인지, 엔지니어링 규율의 표지인지, 조직 학습 가속인지. 설계가 셋을 가르지 못한다</span></li>
+            <li><span class="m bad">격차</span><span>2.0배라는 비 자체. 논문에 이 차이의 검정이 없고 독립 가정 아래 계산하면 z=1.33 이다</span></li>
+            <li><span class="m bad">상위 층</span><span>L3 위로 올리면 더 나아진다는 연장. L3 는 pooled 에서 23개, agent-first 안에서 5개고 L4 의 유일한 유의 결과는 duplicated line density +31.4% 증가다</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <p style="margin-top:18px">읽는 사람이 가져갈 문장은 이것이다. <b>"몇 페이지의 markdown 을 커밋한 저장소들이 품질 비용을 절반만 치렀다."</b> 주어가 저장소이고 시제가 과거인 문장이다. "커밋하면 절반이 된다"로 바꾸면 주어가 행위가 되고 시제가 미래가 되는데 그 변환을 이 논문의 설계는 지지하지 않는다. 저자들도 하지 않는다.</p>
+      <p>그 문장을 바꿔 쓸 수 있게 만드는 연구는 어떤 모습인가. 논문이 결론에서 남긴 것이 그것이다. 설정을 도입 전에 고정하는 설계, 아티팩트의 구체성과 관리 상태가 결과를 예측하는지, 저장소 안의 하위 시스템과 팀 단위에서도 연관이 유지되는지. 계기가 있으면 이 질문들을 계속 물을 수 있다는 것이 이 논문의 남는 값이다.</p>
+
+      <p class="note">저자 순서는 token spend 로 정했다고 각주에 적혀 있다. 본문에 실린 사소한 사실이지만 이 논문이 자기 방법에 대해 어느 정도까지 적어 두는 쪽인지를 보여주고, 그 성향이 §7 의 길이와 3.8% 라는 숫자를 자기 손으로 계산해 실은 이유이기도 하다.</p>
+    </div>
+  </section>
+
+  <!-- 21 출처 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처. 논문 하나, 리플리케이션 패키지 하나, 열지 않은 선행 연구 둘</h2>
+      <p class="dek">모든 식별자는 버전이나 DOI 로 고정돼 있다. 이 문서의 근거 인용은 <code>.research/2026-08-28-ramp-committed-ai-config/evidence.jsonl</code> 에 77개 span 으로 들어 있다. 위치는 62개가 <code>main.tex</code> 의 행 번호이고, 나머지 15개는 패키지 안의 파일 경로 11개와 논문 e-print 의 <code>software.bib</code> 행 번호 2개, Zenodo API 응답 1개, DOI 조회 결과 1개다.</p>
+
+      <div class="src">
+        <p><b>1차 · 논문</b></p>
+        <p>Denisov-Blanch, Agarwal, Azaletskiy, He, Schaeffer, Miranda, Vasilescu, Koyejo. <i>A Few Pages of Markdown: Committed AI Configuration and Lower Quality Cost after Coding-Agent Adoption.</i> arXiv:2608.25241<b>v1</b>, 2026-08-26. Stanford University · Carnegie Mellon University · Grid Dynamics.<br>
+        <a href="https://arxiv.org/abs/2608.25241v1">arxiv.org/abs/2608.25241v1</a> · LaTeX 원본 <a href="https://arxiv.org/e-print/2608.25241v1">arxiv.org/e-print/2608.25241v1</a> (tarball sha256 <code>eab3a99a2d482fd3179c32ee763b5399ea0dd0c6c628687570d2742bede720d2</code>)</p>
+        <p class="t">같은 논문의 학회 판본: ASE '26, doi:10.1145/3832783.3837546. received 2026-03-26, accepted 2026-06-18. 학회는 2026-10-12~16 Munich 이고 2026-08-28 기준 이 DOI 는 doi.org 에서 HTTP 404 다. 심사를 통과한 논문이지 preprint 가 아니다.</p>
+
+        <p style="margin-top:10px"><b>1차 · 리플리케이션 패키지</b></p>
+        <p><i>repo-maturity-and-software-outcomes-main-updated.zip</i>, Zenodo, 2026-07-17, CC-BY-4.0. 43,251,402 bytes, md5 <code>150bc76bdcb4601fddc605451a0a6e05</code>, 파일 173개.<br>
+        <a href="https://doi.org/10.5281/zenodo.21406147">doi:10.5281/zenodo.21406147</a> (concept DOI 10.5281/zenodo.21406146)</p>
+        <p class="t">등록자 이름이 아직 "Anonymous Authors"다. 이중맹검 심사용 판본 그대로 올라가 있다. <code>study2/</code> 는 데이터와 결과 CSV 와 DiffinDiff 노트북을 담아 Study 2 를 끝까지 재현한다. <code>study1/</code> 은 코드만 있고 데이터 디렉터리는 설계상 비어 있다. CC-BY-4.0 은 Zenodo 레코드 JSON 의 <code>license</code> 필드 값이고 안에 든 코드에 붙은 표시가 아니다. 패키지 루트의 <code>LICENSE_NOTE.md</code> 는 "No additional licensing terms are asserted here" 라고 적고 공개 배포 전에 upstream 라이선스를 확인해 넣으라고 쓴다. 18·19장이 권하는 패턴 JSON·템플릿 재사용은 그 조건 아래에 있다.</p>
+
+        <p style="margin-top:10px"><b>2차 · 선행 연구 (열지 않음)</b></p>
+        <p>Agarwal, He, Vasilescu. <i>AI IDEs or Autonomous Agents? Measuring the Impact of Coding Agents on Software Development.</i> MSR '26, pp.857-862. <a href="https://doi.org/10.1145/3793302.3793589">doi:10.1145/3793302.3793589</a><br>
+        Study 2 가 재분석하는 패널의 출처다. pooled +39% complexity / +18% warnings 는 이 논문의 재서술로만 확인했다.</p>
+        <p>He, Miller, Agarwal, Kästner, Vasilescu. <i>Speed at the Cost of Quality: How Cursor AI Increases Short-Term Velocity and Long-Term Complexity in Open-Source Projects.</i> MSR '26, pp.181-193. <a href="https://doi.org/10.1145/3793302.3793349">doi:10.1145/3793302.3793349</a><br>
+        16장의 비교 기준선(+30% warnings / +41% complexity)의 출처다. 식별자는 논문의 <code>software.bib</code> 에서 읽었다.</p>
+
+        <p style="margin-top:10px"><b>도구</b></p>
+        <p class="t">SonarQube (품질 지표 4종), Borusyak · Jaravel · Spiess imputation estimator (cemmap CWP11/22, doi:10.47004/wp.cem.2022.1122), nomic-ai/nomic-embed-text-v1.5 (768차원 embedding). 셋 다 논문이 쓴 것이고 이 문서가 실행한 것은 아니다.</p>
+      </div>
+
+      <p class="note">숫자의 대조 등급은 09장의 두 카드에 정리돼 있다. Study 1 계열은 논문 대조까지, Study 2 계열은 데이터 대조까지다. 12장과 13장의 계산은 패키지의 결과 CSV 에서 새로 한 것이고 논문에는 없다.</p>
+    </div>
+  </section>
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 21</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
