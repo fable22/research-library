@@ -17,7 +17,15 @@ export const meta = {
 // args is resolved in the main session, where questions can still be asked. A workflow
 // cannot ask, so it has to arrive fully formed:
 //   { slug, kind, target, question, angle }
-const a = args || {}
+let a = args || {}
+// Every launch observed through this path delivered args JSON-encoded rather than as an
+// object, so parse it back before the guard runs. Failing on "slug is required" while the
+// slug sits inside the string sends the next person looking in the wrong place.
+if (typeof a === 'string') {
+  try { a = JSON.parse(a) } catch (e) {
+    return { error: `args arrived as a string and did not parse as JSON: ${e.message}` }
+  }
+}
 if (!a.slug || !a.target) {
   return { error: 'args.slug and args.target are required. Resolve the target before launching.' }
 }
