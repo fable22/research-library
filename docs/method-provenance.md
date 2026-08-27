@@ -11,11 +11,13 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | Check quotes mechanically against a pinned commit instead of by judgment | `check-claims.mjs` | Cited but Not Verified, [arXiv:2605.06635](https://arxiv.org/html/2605.06635v1) — link checks pass 94–100% while fact checks land at 39–77%, and fall about 42% as search depth grows |
 | `kind:"code"` may not cite a documentation file | `check-claims.mjs` | same DocPrism distinction: what the maintainers wrote and what the code does are different claims |
 | Three lenses in separate fresh contexts that cannot see each other | `research-verify` | multi-judge panels reduce single-model bias only when the error sources stay independent |
+| The last fix round is re-verified like any other, and what it turns up ships as found-and-unfixed | `research-verify`, `research-chain.js` | a loop that ends before its own check leaves the freshest edits as the only unread ones. See the revision note below |
 | Give a compression subagent extraction and quotes, never a conclusion | `research-doc` | CaMeL-style separation between the model that reads untrusted material and the model that decides |
 | Read an analyzed repository's `AGENTS.md` / `CLAUDE.md` directly as data, and keep the checkout outside the working directory | `research-source` | repository instruction files are a documented prompt-injection route, but the step that executes them is harness auto-discovery, not reading. See the revision note below |
 | Frame the question and scale the reading before opening files | `research-source` | orchestrator-worker deep research; explicit effort-scaling rules are what stop both over- and under-investigation |
 | Name the ways a reader could disagree before reading | `research-source` | STORM perspective-guided question asking, which measured most of its coverage gain at the pre-writing stage |
 | `swhid` alongside `repo`+`commit` | `research-source` | SWHID, ISO 18670 — an intrinsic hash stays verifiable after the origin is gone |
+| The document title names the subject and says what it is; the finding goes in `summary` | `research-doc` | the listing gives a title no context, and a verdict placed ahead of its evidence cannot be qualified. See the revision note below |
 | No chapter count; six required eyebrows | `research-doc`, `check-doc.mjs` | the gate, which checks nothing else about structure |
 | The lineage bar only where succession is documented | `research-doc` | the arrow reads as a slot to fill, and filling it chained unrelated projects and ended at work nobody built |
 | Slide density, figure anatomy, aria-label first | `references/visual.md` | see the eval below |
@@ -64,3 +66,66 @@ The revision keeps the separation the rule was for and states it where it binds:
 files as data, and keep the checkout outside the working directory. This revision did not
 go through a `skill-creator` A/B. The change removes a requirement and sharpens an
 instruction, and a pass-rate benchmark does not discriminate between the two forms.
+
+## Why the title asks what the subject is, not what the shape is
+
+The rule entered on 2026-08-07 to fix a title that named nothing —
+`에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다`, a claim with no subject attached. It
+fixed that and, in the same sentence, made `name + claim` the norm. A claim is the right
+title often enough that the norm held for a while: `omo 5.0 native: opencode 플러그인을 떠나
+자기 호스트를 갖는다` is a sentence, and the sentence is what omo 5.0 native is. What the
+norm did not say was that the claim has to be the subject's identity rather than a result
+about it, and the semantica document on 2026-08-14 is where that gap shows: two findings
+from two different chapters joined by a conjunction, with a word the body uses twice
+standing in for what the document is on.
+
+Banning claim-shaped titles was the obvious repair and the wrong one. It would have cost
+the omo title, which is doing exactly what a title is for, and left the author with a shape
+to satisfy instead of a question to answer. The revised rule states the question — does the
+predicate say what this thing is — and leaves the form open.
+
+Nothing in the harness caught it. `check-doc.mjs` `title-subject` compares the title against
+the slug, so any title carrying the subject's name passes, and no verification lens read the
+title at all — `lens-prose.md` went from slide `h2` headings straight to element order. The
+title was written once, by the context least able to see it as a stranger would, and never
+looked at again. The lens now carries it, because whether a title says what a document is on
+is a judgment and the gate can only ask whether a word is present.
+
+The same revision gave the `research-chain` ship phase a PR title, which it had never
+specified. With nothing said, the shipping agent copied the document's title across, so one
+bad title became two.
+
+The revision did not go through a `skill-creator` A/B. It narrows one instruction and moves
+the finding to a field that already existed; a pass-rate benchmark does not separate the
+two forms.
+
+## Why the fix loop re-verifies the round that ends it
+
+The loop in `research-chain.js` was written to stop when a round turns up nothing new, with
+a round cap so it terminates on cost when the document does not converge. The cap was
+checked one step too early: `if (round === MAX_ROUNDS) break` sat above the re-verification
+agent, not below it. Every other round was read by a context that had not made its edits.
+The last one never was, whichever round that happened to be — raising the cap moved the
+blind round rather than removing it.
+
+The deepseek-harness document on 2026-08-14 is where it showed. Round 3 applied eight fixes
+across five slides and the loop ended there. Re-verifying those slides afterwards found
+three must-fix items: a count whose governing condition had been dropped while its wording
+was corrected, a coverage note describing a state the document had since left, and a
+가운뎃점 that renders at the weight of a period inside a monospace version string, fusing
+two tokens into one. The third had been fixed by that same round in a different slide, so
+the round both knew the defect and left another instance of it standing.
+
+Two of the three are the signature of a late round specifically: a fix round works from a
+findings list, and the edits it makes to satisfy that list are the ones no list covers.
+That is an argument for reading the last round more carefully than the first, not less.
+
+The cap itself was kept. What changed is that it now fires after the re-verification, and
+that the items the re-verification confirms travel to the PR under a heading of their own.
+Folding them into "not verified" would have been wrong in the other direction: they were
+verified, by the step that found them, and the thing missing is the fix.
+
+This revision did not go through a `skill-creator` A/B. It adds one rule and moves where a
+branch sits; a pass-rate benchmark does not discriminate between a loop that checks its
+last round and one that does not, because the difference only appears in runs that reach
+the cap.

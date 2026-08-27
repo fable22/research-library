@@ -1,9 +1,12 @@
 ---
 name: research-verify
-description: Adversarially reviews a finished research document draft. Runs four lenses
-  (adoption decider, number checker, prose auditor, completeness critic) in separate fresh
-  contexts, extracts claims from the sentences that shipped, and machine-verifies them
-  against the pinned corpus with check-claims.mjs and check-doc.mjs.
+description: Adversarially reviews a finished research document draft. Four lenses
+  (adoption decider, number checker, prose auditor, completeness critic) read the draft in
+  separate contexts, claims are extracted from the sentences that shipped, and
+  check-claims.mjs machine-verifies them against the pinned corpus. Usually this runs as a
+  phase of the /research-chain workflow; invoke it directly when a draft already exists.
+  Separation is the mechanism, but losing it reduces the review rather than cancelling it,
+  so verification never gets skipped for want of subagents.
 when_to_use: After finishing or editing a draft under research/<slug>/, before committing
   or publishing, and when asked to review, fact-check, or confirm a document is correct.
 ---
@@ -24,6 +27,21 @@ forward from research, and the verifier reads the same text the reader will.
 context that wrote a sentence knows why, and re-reading it reaches the same conclusion by
 the same route. If one lens reports a section is fine, another stops looking there.
 
+## Where this runs
+
+`.claude/workflows/research-chain.js` holds this procedure as phase 2, so the usual
+path is that the workflow has already launched the lenses and you are reading this because
+one of them is you. Follow the lens file you were handed and ignore the orchestration
+below.
+
+Run it here instead when a draft already exists and no workflow is going: a document
+someone edited by hand, a review asked for after the fact, or a build where workflows are
+turned off. The steps below are that path.
+
+The difference is only who holds the sequence. A script cannot decide to skip a phase; a
+context can, and the failure is invisible afterwards because a document that was never
+verified looks exactly like one that passed.
+
 ## Procedure
 
 ### 1. Establish the target
@@ -36,8 +54,8 @@ ls .research/<slug>/sources.jsonl      # corpus identity (may be absent)
 ```
 
 `sources.jsonl` fixes what the numbers are checked against: `repo` + `commit` for code,
-`arxiv_id` + `version` for papers. **No local paths.** A stored path makes the document
-verifiable on one machine only, and nobody else can pull the same commit and check it.
+`arxiv_id` + `version` for papers, and no local paths. `../research-source/SKILL.md` owns
+that rule; here a path that leaked in is a finding.
 
 **If `sources.jsonl` is missing, do not stop — run a reduced review.** Documents written
 before this harness existed do not have one.
@@ -58,7 +76,8 @@ audits it**: check the stated numbers against each other and against `sources.js
 document claiming 23 of 65 files with four unread directories totalling 34 has eight files
 unaccounted for, and that is a finding.
 
-Coverage is disclosure, not a requirement. A long unread list is not a defect.
+Coverage is disclosure, not a requirement (`../research-source/SKILL.md` §8). A long unread
+list is not a defect; a list that does not add up is.
 
 ### 2. Extract claims from the shipped sentences
 
@@ -113,7 +132,12 @@ declared.
 | A | `references/lens-adoption.md` | Can a developer decide adopt/hold from this? What is missing? |
 | B | `references/lens-numbers.md` | Every number against the pinned source: value, direction, unit, range |
 | C | `references/lens-prose.md` | Repo writing rules, repetition, internal references, accessibility |
-| D | `references/lens-completeness.md` | What none of the others could see: a claim no lens covered, a pinned source nothing leans on, a modality never run |
+| D | `references/lens-completeness.md` | What none of the others could see: a claim no lens covered, a pinned source nothing leans on, a modality never run, **a quote that is accurate while the reading built on it is not** |
+
+D owns that last one because nothing else can reach it. `check-claims.mjs` confirms the
+quote sits at its locator, and a quote can be verbatim while the sentence around it says
+something the source never said, usually by widening a narrow fact or joining two facts
+the source keeps apart. Give D the reading to attack, not just the citation.
 
 D runs **after** A, B and C report, because what it examines is the shape of their output.
 Hand it their three reports along with the document.
@@ -186,18 +210,22 @@ introduce their own errors and it is the second round that finds them. Say wheth
 rendered page was opened after the fixes, not before them, and put the remaining
 needs-judgment items to the user in one message.
 
+**A round only the author has read is not finished, and that includes the last one.** A run
+that stops on a budget or a round cap still re-verifies what it just changed, and reports
+what that turned up as found-and-unfixed — a category of its own, not folded into what was
+verified. Stopping one step earlier leaves the freshest edits as the only unread ones.
+
 ## What this procedure structurally cannot catch
 
 Say these alongside the findings so the reader knows the shape of the gap.
 
-**Absence claims.** "This is not configurable", "there is no retry path" have no
-location to cite. `check-claims.mjs` therefore requires a re-runnable search command.
-Without one the claim is outside the verified set, and that fact belongs in the report.
+**Absence claims.** "This is not configurable", "there is no retry path" have no location
+to cite, so the only evidence available is a search that came back empty. Without one the
+claim is outside the verified set, and that fact belongs in the report.
 
 **Behavioral claims.** Reading code cannot establish runtime behavior; asserting it from
-source is checking the README against the README. There is no execution step here, so
-only "the code is written this way" is established. That is why `kind:"behavioral"`
-requires a `limits` field.
+source is checking the README against the README. There is no execution step here, so only
+"the code is written this way" is established.
 
 **Claims that depend on unread code.** A claim about what a function does, written from
 the caller alone, is a guess about the callee. Catching these means following the symbols
@@ -213,7 +241,7 @@ were proven.
 | The excuse | Why it does not hold |
 |---|---|
 | Subagents cannot be spawned here, so this skill cannot run | Step 1 has a reduced path. A judgment reached without opening the skill is not a judgment |
-| I wrote this document, so I already know where it is weak | That is the reason the lenses are separated. The context that wrote a sentence reaches the same conclusion by the same route |
+| I wrote this document, so I already know where it is weak | That is the reason the lenses are separated — the second rule at the top of this file |
 | Both gates passed, so the document is correct | The gates are static. A truncated quote and a flipped direction pass both |
 | This one needs judgment, so it goes to the user | Step 6 assigns the owner. Only what changes the conclusion or the size of the document is theirs |
 | I checked the number against the document's own explanation | That is checking the document against itself. Reopen the source |
