@@ -30,6 +30,11 @@ when that is not obvious. Not four.
 **Worked specimens** — a ✗/✓ pair, a markup skeleton, a real caption. These earn their
 length because they lose meaning when abstracted. `references/prose-ko.md` is the model.
 
+**The reason the ✗ fails, in the same entry.** A named failure carries a rule; a named
+failure with the reason attached carries most of the gain over one without. A bare
+prohibition is the weakest form a rule can take, and the weakness does not show up in
+review, because a reader asked whether a prohibition helps says yes.
+
 **Where the chain goes next, in its own section.** A skill that hands to another names the
 file, says whether to keep or break the context, and says when its own step is done. Folded
 into a paragraph it reads as a suggestion, and the chain stops at whichever skill buried it.
@@ -42,3 +47,7 @@ constraint is and why it binds; leave how open unless the how is the rule.
 
 Prefer the shorter version. If a rule lands in one sentence, one sentence is the whole
 entry.
+
+Rule count is itself a cost. Compliance falls as the number of simultaneous rules rises,
+and it falls for rules the output already satisfies, so an entry that is merely true is not
+free. Adding one means asking which one it displaces.

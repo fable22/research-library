@@ -22,11 +22,15 @@ if (!a.slug || !a.target) {
   return { error: 'args.slug and args.target are required. Resolve the target before launching.' }
 }
 
-const REPO = '/home/samsung/github/research-library'
 const DOC = `research/${a.slug}`
 const EVID = `.research/${a.slug}`
 
-const HOUSE = `Repository: ${REPO}. Read AGENTS.md first and follow it; it governs everything below.`
+// No absolute path here. A workflow script cannot read the filesystem, so one written in
+// would be whichever machine the author happened to be on, and the agents already start in
+// the repository root. The repo bans stored local paths in sources.jsonl for the same
+// reason; a harness that breaks its own rule breaks it on someone else's checkout.
+const HOUSE = `Repository root: your working directory. Read AGENTS.md there first and
+follow it; it governs everything below. All paths below are relative to that root.`
 
 // ─── phase 1 ────────────────────────────────────────────────────────────────
 // One agent on purpose. research-source and research-doc share a context because a writer
@@ -51,7 +55,8 @@ Steps:
    while the file is open. Do not begin a chapter with it still empty.
 4. Staying in the same context, continue with .claude/skills/research-doc/SKILL.md and
    write ${DOC}/index.html.
-5. Pass node scripts/check-doc.mjs ${DOC}, then run node scripts/build-index.mjs.
+5. Pass node scripts/check-doc.mjs ${DOC} and node scripts/check-prose.mjs ${DOC}, then
+   run node scripts/build-index.mjs.
 
 Steps 2 and 3 are what stops a thin read. Reading and writing share one context window,
 and the first thing to give out under that pressure is the ability to find a passage again
@@ -198,7 +203,8 @@ Record the ones you rejected and why.
 
 Extract ${EVID}/claims.jsonl from the sentences that shipped. Then run:
     node scripts/check-doc.mjs ${DOC}
-    node .claude/skills/research-verify/scripts/check-claims.mjs ${DOC} --repo <owner/name>=<path>
+    node scripts/check-prose.mjs ${DOC}
+    node .claude/skills/research-verify/scripts/check-claims.mjs ${DOC}${draft.checkoutPath ? ` --repo <owner/name>=${draft.checkoutPath}` : ' --repo <owner/name>=<path>'}
     node scripts/build-index.mjs
 Render the changed slides and read them after the fixes, not before.
 

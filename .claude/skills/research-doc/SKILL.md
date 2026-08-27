@@ -13,8 +13,8 @@ when_to_use: Writing or substantially rewriting research/<slug>/index.html, turn
 # Writing a research document
 
 The instructions here are English. **The document is Korean.** Technical terms stay in
-English (RAG, embedding, chunk, corpus, baseline, ablation, agent, tool call, F1,
-multi-hop), as do quotes, code, and identifiers.
+English, as do quotes, code, and identifiers. `references/prose-ko.md` holds the list and
+the reason.
 
 Read before writing:
 
@@ -27,6 +27,11 @@ Read before writing:
 The reader is a developer deciding whether to use this thing next week. Not a general
 audience. That single fact settles most questions about what to include: if it does not
 help someone decide or understand the mechanism well enough to predict behavior, cut it.
+
+It settles one more thing. **Do not write this simpler than the subject is.** Simplifying
+for a reader who already has the background costs them the detail they came for, and the
+loss lands on the mechanism first. Plain is the goal; simplified is not. The two differ in
+whether a qualifier survives.
 
 ## Write in the same context that did the research
 
@@ -218,22 +223,21 @@ breaks navigation silently.
 Write the document **chapter by chapter**. A finished deck is large enough that a single
 write risks truncation.
 
-Constraints the gate enforces, so build them in rather than repairing them later:
+`check-doc.mjs --help` lists what the gate blocks, and it changes with the code. Build
+those in rather than repairing them later. Three things it enforces without being able to
+tell you how, and one it does not check at all:
 
-- A complete document: `<!doctype html>`, `<html lang="ko">`, `<meta charset="utf-8">`,
-  a viewport meta, a `<title>`. Without the doctype the browser renders in quirks mode
-  and the layout shifts.
-- **No external resources at all.** Inline CSS and JS, `data:` URIs for images, system
-  font stacks, no CDN. One file has to open offline and survive being moved. Source links
-  in the body (`<a href>`) are for clicking, so they are the exception.
-- Both color themes via `@media (prefers-color-scheme: dark)`. Define colors as CSS
-  custom properties and have components reference only the tokens.
-- `overflow-x: auto` on anything wide (tables, code blocks, charts). The page body must
-  never scroll sideways.
-- `alt` on every image, `role="img"` and a descriptive `aria-label` on every `<svg>`,
-  describing what the figure shows rather than labeling it "그림 1". `visual.md` treats
-  writing that label first as the test of whether the figure is worth drawing.
-- No `.stat` without a `.sub`, no em dashes, one `.rail-item` per slide, 1 MB total.
+- **No external resources means no CDN, at all.** Inline CSS and JS, `data:` URIs for
+  images, system font stacks. One file has to open offline and survive being moved. Source
+  links in the body (`<a href>`) are the exception the gate allows, because they are for
+  clicking rather than loading.
+- **Both themes come out of tokens.** Define colors as CSS custom properties and have
+  components reference only the tokens. Write the dark rule any other way and it becomes a
+  second copy of every component that then drifts from the first.
+- **An `aria-label` says what the figure shows**, not "그림 1". `visual.md` treats writing
+  that label first as the test of whether the figure is worth drawing at all.
+- **`overflow-x: auto` on anything wide** — tables, code blocks, charts. The gate does not
+  check this one, and the page body must never scroll sideways.
 
 Draw rather than embed, except where redrawing would invent what the source shows.
 Anything you can build in inline SVG or CSS costs a few hundred bytes, scales, and follows
@@ -244,11 +248,16 @@ splits the two cases and covers embedding the source's own figures.
 
 ```bash
 node scripts/check-doc.mjs research/<slug>
+node scripts/check-prose.mjs research/<slug>
 node scripts/build-index.mjs
 ```
 
 `--help` lists the rules; they change with the code, so read them there rather than from
-memory. Both are pass/fail, with `--allow=<rule-id>` as the only escape.
+memory. Both gates are pass/fail, with `--allow=<rule-id>` as the only escape.
+
+`check-prose.mjs` only counts the rules in `references/prose-ko.md` that already carry a
+number. It cannot tell whether the document reads well, and passing it is not evidence
+that it does.
 
 Say plainly whether you looked at the rendered page. If no headless browser was
 available, say that instead of implying you checked.

@@ -2,10 +2,15 @@
 
 Everything the reader sees is Korean: the research documents and the review reports.
 The instructions are English, the product is Korean. This file covers how to write that
-Korean well. `AGENTS.md` already bans metaphors, inflated headings, em dashes, and
-process narration; this file is about the failure modes those rules do not name.
+Korean well. `check-doc.mjs` blocks em dashes and process narration, and
+`../../research-verify/references/lens-prose.md` carries the ban on metaphors and inflated
+headings; this file is about the failure modes those rules do not name.
 
-Keep technical terms in English. RAG, embedding, chunk, corpus, baseline, ablation,
+`check-prose.mjs` counts the rules below that carry a number. It runs on the visible text
+and skips quotes, so what it blocks is the document's own prose.
+
+Keep technical terms in English. This list is the one the other files point at, so it is
+the only place it should be written out: RAG, embedding, chunk, corpus, baseline, ablation,
 agent, tool call, F1, multi-hop, commit, locator. Translating them produces coinages
 that are harder to read than the English. Quotes, identifiers, and file paths also stay
 verbatim.
@@ -15,18 +20,13 @@ verbatim.
 The reader wants findings. Anything that narrates the act of producing findings is
 noise, and it is the single most common way this output goes bad.
 
-**Progress narration.** The reader is looking at a finished artifact, not watching you
-work. There is no "now" for them.
-
-- ✗ 이제 결과를 살펴보자. 먼저 성능부터 확인해 보겠다.
-- ✓ 성능은 세 벤치마크 모두에서 앞선다.
-
-**Reaction words.** 흥미롭게도, 놀랍게도, 주목할 점은, 여기서 중요한 것은. These tell
-the reader how to feel instead of giving them something to judge. If a number is
-surprising, the number is surprising; saying so adds nothing.
-
-- ✗ 흥미롭게도 문서 1개짜리 질문에서는 오히려 뒤진다.
-- ✓ 문서 1개짜리 질문에서는 2.3점 뒤진다.
+**Five that are a fixed list of words, so a script holds them.** Progress narration
+(이제 ~보자, 먼저 ~부터), reaction words (흥미롭게도, 놀랍게도, 주목할 점은), monologue
+(여기서 잠깐, 다시 말해), vague attribution (업계에서는, 전문가들은), promotional adjectives
+(강력한, 획기적인, 정교한, 탄탄한). Each one stands where the thing itself should be: the
+reader is told how to feel, or who agrees, or that a property is impressive, instead of being
+given the property and left to size it. `check-prose.mjs` blocks all five, so what is left
+here is the reason, not the list.
 
 **Listing what passed.** In a review report, "나머지 수치는 모두 일치한다" is filler.
 Give a count if the scale matters, then move on. Silence means fine.
@@ -34,8 +34,9 @@ Give a count if the scale matters, then move on. Silence means fine.
 - ✗ 슬라이드 3, 5, 7, 9 의 수치는 원문과 일치한다. 슬라이드 11 은 방향이 반대다.
 - ✓ 수치 42개를 대조해 1건이 어긋난다. 슬라이드 11: 격차가 좁아지는데 넓어진다고 썼다.
 
-**Empty summary sentences.** 요컨대 이 방식은 중요하다. 종합하면 장단점이 있다.
-A summary that would survive deleting the section above it is not a summary.
+**Empty summary sentences.** 요컨대 ~중요하다, 종합하면 장단점이 있다. A summary that
+would survive deleting the section above it is not a summary; put the finding the section
+established in it, with its numbers. `check-prose.mjs` blocks the openers.
 
 **Hedging without a reason.** ~일 수도 있어 보인다, ~라고 볼 여지가 있다. If the
 evidence is weak, name what is missing. That is useful; vagueness is not.
@@ -80,9 +81,6 @@ not need. If it matters it is a sentence; if it does not it is gone.
 - ✗ 탐지는 z 검정으로 한다(참고로 이 검정은 단측이다).
 - ✓ 탐지는 단측 z 검정으로 한다.
 
-**Monologue.** 여기서 잠깐 정리하면, 이 부분이 헷갈릴 수 있는데, 다시 말해. The reader
-is not in the room with you.
-
 **Visible self-correction.** 앞에서 A 라고 했는데 정확히는 B 다. Fix A and write B.
 
 ## Borrowed emphasis
@@ -95,14 +93,6 @@ carried by an adjective is a claim with no evidence behind it.
 
 - ✗ 이 결정은 AI 투명성 논의의 중요한 전환점을 시사한다.
 - ✓ 이 결정으로 Claude 출력 전부에 마크가 붙는다. 전환점인지는 탐지기가 나와야 안다.
-
-**Vague attribution.** 업계에서는, 전문가들은, 일각에서는. Name who said it or drop it.
-
-- ✗ 업계에서는 이를 규제 대응으로 보는 시각이 많다.
-- ✓ Cui 는 이를 regulatory hoop-jumping 이라고 불렀다.
-
-**Promotional adjectives.** 강력한, 획기적인, 풍부한, 정교한, 탄탄한. Replace with the
-property that earned the adjective, or cut.
 
 **The challenges-and-prospects close.** 여러 한계에도 불구하고 가능성은 열려 있다.
 A paragraph that would be true of anything is about nothing. This is not the rule that ⑨
@@ -119,9 +109,14 @@ the information, and the discarded half often smuggles in a claim nobody made.
 - ✗ 성능 문제가 아니라 정확도 문제다.
 - ✓ 정확도 문제다. 처리량은 두 방식이 같다.
 
-Keep it where the reader actually holds the wrong answer and the document is correcting
-it (`압축이 아니라 재작성이다. 원문 토큰을 하나도 재사용하지 않는다`). Once or twice per
-document, not per slide.
+Keep it where the reader actually holds the wrong answer and the document is correcting it
+(`압축이 아니라 재작성이다. 원문 토큰을 하나도 재사용하지 않는다`), where the correction is
+about attribution (`원문이 아니라 그 글을 인용한 쪽의 읽기다`), and inside a quote, which is
+never edited.
+
+There is no count that separates those from the decorative kind, so `check-prose.mjs` only
+reports the rate. What tells them apart is whether deleting the first half loses anything: if
+the sentence still says the same thing without it, the frame was decoration.
 
 ## Write Korean, not translated English
 
@@ -133,10 +128,9 @@ attached. Some patterns to watch:
 - ✗ 이 구조를 채택하는 것은 검색 비용을 줄이는 것을 가능하게 한다.
 - ✓ 이 구조를 쓰면 검색 비용이 줄어든다.
 
-**Passive stacking.** 확인되어진다, ~라고 말해질 수 있다, ~에 의해 수행된다.
-
-- ✗ 세 개의 렌즈에 의해 검토가 수행되었다.
-- ✓ 렌즈 셋으로 검토했다.
+**Passive stacking.** 확인되어진다, ~라고 말해질 수 있다, ~에 의해 수행된다. Korean has
+one passive already; the second is English word order looking for a place to land. Write the
+actor as the subject. `check-prose.mjs` blocks the doubled forms and the `~에 의해` one.
 
 **Pronouns that Korean would drop.** 그것은, 이것은, 그들은 repeated across sentences
 reads as machine output. Korean omits the subject when context carries it.
@@ -151,22 +145,64 @@ Break into two sentences instead.
 - ✗ 커밋에 고정된 원문에서 인용을 대조하는 것을 요구하는 검사를 통과하지 못한 주장
 - ✓ 인용을 고정 커밋과 대조하는 검사가 있다. 이걸 통과하지 못한 주장은
 
-**`~들` on every plural.** Korean marks plurality by context. 파일들을, 결과들이,
-주장들은 mostly should be 파일을, 결과가, 주장은.
+**`~들` where the plural is already carried.** `들` is not noise: it can mark that the
+reference is definite or that the members are various, so deleting it on sight changes what
+the sentence says. Drop it where a number or the context already did the work.
 
-**`~에 대한`, `~에 있어서`, `~를 통해` as connective filler.**
+- ✗ 파일들 12개를 읽었고, 결과들이 모두 일치했다.
+- ✓ 파일 12개를 읽었고 결과가 모두 일치했다.
+- ✓ 남은 스킬들은 서로 다른 harness 를 겨냥한다.  (여럿이 제각각이라는 뜻이 살아 있다)
+
+**`~에 대한`, `~에 있어서` as connective filler.** Stacked, they push the verb out of a
+sentence that could have used one.
 
 - ✗ 검증에 있어서 가장 중요한 것은 근거에 대한 확인을 통해 이루어진다.
 - ✓ 검증에서 제일 중요한 건 근거를 직접 확인하는 것이다.
+
+`~를 통해` is not on this list. Korean written without translation uses it about twice as
+often as translated Korean does, so cutting it on sight moves the prose away from Korean
+rather than toward it. Cut it in the example above because the sentence has a verb standing
+right there, not because the phrase is foreign.
 
 **Connectives on every paragraph.** 또한, 그러나, 따라서 opening one paragraph after
 another. Korean prose links by content more than by connective. Use them when the
 logical turn is real.
 
+**A comma after a connective ending.** `~하고,` `~지만,` `~는데,` `~어서,`. This is the
+strongest measured difference between Korean a person wrote and Korean a model wrote, and
+it is the one this repo's own documents break worst. The connective already joined the two
+clauses; the comma is a second joint on top of it.
+
+- ✗ 캐시는 커밋 단위로 잡히고, 같은 버전은 다시 받아도 sha256 이 같다.
+- ✓ 캐시는 커밋 단위로 잡히고 같은 버전은 다시 받아도 sha256 이 같다.
+
+The failure on the other side is a document with no commas at all. Korean written by a
+person carries about one per ninety characters; the repair is to move the comma, not to
+stop using it.
+
+- ✓ 8 토큰을 넘는 질의는 embed 경로로 가고 캐시를 지나지 않는다.
+- ✓ 경계는 토큰 8개다. 그 아래는 keyword, 위는 embed 경로로 간다.
+
+The first joins two clauses with a connective and needs nothing after it. The second's comma
+sits between two parallel items, which is not a connective ending at all — that is the
+position where a Korean comma is doing work.
+`check-prose.mjs --counts` prints both rates.
+
 ## Do not lose the content while trimming
 
 Cutting slop and cutting substance look similar from the outside. They are not the same
 thing, and over-compression is the failure mode on the other side.
+
+**It is not random about what it takes.** Simplification deletes the mechanism and keeps
+the conclusion, in that order, and it does it to human editors as well as to models. So a
+compressed document keeps reading like a finished argument while the part a reader would
+have used to check it is gone. The conclusion surviving is not evidence the chapter did.
+
+**Connective tissue is not padding for this reader.** The idea that an expert does better
+with the gaps left open holds for readers who are strong on the subject and weak at reading.
+A reader who is strong at both does better when the text joins its own steps. So the
+sentence that says how the previous claim reaches this one earns its place; what does not is
+the connective that announces a turn the content is not making.
 
 Keep these even when they make a sentence longer:
 

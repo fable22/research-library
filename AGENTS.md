@@ -7,7 +7,7 @@ it. Research procedure and
 writing rules live in the skills.
 
 **Documents are written in Korean.** These instructions are English; the product is not.
-Technical terms stay English (RAG, embedding, corpus, ablation, tool call, F1, multi-hop).
+Technical terms stay English; `research-doc/references/prose-ko.md` holds the list.
 
 ## Where things go
 
@@ -57,6 +57,7 @@ Skipping verify is not one of the options.
 node scripts/new-doc.mjs <slug> <paper|oss>      # scaffold both trees
 node scripts/new-doc.mjs rename <old> <new>      # move both trees together
 node scripts/check-doc.mjs research/<slug>       # gate on the publication
+node scripts/check-prose.mjs research/<slug>     # gate on the Korean prose
 node scripts/build-index.mjs                     # regenerate the listing
 
 node .claude/skills/research-verify/scripts/check-claims.mjs research/<slug>
@@ -66,7 +67,7 @@ Never move a document directory by hand. The slug is usually settled only after 
 research is done, and `rename` is what keeps the two trees aligned, rewrites `og:url`, and
 follows the links other documents point at it with.
 
-The three in `scripts/` operate on the publication, so a person runs them whether or not any
+Those in `scripts/` operate on the publication, so a person runs them whether or not any
 skill is loaded. `check-claims.mjs` only touches `.research/` working artifacts, so it lives
 with the skill that uses it.
 
