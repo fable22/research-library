@@ -12,6 +12,12 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 
 | 날짜 | 문서 | 분류 |
 |---|---|---|
+| 2026-08-20 | [Cerebras Knowledge: 수집과 질의를 임베딩 테이블 한 장으로 갈라놓은 사내 지식베이스](https://fable22.github.io/research-library/research/2026-08-20-cerebras-kb-architecture/) | 주제 리서치 |
+| 2026-08-19 | [Claude Code 세션 비용 모델: 토큰 하나의 가격과 세션이 보내는 토큰의 개수](https://fable22.github.io/research-library/research/2026-08-19-claude-code-session-cost-model/) | 메모 |
+| 2026-08-18 | [J-Space Cognition Suite V3.6: 프롬프트 계층에서 상태를 다시 주입하는 추론시 통제 프로토콜](https://fable22.github.io/research-library/research/2026-08-18-j-space-cognition-suite/) | oss |
+| 2026-08-14 | [deepseek-harness: 에이전트 루프도 모델 어댑터도 설정 한 행인 하네스](https://fable22.github.io/research-library/research/2026-08-14-deepseek-harness-plugin-architecture/) | oss |
+| 2026-08-14 | [semantica: vector 검색 옆에 그래프 갈래를 하나 더 두는 컨텍스트 인프라](https://fable22.github.io/research-library/research/2026-08-14-semantica-graph-native-context/) | oss |
+| 2026-08-13 | [A2E Agent Auditing Engine: 정답률은 0.11 폭에 몰리고 토큰은 최소 3.5배 벌어진다](https://fable22.github.io/research-library/research/2026-08-13-a2e-agent-auditing-engine/) | 논문 분석 |
 | 2026-08-12 | [omo 5.0 native: opencode 플러그인을 떠나 자기 호스트를 갖는다](https://fable22.github.io/research-library/research/2026-08-12-omo-native-vs-opencode-plugin/) | 주제 리서치 |
 | 2026-08-12 | [Cerebras Knowledge: 사내 지식을 RAG로 중앙집중화할 때 남는 문제](https://fable22.github.io/research-library/research/2026-08-12-cerebras-knowledge-base/) | 주제 리서치 |
 | 2026-08-12 | [Claude 텍스트 워터마크: 마크는 Claude 를 거쳤다는 신호까지만 증명한다](https://fable22.github.io/research-library/research/2026-08-12-claude-text-watermark/) | 주제 리서치 |
@@ -58,13 +64,14 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 └── .research/                      # 근거
     └── 2026-08-05-llm-wiki-retrieval-as-reasoning/
         ├── sources.jsonl           # 무엇을 읽었는가 (repo+commit, arxiv_id+version)
+        ├── evidence.jsonl          # 소스를 연 채로 적은 인용과 그 위치
         ├── claims.jsonl            # 어떤 주장을 어디에 근거했는가
         └── notes/                  # 작업 중 산출물 (git 에 올라가지 않음)
 ```
 
 `research/` 와 `.research/` 는 **같은 디렉터리 이름**을 씁니다. 그래야 `check-claims.mjs research/<slug>` 한 줄로 근거를 찾을 수 있고, 매핑 파일이나 작업 경로가 발행물에 새어 들어가지 않습니다.
 
-`sources.jsonl` 과 `claims.jsonl` 은 커밋합니다. 조사는 머신 여러 대에서 이뤄지는데, 발행물만 머지되고 근거가 따라오지 않으면 받는 쪽에서 그 문서의 수치를 하나도 다시 확인할 수 없습니다. 두 파일 모두 문서당 수 KB입니다. `notes/` 는 다듬지 않은 중간 산출물이라 올리지 않습니다.
+`sources.jsonl`, `evidence.jsonl`, `claims.jsonl` 은 커밋합니다. 조사는 머신 여러 대에서 이뤄지는데, 발행물만 머지되고 근거가 따라오지 않으면 받는 쪽에서 그 문서의 수치를 하나도 다시 확인할 수 없습니다. 세 파일 모두 문서당 수 KB입니다. `notes/` 는 다듬지 않은 중간 산출물이라 올리지 않습니다.
 
 스크립트가 두 곳에 나뉜 기준은 **누가 돌리는가**입니다. `scripts/` 는 발행물을 검사하고 목록을 만드는 저장소 게이트라서 skill 이 없어도 사람이 그대로 돌립니다. skill 안의 스크립트는 `.research/` 의 작업 산출물만 다루므로 그 skill 의 절차 밖에서는 쓸 일이 없습니다.
 

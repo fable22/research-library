@@ -19,6 +19,56 @@
     <p class="year">2026</p>
     <ul class="list">
       <li class="item">
+        <a class="title-link" href="research/2026-08-20-cerebras-kb-architecture/">
+          <p class="meta"><span class="cat">주제 리서치</span><span>2026-08-20</span></p>
+          <h2>Cerebras Knowledge: 수집과 질의를 임베딩 테이블 한 장으로 갈라놓은 사내 지식베이스</h2>
+          <p class="summary">그 테이블은 벡터 저장소만이 아니다. 전문 인덱스와 수집 대기열과 진행 상태 원장을 겸한다. 세 계층 중 인가만 이름으로 남고 설명이 없다</p>
+        </a>
+      </li>
+      <li class="item">
+        <a class="title-link" href="research/2026-08-19-claude-code-session-cost-model/">
+          <p class="meta"><span class="cat">메모</span><span>2026-08-19</span><span>deck</span></p>
+          <h2>Claude Code 세션 비용 모델: 토큰 하나의 가격과 세션이 보내는 토큰의 개수</h2>
+          <p class="summary">Anthropic 블로그가 설명하는 세션 비용 구조를 가격 축과 개수 축으로 다시 세웠다. 원문이 숫자 근거를 대지 않는 자리를 갈라 두고, 그중 명령 출력 임계값만은 v2.1.233에서 직접 측정했다. 30,000자를 넘으면 앞 2KB만 남고 초과분은 어떤 요청에도 들어가지 않으며, 컨텍스트 폭발은 큰 출력이 아니라 임계값 아래에 조용히 쌓이는 출력에서 온다.</p>
+        </a>
+        <p class="tags"><span>claude code</span><span>context engineering</span><span>prompt caching</span><span>token cost</span><span>agent</span><span>tooling</span></p>
+        <p class="src">원문 <a href="https://claude.com/blog/maximizing-the-value-of-your-claude-code-sessions">claude.com/blog/maximizing-the-value-of-your-claude-code-sessions</a></p>
+      </li>
+      <li class="item">
+        <a class="title-link" href="research/2026-08-18-j-space-cognition-suite/">
+          <p class="meta"><span class="cat">oss</span><span>2026-08-18</span><span>deck</span></p>
+          <h2>J-Space Cognition Suite V3.6: 프롬프트 계층에서 상태를 다시 주입하는 추론시 통제 프로토콜</h2>
+          <p class="summary">22개 파일 5,060줄 중 18개를 전부 읽었다. 메커니즘은 다섯 줄 장부를 seam마다 컨텍스트에 다시 넣는 것이고, 저장소의 검증기는 자기 문서의 구조만 검사한다. 벤치마크 근거는 README 하나짜리 별도 저장소에 산문으로만 있고, 단일 실행이라는 사실은 저자가 직접 적어 두었다.</p>
+        </a>
+        <p class="tags"><span>agent</span><span>prompt engineering</span><span>context engineering</span><span>inference-time control</span><span>global workspace</span><span>benchmark</span></p>
+        <p class="src">원문 <a href="https://github.com/Tiger3807861189/J-Space-Cognition-Suite-V3.6">github.com/Tiger3807861189/J-Space-Cognition-Suite-V3.6</a></p>
+      </li>
+      <li class="item">
+        <a class="title-link" href="research/2026-08-14-deepseek-harness-plugin-architecture/">
+          <p class="meta"><span class="cat">oss</span><span>2026-08-14</span><span>deck</span></p>
+          <h2>deepseek-harness: 에이전트 루프도 모델 어댑터도 설정 한 행인 하네스</h2>
+          <p class="summary">dsh 의 부팅 루트는 빈 배열이고, base 번들이 그 위에 78개 행을 insert 한다. 에이전트 루프도 모델 어댑터도 그중 한 행이다. 커널은 자체 구현이 아니라 소스째 들여와 고쳐 쓰는 Cordis 4.0.0-rc.7 사본이고, 설정으로 갈아끼울 수 없는 코드는 6,143줄이다. 공개 18시간 시점 star 71,700개는 시간당 3,526개씩 붙는 중이었다.</p>
+        </a>
+        <p class="tags"><span>agent harness</span><span>plugin architecture</span><span>Cordis</span><span>monorepo</span><span>adoption</span><span>DeepSeek</span></p>
+        <p class="src">원문 <a href="https://github.com/deepseek-ai/deepseek-harness">deepseek-ai/deepseek-harness @ 47f9438</a></p>
+      </li>
+      <li class="item">
+        <a class="title-link" href="research/2026-08-14-semantica-graph-native-context/">
+          <p class="meta"><span class="cat">oss</span><span>2026-08-14</span><span>deck</span></p>
+          <h2>semantica: vector 검색 옆에 그래프 갈래를 하나 더 두는 컨텍스트 인프라</h2>
+          <p class="summary">graph-native 를 내세우는 semantica 의 검색 경로는 vector lane 을 그대로 두고 graph lane 을 병렬로 붙인 뒤 embedding cosine 으로 재정렬한다. README 의 수치는 CHANGELOG 한 줄로 거슬러 올라가고, evals 모듈은 빈 stub 이며, CI 는 tests/ 의 4,704개 테스트를 한 번도 돌리지 않는다.</p>
+        </a>
+        <p class="tags"><span>RAG</span><span>knowledge graph</span><span>GraphRAG</span><span>agent context</span><span>provenance</span><span>evaluation</span></p>
+        <p class="src">원문 <a href="https://github.com/semantica-agi/semantica">semantica-agi/semantica @ 611874e</a></p>
+      </li>
+      <li class="item">
+        <a class="title-link" href="research/2026-08-13-a2e-agent-auditing-engine/">
+          <p class="meta"><span class="cat">논문 분석</span><span>2026-08-13</span></p>
+          <h2>A2E Agent Auditing Engine: 정답률은 0.11 폭에 몰리고 토큰은 최소 3.5배 벌어진다</h2>
+          <p class="summary">9개 harness × 23개 벤치마크 1,035회 실행. harness 평균 정답률은 0.57에서 0.68 사이에 몰리는데 토큰은 최소 3.5배 벌어진다. 그리고 표의 Claude Agent SDK 행은 Claude Agent SDK 가 아니다.</p>
+        </a>
+      </li>
+      <li class="item">
         <a class="title-link" href="research/2026-08-12-omo-native-vs-opencode-plugin/">
           <p class="meta"><span class="cat">주제 리서치</span><span>2026-08-12</span></p>
           <h2>omo 5.0 native: opencode 플러그인을 떠나 자기 호스트를 갖는다</h2>

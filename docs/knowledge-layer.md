@@ -125,8 +125,8 @@ They need `arXiv:2605.25480v2` pinned first, which the file's header says.
 
 ## Decided
 
-**Evidence commits.** `sources.jsonl` and `claims.jsonl` travel with the publication;
-`notes/` does not. 93 KB across six documents. Without it a merged document cannot be
+**Evidence commits.** `sources.jsonl`, `evidence.jsonl`, and `claims.jsonl` travel with
+the publication; `notes/` does not. 93 KB across six documents. Without it a merged document cannot be
 re-checked by anyone downstream and CI cannot see it at all.
 
 **A paper's identity is `text_sha256`, not a path.** Same reason local paths were already

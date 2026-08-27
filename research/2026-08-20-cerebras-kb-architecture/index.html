@@ -1,0 +1,1131 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cerebras Knowledge: 수집과 질의를 임베딩 테이블 한 장으로 갈라놓은 사내 지식베이스</title>
+<meta name="description" content="그 테이블은 벡터 저장소만이 아니다. 전문 인덱스와 수집 대기열과 진행 상태 원장을 겸한다. 세 계층 중 인가만 이름으로 남고 설명이 없다">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Cerebras Knowledge: 수집과 질의를 임베딩 테이블 한 장으로 갈라놓은 사내 지식베이스">
+<meta property="og:description" content="그 테이블은 벡터 저장소만이 아니다. 전문 인덱스와 수집 대기열과 진행 상태 원장을 겸한다. 세 계층 중 인가만 이름으로 남고 설명이 없다">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-20-cerebras-kb-architecture/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>큰 그림 · 세 계층</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>계층 하나 · 행 계약</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>계층 하나 · Slack 정규화</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>계층 하나 · 쓰기 두 단계</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>계층 하나 · 곧 대기열</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>계층 하나 · 버스팅 문턱</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>계층 하나 · 코드 증분</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>계층 둘 · 질의 경로</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>계층 둘 · RRF 와 융합</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>계층 셋 · 인가와 감사</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>축 · Postgres 네 역할</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>축 · 3072 차원과 IDF</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>축 · 규모 산술</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>설계도 · 테이블과 쓰기</span></button>
+    <button class="rail-item" data-go="17"><span class="n">18</span><span>설계도 · 읽기</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="18"><span class="n">19</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="19"><span class="n">20</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="20"><span class="n">21</span><span>결론</span></button>
+    <button class="rail-item" data-go="21"><span class="n">22</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>Cerebras Knowledge: 수집과 질의를 임베딩 테이블 한 장으로 갈라놓은 사내 지식베이스</h1>
+      <p class="dek">그 테이블은 벡터 저장소만이 아니다. 전문 인덱스와 수집 대기열과 진행 상태 원장을 겸한다. 세 계층 중 인가만 이름으로 남고 설명이 없다</p>
+      <div class="grid g3">
+        <div class="card"><span class="tag">읽는 길 1</span><p class="small">04부터 06까지가 구조다. 세 계층이 무엇이고 그 셋이 어디서 만나는지 본다.</p></div>
+        <div class="card"><span class="tag">읽는 길 2</span><p class="small">07부터 12까지가 수집이다. 쓰기가 왜 두 단계로 쪼개져 있는지가 이 문서의 중심이다.</p></div>
+        <div class="card"><span class="tag">읽는 길 3</span><p class="small">18부터 20까지가 Postgres 다. 복제하려는 사람이 제일 먼저 막히는 지점이 여기 있다.</p></div>
+      </div>
+      <p class="note">Cerebras 가 2026년 7월에 공개한 사내 지식베이스를 대상으로 한다. 같은 대상을 도입 판단 쪽에서 다룬 문서가 <a href="../2026-08-12-cerebras-knowledge-base/">2026-08-12 Cerebras Knowledge</a> 에 있다.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>임베딩 테이블 한 장이 저장소와 인덱스와 대기열과 원장을 겸한다</h2>
+      <p class="dek">소스가 무엇이든 같은 모양의 행 하나로 바뀌어 Postgres 테이블 한 장에 들어간다. 수집 계층은 그 테이블에 쓰고, 질의 계층은 거기서 읽고, 서로를 알지 못한다. 그 테이블은 벡터만 담지 않는다. 전문 인덱스가 같은 행에 걸려 있고, 수집이 어디까지 진행됐는지도 같은 행에 적힌다.</p>
+      <div class="stats">
+        <div class="stat hero"><span class="lab">하루 질의</span><span class="val">15,000<span class="u">건+</span></span><span class="sub">원문 표기는 more than. 사람과 자동화와 agent 를 합친 수치다</span></div>
+        <div class="stat"><span class="lab">embedding 차원</span><span class="val">3,072</span><span class="sub">원문 fig-001 에 pgvector 와 HNSW 로 함께 표기돼 있다</span></div>
+        <div class="stat"><span class="lab">병렬 검색기</span><span class="val">6</span><span class="sub">source 와 modality 로 갈라져 있다. 07장 참조</span></div>
+        <div class="stat"><span class="lab">쓰기 단계</span><span class="val">2</span><span class="sub">이벤트 처리와 embedding 이 분리돼 있다. 08장</span></div>
+      </div>
+      <p>메시지 broker 가 없다. Kafka 도 SQS 도 Redis 도 쓰지 않고, 테이블의 컬럼 두 개가 대기열 역할을 한다. 수집 상태와 vector 가 같은 데이터베이스에 있으므로 둘을 한 transaction 으로 묶을 수 있다.</p>
+      <p class="note">품질 수치는 다루지 않는다. accuracy 도 recall 도 원문에 없다.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>정보를 한 플랫폼으로 모으는 방식이 매번 실패한다</h2>
+      <p class="dek">사내 정보는 편한 곳에서 만들어진다. 문서의 제안 편집, Slack 스레드, GitHub 의 코드 참조, Jira 의 상태값이 각각 다른 자리에 쌓인다. 분기마다 하나로 모으자는 제안이 나오고 매번 실패한다. 각 플랫폼이 자기 영역에 맞게 다듬어져 있어서 옮기면 쓰기 나빠지기 때문이다.</p>
+      <div class="grid g2">
+        <div class="card"><span class="tag">옮기는 쪽</span><p class="small">모든 것을 한 SaaS 로 이전한다. 단일 진실 원천이 생기지만 사람의 작업 방식을 바꿔야 하고, pull request 논의를 문서 도구에서 하게 만드는 결과가 된다.</p></div>
+        <div class="card"><span class="tag">Cerebras 쪽</span><p class="small">데이터를 원래 자리에 둔다. 대신 각 플랫폼에서 직접 뽑아 와 같은 모양의 행으로 바꾼다. 사람의 습관은 그대로 두고 수집만 바꾼다.</p></div>
+      </div>
+      <p>두 번째를 고르면 소스 개수가 그대로 남는다. 그 개수를 위층이 모르게 만드는 것이 이 설계의 과제가 된다.</p>
+      <p class="note">왜 지식베이스가 필요한지는 다루지 않는다. 신규 입사자가 같은 질문을 반복한다는 원문의 동기를 그대로 받는다.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">layers</p>
+      <h2>세 계층이 만나는 접점이 테이블 하나뿐이다</h2>
+      <p class="dek">원문은 이 시스템이 세 가지를 제공한다고 정리한다. 데이터를 모아 저장하는 계층, 그것을 질의하는 계층, 인증과 인가를 강제하고 감사와 분석을 남기는 계층이다. 세 계층은 서로를 직접 알지 못하고 테이블의 모양만 안다.</p>
+      <figure class="figure">
+        <p class="fig-title">위에서 아래로 흐르고, 가운데에서 한 번 좁아진다</p>
+        <p class="fig-sub">원문의 서술과 fig-002 를 바탕으로 이 문서가 세 계층 관점으로 다시 그렸다</p>
+        <div class="plate">
+<svg viewBox="0 0 860 520" role="img" aria-label="세 계층 구조도. 맨 위 수집 계층에 Slack, 코드 저장소, 위키와 문서, 넷리스트, Jira 와 PR, 팀별 DB 여섯 상자가 놓이고 각각 커넥터를 거쳐 아래로 모인다. 가운데에 PostgreSQL 임베딩 테이블 하나가 굵은 테두리로 놓이고 그 안에 본문, 벡터, 메타데이터, 출처와 시각 네 항목이 적혀 있으며 아래에 HNSW 벡터 인덱스와 GIN 전문 인덱스와 워터마크 수집 상태 세 칸이 붙어 있다. 그 아래 질의 계층에 검색기 여섯 병렬, RRF 합치기, LLM 재정렬, 문맥 되살리기, 답 만들기가 왼쪽에서 오른쪽으로 이어진다. 전체를 점선 테두리가 감싸고 있으며 인증과 인가와 감사 계층이라고 표시돼 있다.">
+  <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+  <rect x="10" y="10" width="840" height="500" fill="none" stroke="var(--rule)" stroke-width="1.4" stroke-dasharray="6 5"/>
+  <text x="26" y="32" font-family="var(--mono)" font-size="11" fill="var(--muted)">계층 셋 · 인증 · 인가 · 감사</text>
+  <text x="34" y="66" font-family="var(--mono)" font-size="11" fill="var(--link)">계층 하나 · 모아서 쌓는다</text>
+  <g font-family="var(--mono)" font-size="10.5" fill="var(--ink)">
+    <rect x="34"  y="80" width="118" height="34" fill="var(--card)" stroke="var(--rule)"/><text x="93"  y="101" text-anchor="middle">Slack</text>
+    <rect x="166" y="80" width="118" height="34" fill="var(--card)" stroke="var(--rule)"/><text x="225" y="101" text-anchor="middle">코드 저장소</text>
+    <rect x="298" y="80" width="118" height="34" fill="var(--card)" stroke="var(--rule)"/><text x="357" y="101" text-anchor="middle">위키 · 문서</text>
+    <rect x="430" y="80" width="118" height="34" fill="var(--card)" stroke="var(--rule)"/><text x="489" y="101" text-anchor="middle">넷리스트</text>
+    <rect x="562" y="80" width="118" height="34" fill="var(--card)" stroke="var(--rule)"/><text x="621" y="101" text-anchor="middle">Jira · PR</text>
+    <rect x="694" y="80" width="118" height="34" fill="var(--card)" stroke="var(--rule)"/><text x="753" y="101" text-anchor="middle">팀별 DB</text>
+  </g>
+  <rect x="34" y="132" width="778" height="28" fill="none" stroke="var(--rule)" stroke-dasharray="3 3"/>
+  <text x="423" y="151" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--muted)">커넥터 · 소스마다 하나 · 무엇을 어떻게 얼마나 자주 가져올지만 정한다</text>
+  <g stroke="var(--ink-2)" stroke-width="1" fill="none" marker-end="url(#ar)">
+    <line x1="93" y1="114" x2="93" y2="128"/><line x1="225" y1="114" x2="225" y2="128"/><line x1="357" y1="114" x2="357" y2="128"/>
+    <line x1="489" y1="114" x2="489" y2="128"/><line x1="621" y1="114" x2="621" y2="128"/><line x1="753" y1="114" x2="753" y2="128"/>
+  </g>
+  <path d="M93,160 L93,178 Q93,192 380,200" stroke="var(--ink-2)" stroke-width="1" fill="none"/>
+  <path d="M225,160 L225,186 Q225,196 390,202" stroke="var(--ink-2)" stroke-width="1" fill="none"/>
+  <path d="M357,160 L357,202" stroke="var(--ink-2)" stroke-width="1" fill="none"/>
+  <path d="M489,160 L489,202" stroke="var(--ink-2)" stroke-width="1" fill="none"/>
+  <path d="M621,160 L621,186 Q621,196 460,202" stroke="var(--ink-2)" stroke-width="1" fill="none"/>
+  <path d="M753,160 L753,178 Q753,192 470,200" stroke="var(--ink-2)" stroke-width="1" fill="none"/>
+  <line x1="423" y1="202" x2="423" y2="222" stroke="var(--link)" stroke-width="2.2" marker-end="url(#ar)"/>
+  <text x="438" y="218" font-family="var(--mono)" font-size="9.5" fill="var(--link)">전부 같은 모양의 행으로</text>
+  <rect x="150" y="232" width="546" height="104" fill="var(--link-soft)" stroke="var(--link)" stroke-width="2.2"/>
+  <text x="423" y="258" text-anchor="middle" font-family="var(--mono)" font-size="12.5" fill="var(--link)">PostgreSQL · 임베딩 테이블 하나</text>
+  <text x="423" y="278" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink)">본문 · 벡터 · 메타데이터 · 출처와 시각</text>
+  <g font-family="var(--mono)" font-size="9.5" fill="var(--ink)">
+    <rect x="172" y="292" width="158" height="26" fill="var(--card)" stroke="var(--rule)"/><text x="251" y="309" text-anchor="middle">HNSW 벡터 인덱스</text>
+    <rect x="344" y="292" width="158" height="26" fill="var(--card)" stroke="var(--rule)"/><text x="423" y="309" text-anchor="middle">GIN 전문 인덱스</text>
+    <rect x="516" y="292" width="158" height="26" fill="var(--card)" stroke="var(--rule)"/><text x="595" y="309" text-anchor="middle">워터마크 수집 상태</text>
+  </g>
+  <line x1="423" y1="336" x2="423" y2="356" stroke="var(--link)" stroke-width="2.2" marker-end="url(#ar)"/>
+  <text x="438" y="352" font-family="var(--mono)" font-size="9.5" fill="var(--link)">랭킹된 근거 행</text>
+  <text x="34" y="382" font-family="var(--mono)" font-size="11" fill="var(--link)">계층 둘 · 찾아서 꺼낸다</text>
+  <g font-family="var(--mono)" font-size="10" fill="var(--ink)">
+    <rect x="34"  y="394" width="140" height="32" fill="var(--card)" stroke="var(--rule)"/><text x="104" y="414" text-anchor="middle">검색기 6개 병렬</text>
+    <rect x="190" y="394" width="118" height="32" fill="var(--card)" stroke="var(--rule)"/><text x="249" y="414" text-anchor="middle">RRF 합치기</text>
+    <rect x="324" y="394" width="118" height="32" fill="var(--card)" stroke="var(--rule)"/><text x="383" y="414" text-anchor="middle">LLM 재정렬</text>
+    <rect x="458" y="394" width="128" height="32" fill="var(--card)" stroke="var(--rule)"/><text x="522" y="414" text-anchor="middle">문맥 되살리기</text>
+    <rect x="602" y="394" width="118" height="32" fill="var(--card)" stroke="var(--rule)"/><text x="661" y="414" text-anchor="middle">답 만들기</text>
+  </g>
+  <g stroke="var(--ink-2)" stroke-width="1" fill="none" marker-end="url(#ar)">
+    <line x1="174" y1="410" x2="184" y2="410"/><line x1="308" y1="410" x2="318" y2="410"/>
+    <line x1="442" y1="410" x2="452" y2="410"/><line x1="586" y1="410" x2="596" y2="410"/>
+  </g>
+  <text x="34" y="470" font-family="var(--mono)" font-size="10" fill="var(--muted)">질문</text>
+  <path d="M64,466 L94,466" stroke="var(--ink-2)" stroke-width="1" fill="none" marker-end="url(#ar)"/>
+  <rect x="102" y="450" width="176" height="34" fill="var(--card)" stroke="var(--ink-2)" stroke-width="1.4"/>
+  <text x="190" y="464" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink)">관문 · 누구이고</text>
+  <text x="190" y="477" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--ink)">무엇을 볼 수 있나</text>
+  <path d="M190,450 L190,440 L104,440 L104,430" stroke="var(--ink-2)" stroke-width="1" fill="none" marker-end="url(#ar)"/>
+  <rect x="602" y="452" width="210" height="38" fill="none" stroke="var(--rule)" stroke-dasharray="3 3"/>
+  <text x="707" y="468" text-anchor="middle" font-family="var(--mono)" font-size="10" fill="var(--muted)">감사 로그 · 사용 분석</text>
+  <text x="707" y="482" text-anchor="middle" font-family="var(--mono)" font-size="9.5" fill="var(--muted)">누가 무엇을 물었나</text>
+  <path d="M661,426 L661,442 L707,442 L707,448" stroke="var(--rule)" stroke-width="1" fill="none" marker-end="url(#ar)"/>
+</svg>
+        </div>
+      </figure>
+      <p>가운데가 좁아지는 모래시계 모양이라 narrow waist 라고 부른다. 위와 아래가 서로를 건드리지 않고 각자 바뀔 수 있다. 새 소스를 붙일 때 검색 코드를 고치지 않고, 검색 전략을 바꿀 때 수집 코드를 고치지 않는다. 대가는 스키마를 바꾸는 순간 모든 커넥터가 깨진다는 것이고, 원문도 이 스키마를 의도적으로 단순하게 뒀다고 밝힌다.</p>
+      <p class="note">인가 계층은 원문에 이름만 있다. 그림의 관문과 감사 로그는 이 문서가 구조상 그 자리를 표시한 것이고, 구현 근거는 없다. 19장에서 다룬다.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">row-contract</p>
+      <h2>테이블의 컬럼 네 개가 모든 커넥터의 유일한 계약이다</h2>
+      <p class="dek">원문 fig-002 는 소스 여섯 개가 커넥터를 하나씩 거쳐 embeddings 테이블 하나로 모이고, 거기서 MCP 와 웹 UI 와 agent 가 질의하는 그림을 담고 있다. 그 테이블 상자 안에 적힌 네 줄이 사실상의 스키마다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>컬럼</th><th>담는 것</th><th class="wrap">이 문서가 쓰는 자리</th></tr></thead>
+          <tbody>
+            <tr><td><code>document</code></td><td>embedding 대상 본문</td><td class="wrap">embedding 하기 전에 다듬은 결과다. 07장</td></tr>
+            <tr><td><code>embedding</code></td><td>3,072차원 vector</td><td class="wrap">pgvector 에서 이 차원은 그냥 인덱싱되지 않는다. 20장</td></tr>
+            <tr><td><code>metadata</code></td><td>채널, 작성자, 시각</td><td class="wrap">랭킹 신호와 범위 필터와 인용 표기에 함께 쓰인다</td></tr>
+            <tr><td><code>source</code> + 시각</td><td>출처 종류와 시점</td><td class="wrap">시간 감쇠와 프로젝트 범위의 축이다. 15장</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>소스 목록도 같은 그림에 있다. SLACK, WIKI/CONFLUENCE, CODE REPOS, NETLISTS, PRM DOCS, CUSTOM DATABASES 여섯이다. 반도체 회사라 넷리스트가 1급 소스로 들어와 있고, 이 사실이 11장의 청크 경계 이야기와 이어진다.</p>
+      <p>팀이 자기 DB 를 그대로 두고 참여하는 경로도 있다. 작은 Python 모듈 하나를 pull request 로 올려 같은 모양의 행을 뱉게 하면 된다. 스키마만 지키면 나머지 스택은 바뀌지 않는다.</p>
+      <p class="note">PRM DOCS 가 무엇인지는 원문에 설명이 없다. 그림에 적힌 라벨을 그대로 옮겼다.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">ingest-slack</p>
+      <h2>Slack 원문은 embedding 하지 않는다</h2>
+      <p class="dek">Cerebras 는 Slack 을 가장 중요한 소스로 꼽는다. 처음에는 원문 텍스트를 그대로 embedding 해 봤고 충분하지 않았다. 원문이 든 이유는 셋이다. 정보 밀도가 메시지마다 크게 다르고, 짧은 메시지가 긴 설명을 cosine 유사도에서 이기고, 메시지 하나의 뜻이 앞뒤 대화에 달려 있다.</p>
+      <p>그래서 embedding 전에 LLM 이 스레드를 읽고 구조를 뽑는다. 원문 fig-004 에 실린 예시다.</p>
+      <pre><code>{
+  "question":   "왜 매니페스트 로드 후에 복원이 멈추나?",
+  "summary":    "대규모 복원이 캐시 워밍업 전에 멈춘다.",
+  "resolution": "NFS 마운트에서는 CKPT_PREFETCH=4 로 설정할 것.",
+  "systems":    ["checkpoint restore", "NFS"],
+  "code_refs":  ["CKPT_PREFETCH"]
+}</code></pre>
+      <p>이 다섯을 이어 붙인 것이 <code>document</code> 가 되고 embedding 되는 것은 이 정리본이다. 원문 대화록은 embedding 하지 않는다. 그렇다고 버리지도 않는다. 원문은 raw content 에 Postgres 전문 인덱스를 유지하기 때문에 Slack 원문이 들어오는 즉시 키워드 검색이 된다고 밝힌다.</p>
+      <p>한 행이 텍스트를 두 벌 들고 있다는 뜻이다. 정리본은 vector 인덱스로 가고 원문은 전문 인덱스로 간다. 두 표현이 막는 실패가 다르다. vector 는 복원이 멈춘다와 체크포인트가 NFS 에서 정지한다를 이어 주지만 <code>ERR_MANIFEST_TIMEOUT</code> 같은 문자열은 뭉갠다. 전문 검색은 그 반대다.</p>
+      <p class="note">정확도가 얼마나 올랐는지는 원문에 없다. 정규화 후 유의미하게 올랐다는 서술이 전부다.</p>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">ingest-write</p>
+      <h2>이벤트 처리와 embedding 이 다른 프로세스에 있다</h2>
+      <p class="dek">원문 산문은 수집을 한 흐름으로 서술한다. fig-003 에는 그 흐름이 두 갈래로 쪼개져 있고 산문에 없는 컴포넌트 이름이 적혀 있다. 이 문서가 Cerebras 설계에서 가장 잘 만들어졌다고 보는 부분이다.</p>
+      <figure class="figure">
+        <p class="fig-title">소켓 핸들러는 표시만 남기고 물러난다</p>
+        <p class="fig-sub">원문 fig-003 의 상자와 라벨을 그대로 옮겨 그렸다. 굵은 화살표가 두 갈래를 잇는 유일한 통로다</p>
+        <div class="plate">
+<svg viewBox="0 0 860 290" role="img" aria-label="Slack 수집 파이프라인. 왼쪽에서 소켓 이벤트가 도착해 라우터로 가고, 멘션이나 DM 이면 봇 응답으로, 추적 중인 채널이면 스레드 재수집으로 갈린다. 스레드 재수집은 스레드를 통째로 다시 읽어 한 행으로 덮어쓰고 워터마크를 리셋한다. 세로 점선이 왼쪽과 오른쪽을 가르고, 굵은 화살표 하나가 워터마크 리셋에서 오른쪽 동기화 워커로 이어진다. 동기화 워커는 위쪽 LLM 정리를 호출하고 아래로 스레드 벡터와 버스트 벡터를 만들어 임베딩 테이블에 써넣는다. 왼쪽 아래에 이벤트 핸들러는 LLM 도 embedding 도 부르지 않는다고 적혀 있다.">
+  <defs><marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+  <line x1="452" y1="14" x2="452" y2="274" stroke="var(--rule)" stroke-width="1" stroke-dasharray="5 4"/>
+  <text x="14"  y="28" font-family="var(--mono)" font-size="10" fill="var(--link)">빠른 쪽 · 소켓을 막지 않는 것이 전부다</text>
+  <text x="470" y="28" font-family="var(--mono)" font-size="10" fill="var(--muted)">느린 쪽 · 따로 도는 워커</text>
+  <g font-family="var(--mono)" font-size="10" fill="var(--ink)">
+    <rect x="14" y="112" width="100" height="34" fill="var(--card)" stroke="var(--rule)"/><text x="64" y="133" text-anchor="middle">이벤트 도착</text>
+    <polygon points="176,112 216,130 176,148 136,130" fill="var(--card)" stroke="var(--rule)"/><text x="176" y="134" text-anchor="middle" font-size="9.5">갈래</text>
+    <rect x="244" y="58" width="146" height="32" fill="none" stroke="var(--rule)" stroke-dasharray="3 3"/><text x="317" y="78" text-anchor="middle" fill="var(--muted)">봇이 답한다</text>
+    <rect x="244" y="112" width="146" height="36" fill="var(--card)" stroke="var(--rule)"/>
+    <text x="317" y="128" text-anchor="middle" font-size="9.5">스레드를 통째로</text><text x="317" y="141" text-anchor="middle" font-size="9.5">다시 읽어온다</text>
+    <rect x="244" y="182" width="146" height="36" fill="var(--link-soft)" stroke="var(--link)" stroke-width="1.8"/>
+    <text x="317" y="198" text-anchor="middle" font-size="9.5" fill="var(--link)">한 행으로 덮어쓰고</text><text x="317" y="211" text-anchor="middle" font-size="9.5" fill="var(--link)">표시만 남긴다</text>
+    <rect x="512" y="112" width="140" height="36" fill="var(--link-soft)" stroke="var(--link)" stroke-width="1.8"/><text x="582" y="134" text-anchor="middle" fill="var(--link)">동기화 워커</text>
+    <rect x="512" y="44" width="140" height="32" fill="var(--card)" stroke="var(--rule)"/><text x="582" y="64" text-anchor="middle">LLM 으로 정리</text>
+    <rect x="512" y="180" width="140" height="30" fill="var(--card)" stroke="var(--rule)"/><text x="582" y="199" text-anchor="middle">스레드 벡터</text>
+    <rect x="512" y="222" width="140" height="30" fill="var(--card)" stroke="var(--rule)"/><text x="582" y="241" text-anchor="middle">버스트 벡터</text>
+    <rect x="700" y="112" width="146" height="36" fill="none" stroke="var(--rule)" stroke-dasharray="3 3"/>
+    <text x="773" y="128" text-anchor="middle" font-size="9.5" fill="var(--muted)">임베딩 테이블</text><text x="773" y="141" text-anchor="middle" font-size="9" fill="var(--muted)">저장소이자 대기열</text>
+  </g>
+  <g stroke="var(--ink-2)" stroke-width="1.1" fill="none" marker-end="url(#ar2)">
+    <line x1="114" y1="130" x2="132" y2="130"/><path d="M176,112 L176,74 L238,74"/><line x1="216" y1="130" x2="238" y2="130"/>
+    <line x1="317" y1="148" x2="317" y2="176"/><line x1="582" y1="112" x2="582" y2="82"/>
+    <line x1="582" y1="148" x2="582" y2="174"/><line x1="582" y1="210" x2="582" y2="216"/>
+  </g>
+  <path d="M390,200 L452,200 L452,130 L506,130" stroke="var(--link)" stroke-width="2.2" fill="none" marker-end="url(#ar2)"/>
+  <text x="396" y="236" font-family="var(--mono)" font-size="10" fill="var(--link)">RESET WATERMARKS</text>
+  <text x="396" y="250" font-family="var(--mono)" font-size="9" fill="var(--muted)">이 행 다시 처리해야 함</text>
+  <text x="250" y="106" font-family="var(--mono)" font-size="9" fill="var(--muted)">추적 중인 채널</text>
+  <text x="250" y="52"  font-family="var(--mono)" font-size="9" fill="var(--muted)">멘션 · DM</text>
+  <path d="M652,196 L700,196 L700,152" stroke="var(--rule)" stroke-width="1" fill="none" marker-end="url(#ar2)"/>
+  <text x="14" y="272" font-family="var(--mono)" font-size="9.5" fill="var(--muted)">이벤트 핸들러는 LLM 도 embedding 도 부르지 않는다</text>
+</svg>
+        </div>
+      </figure>
+      <p>Slack bot 을 Socket Mode 로 띄우면 모든 메시지 event 가 WebSocket 으로 밀려 온다. 이벤트가 오면 즉시 확인 응답을 보내고 event ID 로 중복을 걸러낸다. 그다음이 이 설계의 특징이다. 메시지 하나를 따로 저장하지 않고, 그 메시지가 속한 스레드의 부모와 모든 답글을 다시 가져와 스레드 전체를 한 행으로 덮어쓴다.</p>
+      <p class="note">봇 응답 경로는 이 문서가 다루지 않는다. fig-003 에 상자로만 있고 원문에 설명이 없다.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">ingest-queue</p>
+      <h2>워터마크 컬럼이 메시지 broker 를 대신한다</h2>
+      <p class="dek">소켓 이벤트 핸들러는 스레드를 저장하고 이 행 다시 처리해야 함이라는 표시를 남기고 끝난다. LLM 정리도 embedding 도 여기서 하지 않는다. 무거운 일은 동기화 워커가 표시된 행을 훑으면서 한다.</p>
+      <p>스레드를 통째로 다시 읽어 덮어쓰는 방식이 여기서 값을 한다. Socket Mode 의 전달 보장은 at-least-once 다. 3초 안에 확인 응답을 못 보내면 Slack 이 1분 간격으로 최대 세 번 더 같은 이벤트를 보내고, 순서도 보장하지 않는다. 메시지를 뒤에 덧붙이는 방식이었다면 중복과 순서가 곧바로 데이터 손상이 된다. 덮어쓰기는 몇 번을 해도 결과가 같다.</p>
+      <div class="grid g3">
+        <div class="card"><span class="tag">확인 응답 3초</span><p class="small">핸들러에서 LLM 을 호출하면 이 시간을 넘긴다. 그러면 같은 이벤트가 재전송되고 그게 또 LLM 을 부른다.</p></div>
+        <div class="card"><span class="tag">자동 디바운스</span><p class="small">활발한 스레드는 답글마다 표시가 남지만 워커가 한 번 훑을 때 여러 표시가 한 번의 정리로 합쳐진다. 따로 짤 로직이 없다.</p></div>
+        <div class="card"><span class="tag">부분 장애 허용</span><p class="small">embedding API 가 죽어도 수집은 계속된다. 원문이 들어와 전문 검색은 되고 vector 만 밀렸다가 따라잡는다.</p></div>
+      </div>
+      <p>대기열이 데이터베이스 안에 있으므로 서버가 죽어도 상태가 남는다. broker 를 따로 뒀다면 행은 썼는데 발행이 실패한 상태가 생기고, 그 행은 다시 처리되지 않는다. 워터마크 컬럼은 그런 상태를 표현할 수 없게 만든다.</p>
+      <p class="note">워터마크가 어떤 컬럼인지, 워커가 polling 인지 LISTEN 인지, 워커끼리 잠금을 어떻게 하는지는 원문에 없다. fig-003 에 이름만 있다.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">ingest-burst</p>
+      <h2>저품질 메시지를 랭킹으로 누르지 않고 인덱스에 넣지 않는다</h2>
+      <p class="dek">스레드 단위로 정리하면 긴 스레드 안의 중요한 메시지가 요약에 반영되지 않는다. 그래서 같은 사람이 연달아 쓴 메시지 묶음을 버스트로 따로 embedding 한다. 스레드 주제를 앞에 붙여 문맥을 준다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>통과 조건</th><th>값</th><th class="wrap">무엇을 거르는가</th></tr></thead>
+          <tbody>
+            <tr><td>희귀 토큰 포함</td><td><code>IDF &ge; 4.0</code></td><td class="wrap"><code>ln(N/df) &ge; 4</code> 이면 전체 문서의 1.83% 미만에만 나오는 단어다. 이 계산은 원문에 없고 이 문서가 했다</td></tr>
+            <tr><td>결합 길이</td><td>200자 이상</td><td class="wrap">한 줄짜리 맞장구</td></tr>
+            <tr><td>사회적 신호</td><td>reaction 1개 이상</td><td class="wrap">아무도 반응하지 않은 혼잣말</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><code>CKPT_PREFETCH</code> 같은 내부 flag 는 통과하고 배포나 클러스터처럼 사내에서 흔한 말은 걸린다. 이 문턱은 수집할 때 평가된다. 넣어 두고 랭킹으로 누르는 대신 인덱스에 넣지 않는다. HNSW 그래프는 노드가 늘수록 탐색 비용과 빌드 메모리가 함께 커지므로, recall 을 조금 포기하고 인덱스 품질과 운영비를 산다.</p>
+      <p class="note">세 조건이 가중 합산인지 전부 만족해야 하는지는 원문 서술이 모호하다. 가중 조합을 문턱과 비교한다고만 적혀 있다.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">ingest-code</p>
+      <h2>동기화 상태를 vector 옆에 두면 둘을 한 transaction 으로 묶을 수 있다</h2>
+      <p class="dek">사내 저장소 중에는 40GB 가 넘는 것도 있다. Cerebras 는 CocoIndex 를 골랐고, commit 마다 저장소 전체를 다시 계산하지 않고 바뀐 chunk 만 다시 embedding 한다고 밝힌다. 이유로 든 것이 동기화 상태와 embedding 저장소가 같은 데이터베이스에 산다는 점이다.</p>
+      <p>그 동기화 상태의 실물이다. CocoIndex v0.3 의 <code>src/execution/db_tracking_setup.rs</code> 에 있는 DDL 에서 핵심 칸만 추렸다.</p>
+      <pre><code>CREATE TABLE &lt;flow&gt;__cocoindex_tracking (
+    source_id                 INTEGER NOT NULL,
+    source_key                JSONB   NOT NULL,
+    processed_source_fp       BYTEA,   -- 소스 내용의 지문
+    process_logic_fingerprint BYTEA,   -- 파이프라인 로직의 지문
+    target_keys               JSONB,   -- 이 소스가 만들어낸 행들의 키
+    staging_target_keys       JSONB,   -- 반영 직전 단계
+    memoization_info          JSONB,
+    PRIMARY KEY (source_id, source_key)
+);</code></pre>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>칸</th><th class="wrap">막는 사고</th></tr></thead>
+          <tbody>
+            <tr><td><code>processed_source_fp</code></td><td class="wrap">commit 은 있었는데 파일 내용이 같으면 embedding 호출을 건너뛴다. rebase 와 merge commit 에서 크게 절약된다</td></tr>
+            <tr><td><code>process_logic_fingerprint</code></td><td class="wrap">chunk 크기나 embedding 모델을 바꾸면 소스가 같아도 값이 바뀌어 전체 재계산이 걸린다. 절반은 옛 모델이고 절반은 새 모델인 인덱스가 생기지 않는다</td></tr>
+            <tr><td><code>target_keys</code></td><td class="wrap">파일이 지워지거나 함수가 셋에서 둘로 줄면 그 고아 행만 지운다. 반영 도중 죽어도 복구되도록 두 단계로 나뉘어 있다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>vector 를 전용 vector DB 에 두고 동기화 상태를 Postgres 에 뒀다면 commit 마다 두 시스템에 나눠 쓰게 된다. 분산 transaction 없이는 vector 는 갱신됐는데 추적 기록은 실패한 상태가 생기고, 그때부터 인덱스가 소스와 어긋난다. 전체를 다시 계산해 보기 전에는 알아차릴 방법이 없다.</p>
+      <p class="fig-title" style="margin-top:1.6em">청크 경계는 순서대로 시도하지 않고 비용을 최소화해 한 번에 정한다</p>
+      <p class="hint">원문은 언어별 정규식 경계를 큰 단위에서 작은 단위 순으로 시도한다고 설명한다. CocoIndex 의 기본 경로는 tree-sitter 로 구문 트리를 만든 뒤 동적 계획법으로 비용을 최소화한다. 상수가 소스에 박혀 있다.</p>
+      <pre><code>const SYNTAX_LEVEL_GAP_COST: usize = 512;       // 구문 레벨 하나 건너뛰기
+const TOO_SMALL_CHUNK_COST: usize = 1048576;    // chunk 가 너무 작을 때
+const PER_LINE_BREAK_LEVEL_GAP_COST: usize = 64;</code></pre>
+      <p>둘의 비율이 2,048배다. 잘게 자르는 쪽이 구문 경계 하나 건너뛰는 것보다 2,048배 비싸므로 결과적으로 큰 단위가 선호된다. 전체 비용이 최소가 되는 분할을 한 번에 찾는다는 점이 원문 서술과 다르다.</p>
+      <p>원문 서술이 틀린 것은 아니다. CocoIndex 에는 tree-sitter 문법이 없는 언어를 위한 정규식 경계 경로가 따로 있고, Verilog 와 VHDL 이 그 경우다. 언어 등록표 <code>rust/code_ast/src/prog_langs.rs</code> 에 이렇게 적혀 있다.</p>
+      <pre><code>add("verilog", &amp;[".vh"], None);          // 세 번째 인자 None 이 문법 없음
+add("vhdl",    &amp;[".vhd", ".vhdl"], None);</code></pre>
+      <p>06장에서 본 소스 목록에 넷리스트가 있다. 하드웨어 설계 코드베이스에서는 실제로 정규식 경계로 떨어지므로, 원문 설명은 그들이 주로 다루는 코드에 대해 정확한 서술이다.</p>
+      <p class="hint" style="margin-top:1.4em">계층 하나가 그 테이블에 시킨 일 · 같은 모양의 행을 쓰고, 워터마크로 다시 처리할 것을 표시한다</p>
+      <p class="note">Cerebras 가 v0.3 을 썼다는 근거는 없다. 원문이 Postgres 에 추적한다고 쓴 것과 v0.3 동작이 맞아떨어질 뿐이다. 2026년 6월 V1 은 상태 저장소를 LMDB 로컬 파일로 바꿨다. Cerebras 가 어떤 언어에 어느 경로를 탔는지는 확인할 수 없다. 저장소 설정 파일이 공개돼 있지 않다. CocoIndex 쪽 비용 함수와 버전 차이를 더 파고든 문서가 <a href="../2026-08-12-cerebras-knowledge-base/">2026-08-12 Cerebras Knowledge</a> 에 있다.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">query-path</p>
+      <h2>후보 수가 계속 줄어들다 마지막에만 다시 늘어난다</h2>
+      <p class="dek">질문이 들어오면 가벼운 LLM 이 질문과 현재 범위를 보고 어떤 도구를 쓸지 고른다. 고른 도구를 병렬로 실행하고 공통 형식으로 정규화한 뒤 마지막 LLM 이 답을 만든다.</p>
+      <figure class="figure">
+        <p class="fig-title">여섯 리스트에서 스무 개로, 다시 열 개로</p>
+        <p class="fig-sub">원문 fig-001 의 층 이름과 fig-008 의 리스트 이름을 이 문서가 한 줄로 폈다</p>
+        <div class="plate">
+<svg viewBox="0 0 860 210" role="img" aria-label="질의 파이프라인 다섯 단계. 왼쪽부터 계획 세우기, 병렬로 검색, RRF 로 합치기, 중복 정리, LLM 재정렬, 문맥 되살리고 답 만들기 순으로 이어진다. 아래에 남는 후보 수가 표시되는데 리스트 여섯 벌에서 합쳐진 순위로, 다시 약 20개, 다시 10개, 마지막에 10개와 이웃 문맥이 된다. 맨 아래에 병렬로 도는 여섯 검색기 이름이 적혀 있다.">
+  <defs><marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+  <g font-family="var(--mono)" font-size="10" fill="var(--ink)">
+    <rect x="10"  y="42" width="106" height="44" fill="var(--card)" stroke="var(--rule)"/>
+    <text x="63"  y="62" text-anchor="middle" font-size="10.5">계획 세우기</text><text x="63" y="77" text-anchor="middle" font-size="9" fill="var(--muted)">어떤 도구를 쓸까</text>
+    <rect x="134" y="42" width="118" height="44" fill="var(--card)" stroke="var(--rule)"/>
+    <text x="193" y="62" text-anchor="middle" font-size="10.5">병렬로 검색</text><text x="193" y="77" text-anchor="middle" font-size="9" fill="var(--muted)">여섯 개 동시에</text>
+    <rect x="270" y="42" width="118" height="44" fill="var(--link-soft)" stroke="var(--link)" stroke-width="1.8"/>
+    <text x="329" y="62" text-anchor="middle" font-size="10.5" fill="var(--link)">RRF 로 합치기</text><text x="329" y="77" text-anchor="middle" font-size="9" fill="var(--link)">k = 60</text>
+    <rect x="406" y="42" width="118" height="44" fill="var(--card)" stroke="var(--rule)"/>
+    <text x="465" y="62" text-anchor="middle" font-size="10.5">중복 정리</text><text x="465" y="77" text-anchor="middle" font-size="9" fill="var(--muted)">파일당 상한</text>
+    <rect x="542" y="42" width="118" height="44" fill="var(--card)" stroke="var(--rule)"/>
+    <text x="601" y="62" text-anchor="middle" font-size="10.5">LLM 재정렬</text><text x="601" y="77" text-anchor="middle" font-size="9" fill="var(--muted)">0 에서 10점</text>
+    <rect x="678" y="42" width="172" height="44" fill="var(--card)" stroke="var(--rule)"/>
+    <text x="764" y="62" text-anchor="middle" font-size="10.5">문맥 되살리고 답 만들기</text><text x="764" y="77" text-anchor="middle" font-size="9" fill="var(--muted)">이웃 섹션 + 인용</text>
+  </g>
+  <g stroke="var(--ink-2)" stroke-width="1" fill="none" marker-end="url(#ar3)">
+    <line x1="116" y1="64" x2="128" y2="64"/><line x1="252" y1="64" x2="264" y2="64"/><line x1="388" y1="64" x2="400" y2="64"/>
+    <line x1="524" y1="64" x2="536" y2="64"/><line x1="660" y1="64" x2="672" y2="64"/>
+  </g>
+  <line x1="134" y1="108" x2="850" y2="108" stroke="var(--rule)" stroke-width="1"/>
+  <g font-family="var(--mono)" font-size="10" fill="var(--muted)">
+    <text x="10"  y="128" font-size="9">남는 후보 수</text>
+    <text x="193" y="128" text-anchor="middle">리스트 6벌</text><text x="329" y="128" text-anchor="middle">합쳐진 순위</text>
+    <text x="465" y="128" text-anchor="middle">약 20</text><text x="601" y="128" text-anchor="middle">10</text>
+    <text x="764" y="128" text-anchor="middle">10 + 이웃</text>
+  </g>
+  <g font-family="var(--mono)" font-size="9.5" fill="var(--muted)">
+    <text x="10" y="164">병렬로 도는 여섯 · VECTOR · FTS · THREAD SUMMARIES · GRAPH · WIKI VECTOR · SLACK FTS</text>
+    <text x="10" y="184">Slack 안에서 다시 네 신호 · 전문검색 · embedding · IDF · 시간 감쇠</text>
+    <text x="10" y="204" fill="var(--ink-2)">프로젝트 범위가 이 모든 것보다 먼저 corpus 를 잘라낸다</text>
+  </g>
+</svg>
+        </div>
+      </figure>
+      <p>도구는 여섯이다. 통합 vector 검색 <code>search</code>, Slack 전용 <code>search_slack</code>, 저장소에 ripgrep 을 거는 <code>search_code</code>, 파일별 LLM 요약 <code>subsystem_index</code>, 최근 pull request 를 보는 <code>recent_prs</code>, 주제에 밝은 사람을 찾는 <code>who_knows</code> 다.</p>
+      <p><code>search_code</code> 만 임베딩 테이블을 지나지 않는다. 정확한 코드 조회는 저장소 파일에 직접 ripgrep 을 건다. 원문도 grep 이면 충분하지 않냐는 반론을 검토한 뒤 둘 다 하기로 했다고 밝힌다. 이 테이블은 유일한 진실 원천이 아니라 유일하게 순위를 매길 수 있는 표면이다.</p>
+      <p class="fig-title" style="margin-top:1.6em">검색기가 source 와 modality 로 갈라져 있다</p>
+      <p class="hint">원문 fig-001 은 검색 단계를 여섯 리스트가 병렬로라고 부르고 fig-008 이 그 여섯의 이름을 적어 놓았다. 산문에는 이 목록이 없다. 이름을 보면 통합 검색이 어떻게 짜여 있는지 드러난다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>검색기</th><th class="wrap">어디를 보는가</th></tr></thead>
+          <tbody>
+            <tr><td><code>VECTOR</code></td><td class="wrap">범용 의미 검색. HNSW</td></tr>
+            <tr><td><code>FTS</code></td><td class="wrap">범용 전문 검색. GIN</td></tr>
+            <tr><td><code>THREAD SUMMARIES</code></td><td class="wrap">Slack 정리본 embedding. 07장의 산출물</td></tr>
+            <tr><td><code>GRAPH</code></td><td class="wrap">원문에 설명이 없다. 이 리스트에서만 클래스명이 1위, 헤더 파일이 2위다</td></tr>
+            <tr><td><code>WIKI VECTOR</code></td><td class="wrap">위키 섹션 전용 vector. 범용 VECTOR 와 분리돼 있다</td></tr>
+            <tr><td><code>SLACK FTS</code></td><td class="wrap">Slack 원문 전용 전문 검색. 범용 FTS 와 분리돼 있다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><code>VECTOR</code> 와 <code>WIKI VECTOR</code> 가 별개이고 <code>FTS</code> 와 <code>SLACK FTS</code> 도 별개다. source 마다 문서 길이와 embedding 분포가 달라서 한 순위표에 섞으면 특정 source 가 상위권을 독식한다. 나눠서 검색하고 순위로 합치면 그 문제가 사라진다. 16장의 파일당 상한과 같은 계열의 대책이다.</p>
+      <p>Slack 안에서는 다시 네 신호를 섞는다. 전문 검색은 에러 문자열과 flag 명 같은 글자 그대로의 token 을 잡고, embedding 은 같은 뜻 다른 말을 잡고, IDF 는 희귀한 단어가 든 짧은 메시지를 끌어올리고, 시간 감쇠는 비슷하면 최신을 이기게 한다.</p>
+      <p class="note">planner 가 어떤 모델인지, 도구 선택이 얼마나 정확한지는 원문에 없다. GRAPH 가 무엇의 그래프인지는 이 문서가 확인하지 못했다. 상위 항목의 성격에서 코드 심볼 관계로 추측할 뿐이다.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">query-fusion</p>
+      <h2>점수를 쓰지 않고 순위만 쓰면 정규화 문제가 사라진다</h2>
+      <p class="dek">여섯 순위표를 합칠 때 문서마다 각 리스트에서 <code>1 / (60 + 순위)</code> 를 더한다. weight 기본값은 1.0 이다. cosine 유사도와 <code>ts_rank</code> 와 IDF 가중합과 시간 감쇠 계수는 같은 자에 올릴 수 없는 값이다.</p>
+      <p>억지로 정규화하면 질의마다 눈금이 흔들려 튜닝이 재현되지 않는다. 순위 정수만 쓰면 그 문제가 통째로 사라진다.</p>
+      <div class="stats">
+        <div class="stat"><span class="lab">1위 한 번</span><span class="val">0.0164</span><span class="sub"><code>1/61</code>. 이 문서가 계산했다</span></div>
+        <div class="stat"><span class="lab">2위 한 번</span><span class="val">0.0161</span><span class="sub"><code>1/62</code>. 1위와 1.6% 차이다</span></div>
+        <div class="stat hero"><span class="lab">3위 두 번</span><span class="val">0.0317</span><span class="sub"><code>2/63</code>. 1위 한 번의 1.93배다</span></div>
+      </div>
+      <p>리스트 안에서의 순위 차이는 거의 의미를 갖지 않고, 여러 리스트에 나오는지가 결정한다. 어중간한 동의 둘이 확신 하나를 이긴다. k 를 작게 하면 1위가 독재하고 크게 하면 등장 횟수 세기로 수렴한다. 60은 순위를 보되 합의를 더 보는 지점이다.</p>
+      <p class="fig-title" style="margin-top:1.6em">예시 그림의 점수 여섯 개가 실제 계산과 자릿수까지 맞는다</p>
+      <p class="hint">원문 fig-008 은 리스트 여섯 벌과 합쳐진 결과 상위 여섯의 점수를 함께 보여준다. 그 리스트에서 순위를 뽑아 공식을 돌리면 여섯 값이 소수점 넷째 자리까지 일치하고 순서도 같다. 이 대조는 이 문서가 했다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>문서</th><th class="wrap">등장한 검색기와 순위</th><th>계산</th><th>점수</th></tr></thead>
+          <tbody>
+            <tr><td><code>CLASS: CHECKPOINTLOADER</code></td><td class="wrap">VECTOR 2, THREAD 3, GRAPH 1, WIKI 5, SLACK 5</td><td><code>1/62+1/63+1/61+1/65+1/65</code></td><td>0.0792</td></tr>
+            <tr><td><code>INC-82: SLOW RESTORE</code></td><td class="wrap">다섯 곳에서 4위와 5위</td><td><code>1/65+1/64+1/65+1/64+1/64</code></td><td>0.0776</td></tr>
+            <tr><td><code>WIKI: CHECKPOINT FORMAT</code></td><td class="wrap">네 곳</td><td><code>1/63+1/61+1/65+1/61</code></td><td>0.0640</td></tr>
+            <tr><td><code>THREAD: NFS STALL</code></td><td class="wrap">네 곳</td><td><code>1/64+1/61+1/64+1/61</code></td><td>0.0640</td></tr>
+            <tr><td><code>RUNBOOK: NFS MOUNTS</code></td><td class="wrap">세 곳에서 전부 3위</td><td><code>3 &times; 1/63</code></td><td>0.0476</td></tr>
+            <tr class="dim"><td><code>CKPT_LOADER.CC</code></td><td class="wrap">VECTOR 1위, FTS 2위. 두 곳뿐</td><td><code>1/61+1/62</code></td><td>0.0325</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>마지막 줄이 이 표의 핵심이다. <code>CKPT_LOADER.CC</code> 는 VECTOR 검색에서 1위였는데 상위 여섯에 들지 못했다. 두 곳에만 나왔기 때문이다. <code>RUNBOOK: NFS MOUNTS</code> 는 어디서도 3위를 넘지 못했지만 세 곳에 고르게 나와 살아남았다.</p>
+      <p>최종 1위도 마찬가지다. <code>CLASS: CHECKPOINTLOADER</code> 는 어느 리스트에서도 압도적이지 않다. 코드 vector 와 스레드 요약과 그래프와 위키와 Slack 이 제각각 다른 이유로 같은 문서를 지목해서 올라왔다. 검색기를 source 별로 쪼갤수록 이 교차 확인 효과가 커진다.</p>
+      <p class="hint" style="margin-top:1.4em">계층 둘이 그 테이블에 시킨 일 · 두 인덱스에서 각각 순위를 받아 하나로 합친다</p>
+      <p class="note">k 를 60이 아닌 값으로 시험했는지는 원문에 없다. 60은 RRF 원논문의 값이고 원문은 그 논문을 인용한다. 이 여섯은 원문이 만든 예시 데이터다. 실제 corpus 에서 나온 결과가 아니므로 성능을 말해 주지 않는다. 공식이 그림대로 계산됐다는 것만 확인한 것이다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">authz</p>
+      <h2>세 계층 중 하나인데 구현 서술이 한 줄도 없다</h2>
+      <p class="dek">원문이 세 계층으로 명시한 것 중 셋째가 인증과 인가를 강제하고 감사와 분석을 남기는 계층이다. 설명은 그 한 문장이 전부이고 아키텍처 그림에도 나오지 않는다. 사내 지식베이스에서 가장 위험한 부분이 비어 있다.</p>
+      <p>문제의 뿌리는 근사 최근접 탐색의 동작 방식에 있다. HNSW 는 가까운 것 몇 개를 가져오라는 식으로 후보를 정해진 개수만큼 긁어온다. 거기에 권한 필터를 걸면 남는 개수가 줄어든다. pgvector 기본값 <code>ef_search = 40</code> 에서 볼 수 있는 문서가 전체의 10% 라면 40개 중 평균 4개만 남는다. 상위 10개를 원했는데 4개뿐이다.</p>
+      <div class="grid g2">
+        <div class="card"><span class="tag">에러가 나지 않는다</span><p class="small">결과가 조금 나빠질 뿐이다. 사용자는 답을 못 찾네 하고 넘어가고, 개발자는 몇 달 뒤에야 recall 이 무너진 것을 안다.</p></div>
+        <div class="card"><span class="tag">구조상 있는 경계</span><p class="small">Slack 채널 하나가 데이터 소스 하나라는 원문의 결정은 수집 주기를 위한 것이지만, 권한의 단위도 함께 만든다. 프로젝트가 소스의 묶음이므로 권한도 소스 단위로 주면 필터가 <code>source_id IN (...)</code> 형태가 된다.</p></div>
+      </div>
+      <p class="fig-title" style="margin-top:1.6em">세 가지 방식이 있고 대가가 각각 다르다</p>
+      <p class="hint">원문에 답이 없으므로 직접 골라야 한다. 세 방식 모두 pgvector 에서 실제로 쓰이는 패턴이고, 어느 것도 공짜가 아니다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>방식</th><th class="wrap">어떻게</th><th class="wrap">대가</th></tr></thead>
+          <tbody>
+            <tr><td>권한별 인덱스 분리</td><td class="wrap">부분 인덱스를 권한 그룹마다 만든다</td><td class="wrap">정확하고 빠르다. 권한 구조가 바뀔 때마다 재색인이 필요하고 그룹이 많으면 인덱스가 늘어난다. 고정된 소수의 큰 경계에만 쓴다</td></tr>
+            <tr><td>검색마다 조건</td><td class="wrap">pgvector 0.8 의 <code>hnsw.iterative_scan</code> 으로 충분한 개수가 남을 때까지 계속 훑는다</td><td class="wrap">유연하다. 필터가 좁을수록 느려지고 <code>max_scan_tuples</code> 상한에 걸리면 조용히 불완전해진다. 대부분 여기서 시작한다</td></tr>
+            <tr><td>합친 뒤 걸러내기</td><td class="wrap">검색은 전부 하고 최종 결과에서 볼 수 없는 것을 뺀다</td><td class="wrap">구현이 가장 쉽다. 결과가 비어버릴 수 있고, 볼 수 없는 문서가 순위 계산에 영향을 주며, 권한 없는 데이터가 애플리케이션 메모리까지 올라온다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>착수 전에 답해 둘 질문은 하나다. 문서 하나를 볼 수 있는지를 무엇으로 판단하는가. 소속 팀 같은 소수의 고정 그룹이면 설계가 단순해진다. 문서마다 다르거나 Slack 채널 멤버십을 그대로 따른다면 Slack 의 권한 모델을 복제해 계속 동기화한다는 뜻이고 난이도가 한 단계 올라간다.</p>
+      <p>감사와 분석은 상대적으로 쉽다. 같은 Postgres 안에 질의 로그 테이블 하나면 된다. 누가 언제 무엇을 물었고 어떤 행이 근거로 나갔는지를 남기면 감사 기록이자 품질 개선의 재료가 된다. 나중에 붙이면 과거 데이터가 없으므로 초기에 넣는 편이 낫다.</p>
+      <p class="hint" style="margin-top:1.4em">계층 셋이 그 테이블에 시켜야 할 일 · 볼 수 있는 행만 남기고, 무엇을 물었는지 남긴다</p>
+      <p class="note">권한 경계를 소스 단위로 두자는 것은 이 문서의 제안이다. Cerebras 가 그렇게 했다는 근거는 없다. 세 방식의 성능 차이를 직접 측정하지 않았다. pgvector 문서가 서술하는 동작에 근거한 정리다.</p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">postgres-roles</p>
+      <h2>세 계층이 그 테이블에 시킨 일을 모으면 네 가지가 된다</h2>
+      <p class="dek">여기까지 본 것을 모으면 Postgres 가 맡은 일이 넷이다. 보통의 RAG 스택이 수집 대기열과 vector DB 와 메타데이터 DB 세 개로 나눠 하는 일을 하나로 한다.</p>
+      <div class="grid g2">
+        <div class="card"><span class="tag">1 · 저장소</span><p class="small">본문과 정리본과 메타데이터와 vector 를 한 행에 담는다.</p></div>
+        <div class="card"><span class="tag">2 · 검색 엔진</span><p class="small">vector 인덱스와 전문 인덱스가 같은 테이블 위에 공존한다. 융합이 순위 병합만 남는다.</p></div>
+        <div class="card"><span class="tag">3 · 작업 대기열</span><p class="small">워터마크로 아직 처리하지 않은 행을 표시한다. 메시지 broker 가 없다.</p></div>
+        <div class="card"><span class="tag">4 · 진행 상태 원장</span><p class="small">어디까지 수집하고 반영했는지를 데이터 옆에 적는다. 데이터 쓰기와 상태 갱신이 한 transaction 이다.</p></div>
+      </div>
+      <p>3번과 4번이 이 설계의 특징이다. 스레드를 저장하면서 동시에 재처리 대상으로 표시하는 일이 한 문장, 한 transaction 으로 끝난다. broker 를 따로 뒀다면 행은 썼는데 발행이 실패한 상태가 생기고 그 행은 다시 처리되지 않는다.</p>
+      <p>하루 15,000 질의는 평균 0.17 QPS 다. 근무 8시간에 몰린다고 봐도 0.5 QPS 이고 피크를 몇 배로 잡아도 초당 한 자릿수다. 이 규모에서 전용 vector DB 가 주는 초당 수천 QPS 는 쓰이지 않고, 잃는 것은 매일 청구된다.</p>
+      <p class="fig-title" style="margin-top:1.6em">전용 vector DB 를 뒀다면 이 설계의 장점 절반이 사라진다</p>
+      <p class="hint">Pinecone 이나 Qdrant 같은 전용 vector DB 는 별도로 도는 서버다. pgvector 는 같은 테이블의 한 컬럼이라 일반 컬럼과 같은 transaction 과 backup 과 join 안에 들어온다. 이 차이가 이 문서 곳곳에서 반복해서 나타난다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>장면</th><th class="wrap">한 Postgres</th><th class="wrap">vector DB 를 따로 둘 때</th></tr></thead>
+          <tbody>
+            <tr><td>코드 증분 반영</td><td class="wrap">vector 쓰기와 추적 기록 갱신이 한 transaction</td><td class="wrap">두 시스템에 나눠 쓰기. 한쪽만 성공한 상태가 생기고 전체 재계산 전에는 알 수 없다</td></tr>
+            <tr><td>수집 대기열</td><td class="wrap">컬럼 두 개로 표시. 서버가 죽어도 상태가 남는다</td><td class="wrap">broker 를 추가하거나 vector DB 밖에 상태를 또 둔다</td></tr>
+            <tr><td>전문 검색 융합</td><td class="wrap">같은 행에 두 인덱스. 순위 병합만 하면 된다</td><td class="wrap">두 저장소의 결과를 애플리케이션에서 join. 키 정합성을 직접 지켜야 한다</td></tr>
+            <tr><td>처리량</td><td class="wrap">초당 한 자릿수 QPS 면 인스턴스 하나로 충분하다</td><td class="wrap">초당 수천 QPS 를 감당한다. 이 규모에서는 쓰이지 않는다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>규모가 달라지면 판단도 달라진다. 질의가 초당 수백 건을 넘거나 corpus 가 수억 행이 되면 전용 vector DB 의 처리량이 실제 값이 된다. 15,000 질의라는 숫자를 먼저 환산해 보고 결정할 문제다.</p>
+      <p class="note">QPS 환산과 피크 배수는 이 문서의 계산이다. 원문은 하루 질의 수만 밝힌다. 실제 인스턴스 사양도 공개돼 있지 않다. 전용 vector DB 를 직접 세워 비교하지 않았다. 표의 왼쪽은 원문과 pgvector 문서에, 오른쪽은 이중 쓰기라는 일반적 성질에 근거한다.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">postgres-vector</p>
+      <h2>물리 계층에서 걸리는 것이 둘 있다</h2>
+      <p class="dek">원문 fig-001 의 embedding 층에 pgvector 와 3072-dim 과 HNSW 가 함께 적혀 있다. 이 셋을 합치면 pgvector 에서 그냥은 성립하지 않는 조합이 된다. 복제하려는 사람이 가장 먼저 막히는 지점이다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>타입</th><th>한 행당 크기</th><th>3,072차원</th><th class="wrap">HNSW 가능</th></tr></thead>
+          <tbody>
+            <tr><td><code>vector(d)</code></td><td><code>4d + 8</code></td><td>12,296 B</td><td class="wrap">2,000차원까지만</td></tr>
+            <tr><td><code>halfvec(d)</code></td><td><code>2d + 8</code></td><td>6,152 B</td><td class="wrap">4,000차원까지. 이쪽을 써야 한다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>컬럼을 <code>halfvec(3072)</code> 로 두거나 <code>vector(3072)</code> 를 유지한 채 표현식 인덱스를 만든다. 후자를 고르면 질의의 <code>ORDER BY</code> 에도 같은 캐스팅을 써야 한다. 빠뜨리면 인덱스를 타지 않고 전체 스캔으로 떨어지며 에러는 나지 않는다.</p>
+      <p>운영 부담이 어디에 몰리는지는 16장에서 다룬다. HNSW 에서 행 갱신은 사실상 삭제와 삽입이라 잦은 덮어쓰기가 그래프에 죽은 노드를 쌓는다. pgvector 문서도 HNSW 인덱스의 VACUUM 이 오래 걸리니 먼저 REINDEX 하라고 적는다.</p>
+      <p class="fig-title" style="margin-top:1.6em">네 신호 중 IDF 는 Postgres 기본 기능으로 만들 수 없다</p>
+      <p class="hint">원문은 Slack 검색의 네 신호 중 하나로 IDF 를 들고 버스트 문턱으로 4.0 이라는 값까지 준다. Postgres 의 <code>ts_rank</code> 는 corpus 전체 통계를 쓰지 않는다. 문서 안에서의 단어 빈도와 가중치만 본다.</p>
+      <p>IDF 도 길이 정규화도 없으므로 이 신호는 기본 전문 검색 밖에서 조달된다. 단어별 문서 빈도 테이블을 직접 유지하거나 BM25 확장을 얹는 두 길이 있다. 원문은 어느 쪽인지 밝히지 않는다. 버스트 문턱이 수집 시점에 평가되는 것을 보면 자체 빈도 테이블 쪽이 자연스럽다.</p>
+      <div class="card">
+        <span class="tag">호스팅을 정하기 전에 확인할 것</span>
+        <p class="small">BM25 확장은 관리형 Postgres 에 대부분 없다. RDS 나 Aurora 는 확장 허용 목록 방식이라 pgvector 는 주지만 이쪽은 주지 않는다. 한국어가 섞이면 더 좁아진다. Postgres 에는 한국어 형태소 분석기가 없어 <code>pgroonga</code> 나 <code>pg_bigm</code> 이 필요한데 그것도 없다. 나중에 필요해지면 그때 깔자가 성립하지 않고, 그때는 이사이며 이사는 전체 재색인이다. 후보 인스턴스에서 <code>SELECT * FROM pg_available_extensions</code> 를 먼저 돌려 볼 것.</p>
+      </div>
+      <p>이 제약이 인프라 선택을 좌우한다. 네 신호를 다 쓰겠다고 정한 순간 호스팅 후보가 좁아지므로, 설계 초기에 결정해 두지 않으면 나중에 되돌리는 비용이 크다.</p>
+      <p class="note">Cerebras 가 halfvec 을 썼는지 표현식 인덱스를 썼는지는 원문에 없다. 두 방법 중 하나여야 한다는 것만 pgvector 제약에서 따라온다. Cerebras 가 어느 쪽으로 IDF 를 조달하는지 확인할 방법이 없다. 자체 테이블 쪽이라는 것은 추정이다.</p>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-scale</p>
+      <h2>이 구조가 성립하는 근거의 절반은 규모가 작다는 사실이다</h2>
+      <p class="dek">하루 15,000 질의는 무섭게 들리지만 읽기 부하로는 작다. 환산해 보면 왜 인스턴스 하나로 되는지, 그리고 어디에 실제 부담이 있는지가 갈린다.</p>
+      <div class="stats">
+        <div class="stat"><span class="lab">평균 QPS</span><span class="val">0.17</span><span class="sub">15,000 나누기 86,400초. 이 문서의 계산이다</span></div>
+        <div class="stat"><span class="lab">근무 8시간 기준</span><span class="val">0.52</span><span class="sub">질의가 근무 시간에 몰린다고 가정했다</span></div>
+        <div class="stat"><span class="lab">피크 가정</span><span class="val">1 ~ 3</span><span class="sub">피크를 평균의 3배에서 5배로 잡은 값. 근거 자료는 없다</span></div>
+        <div class="stat bad"><span class="lab">공개된 품질 수치</span><span class="val">0<span class="u">건</span></span><span class="sub">accuracy, recall, 만족도 모두 없다</span></div>
+      </div>
+      <p>부담은 쓰기 쪽에 몰린다. Slack 스레드는 답글마다 다시 embedding 되므로 embedding 비용이 대화량에 비례한다. HNSW 는 잦은 갱신에 그래프가 부풀고 재색인이 필요해진다. 인덱스 빌드가 <code>maintenance_work_mem</code> 을 넘으면 성능이 급락하는데, halfvec(3072) 기준 100만 행이면 vector 데이터만 6GB 대다.</p>
+      <p class="note">원문은 운영 항목을 다루지 않는다. 출시 3개월 시점의 글이라는 점을 감안해야 한다. 위 수치 중 15,000 만 원문의 것이다.</p>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">blueprint-table</p>
+      <h2>원문 제약을 pgvector 위에서 실제로 돌아가게 옮기면 이 모양이 된다</h2>
+      <p class="dek">아래는 Cerebras 의 DDL 이 아니다. 원문이 밝힌 제약을 이 문서가 옮긴 최소 형태이고, 인스턴스에 올려 돌려 보지는 않았다. 본문에서 나온 제약이 어디에 어떻게 박히는지 한자리에서 보기 위한 것이다.</p>
+      <pre><code>CREATE TABLE kb_embeddings (
+  source        text        NOT NULL,   -- slack_thread | code_chunk | wiki_section
+  source_id     text        NOT NULL,   -- 원 시스템의 안정 키. chunk 단위여야 한다
+  document      text,                   -- embedding 대상 정리본. 워커가 채운다
+  raw_text      text,                   -- 원문. embedding 하지 않고 전문 검색 전용
+  metadata      jsonb       NOT NULL DEFAULT '{}'::jsonb,
+  embedding     halfvec(3072),          -- vector(3072) 로는 HNSW 를 못 건다
+
+  content_ver   bigint      NOT NULL DEFAULT 1,   -- 쓰기 경로가 올린다
+  synced_ver    bigint      NOT NULL DEFAULT 0,   -- 워커가 반영 후 맞춘다
+
+  updated_at    timestamptz NOT NULL DEFAULT now(),
+  fts           tsvector GENERATED ALWAYS AS
+                  (to_tsvector('simple', coalesce(raw_text, document, ''))) STORED,
+  PRIMARY KEY (source, source_id)
+);
+
+CREATE INDEX kb_fts   ON kb_embeddings USING gin (fts);
+CREATE INDEX kb_meta  ON kb_embeddings USING gin (metadata jsonb_path_ops);
+CREATE INDEX kb_dirty ON kb_embeddings (updated_at) WHERE synced_ver &lt; content_ver;</code></pre>
+      <p>한 행이 텍스트를 두 벌 들고 두 인덱스에 참여한다. <code>content_ver</code> 와 <code>synced_ver</code> 가 대기열이고, 부분 인덱스 <code>kb_dirty</code> 가 아직 처리하지 않은 행만 좁게 잡는다. vector 인덱스는 여기 없다. 대량 적재 전에 만들면 적재가 느려지므로 데이터를 채운 뒤 한 번에 만든다.</p>
+      <p class="fig-title" style="margin-top:1.6em">이벤트 핸들러는 표시만 남기고, 워커가 겹치지 않게 집어 간다</p>
+      <p class="hint">08장의 두 단계를 SQL 로 옮기면 이렇게 된다. 핸들러 쪽은 embedding 없이 끝나고, 워커 쪽은 여러 개가 동시에 돌아도 같은 행을 두 번 집지 않는다.</p>
+      <pre><code>-- 소켓 핸들러. LLM 도 embedding 도 부르지 않는다.
+INSERT INTO kb_embeddings (source, source_id, raw_text, metadata, updated_at, content_ver)
+VALUES ('slack_thread', $1, $2, $3, now(), 1)
+ON CONFLICT (source, source_id) DO UPDATE SET
+  raw_text    = EXCLUDED.raw_text,      -- 이 순간부터 전문 검색은 즉시 된다
+  metadata    = EXCLUDED.metadata,
+  updated_at  = now(),
+  content_ver = kb_embeddings.content_ver + 1;   -- RESET WATERMARKS</code></pre>
+      <pre><code>-- 워커. FOR UPDATE SKIP LOCKED 가 워커끼리의 경합을 없앤다.
+WITH claimed AS (
+  SELECT source, source_id, raw_text, content_ver
+  FROM kb_embeddings
+  WHERE synced_ver &lt; content_ver
+  ORDER BY updated_at LIMIT 32
+  FOR UPDATE SKIP LOCKED
+)
+SELECT * FROM claimed;
+
+-- transaction 밖에서 LLM 정리와 embedding 을 수행한 뒤
+UPDATE kb_embeddings SET
+  document   = $doc,
+  embedding  = $vec,
+  synced_ver = $claimed_ver      -- 집어 갈 때의 버전으로만 맞춘다
+WHERE source = $1 AND source_id = $2;</code></pre>
+      <p>마지막 줄이 디바운스를 공짜로 만든다. 처리하는 동안 답글이 또 달렸다면 <code>content_ver</code> 가 더 올라가 있으므로 <code>synced_ver &lt; content_ver</code> 가 유지되고 워커가 한 번 더 돈다. 답글 열 개가 연달아 달려도 정리는 한 번만 돈다.</p>
+      <p class="note">실행 검증을 하지 않았다. 문법은 검토했고 인스턴스에 올려 돌려 보지는 않았다. 워커 실패 시 재시도 횟수와 backoff 는 여기 없다. 실제로는 시도 횟수 컬럼이 하나 더 필요하다.</p>
+    </div>
+  </section>
+
+  <!-- 18 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">blueprint-read</p>
+      <h2>범위 필터를 쓰는 순간 iterative scan 설정이 함께 필요해진다</h2>
+      <p class="dek">네 신호 중 셋을 RRF 로 합치는 형태다. IDF 는 여기 없다. <code>ts_rank_cd</code> 가 corpus 통계를 쓰지 않으므로 21장에서 본 대로 별도 빈도 테이블이나 확장이 필요하다.</p>
+      <pre><code>WITH scope AS (                       -- 프로젝트 범위가 먼저 corpus 를 자른다
+  SELECT * FROM kb_embeddings
+  WHERE source = 'slack_thread' AND metadata-&gt;&gt;'channel' = ANY($channels)
+),
+vec AS (
+  SELECT source_id, row_number() OVER (ORDER BY embedding &lt;=&gt; $qvec) AS rank
+  FROM scope ORDER BY embedding &lt;=&gt; $qvec LIMIT 50
+),
+lex AS (
+  SELECT source_id, row_number() OVER (ORDER BY ts_rank_cd(fts, q) DESC) AS rank
+  FROM scope, websearch_to_tsquery('simple', $qtext) q
+  WHERE fts @@ q ORDER BY ts_rank_cd(fts, q) DESC LIMIT 50
+),
+fresh AS (
+  SELECT source_id, row_number() OVER (ORDER BY updated_at DESC) AS rank
+  FROM scope WHERE source_id IN (SELECT source_id FROM vec
+                                 UNION SELECT source_id FROM lex)
+)
+SELECT source_id, sum(w / (60 + rank)) AS rrf
+FROM (
+  SELECT source_id, rank, 1.0 AS w FROM vec   UNION ALL
+  SELECT source_id, rank, 1.0      FROM lex   UNION ALL
+  SELECT source_id, rank, 0.5      FROM fresh   -- 감쇠는 동점 처리용이라 낮춘다
+) lists
+GROUP BY source_id ORDER BY rrf DESC LIMIT 20;</code></pre>
+      <pre><code>SET hnsw.iterative_scan = relaxed_order;   -- pgvector 0.8+
+SET hnsw.max_scan_tuples = 20000;
+SET hnsw.ef_search = 100;</code></pre>
+      <p>마지막 세 줄이 16장에서 본 문제의 대응이다. 범위 필터든 권한 필터든 좁아지는 순간 recall 이 조용히 무너지므로, 필터를 쓰기 시작하면 이 설정이 함께 온다.</p>
+      <p class="note">가중치 1.0 과 0.5 는 이 문서가 정한 값이다. Cerebras 는 weight 기본값이 1.0 이라고만 밝힌다.</p>
+    </div>
+  </section>
+
+  <!-- 19 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>원문의 산문과 그림, 그리고 이름이 밝혀진 부품의 소스를 열었다</h2>
+      <p class="dek">원문 텍스트 외에 그림 11개의 마크업을 따로 확인했다. 그림은 라벨과 데이터가 그대로 들어 있는 HTML 과 SVG 라서, 산문에 없는 컴포넌트 이름과 수치가 거기 있다. 그중 넷은 headless browser 로 렌더해 눈으로 확인했다.</p>
+      <div class="grid g2">
+        <div class="card"><span class="tag">직접 열어 확인</span><p class="small">CocoIndex 의 <code>src/execution/db_tracking_setup.rs</code>(v0.3), <code>rust/ops_text/src/split/recursive.rs</code>, <code>rust/code_ast/src/prog_langs.rs</code>, <code>rust/core/src/state_store/</code>. 인용과 상수를 그대로 옮겼다.</p></div>
+        <div class="card"><span class="tag">직접 열어 확인</span><p class="small">pgvector README 의 차원 한계와 저장 크기와 VACUUM 서술. Slack 문서의 Socket Mode 확인 응답 제한과 재전송 횟수와 전달 보장.</p></div>
+        <div class="card"><span class="tag">렌더해서 본 그림</span><p class="small">fig-001 계층도, fig-002 스키마, fig-003 수집 파이프라인, fig-008 RRF 융합. 나머지 일곱은 마크업만 읽었고 렌더 확인은 하지 않았다.</p></div>
+        <div class="card"><span class="tag">이 문서가 한 계산</span><p class="small">RRF 점수 여섯 개 재현, IDF 4.0 의 문서 비율 환산, QPS 환산, halfvec 과 vector 의 바이트 크기. 원문에 없는 계산이다.</p></div>
+        <div class="card"><span class="tag">옮겨 적기만 한 것</span><p class="small">Slack 정규화 절차, 버스팅 문턱 셋, 상위 20과 10, 도구 여섯, 프로젝트 범위. 전부 Cerebras 의 자기 서술이고 대조할 코드가 없다.</p></div>
+        <div class="card"><span class="tag">열지 못한 것</span><p class="small">Cerebras 사내 코드. 공개돼 있지 않다. 실행 검증도 하지 않았다. 22장의 SQL 은 이 문서가 작성했고 인스턴스에 올려 돌려 보지 않았다.</p></div>
+      </div>
+      <p class="note">원문 페이지는 이 문서를 쓰는 시점에 HTTP 500 을 반환한다. 브라우저에서는 렌더된다.</p>
+    </div>
+  </section>
+
+  <!-- 20 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>구조는 읽어냈지만 이 구조가 잘 작동하는지는 이 문서가 말할 수 없다</h2>
+      <p class="dek">원문은 자기 서술이고 대조할 코드가 없다. 공개된 품질 수치가 하나도 없어서 설계의 좋고 나쁨을 판정할 근거가 없다. 여기 적는 것은 이 문서가 확인하지 못한 것이다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>항목</th><th class="wrap">상태</th></tr></thead>
+          <tbody>
+            <tr><td>인가 구현</td><td class="wrap">세 계층 중 하나로 이름만 있고 구현 서술이 없다. 여러 권한 등급이 있는 조직은 직접 설계해야 한다</td></tr>
+            <tr><td><code>GRAPH</code> 검색기</td><td class="wrap">존재는 확실하나 무엇의 그래프인지 어떻게 만드는지 어디에도 없다</td></tr>
+            <tr><td>삭제 전파</td><td class="wrap">코드가 지워지면 chunk 는 사라지지만 그 코드를 언급한 Slack 정리본은 남는다. 시간 감쇠는 언제 쓰였나만 볼 뿐 아직 존재하나를 확인하지 않는다</td></tr>
+            <tr><td>embedding 모델 교체</td><td class="wrap">Slack 정규화 프롬프트를 바꾸면 모든 스레드를 LLM 으로 다시 정리한 뒤 다시 embedding 해야 한다. 이 비용을 원문이 언급하지 않는다</td></tr>
+            <tr><td>모델 이름</td><td class="wrap">embedding 은 3,072차원이라는 사실만 있다. 재정렬은 fig-001 에 LLM RERANK 로 적혀 있어 cross-encoder 라는 서술은 맞지 않지만 모델명은 없다</td></tr>
+            <tr><td>인프라 형태</td><td class="wrap">Postgres 버전, 자체 호스팅 여부, 복제와 backup, corpus 총 행수, 비용이 전부 없다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>그럼에도 옮겨 갈 수 있는 것이 하나 있다. embedding 전에 정규화한다는 결정은 corpus 종류를 가리지 않는다. 원문 텍스트를 그대로 넣으면 짧고 내용 없는 문서가 상위권을 차지하는 문제는 Slack 만의 것이 아니다.</p>
+      <p class="note">삭제 전파와 모델 교체 비용과 도입 판단을 더 파고든 문서가 <a href="../2026-08-12-cerebras-knowledge-base/">2026-08-12 Cerebras Knowledge</a> 에 있다.</p>
+    </div>
+  </section>
+
+  <!-- 21 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>이 설계를 지탱하는 규칙은 모든 소스가 같은 행 모양을 지킨다는 것 하나다</h2>
+      <p class="dek">vector 검색도 RRF 도 이 시스템의 핵심이 아니다. 둘 다 알려진 기법이고 다른 곳에도 있다. 이 시스템에서만 볼 수 있는 것은 규칙 하나를 정하고 그것을 강제할 수 있는 자리에 놓았다는 점이다.</p>
+      <p>커넥터가 pull request 하나로 늘어나고, 검색 전략이 수집을 건드리지 않고 바뀌고, 수집 상태와 vector 가 한 transaction 에 묶이는 일이 전부 그 결정 하나에서 나온다. 반대로 그 규칙을 지키지 못하는 순간 나머지 장점도 함께 사라진다.</p>
+      <p>그 규칙을 강제할 자리로 Postgres 테이블 하나를 고른 대가도 분명하다. 스키마를 바꾸면 모든 커넥터가 깨지고, 3,072차원에 HNSW 를 걸려면 타입부터 골라야 하고, IDF 를 쓰려면 확장이 깔리는 호스팅을 먼저 정해야 한다. 규모가 커지면 전제 자체가 흔들린다.</p>
+      <p>따라 지을 때 옮겨 가는 것은 기법이 아니라 순서다. embedding 하기 전에 정규화하고, 쓰기를 두 단계로 쪼개고, 대기열을 데이터 옆에 두고, 권한 판단 기준을 먼저 정한다. 네 가지 모두 검색 코드를 한 줄도 쓰기 전에 정해지는 것이다.</p>
+      <p class="note">이 결론은 구조 분석에서 나온 것이고 성능 근거를 갖고 있지 않다.</p>
+    </div>
+  </section>
+
+  <!-- 22 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>원문과 그림, 그리고 이름이 밝혀진 부품의 고정 소스</h2>
+      <p class="dek">숫자와 인용은 모두 아래 자리를 직접 열어 확인했다. 이 문서가 직접 계산한 값은 그 자리에 계산이라고 밝혀 두었다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>자리</th><th class="wrap">무엇을 가져왔나</th></tr></thead>
+          <tbody>
+            <tr><td><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base">Cerebras, How we built our knowledge base</a></td><td class="wrap">산문 전체. 세 계층, Slack 정규화, 버스팅, 도구 여섯, 프로젝트</td></tr>
+            <tr><td>같은 글의 그림 11개</td><td class="wrap">fig-001 층 구조와 pgvector 표기, fig-002 스키마와 소스 목록, fig-003 수집 파이프라인, fig-004 정규화 예시, fig-008 RRF 리스트</td></tr>
+            <tr><td><a href="https://github.com/cocoindex-io/cocoindex">cocoindex-io/cocoindex</a></td><td class="wrap">v0.3 의 추적 테이블 DDL, 청크 비용 상수, 언어 등록표, V1 의 LMDB 상태 저장소</td></tr>
+            <tr><td><a href="https://github.com/pgvector/pgvector">pgvector/pgvector</a></td><td class="wrap">차원 한계, halfvec, 저장 크기, iterative scan, VACUUM 서술</td></tr>
+            <tr><td><a href="https://docs.slack.dev/apis/events-api/using-socket-mode/">Slack, Using Socket Mode</a></td><td class="wrap">확인 응답 3초, 최대 3회 재전송, at-least-once, 순서 미보장</td></tr>
+            <tr><td><a href="https://dl.acm.org/doi/10.1145/1571941.1572114">Cormack, Clarke, Buettcher, RRF</a></td><td class="wrap">k=60 의 출처. 원문이 인용한 논문이다</td></tr>
+            <tr><td><a href="../2026-08-12-cerebras-knowledge-base/">2026-08-12 Cerebras Knowledge</a></td><td class="wrap">같은 대상을 도입 판단과 미해결 문제 쪽에서 다룬 문서</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Cerebras 사내 코드는 공개돼 있지 않아 원문 서술을 대조할 방법이 없다. CocoIndex 와 pgvector 쪽 인용만 고정 소스에 근거한다.</p>
+    </div>
+  </section>
+
+  </main>
+
+  <button class="nav-btn prev" id="prev" aria-label="이전 슬라이드">&larr; 이전</button>
+  <button class="nav-btn next" id="next" aria-label="다음 슬라이드">다음 &rarr;</button>
+  <div class="progress" id="progress"></div>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,957 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>deepseek-harness: 에이전트 루프도 모델 어댑터도 설정 한 행인 하네스</title>
+<meta name="description" content="dsh 의 부팅 트리는 빈 배열 위에 패치 레이어를 쌓아 만든다. base 번들 78개 행 중 하나가 에이전트 루프이고, 설정으로 갈아끼울 수 없는 코드는 6,143줄이다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="deepseek-harness: 에이전트 루프도 모델 어댑터도 설정 한 행인 하네스">
+<meta property="og:description" content="dsh 의 부팅 트리는 빈 배열 위에 패치 레이어를 쌓아 만든다. base 번들 78개 행 중 하나가 에이전트 루프이고, 설정으로 갈아끼울 수 없는 코드는 6,143줄이다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-14-deepseek-harness-plugin-architecture/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+/* 타일 sub 에는 끊을 공백이 없는 경로·명령이 들어간다. 안 풀면 카드 밖으로 잘린다 */
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; overflow-wrap: anywhere; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+/* 서술형 셀이 있는 표. nowrap 이면 마지막 열이 잘려 스크롤해야만 보인다 */
+.tablewrap.prose th, .tablewrap.prose td { white-space: normal; text-align: left; }
+.tablewrap.prose th.n, .tablewrap.prose td.n { text-align: right; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+svg .mono { fill: var(--ink-2); font-family: var(--mono); font-size: 11.5px; }
+svg .mono-hi { fill: var(--ink); font-family: var(--mono); font-size: 11.5px; font-weight: 700; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>커널</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>합성 경로</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>플러그인 경계</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>대안과의 비교</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>화제성</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>부팅 추적</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>확장 지점</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>도입 판단</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>결론</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 표지 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>deepseek-harness: 에이전트 루프도 모델 어댑터도 설정 한 행인 하네스</h1>
+      <p class="dek">DeepSeek 이 2026-08-13 에 공개한 에이전트 하네스 <code class="wl">dsh</code> 를 commit <code class="wl">47f9438</code> 기준으로 읽는다. README 의 슬로건이 코드에서 정확히 무엇을 가리키는지, 그리고 Claude Code·Codex 와 구조적으로 어디가 갈라지는지를 따로 답한다.</p>
+
+      <div class="stats">
+        <div class="stat hero"><span class="lab">고정한 커밋</span><span class="val">47f9438</span><span class="sub">master, 2026-08-13T11:38:46Z</span></div>
+        <div class="stat"><span class="lab">저장소 파일</span><span class="val">7,412<span class="u">개</span></span><span class="sub">그중 26개를 열었다 (10장)</span></div>
+        <div class="stat"><span class="lab">라이선스</span><span class="val">MIT</span><span class="sub"><code class="wl">LICENSE:1-3</code> 원문. npm 은 <code class="wl">0.0.1-rc.5</code> 까지 BSD-3-Clause</span></div>
+        <div class="stat"><span class="lab">상태</span><span class="val">preview</span><span class="sub"><code class="wl">0.1.0-rc.5</code>, 호환성 파괴 예고</span></div>
+      </div>
+
+      <div class="grid g3">
+        <div class="card"><span class="tag">읽는 순서 · 설계</span><p class="small">4장에서 커널의 정체를, 5장에서 트리가 조립되는 순서를, 6장에서 플러그인 밖에 남은 코드의 양을 센다. 9장은 <code class="wl">dsh --profile web</code> 한 번을 파일과 줄 번호로 따라간다.</p></div>
+        <div class="card"><span class="tag">읽는 순서 · 비교</span><p class="small">7장이 Claude Code·Codex 와의 대비다. 공개 문서와 공개 저장소로 확인되는 것만 넣었고, 확인하지 못한 칸은 비워두지 않고 확인하지 못했다고 적었다.</p></div>
+        <div class="card"><span class="tag">읽는 순서 · 채택</span><p class="small">12장이 한계, 13장이 도입 판단이다. 급하면 2장과 13장만 읽어도 결론은 전달된다.</p></div>
+      </div>
+
+      <p class="note"><b>화제성과 설계의 차별성은 같은 질문이 아니다.</b> 앞의 것은 8장에서 관측 수치로만 답한다. 뒤의 것은 4~6장에서 코드로 답하고, 7장의 대비만 공개 문서와 공개 저장소 관찰이다. 저장소가 왜 눌렸는지, 그 동기 추정은 이 문서에 없다.</p>
+    </div>
+  </section>
+
+  <!-- 02 요약 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약. 슬로건은 수사가 아니다. 부팅 루트가 실제로 빈 배열이고, 트리 전체가 패치 합성의 결과다</h2>
+      <p class="dek">에이전트 루프, 모델 어댑터, 툴 레지스트리, 세션 로그가 모두 설정 파일의 한 행이다. 설정으로 갈아끼울 수 없는 코드는 런처와 커널을 합쳐 6,143줄이고, 이는 프로덕션 TypeScript 소스 205,749줄의 3.0%다. 커널은 자체 구현이 아니라 소스째 들여온 Cordis 이고, 벤더 계층 전체에 upstream 과 다른 곳 18군데가 로그로 적혀 있다.</p>
+
+      <div class="stats">
+        <div class="stat hero"><span class="lab">base 번들이 삽입하는 행</span><span class="val">78<span class="u">개</span></span><span class="sub"><code class="wl">grep -c '^    - id: ' packages/bundle/base/cordis.patch.yml</code></span></div>
+        <div class="stat"><span class="lab">설정 밖에 남은 코드</span><span class="val">6,143<span class="u">줄</span></span><span class="sub">런처·부트 2,313 + 커널·loader 3,830</span></div>
+        <div class="stat"><span class="lab">워크스페이스 패키지</span><span class="val">219<span class="u">개</span></span><span class="sub"><code class="wl">packages/*/*</code> 아래 package.json</span></div>
+        <div class="stat"><span class="lab">star (조회 시점)</span><span class="val">71,700</span><span class="sub">2026-08-14T05:58:00Z, 공개 18시간 시점</span></div>
+      </div>
+
+      <p>슬로건이 코드에서 가리키는 것은 세 가지다. 첫째, <code class="wl">apps/cli/src/profile-boot.ts:63</code> 의 부팅 루트 상수가 문자 그대로 <code class="wl">[]</code> 다. 둘째, 그 위에 번들·프로파일·홈·<code class="wl">--patch</code> 순서로 패치 레이어가 쌓여 마운트할 행 목록이 만들어진다. 셋째, 런처는 어떤 capability 패키지도 import 하지 않는다. 부트 지원 패키지 네 개만 import 한다.</p>
+
+      <p>다만 차별성의 크기는 슬로건이 시사하는 만큼은 아니다. Codex 도 <code class="wl">plugins</code>·<code class="wl">model_providers</code> 설정 섹션을 가지고 있고, Claude Code 도 플러그인을 문서화한다. 실제로 갈라지는 지점은 <b>교체 가능한 범주가 열거형인가 아닌가</b>다. dsh 에서 에이전트 루프는 특별한 확장 범주가 아니라 <code class="wl">id: agent-loop</code> 이라는 행이고, 나머지 77개 행과 문법이 같다.</p>
+
+      <p class="note"><b>이 문서는 dsh 를 실행하지 않았다.</b> 부팅 순서와 패치 합성은 소스를 읽어 확인한 것이고, 런타임에 실제로 그렇게 동작하는지는 확인하지 않았다. 실행해 확인해야 할 항목은 12장에 모아두었다.</p>
+    </div>
+  </section>
+
+  <!-- 03 문제 정의 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>문제 정의. 하네스에서 바꿀 수 있는 것은 확장 범주의 목록이 정해 왔다</h2>
+      <p class="dek">에이전트 하네스를 쓰다 보면 요구가 문서화된 확장 범주 밖으로 나간다. 세션 로그를 다른 형식으로 남기고 싶다거나, 모델 요청 직전에 컨텍스트를 다시 조립하고 싶다거나, 루프의 종료 조건을 바꾸고 싶다는 식이다. 그때 범주 목록이 곧 가능한 것의 목록이 된다.</p>
+
+      <ul class="clean" style="margin-bottom:16px">
+        <li><span class="m">CC</span><span>Claude Code 의 플러그인 문서는 확장 대상을 <b>skills, agents, hooks, MCP servers</b> 네 가지로 적는다. "This guide covers creating your own plugins with skills, agents, hooks, and MCP servers." (<code class="wl">code.claude.com/docs/en/plugins</code>, 2026-08-14 조회)</span></li>
+        <li><span class="m">CX</span><span>Codex 의 설정 레퍼런스는 최상위 섹션으로 <code class="wl">agents</code>, <code class="wl">hooks</code>, <code class="wl">mcp_servers</code>, <code class="wl">model_providers</code>, <code class="wl">plugins</code>, <code class="wl">permissions</code> 등을 열거한다. 모델 제공자 추가와 훅은 설정으로 되고, 그 목록에 에이전트 루프는 없다.</span></li>
+        <li><span class="m bad">✗</span><span>두 도구의 <b>비공개 구현</b>에 그 범주 밖 확장 지점이 있는지는 확인하지 못했다. 확인한 것은 공개 문서에 없다는 사실뿐이고, 이 문서는 거기까지만 주장한다.</span></li>
+      </ul>
+
+      <p>dsh 저장소는 같은 문제를 자기 기여 규칙에 명시적으로 적어 두었다. <code class="wl">AGENTS.md:108</code>: "<b>Plugins, not loop changes</b>: new behavior goes on documented extension points; changing <code class="wl">agent-loop</code> requires updating docs/architecture.md." 루프를 고치면 아키텍처 문서를 함께 갱신해야 하는 일로 값이 매겨져 있다. 다만 이 값은 내부 팀만 치를 수 있다. <code class="wl">CONTRIBUTING.md</code> 가 "We are sorry that we cannot accept external pull requests at the moment." 라고 적는다. 외부 사용자에게 남는 경로는 저장소를 고치는 쪽이 아니라 자기 플러그인을 마운트하는 쪽뿐이다.</p>
+
+      <p>dsh 는 <code class="wl">packages/hooks/hooks-claude-code</code> 를 싣고 있고, 그 README 는 사용자가 <b>이미 가지고 있는</b> Claude Code 훅 설정(<code class="wl">hooks.json</code>) 중 <b>지원되는 command-hook 부분집합</b>을 실행하는 브리지라고 스스로 설명한다(<code class="wl">README.md:5</code>, "runs the supported command-hook subset"). 기존 설정이 통째로 도는 것이 아니다. 확장이 훅이라는 좁은 통로로 몰려 있었다는 관찰이 이 패키지의 존재 이유다.</p>
+
+      <p class="note">이 장은 "포크 말고는 방법이 없었다"고 주장하지 않는다. 실제로 사람들이 무엇을 했는지(포크 수, 이슈, 커뮤니티 논의)는 조사하지 않았다. 확인한 것은 각 도구의 <b>공개 문서가 약속하는 확장 표면의 범위</b>이고, 그 범위가 열거된 목록이라는 점이다.</p>
+    </div>
+  </section>
+
+  <!-- 04 커널 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">kernel</p>
+      <h2>구조 1. 플러그인 커널은 자체 구현이 아니라 소스째 들여와 고쳐 쓰는 Cordis 사본이다</h2>
+      <p class="dek">README 는 "powered by Cordis" 라고만 적지만, 의존 방식이 npm 이 아니다. <code class="wl">vendor/</code> 아래에 소스를 복사해 넣고 <code class="wl">@deepseek-ai</code> 스코프로 이름까지 바꿔 자기 이름으로 재배포한다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">벤더링된 프레임워크 계층: 9개 패키지, 소스 6,493줄</p>
+        <p class="fig-sub"><code class="wl">vendor/README.md:15-23</code> 의 매니페스트 표에서 발췌. 줄 수는 <code class="wl">find vendor/&lt;dir&gt;/src -name '*.ts' | xargs wc -l</code></p>
+        <div class="tablewrap prose">
+          <table>
+            <thead><tr><th>디렉터리</th><th>재배포 이름</th><th>upstream 이름</th><th>버전</th><th>upstream 저장소</th></tr></thead>
+            <tbody>
+              <tr class="hero"><td>cordis/</td><td>@deepseek-ai/cordis</td><td>cordis</td><td>4.0.0-rc.7</td><td>cordiverse/cordis</td></tr>
+              <tr><td>loader/</td><td>@deepseek-ai/cordis-plugin-loader</td><td>@cordisjs/plugin-loader</td><td>1.0.0-rc.5</td><td>cordiverse/cordis</td></tr>
+              <tr><td>include/</td><td>@deepseek-ai/cordis-plugin-include</td><td>@cordisjs/plugin-include</td><td>1.0.4</td><td class="lose">deepseek-harness/cordis</td></tr>
+              <tr><td>group/</td><td>@deepseek-ai/cordis-plugin-group</td><td>@cordisjs/plugin-group</td><td>1.0.0</td><td class="lose">deepseek-harness/cordis</td></tr>
+              <tr><td>hmr/</td><td>@deepseek-ai/cordis-plugin-hmr</td><td>@cordisjs/plugin-hmr</td><td>1.0.15</td><td class="lose">deepseek-harness/cordis</td></tr>
+              <tr><td>schemastery/</td><td>@deepseek-ai/schemastery</td><td>schemastery</td><td>3.18.0</td><td class="lose">deepseek-harness/schemastery</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>9개 중 6개만 실었다. 빨간 칸은 upstream 이 이미 원 저자 조직이 아니라 <code class="wl">deepseek-harness</code> 포크인 항목이다. 커널 본체(<code class="wl">cordis/</code>)와 loader 만 아직 <code class="wl">cordiverse/cordis</code> 를 가리킨다. 벤더링한 커밋 <code class="wl">56b3d4f</code> 시점에서 그 둘은 <code class="wl">4.0.0-rc.7</code>, <code class="wl">1.0.0-rc.5</code> 로 둘 다 rc 였다. 그 뒤 upstream 이 안정 릴리스를 냈는지는 저장소를 열지 않아 모른다(15장).</figcaption>
+      </figure>
+
+      <p>왜 npm 의존이 아닌지는 저장소가 직접 답한다. <code class="wl">vendor/README.md:3</code>: "They are copied into this monorepo instead of being depended on via npm, so that the harness fully owns its framework layer (auditable, patchable, pinned)." 실제로 고쳤다. 같은 파일의 local-modification 로그는 18개 항목인데, 이 18은 커널 하나의 수가 아니라 위 9개 패키지 전체를 덮는 수다. <code class="wl">vendor/README.md:31</code> 이 로그를 빠짐없이 유지하라고, 즉 upstream 과의 모든 차이를 여기 적으라고 요구한다. 항목 이름으로 <code class="wl">cordis/src</code> 를 지목하는 것은 그중 셋(<code class="wl">:38</code>·<code class="wl">:39</code>·<code class="wl">:47</code>)이고, 거기에는 주석 정리(<code class="wl">:39</code> JSDoc enrichment)뿐 아니라 커널의 해제 순서를 바꾸는 항목(<code class="wl">:38</code>, <code class="wl">cordis/src/fiber.ts</code> lifecycle hardening)이 들어 있다. 여러 벤더 패키지에 걸치는 항목은 아홉인데, 그중 커널까지 포함하면서 앞의 셋에 들지 않는 것이 다섯(<code class="wl">:34</code>·<code class="wl">:35</code>·<code class="wl">:36</code>·<code class="wl">:42</code>·<code class="wl">:49</code>)이다. 이들도 커널에 닿지만, 18 이라는 수 자체는 커널의 것이 아니다. 패치 알고리즘 자체를 바꾸는 항목(<code class="wl">:43</code>)은 커널이 아니라 <code class="wl">include</code> 플러그인의 것이다.</p>
+
+      <p>패치 알고리즘 수정은 이 아키텍처가 성립하기 위한 조건이었다. <code class="wl">vendor/README.md:43</code>: "<code class="wl">applyEntryPatches</code> also indexes each <code class="wl">insert</code>ed entry as it is added, so a later patch in the same list can configure or disable a row an earlier patch inserted; upstream built the id index once before the patch loop, <b>leaving inserted rows silently unpatchable</b>." upstream 그대로였다면 번들이 삽입한 78개 행을 사용자가 건드릴 수 없었다. 5장에서 볼 레이어 구조는 이 수정 위에 서 있다.</p>
+
+      <p class="note">커널 소스 자체는 열지 않았다. <code class="wl">vendor/cordis/src</code> 는 9개 파일 2,693줄이고, 이 장의 진술은 파일 목록·줄 수와 <code class="wl">vendor/README.md</code>, <code class="wl">docs/cordis-primer.md</code> 를 근거로 한다. 수정 로그가 실제 코드와 일치하는지는 확인하지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 05 합성 경로 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">composition</p>
+      <h2>구조 2. 부팅 트리는 빈 배열 위에 패치 레이어를 순서대로 쌓은 결과다</h2>
+      <p class="dek">프로파일 디렉터리에 실제로 존재하는 <code class="wl">cordis.yml</code> 의 내용은 <code class="wl">[]</code> 다. 파일이 디스크에 있는 이유는 Loader 가 <code class="wl">baseUrl</code> 을 걸 실제 루트를 필요로 하기 때문이고, 부팅할 때마다 다시 덮어쓴다. 마운트할 행 목록은 그 빈 배열에 패치 리스트를 전부 적용해서 만든다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">레이어 넷이 빈 배열 하나로 합성된다</p>
+        <p class="fig-sub">적용 순서는 <code class="wl">apps/cli/src/profile-boot.ts:151</code> 의 배열 순서 그대로다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 760 340" role="img" aria-label="dsh 부팅 트리 합성 도식. 왼쪽 맨 위 상자가 프로파일 루트 cordis.yml 의 빈 배열이고, 그 아래로 패치 레이어 넷이 dsh-base 번들, 모드 번들, 프로파일 cordis.patch.yml, 홈 레이어와 --patch 오버레이 순서로 쌓여 있다. dsh-base 번들 상자에는 78개 행을 insert 한다고 적혀 있다. 다섯 상자가 모두 가운데의 composeEntries 상자로 화살표를 보내고, 그 결과가 오른쪽의 마운트할 행 목록이 된다. 행 목록에는 id 가 timer, llm, session, 줄임표, tools, agent-loop, llm-deepseek, fs-sandbox 인 행이 있고 agent-loop 행이 강조되어 있다. 목록 아래에는 뒤 레이어가 id 로 행을 지목해 config 를 통째로 교체하거나 새 행을 넣는다고 적혀 있다.">
+          <rect class="box" x="8" y="24" width="178" height="44" rx="8"/>
+          <text class="txt" x="20" y="44">cordis.yml (루트)</text>
+          <text class="txt-s" x="20" y="60">[] · 빈 배열</text>
+
+          <rect class="box" x="8" y="82" width="178" height="44" rx="8"/>
+          <text class="txt" x="20" y="102">① dsh-base 번들</text>
+          <text class="txt-s" x="20" y="118">78개 행을 insert</text>
+
+          <rect class="box" x="8" y="140" width="178" height="44" rx="8"/>
+          <text class="txt" x="20" y="160">② 모드 번들</text>
+          <text class="txt-s" x="20" y="176">dsh-web-app / dsh-headless</text>
+
+          <rect class="box" x="8" y="198" width="178" height="44" rx="8"/>
+          <text class="txt" x="20" y="218">③ 프로파일 레이어</text>
+          <text class="txt-s" x="20" y="234">cordis.patch.yml</text>
+
+          <rect class="box" x="8" y="256" width="178" height="44" rx="8"/>
+          <text class="txt" x="20" y="276">④ 홈 레이어 + --patch</text>
+          <text class="txt-s" x="20" y="292">$DSH_HOME, argv 순서</text>
+
+          <path class="arw" d="M186 46 L216 46"/><path class="arw" d="M209 41 L216 46 L209 51"/>
+          <path class="arw" d="M186 104 L216 104"/><path class="arw" d="M209 99 L216 104 L209 109"/>
+          <path class="arw" d="M186 162 L216 162"/><path class="arw" d="M209 157 L216 162 L209 167"/>
+          <path class="arw" d="M186 220 L216 220"/><path class="arw" d="M209 215 L216 220 L209 225"/>
+          <path class="arw" d="M186 278 L216 278"/><path class="arw" d="M209 273 L216 278 L209 283"/>
+
+          <rect class="box-hi" x="216" y="24" width="112" height="276" rx="8"/>
+          <text class="txt" x="272" y="150" text-anchor="middle">composeEntries</text>
+          <text class="txt-s" x="272" y="168" text-anchor="middle">applyEntryPatches</text>
+          <text class="txt-s" x="272" y="184" text-anchor="middle">([], patches)</text>
+
+          <path class="arw" d="M328 162 L358 162"/><path class="arw" d="M351 157 L358 162 L351 167"/>
+
+          <rect class="box" x="358" y="24" width="394" height="276" rx="8"/>
+          <text class="txt" x="374" y="46">마운트할 행 목록</text>
+          <text class="mono" x="374" y="76">- id: timer          cordis-plugin-timer</text>
+          <text class="mono" x="374" y="96">- id: llm            dsh-llm</text>
+          <text class="mono" x="374" y="116">- id: session        dsh-session</text>
+          <text class="mono" x="374" y="136">…</text>
+          <text class="mono" x="374" y="156">- id: tools          dsh-tools</text>
+          <rect class="box-hi" x="366" y="164" width="378" height="24" rx="5"/>
+          <text class="mono-hi" x="374" y="181">- id: agent-loop     dsh-agent-loop</text>
+          <text class="mono" x="374" y="208">- id: llm-deepseek   dsh-llm-deepseek</text>
+          <text class="mono" x="374" y="228">- id: fs-sandbox     dsh-fs-sandbox</text>
+          <text class="txt-s" x="374" y="262">뒤 레이어는 id 로 행을 지목해</text>
+          <text class="txt-s" x="374" y="280">config 를 통째로 교체하거나 새 행을 넣는다</text>
+        </svg>
+        </div>
+        <figcaption>강조한 <code class="wl">agent-loop</code> 행은 특별 취급이 아니다. <code class="wl">packages/bundle/base/cordis.patch.yml:436</code> 에 다른 77개 행과 같은 문법으로 있고, 사용자 레이어에서 같은 방식으로 지목된다. 왼쪽 첫 상자는 합성의 대상인 빈 배열이고, 그 아래 상자 넷은 패치가 얹히는 순서다. <code class="wl">profile-boot.ts:151</code> 의 <code class="wl">composeEntries([bundlePatches, profile.patches, homePatches, overlays])</code> 가 같은 순서를 담는다. 다만 상자와 인자가 1:1은 아니다. ①과 ②는 <code class="wl">:149</code> 에서 <code class="wl">bundlePatches</code> 하나로 이어 붙고, ④ 한 상자가 <code class="wl">homePatches</code> 와 <code class="wl">overlays</code> 둘을 함께 가리킨다. 이 그림은 저장소의 도식이 아니라 그 코드를 읽고 그린 것이다.</figcaption>
+      </figure>
+
+      <p>행의 순서에는 로드 의미가 없다. <code class="wl">packages/bundle/base/cordis.patch.yml:12-13</code> 이 직접 적어둔다. "Row order carries no load semantics (activation is service-availability driven); the grouping is for readers." 무엇이 먼저 뜨는지는 각 플러그인의 <code class="wl">static inject</code> 선언이 정한다. 예를 들어 <code class="wl">packages/core/agent-loop/src/index.ts:297</code> 의 <code class="wl">static inject = ['agents', 'sessions', 'llm', 'tools', 'systemPrompt']</code> 가 이 다섯 서비스가 준비될 때까지 에이전트 루프를 기다리게 한다.</p>
+
+      <p class="note">이 합성이 런타임에 실제로 이 순서로 일어나는지는 실행해 확인하지 않았다. 저장소는 확인 수단을 제공한다. <code class="wl">dsh --profile web --dump-config</code> 가 부팅하지 않고 합성 결과만 출력하고, 그 경로가 <code class="wl">applyEntryPatches</code> 를 마운트 경로와 공유하도록 <code class="wl">vendor/include/src/index.ts</code> 를 고친 것이 4장의 수정 항목 11이다. 커널이 아니라 include 플러그인 쪽이다.</p>
+    </div>
+  </section>
+
+  <!-- 06 플러그인 경계 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">boundary</p>
+      <h2>구조 3. 설정으로 갈아끼울 수 없는 코드는 6,143줄, 전체 소스의 3.0%다</h2>
+      <p class="dek">"특권적 코어가 없다"는 <code class="wl">docs/architecture.md:13</code> 의 문장은 반증 가능하다. 코어가 있다면 그것은 어떤 플러그인도 거치지 않고 capability 를 직접 붙잡고 있는 코드일 것이고, 그런 코드는 셀 수 있다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">플러그인 밖에 남은 층과 그 크기</p>
+        <p class="fig-sub">줄 수는 <code class="wl">wc -l</code>, 분모는 <code class="wl">git ls-tree -r HEAD -- packages apps vendor</code> 의 <code class="wl">/src/</code> 아래 <code class="wl">.ts</code> 에서 <code class="wl">.spec.ts</code> 제외</p>
+        <div class="tablewrap prose">
+          <table>
+            <thead><tr><th>층</th><th>경로</th><th class="n">줄</th><th>설정으로 교체</th></tr></thead>
+            <tbody>
+              <tr><td>런처</td><td>apps/cli/src</td><td class="n">832</td><td class="lose">불가</td></tr>
+              <tr><td>부트 글루</td><td>packages/boot/*/src</td><td class="n">1,481</td><td class="lose">불가</td></tr>
+              <tr class="hero"><td>Cordis 커널</td><td>vendor/cordis/src</td><td class="n">2,693</td><td class="lose">불가</td></tr>
+              <tr><td>Loader</td><td>vendor/loader/src</td><td class="n">1,137</td><td class="lose">불가</td></tr>
+              <tr><td>나머지 전부</td><td>packages/, apps/, vendor/ 의 src</td><td class="n">199,606</td><td class="win">행으로 가능</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>합계 205,749줄. 위 네 줄의 합이 6,143줄로 3.0%다. 이 비율 계산은 저장소가 하지 않은 것이므로 원문에서 찾을 수 없다. "행으로 가능"은 마지막 줄의 199,606줄이 전부 실제로 행으로 마운트된다는 뜻이 아니다. 런처가 그 코드를 직접 import 하지 않고, 설정 행이 도달 경로를 쥐고 있다는 뜻이다. 각 패키지가 실제로 어떤 행에 걸리는지는 78개 base 행과 두 모드 번들까지만 확인했다.</figcaption>
+      </figure>
+
+      <p>런처가 무엇을 import 하는지 세면 코어 여부가 갈린다. <code class="wl">grep -rn "@deepseek-ai/dsh-" apps/cli/src/</code> 의 결과는 네 개뿐이다. <code class="wl">dsh-app-boot</code>, <code class="wl">dsh-home-paths</code>, <code class="wl">dsh-launch-environment</code>, <code class="wl">dsh-cmdline</code>. 모델 어댑터도, 툴도, 에이전트 루프도 없다. <code class="wl">apps/cli/src/bin.ts:29-49</code> 의 모드는 <code class="wl">profile</code>, <code class="wl">plugin</code>, <code class="wl">dump-config</code> 셋뿐이고, 나머지는 전부 트리 안이다.</p>
+
+      <p>에이전트 루프도 같은 검사를 통과한다. <code class="wl">grep -rn "from '@deepseek-ai/dsh-agent-loop'" --include='*.ts' packages apps | grep '/src/' | grep -v 'packages/core/agent-loop/' | grep -v 'test-support'</code> 는 1건을 낸다. <code class="wl">packages/examples/agent-spine-demo/src/index.ts:36</code>, 데모 패키지다. 프로덕션 코드에서 루프에 도달하는 경로는 설정 행뿐이다.</p>
+
+      <p class="note">교체 가능성과 교체의 난이도는 다른 문제다. 이 장이 보인 것은 <b>런처가 특정 구현을 붙잡고 있지 않다</b>는 것이지, 예를 들어 <code class="wl">agent-loop</code> 을 다른 구현으로 갈아끼웠을 때 나머지 77개 행이 계속 동작한다는 것이 아니다. <code class="wl">AgentLoop</code> 이 <code class="wl">AgentFactory</code> 를 구현하고 다섯 서비스를 <code class="wl">inject</code> 한다는 것까지가 코드에서 읽은 범위다.</p>
+    </div>
+  </section>
+
+  <!-- 07 대안과의 비교 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">alt-compare</p>
+      <h2>대안과의 비교. 세 도구 모두 플러그인이 있다. 갈리는 것은 교체 가능한 것이 열거형인가다</h2>
+      <p class="dek">"플러그인을 지원하는가"로 물으면 셋 다 예다. Codex 설정에는 <code class="wl">plugins</code> 섹션이 있고 Claude Code 는 플러그인 작성 문서를 따로 둔다. 질문을 "에이전트 루프를 설정으로 바꿀 수 있는가"로 바꾸면 답이 갈린다.</p>
+
+      <div class="tablewrap prose">
+        <table>
+          <thead><tr><th>항목</th><th>dsh</th><th>Claude Code</th><th>Codex</th></tr></thead>
+          <tbody>
+            <tr><td>구현 소스</td><td class="win">모노레포 전부 공개</td><td class="lose">공개 저장소에 구현 없음</td><td class="win">Rust 워크스페이스 공개</td></tr>
+            <tr><td>라이선스</td><td>MIT</td><td class="lose">Anthropic Commercial ToS</td><td>Apache-2.0</td></tr>
+            <tr><td>설치 경로</td><td>npm <code class="wl">npx @deepseek-ai/dsh</code></td><td>설치 스크립트 권장, npm 은 고급 옵션</td><td>설치 스크립트 · npm</td></tr>
+            <tr><td>이슈 트래커</td><td class="lose">비활성, Discussions 만</td><td class="win">활성 (open 16,090)</td><td class="win">활성 (open 12,522)</td></tr>
+            <tr><td>확장 단위</td><td>설정 파일의 행</td><td>skills · agents · hooks · MCP</td><td>설정 섹션 (plugins · hooks · mcp_servers · model_providers · agents)</td></tr>
+            <tr class="hero"><td>에이전트 루프 교체</td><td>행 <code class="wl">id: agent-loop</code></td><td>공개 문서에서 찾지 못함</td><td>공개 문서에서 찾지 못함</td></tr>
+            <tr><td>모델 제공자 추가</td><td>행 (<code class="wl">ctx.llm</code> 어댑터)</td><td>확인하지 않음</td><td><code class="wl">model_providers</code> 섹션</td></tr>
+            <tr><td>주 언어</td><td>TypeScript</td><td>확인하지 않음</td><td>Rust</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="small" style="margin-top:14px">Claude Code 의 "공개 저장소에 구현 없음"은 <code class="wl">GET /repos/anthropics/claude-code/contents</code> (2026-08-14T07:30:43Z) 가 최상위에 <code class="wl">CHANGELOG.md</code>, <code class="wl">LICENSE.md</code>, <code class="wl">README.md</code>, <code class="wl">SECURITY.md</code>, <code class="wl">plugins/</code>, <code class="wl">examples/</code>, <code class="wl">scripts/</code> 를 내고 구현 소스 디렉터리를 내지 않는다는 관찰이다. 표의 open 16,090 은 <code class="wl">GET /repos/anthropics/claude-code</code> (2026-08-14T07:29:57Z) 의 <code class="wl">open_issues_count</code> 다. npm 패키지 <code class="wl">@anthropic-ai/claude-code@2.1.232</code> 는 파일 7개 169,582바이트다. <code class="wl">dependencies</code> 는 비어 있고, 구현은 플랫폼별 <code class="wl">optionalDependencies</code> 여덟 개(<code class="wl">@anthropic-ai/claude-code-{darwin,linux,win32}-{x64,arm64}</code> 와 musl 둘, 전부 <code class="wl">2.1.232</code> 로 핀)로 따라온다. 즉 이 패키지 자체에도 구현이 없다. 라이선스는 <code class="wl">LICENSE.md</code> 원문 "© Anthropic PBC. All rights reserved. Use is subject to Anthropic's Commercial Terms of Service" 다.</p>
+
+      <p>이 대비는 dsh 저장소 안에서도 읽힌다. <code class="wl">packages/hooks/</code> 아래에 <code class="wl">hooks-claude-code</code> 와 <code class="wl">hooks-codex</code> 가 둘 다 있고, 앞의 것은 사용자의 기존 <code class="wl">hooks.json</code> 을 읽어 <code class="wl">${CLAUDE_PLUGIN_ROOT}</code>·<code class="wl">${CLAUDE_PROJECT_DIR}</code> 치환까지 재현한다. 그 README 는 이 브리지의 위치를 스스로 못 박는다. 네이티브 cordis 플러그인이면 같은 일을 타입 있는 반환값으로, 직렬화 경계 없이 더 잘 할 수 있다고 적은 뒤 이렇게 잇는다. "<b>The bridge exists only as a compatibility path for the mapped CC command-hook subset</b>; anything bespoke should be a native plugin on the same extension points."</p>
+
+      <p class="note"><b>확인하지 못한 칸을 채우지 않았다.</b> Claude Code 와 Codex 의 비공개 내부에 루프 교체 지점이 있는지는 알 수 없다. 이 표의 "찾지 못함"은 <code class="wl">code.claude.com/docs/en/plugins</code> 와 Codex 설정 레퍼런스(<code class="wl">learn.chatgpt.com/docs/config-file/config-reference</code>)에서 해당 항목을 찾지 못했다는 뜻이며, Codex 공개 저장소에 <code class="wl">codex-rs/plugin</code>·<code class="wl">codex-rs/core-plugins</code> 크레이트가 존재한다는 것은 별개 사실이다. 그 크레이트가 사용자 확장 지점인지는 확인하지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 08 화제성 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">alt-trend</p>
+      <h2>화제성. 공개 18시간에 71,700 star 이고, 조회 구간에서 시간당 3,526개씩 붙고 있었다</h2>
+      <p class="dek">증가 속도는 추정이 아니라 관측치다. 같은 엔드포인트를 13분 51초 사이에 세 번 찍었고, 증가율은 양 끝 두 점에서 계산했다. 70,886(05:44:09Z) → 71,365(05:52:19Z) → 71,700(05:58:00Z), 831초에 814개다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">같은 날 잰 세 저장소의 star 총계</p>
+        <p class="fig-sub">GitHub REST API. <code class="wl">deepseek-harness</code> 는 2026-08-14T05:58:00Z, <code class="wl">codex</code> 는 05:54:20Z, <code class="wl">claude-code</code> 는 07:29:57Z 샘플이다. 괄호는 저장소 생성 후 경과일</p>
+        <div class="legend"><span><i class="sn"></i>기존 도구</span><span><i class="s1"></i>deepseek-harness</span></div>
+        <div class="bars">
+          <div class="bar-row"><span class="bar-name">anthropics/<br>claude-code</span><span class="bar-track g5"><span class="bar" style="--w:94.3%"></span></span><span class="bar-val">141,400<br><span style="opacity:.7">537일</span></span></div>
+          <div class="bar-row"><span class="bar-name">openai/codex</span><span class="bar-track g5"><span class="bar" style="--w:70.6%"></span></span><span class="bar-val">105,833<br><span style="opacity:.7">488일</span></span></div>
+          <div class="bar-row is-hero"><span class="bar-name">deepseek-ai/<br>deepseek-harness</span><span class="bar-track g5"><span class="bar s1" style="--w:47.8%"></span></span><span class="bar-val">71,700<br><span style="opacity:.7">0.75일</span></span></div>
+        </div>
+        <div class="bar-axis"><div class="ticks"><span>0</span><span>30k</span><span>60k</span><span>90k</span><span>120k</span><span>150k</span></div></div>
+        <figcaption>세 수치는 같은 날 잰 것이지만 저장소 나이가 716배 차이 난다. 이 그림이 말하는 것은 순위가 아니라 <b>18시간이 두 도구가 1년 넘게 쌓은 것을 각각 절반씩 넘겼다</b>는 사실뿐이다. star 는 사용량이 아니고, 세 저장소가 재는 대상도 다르다. <code class="wl">anthropics/claude-code</code> 는 구현이 없는 저장소이므로 그 star 는 코드베이스가 아니라 제품에 대한 표시다. 나이 대비 비교는 이 문서가 만든 것이고 원 출처에는 없다.</figcaption>
+      </figure>
+
+      <div class="stats">
+        <div class="stat hero"><span class="lab">관측 구간 증가율</span><span class="val">3,526<span class="u">/시간</span></span><span class="sub">05:44:09Z→05:58:00Z, 831초에 814개</span></div>
+        <div class="stat"><span class="lab">생성 후 평균</span><span class="val">3,978<span class="u">/시간</span></span><span class="sub">71,700 ÷ 18.02시간. 관측 구간 3,526 은 이보다 낮다</span></div>
+        <div class="stat"><span class="lab">npm 선행 공개</span><span class="val">2.7<span class="u">일</span></span><span class="sub">npm 08-10T19:41Z, GitHub 08-13T11:56Z. 2일 16시간이다</span></div>
+        <div class="stat"><span class="lab">마지막 push 이후</span><span class="val">17<span class="u">시간</span></span><span class="sub">pushed_at 08-13T13:00:21Z, 조회 시점 기준</span></div>
+      </div>
+
+      <p>이 저장소가 하루 만에 만들어지지 않았다는 근거는 네 가지다. 체크아웃에서 읽은 것은 하나뿐이고, 나머지 셋은 조회 시각을 박은 외부 API 다. 체크아웃: HEAD 커밋 제목이 "Merge pull request #2519 from deepseek-harness/feat/npm-public" 이고, 그 본문이 "release: dsh@0.1.0-rc.5 &amp; publish the dsh family publicly" 다. npm registry: 공개가 GitHub 보다 2일 16시간 먼저 시작됐고, 라이선스가 <code class="wl">0.0.1-rc.5</code>(08-12T22:36Z)까지 BSD-3-Clause 였다가 <code class="wl">0.1.0-rc.2</code>(08-13T09:48Z)부터 MIT 다. GitHub contributors API: 22명이고 최다 기여자 한 명이 5,235 커밋이다. 공개용 저장소가 새로 만들어졌을 뿐 코드는 오래 굴러온 것이고, 라이선스는 공개 직전에 정해졌다.</p>
+
+      <p class="note"><b>왜 눌렀는지는 이 수치가 답하지 못한다.</b> DeepSeek 이라는 이름, MIT 라이선스, "everything is a plugin" 이라는 문구 중 무엇이 작동했는지 구분할 근거가 이 문서에는 없다. 이슈가 비활성이라 사용자 반응을 저장소 안에서 읽을 수단도 없다(<code class="wl">has_issues: false</code>, <code class="wl">open_issues_count: 0</code>). star 수치는 전부 조회 시각과 함께 적었고, 다시 확인하면 달라진다.</p>
+    </div>
+  </section>
+
+  <!-- 09 부팅 추적 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">trace</p>
+      <h2>부팅 추적. <code class="wl">dsh web</code> 한 번이 트리를 조립하기까지 9단계, 전부 런처 프로세스 안이다</h2>
+      <p class="dek"><code class="wl">dsh web</code> 은 <code class="wl">--profile web</code> 의 하드코딩된 별칭이다(<code class="wl">apps/cli/src/args.ts:13</code>). 아래는 그 호출이 마운트할 행 목록을 만들기까지 지나는 지점을 커밋 <code class="wl">47f9438</code> 기준 파일과 줄 번호로 적은 것이다.</p>
+
+      <pre><span class="c">[1] apps/cli/src/bin.ts:27</span>
+<b>const invocation = parseDshArgs(process.argv.slice(2), readVersion())</b>
+   런처가 파싱하는 것은 자기 것뿐이다. 나머지 argv 는 <span class="k">ctx.cmdlineArgs</span> 로 트리에 넘어간다.
+
+<span class="c">[2] apps/cli/src/bin.ts:31</span>
+<b>const { runProfile } = await import('./profile-boot.ts')</b>
+   모드별 dynamic import. 모드는 profile / plugin / dump-config 셋뿐이다.
+
+<span class="c">[3] apps/cli/src/profile-boot.ts:208</span>
+<b>const composed = composeProfile(options.profile, options.patchFiles)</b>
+   여기서부터 합성이다. 부팅은 합성이 끝난 뒤에 시작한다.
+
+<span class="c">[4] apps/cli/src/profile-boot.ts:99</span>
+<b>healProfilesModuleFallback(INSTALL_ANCHOR)</b>
+   <span class="r">디스크에 쓴다.</span> $DSH_HOME/profiles/node_modules 에 설치본 의존 closure 를
+   BFS 로 훑어 패키지당 심볼릭 링크 하나씩 만든다.
+
+<span class="c">[5] packages/boot/app-boot/src/profile.ts:376,383</span>
+<b>if (!existsSync(join(dir, 'package.json'))) { ... initProfile(dir, template) }</b>
+   <span class="r">디스크에 쓴다.</span> 프로파일이 없으면 템플릿으로 만든다. web =
+   ['@deepseek-ai/dsh-base', '@deepseek-ai/dsh-web-app'] (profile.ts:115).
+
+<span class="c">[6] packages/boot/app-boot/src/profile.ts:388-389</span>
+<b>const layers = bundles.map((packageName): ProfileLayer =&gt; {
+  const packageDir = resolveBundleDir(binName, packageName, installAnchor, dir)</b>
+   번들마다 패치 파일을 읽는다. 해석 순서는 설치본 먼저, 프로파일 나중(profile.ts:347).
+
+<span class="c">[7] apps/cli/src/profile-boot.ts:101</span>
+<b>writeFileSync(join(profile.dir, PROFILE_ROOT_FILENAME), PROFILE_ROOT_CONFIG)</b>
+   <span class="r">디스크에 쓴다.</span> 루트 cordis.yml 을 매번 <span class="k">[]</span> 로 되돌린다. Loader 의
+   트리 write-back 이 합성된 행을 이 파일에 구워 넣으면 다음 부팅에서
+   번들 insert 가 통째로 중복되기 때문이다.
+
+<span class="c">[8] apps/cli/src/profile-boot.ts:151</span>
+<b>for (const row of composeEntries([bundlePatches, profile.patches, homePatches, overlays])) {</b>
+   레이어 네 겹의 적용 순서가 이 배열 하나다. 이 호출이 내는 것은
+   아래 문단이 말하는 행 색인이고, 부팅은 그 뒤에 한 겹이 더 붙은 목록으로 한다.
+
+<span class="c">[9] packages/boot/app-boot/src/profile.ts:416</span>
+<b>return applyEntryPatches([], structuredClone(layers.flat()), ...)</b>
+   빈 배열에 전부 적용한 결과가 마운트할 행 목록이다. 여기까지 오면
+   dsh --dump-config 가 출력하는 것과 부팅이 마운트하는 것이 같아진다.</pre>
+
+      <p>[8] 의 <code class="wl">composeEntries</code> 는 마운트할 목록이 아니라 <b>행 색인</b>을 만든다. 그 색인을 보고 런처가 오버레이 목록 뒤에 자기 패치를 <b>둘</b> 붙인 다음, 실제 부팅은 그 목록으로 한다(<code class="wl">:248</code> 의 <code class="wl">allPatches</code>). 첫째, <code class="wl">:159-166</code> 이 색인에 <code class="wl">agent-presets</code> 행이 있으면 그 행의 <code class="wl">config.roots</code> 를 런처 패키지 안의 <code class="wl">config/agent-presets/</code>(<code class="wl">:35</code> 의 <code class="wl">SHIPPED_PRESET_ROOT</code>)로 바꾼다. 환경변수와 무관하고, <code class="wl">dsh web</code> 이 쓰는 web-app 번들이 그 행을 넣으므로(<code class="wl">packages/bundle/web-app/cordis.patch.yml:421</code>) 이 경로는 항상 탄다. 둘째, <code class="wl">:168-169</code> 가 <code class="wl">DSH_TELEMETRY_DISABLED</code> 를 읽어 텔레메트리 행을 끄는 패치를 붙인다. 판정 함수는 <code class="wl">:80</code> 의 <code class="wl">resolveTelemetryPatch</code> 이고, 빈 문자열이 아닌 값이면 무엇이든(<code class="wl">'0'</code>, <code class="wl">'false'</code> 포함) 끈다. 그 이유는 함수 주석(<code class="wl">:70-72</code>)에 있다. "a privacy switch prefers off-by-mistake over on-by-mistake."</p>
+
+      <p>둘 다 <code class="wl">--patch</code> 오버레이보다 <b>뒤에</b> 붙는다. 트리가 전부 패치 합성이라는 말은 여기서도 유지되지만, 그 패치 전부가 설정 파일에서 오지는 않는다. 마지막 두 겹은 런처가 자기 코드에서 만들어 얹는 것이고 사용자 레이어가 덮을 수 없다. 6장이 센 "설정으로 갈아끼울 수 없는 832줄"에 이 두 패치가 들어 있다.</p>
+
+      <p class="note">이 추적은 소스를 읽어 만든 것이고 실행 로그가 아니다. 각 줄이 실제로 이 순서로 불리는지는 확인하지 않았다. 확인할 수 있는 지점은 있다. [4] [5] [7] 은 파일시스템에 쓰는 호출이므로 <code class="wl">$DSH_HOME</code> 을 관찰하면 검증된다. [9] 는 <code class="wl">dsh --profile web --dump-config</code> 출력과 대조하면 된다.</p>
+    </div>
+  </section>
+
+  <!-- 10 읽은 범위 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>읽은 범위. 7,412개 파일 중 26개를 열었고, 열지 않은 디렉터리가 이 문서에서 무엇을 못 하게 하는지 적는다</h2>
+      <p class="dek">커밋 <code class="wl">47f943859bef60e4160492346772ded9b24f765a</code> 기준. <code class="wl">git clone --filter=blob:none --depth 1</code> 로 받았고 <code class="wl">git rev-list --count HEAD</code> 은 1이다. 커밋 이력은 체크아웃 안에 없다. 체크아웃의 <code class="wl">git tag</code> 도 0건이지만 shallow clone 은 원격 태그를 받지 않으므로, 그 0은 저장소 쪽 사실이 아니다.</p>
+
+      <div class="tablewrap prose">
+        <table>
+          <thead><tr><th>디렉터리</th><th class="n">파일</th><th class="n">열었다</th><th>열지 않아서 못 하는 말</th></tr></thead>
+          <tbody>
+            <tr><td>packages/</td><td class="n">3,748</td><td class="n">8</td><td>패키지 219개 중 7개만 봤다. 78개 행 각각이 무엇을 하는지는 이름과 README 수준이다</td></tr>
+            <tr class="hero"><td>.agents/</td><td class="n">2,078</td><td class="n">0</td><td>설계 결정의 근거가 여기 2,057개 노트로 있다. 왜 이렇게 만들었는지는 docs/ 가 적어둔 것까지만 말한다</td></tr>
+            <tr><td>examples/</td><td class="n">596</td><td class="n">1</td><td>번들을 거치지 않는 조립 경로가 있다는 것까지만 확인했다</td></tr>
+            <tr><td>docs/</td><td class="n">324</td><td class="n">4</td><td>subsystems/ 138개를 열지 않았다. 세션 로그·서브에이전트·샌드박스의 실제 설계는 다루지 않는다</td></tr>
+            <tr><td>apps/</td><td class="n">273</td><td class="n">5</td><td>apps/web 을 열지 않았다. 웹 UI 경험에 대해 아무 말도 하지 않는다</td></tr>
+            <tr><td>scripts/</td><td class="n">158</td><td class="n">0</td><td>verify-* 게이트 37개가 실제로 무엇을 막는지 모른다. package.json 의 스크립트 이름까지만 봤다</td></tr>
+            <tr><td>vendor/</td><td class="n">74</td><td class="n">1</td><td>커널 소스를 읽지 않았다. 4장은 매니페스트와 수정 로그가 근거다</td></tr>
+            <tr><td>native/, python/</td><td class="n">84</td><td class="n">0</td><td>Landlock 샌드박스와 Python SDK 는 이 문서에 없다</td></tr>
+            <tr><td>(root), 그 외</td><td class="n">77</td><td class="n">7</td><td>CI 워크플로 15개를 열지 않았다. 릴리스 규율은 파일 이름 수준이다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="small" style="margin-top:14px">3,748 + 2,078 + 596 + 324 + 273 + 158 + 74 + 84 + 77 = 7,412. 열어본 26개는 <code class="wl">README.md</code>, <code class="wl">LICENSE</code>, <code class="wl">CONTRIBUTING.md</code>, <code class="wl">AGENTS.md</code>, <code class="wl">package.json</code>, <code class="wl">pnpm-workspace.yaml</code>, <code class="wl">docs/architecture.md</code>, <code class="wl">docs/cordis-primer.md</code>, <code class="wl">docs/capability-seams.md</code>, <code class="wl">docs/glossary.md</code>, <code class="wl">vendor/README.md</code>, <code class="wl">packages/bundle/base/cordis.patch.yml</code>, <code class="wl">packages/bundle/web-app/cordis.patch.yml</code>, <code class="wl">packages/core/agent-loop/src/index.ts</code>, <code class="wl">packages/core/tools/src/index.ts</code>, <code class="wl">packages/boot/app-boot/src/profile.ts</code>, <code class="wl">packages/boot/app-boot/src/index.ts</code>, <code class="wl">packages/hooks/hooks-claude-code/README.md</code>, <code class="wl">packages/llm/llm-pi-ai/README.md</code>, <code class="wl">apps/cli/src/{bin,profile-boot,plugin,args}.ts</code>, <code class="wl">apps/cli/composition.md</code>, <code class="wl">examples/headless-agent/cordis.yml</code>, <code class="wl">.claude/skills</code> 다. 인용 84건을 <code class="wl">evidence.jsonl</code> 에 적었고, 그중 65건이 이 체크아웃에서 왔다.</p>
+
+      <p>shallow clone 이라 커밋 빈도·기여자 분포·릴리스 주기를 체크아웃에서 확인할 수 없다. 8장의 기여자 수치는 체크아웃이 아니라 GitHub contributors API 에서 온 것이고, 그렇게 표시했다. 태그와 Releases 도 체크아웃이 아니라 API 로 확인했다. <code class="wl">GET /repos/deepseek-ai/deepseek-harness/tags</code> 와 <code class="wl">/releases</code> 가 둘 다 빈 배열 <code class="wl">[]</code> 이고 <code class="wl">/releases/latest</code> 는 404 다(2026-08-14T07:31:02Z). 이 프로젝트의 릴리스 채널은 npm 이므로(8장), 그 0은 배포를 안 했다는 뜻이 아니라 GitHub 릴리스 기능을 안 쓴다는 뜻이다.</p>
+
+      <p class="note">저장소 최상위에는 <code class="wl">AGENTS.md</code>, <code class="wl">CLAUDE.md</code>, <code class="wl">.claude/</code>, <code class="wl">.agents/</code> 가 있다. 이 문서는 그 안의 지시문을 <b>분석 대상 데이터로만</b> 읽었고 실행하지 않았다. 체크아웃은 이 저장소 바깥에 두었다. <code class="wl">.claude/skills</code> 는 <code class="wl">../.agents/skills</code> 를 가리키는 심볼릭 링크 하나이고, 도구별 파일을 따로 두지 않으려는 구조로 읽힌다.</p>
+    </div>
+  </section>
+
+  <!-- 11 확장 지점 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-ext</p>
+      <h2>동작. 확장 지점은 문서의 표 한 장으로 열거되고, 그 표를 늘리는 일이 곧 아키텍처 변경이다</h2>
+      <p class="dek"><code class="wl">docs/architecture.md</code> 의 마지막 절은 "하고 싶은 것 → 붙일 자리" 대응표다. 새 기능이 이 표의 어느 줄에도 해당하지 않으면 표를 고쳐야 하고, 표를 고치는 것은 기여 규칙상 아키텍처 문서를 갱신하는 일이다.</p>
+
+      <div class="tablewrap prose">
+        <table>
+          <thead><tr><th>하고 싶은 것</th><th>붙일 자리</th></tr></thead>
+          <tbody>
+            <tr><td>모델 제공자 추가</td><td><code class="wl">ctx.llm</code> 에 어댑터 등록</td></tr>
+            <tr><td>모델이 부를 수 있는 능력 추가</td><td><code class="wl">ctx.tools</code> 에 등록. 스키마가 프롬프트 조립에 합류한다</td></tr>
+            <tr><td>세션마다 다른 능력 집합</td><td>agent preset 구성. 서비스 행에는 <code class="wl">isolate</code> realm 이 필요하다</td></tr>
+            <tr><td>셸 실행 추가</td><td><code class="wl">ctx.shell</code> 백엔드 등록</td></tr>
+            <tr><td>사람이 치는 명령 추가</td><td><code class="wl">ctx.commands</code> 에 등록. 모델 턴 없이 디스패치된다</td></tr>
+            <tr><td>요청·툴·턴 가로채기</td><td>해당 <code class="wl">agent/*</code> 또는 <code class="wl">tools/*</code> 이벤트</td></tr>
+            <tr class="hero"><td>루프 자체를 바꾸기</td><td>표에 없다. <code class="wl">AGENTS.md:108</code> 이 아키텍처 문서 갱신을 요구한다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="small" style="margin-top:14px"><code class="wl">docs/architecture.md:110-127</code> 의 18줄 중 6줄을 옮겼다. 마지막 줄은 원문 표에 있는 항목이 아니라, 그 표에 <b>없다</b>는 사실을 같은 자리에 적은 것이다.</p>
+
+      <p>등록이 되돌릴 수 있어야 이 구조가 성립한다. <code class="wl">AGENTS.md:102</code> 는 "every contribution goes through <code class="wl">ctx.effect()</code> / <code class="wl">ctx.on()</code>; a registry's <code class="wl">register()</code> returns the disposer" 를 규칙으로 못 박고, <code class="wl">packages/core/tools/src/index.ts:1032-1037</code> 의 시그니처가 그대로다. "@returns the exact disposer that unregisters the tool." 언로드가 성립하지 않으면 "행을 빼면 사라진다"도 성립하지 않는다.</p>
+
+      <p>패키지가 219개인 이유도 규칙에 있다. <code class="wl">AGENTS.md:109</code>: "A capability seam comprises Service Definition / Service Provider / Consumer roles. It is complete, never one role." 하나의 교체 가능한 능력이 최소 세 <b>역할</b>을 요구하고, 역할이 따로 진화하면 그만큼 패키지가 갈라진다. <code class="wl">docs/capability-seams.md</code> 는 그 그래프를 생성해 두었고, <code class="wl">ctx.llm</code> 하나에 <code class="wl">llm-deepseek</code>, <code class="wl">llm-pi-ai</code>, <code class="wl">llm-replay</code> 세 provider 가 걸려 있다.</p>
+
+      <p>다만 규칙이 seam 하나당 패키지 세 개를 강제하지는 않는다. <code class="wl">docs/architecture.md:100</code> 이 "A package may combine roles, but one role alone is not a seam" 이라고 적고, <code class="wl">docs/glossary.md:9</code> 는 <code class="wl">dsh-llm</code> 이 Service Definition 과 Consumer 를 함께 가진 예를 든다. 219개라는 수를 만드는 것은 세 역할이라는 하한이 아니라 <b>역할이 독립적으로 움직일 때마다 쪼갠다</b>는 쪽이다.</p>
+
+      <p class="note">이 장의 진술은 전부 저장소가 <b>쓴 것</b>이다. 표는 <code class="wl">docs/architecture.md</code>, 규칙은 <code class="wl">AGENTS.md</code>, 시그니처 한 줄만 구현에서 확인했다. 각 확장 지점이 실제로 문서대로 동작하는지는 실행하지 않아 확인하지 못했고, 이 경로를 덮는 테스트가 무엇인지도 확인하지 않았다(테스트 파일 821개, 열지 않음).</p>
+    </div>
+  </section>
+
+  <!-- 12 해석의 한계 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>해석의 한계. 저장소가 스스로 경고한 것과, 읽기만 해서는 확인할 수 없는 것</h2>
+      <p class="dek">가장 큰 경고는 저장소가 대문자로 적어 두었다. <code class="wl">README.md:11</code>: "DeepSeek Harness is currently in <i>developer preview</i> and is iterating rapidly. <b>THERE WILL BE COMPATIBILITY-BREAKING CHANGES.</b>"</p>
+
+      <div class="grid g2">
+        <div class="card"><span class="tag">저장소가 밝힌 것</span>
+          <p class="small"><b>텔레메트리.</b> 기본값은 <code class="wl">DISABLED</code> 다(<code class="wl">cordis.patch.yml:151</code>). 다만 켰을 때의 동작을 같은 파일 주석이 적어둔다. "uploading mirrors session-log records onto OTLP/HTTP logs <b>with no session-telemetry/record redaction rule</b>, so exports are the raw captured copy." 기본 엔드포인트는 <code class="wl">harness-telemetry.deepseeksvc.com</code> 이고 <code class="wl">DSH_TELEMETRY_OTLP_URL</code> 로 바꾼다.</p>
+        </div>
+        <div class="card"><span class="tag">README 와 코드의 차이</span>
+          <p class="small"><b>Cordis 는 upstream 이 아니다.</b> README 는 <code class="wl">cordiverse/cordis</code> 를 링크하지만 실행되는 것은 <code class="wl">@deepseek-ai/cordis</code> 로 이름을 바꾼 벤더 사본이다. 커널 소스를 이름으로 지목하는 수정 항목은 셋이고(<code class="wl">vendor/README.md</code> 의 <code class="wl">:38</code>·<code class="wl">:39</code>·<code class="wl">:47</code>), 그중 <code class="wl">:38</code> 이 해제 순서를 바꾼다. 플러그인을 만들 때 peer dependency 로 선언할 이름도 <code class="wl">cordis</code> 가 아니라 <code class="wl">@deepseek-ai/cordis</code> 다(<code class="wl">AGENTS.md:100</code>). upstream 문서를 보고 쓰면 어긋난다.</p>
+        </div>
+      </div>
+
+      <ul class="clean" style="margin-top:14px">
+        <li><span class="m bad">✗</span><span><b>실행하지 않았다.</b> 부팅 순서, 패치 적용, 언로드가 런타임에 문서대로 되는지 확인하지 않았다. 4~9장은 전부 소스를 읽은 결과다.</span></li>
+        <li><span class="m bad">✗</span><span><b>테스트를 열지 않았다.</b> <code class="wl">.spec.ts</code>, <code class="wl">.e2e.ts</code> 파일이 821개 있다는 것만 세었다. 무엇이 덮이고 무엇이 안 덮이는지 이 문서는 모른다.</span></li>
+        <li><span class="m bad">✗</span><span><b>이슈가 없다.</b> <code class="wl">has_issues: false</code>, Discussions 만 열려 있다. 알려진 버그와 회귀를 저장소에서 읽을 방법이 없다. 응답 기대치만은 <code class="wl">CONTRIBUTING.md:12</code> 가 적어 두었다. "We are a very small team and may not be able to reply to every post, but we monitor them and consider them when allocating resources."</span></li>
+        <li><span class="m bad">✗</span><span><b>라이선스가 최근에 바뀌었다.</b> npm 의 <code class="wl">0.0.1-rc.5</code>(08-12)까지 BSD-3-Clause, <code class="wl">0.1.0-rc.2</code>(08-13)부터 MIT 다. 공개 전에 설치한 사본은 다른 라이선스다.</span></li>
+        <li><span class="m bad">✗</span><span><b>이 문서가 만든 비율은 원문에 없다.</b> 6장의 3.0%, 8장의 나이 대비 비교는 여기서 계산한 것이다.</span></li>
+      </ul>
+
+      <p class="note">한계 밖으로 남는 것은 <b>합성 결과를 부팅 없이 출력하는 경로</b>다. <code class="wl">dsh --profile web --dump-config</code> 가 마운트 경로와 같은 <code class="wl">applyEntryPatches</code> 를 쓰도록 <code class="wl">vendor/include/src/index.ts</code> 를 고쳐 두었기 때문에(<code class="wl">vendor/README.md:43</code>), 위의 "읽기만 해서는 모른다"는 항목 중 <b>어떤 트리가 뜨는가</b>는 도구 하나로 검증된다. 이 설계는 dsh 를 안 쓰더라도 옮겨갈 만하다. 설정 합성기와 부팅기가 같은 함수를 공유하면 설정 문서가 코드에서 어긋날 자리가 없어진다.</p>
+    </div>
+  </section>
+
+  <!-- 13 도입 판단 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adoption</p>
+      <h2>도입 판단. trial 이다. 프로덕션에 넣을 근거는 없고, 플러그인 하나를 시험할 근거는 있다</h2>
+      <p class="dek">저장소가 preview 라고 선언했고 GitHub 릴리스도 태그도 0이다. 그럼에도 시험할 이유가 있는 경우가 있다. 바꾸려는 것이 다른 하네스의 확장 범주 밖에 있을 때다.</p>
+
+      <div class="tablewrap prose">
+        <table>
+          <thead><tr><th>당신의 상황</th><th>판단</th><th>근거</th></tr></thead>
+          <tbody>
+            <tr><td>지금 쓰는 도구를 훅·MCP 로 확장하는 걸로 충분하다</td><td class="lose">hold</td><td>호환성 파괴 예고, 이슈 트래커 비활성. 얻는 게 없다</td></tr>
+            <tr class="hero"><td>에이전트 루프나 세션 저장 방식을 바꿔야 한다</td><td class="win">trial</td><td>그 교체가 <code class="wl">cordis.patch.yml</code> 의 행 하나다</td></tr>
+            <tr><td>DeepSeek 이 아닌 모델을 쓴다</td><td class="win">trial</td><td><code class="wl">llm-pi-ai</code> 가 base 번들에 이미 있다. 다만 <code class="wl">cordis.patch.yml:88-89</code> 가 이 행을 "mounted dormant: zero routes" 로 적는다. provider 프로필을 채우기 전까지는 아무 경로도 안 생긴다. 채우는 일이 코드가 아니라 설정이다</td></tr>
+            <tr><td>원격 텔레메트리가 금지다</td><td>조건부</td><td>기본 <code class="wl">DISABLED</code>. <code class="wl">DSH_TELEMETRY_DISABLED</code> 에 빈 문자열이 아닌 값이면 행 자체가 꺼진다. 다만 기본 아웃바운드가 그것 하나가 아니다. <code class="wl">cordis.patch.yml:396</code> 이 "Every mode enables the stable model-facing web_search tool" 이라고 적고, 그 검색은 <code class="wl">DEEPSEEK_API_KEY</code> 로 DeepSeek 에 나간다</td></tr>
+            <tr><td>MIT 여야 한다</td><td>확인 필요</td><td>현재 <code class="wl">LICENSE:1-3</code> 는 MIT. npm 은 <code class="wl">0.0.1-rc.5</code>(08-12T22:36Z)까지 BSD-3-Clause 이고, MIT 는 <code class="wl">0.1.0-rc.2</code>(08-13T09:48Z)부터다</td></tr>
+            <tr><td>프로덕션에 넣으려 한다</td><td class="lose">hold</td><td>developer preview, GitHub 릴리스 0, 태그 0, 이슈 비활성</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="grid g2" style="margin-top:16px">
+        <div class="card"><span class="tag">설치가 남기는 것</span>
+          <p class="small"><code class="wl">$DSH_HOME/profiles/&lt;name&gt;/</code> 에 <code class="wl">package.json</code>, <code class="wl">cordis.patch.yml</code>, <code class="wl">pnpm-workspace.yaml</code>, 그리고 매 부팅마다 <code class="wl">[]</code> 로 덮어쓰는 <code class="wl">cordis.yml</code>. <code class="wl">$DSH_HOME/profiles/node_modules/</code> 에는 설치본 의존 closure 만큼의 심볼릭 링크가 <b>부팅할 때마다</b> 다시 만들어진다. 텔레메트리를 켜면 <code class="wl">$DSH_HOME/.anonymous-user-id</code> 에 랜덤 UUID 가 생기고 export 의 <code class="wl">user.id</code> 로 나간다. <code class="wl">$DSH_HOME</code> 밖에도 남는다. <code class="wl">cordis.patch.yml:175</code> 의 기본 권한 모드가 <code class="wl">workspace-write</code>, <code class="wl">:191</code> 의 승인 정책이 <code class="wl">ask</code> 이고, <code class="wl">:441</code> 은 <code class="wl">fs-sandbox</code> 의 <code class="wl">cwd</code> 가 <code class="wl">process.cwd()</code> 기본이라고 적는다. 기본 실행에서 에이전트가 쓰는 범위는 dsh 를 띄운 디렉터리다. 전제조건은 Node <code class="wl">^22.19.0 || &gt;=24.0.0</code> 이고, 프로파일에 플러그인을 설치하려면 <code class="wl">pnpm</code> 이 PATH 에 있어야 한다(<code class="wl">apps/cli/src/plugin.ts:137</code> 이 없을 때 127 로 끝낸다).</p>
+        </div>
+        <div class="card"><span class="tag">되돌리기</span>
+          <p class="small">프로파일 디렉터리를 지우면 구성이 사라진다. 세션 로그와 크레덴셜은 그 디렉터리 밖이라 남는다. <code class="wl">cordis.patch.yml:101</code> 이 세션 로그 루트를 <code class="wl">dshHomePath('sessions')</code> 로 잡고, <code class="wl">:82</code> 가 관리 문서를 <code class="wl">$DSH_HOME/.credentials.yaml</code> 로 적는다. <code class="wl">profiles/node_modules</code> 의 링크도 남는다. <code class="wl">profile.ts:219</code> 가 "a stale link to a vanished package stays until its name is reused (dangling links are invisible to resolution)" 라고 적어 두었다. 제3자 플러그인 설치는 별도 레지스트리가 아니라 pnpm 을 그대로 부르는 것이라(<code class="wl">apps/cli/src/plugin.ts:2-7</code>), 제거도 <code class="wl">pnpm remove</code> 와 같은 방식이다.</p>
+        </div>
+      </div>
+
+      <p class="note">시험할 때 먼저 볼 것은 코드가 아니라 출력이다. <code class="wl">dsh --profile web --dump-config</code> 로 실제 마운트되는 행 목록을 받아, base 번들이 넣는 78개 행이 그 안에 다 있는지 대조하면 4~6장의 주장이 당신 기계에서 재현되는지 15분 안에 결론이 난다. 다만 78행이 다 있되 그중 24행은 <code class="wl">disabled: true</code> 가 붙은 채로 나온다. 설치가 잘못된 것이 아니다. 목록 길이도 78이 아니다. <code class="wl">web</code> 프로파일은 web-app 번들이 51개 행을 더 넣어 129행이고, 나머지 27개 패치는 행 수를 늘리지 않는다. 그 27개 중 24개가 방금 말한 base 행에 <code class="wl">disabled: true</code> 만 붙이고(<code class="wl">hmr</code>, <code class="wl">tool-bash</code>, <code class="wl">tool-fs</code> 등), 셋만 config 를 갈아끼운다(<code class="wl">system-prompt</code>, <code class="wl">session-query-sqlite</code>, <code class="wl">tools</code>).</p>
+    </div>
+  </section>
+
+  <!-- 14 결론 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론. 슬로건은 코드에서 확인되고, 차별성은 "무엇을 바꿀 수 있는가"가 열거형이 아니라는 데 있다</h2>
+      <p class="dek">두 질문에 따로 답한다. 화제성은 관측되지만 원인은 이 문서의 근거로 특정할 수 없다. 설계의 차별성은 관측되고 위치도 특정된다.</p>
+
+      <div class="grid g2">
+        <div class="card"><span class="tag">화제성</span>
+          <p class="small">공개 18시간에 star 71,700개, 관측 구간 시간당 3,526개. 다만 하루 만에 만들어진 프로젝트가 아니다. npm 공개가 2일 16시간 빠르고, HEAD 커밋 제목이 PR #2519 를 인용하며, contributors 22명 중 한 명이 5,235 커밋을 가지고 있다. <b>08-13 에 공개된 것은 저장소이고, 코드는 그 전부터 굴러왔다.</b> 무엇이 star 를 눌렀는지는 이슈도 없고 반응을 읽을 표면도 없어 알 수 없다.</p>
+        </div>
+        <div class="card"><span class="tag">설계</span>
+          <p class="small">"everything is a plugin" 은 부팅 루트가 <code class="wl">[]</code> 이고 트리 전체가 패치 합성의 결과라는 뜻이다. 설정으로 갈 수 없는 코드는 6,143줄이고, 그중 3,830줄(커널 2,693 + loader 1,137)은 남에게서 가져온 것이다. 커널은 소스째 들여와 고쳐 쓰는 Cordis 사본이다. 자체 구현과 단순 의존 사이, 벤더링해서 고쳐 쓰는 자리에 있다.</p>
+        </div>
+      </div>
+
+      <p style="margin-top:16px">Claude Code·Codex 와의 차이는 "플러그인이 있는가"에서 갈리지 않는다. 셋 다 있다. 차이는 교체 가능한 것의 목록이 <b>닫혀 있는가</b>다. Claude Code 의 플러그인은 skills·agents·hooks·MCP 네 범주고, Codex 의 설정은 최상위 섹션 목록이다. dsh 에서 에이전트 루프는 <code class="wl">id: agent-loop</code> 이라는 한 행이고, 나머지 77개 행과 문법이 같다. 이 차이가 실제로 값을 하는 경우는 하나다. 바꾸고 싶은 것이 남의 확장 범주 목록에 없을 때다.</p>
+
+      <p>그 대가는 이미 저장소에 드러나 있다. 219개 패키지, seam 하나에 세 역할을 요구하고 역할마다 쪼개는 규칙, 프레임워크를 통째로 벤더링하고 18곳의 수정 로그를 유지하는 비용, upstream Cordis 문서를 그대로 믿으면 어긋난다는 사실이다. 확장을 유연하게 만든 만큼 <b>이해해야 할 표면</b>이 늘었다.</p>
+
+      <p class="note">이 결론은 소스를 읽어 얻었고 실행으로 확인하지 않았다. 가장 크게 걸린 주장 둘 중 하나는 검증 방법까지 적어 두었다. <code class="wl">dsh --profile web --dump-config</code> 의 합성 결과에서 base 번들의 78개 행을 찾는 것이고(그 출력 자체는 129행이다), 12장과 13장이 그 절차다. 다른 하나, <code class="wl">agent-loop</code> 행을 다른 구현으로 갈아끼웠을 때 나머지 77개 행이 계속 뜨는가는 <b>절차가 이 문서에 없다.</b> 6장 말미가 그것을 확인하지 않았다고만 적는다.</p>
+    </div>
+  </section>
+
+  <!-- 15 출처 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처. 커밋 하나와 조회 시각이 박힌 API 샘플로 전부 재확인된다</h2>
+      <p class="dek">저장소는 커밋으로, 움직이는 수치는 조회 시각으로 고정했다. 아래 신원이면 다른 기계에서 같은 바이트를 받아 이 문서의 인용을 대조할 수 있다.</p>
+
+      <div class="src">
+        <p><b>1차 코퍼스</b><br>
+        <a href="https://github.com/deepseek-ai/deepseek-harness">deepseek-ai/deepseek-harness</a> @ <code class="wl">47f943859bef60e4160492346772ded9b24f765a</code> (master, 2026-08-13T11:38:46Z)<br>
+        <span class="t"><code class="wl">git clone --filter=blob:none --depth 1</code>. shallow 이므로 커밋 이력은 체크아웃에 없다. 인용 84건(이 저장소에서 65건)과 그 파일·줄 위치는 <code class="wl">.research/2026-08-14-deepseek-harness-plugin-architecture/evidence.jsonl</code> 에 있다.</span></p>
+
+        <p><b>GitHub REST API</b> (수치는 조회 시각과 함께만 읽을 것)<br>
+        <span class="t"><code class="wl">GET /repos/deepseek-ai/deepseek-harness</code>, 2026-08-14T05:44:09Z (star 70,886), 05:52:19Z (71,365), 05:58:00Z (71,700). 증가율은 이 중 양 끝 두 점에서 계산했다.<br>
+        <code class="wl">GET /repos/deepseek-ai/deepseek-harness/contributors</code>, 2026-08-14T05:53Z, 22명.<br>
+        <code class="wl">GET /repos/deepseek-ai/deepseek-harness/tags</code> · <code class="wl">/releases</code>, 2026-08-14T07:31:02Z, 둘 다 <code class="wl">[]</code>.<br>
+        <code class="wl">GET /repos/openai/codex</code>, 2026-08-14T05:54:20Z (star 105,833, open 12,522).<br>
+        <code class="wl">GET /repos/anthropics/claude-code</code>, 2026-08-14T07:29:57Z (star 141,400, open 16,090) · <code class="wl">/contents</code>, 07:30:43Z. 7장·8장의 claude-code 칸은 이 두 응답에서 왔고, 다른 두 저장소보다 1시간 30분 늦은 샘플이다.</span></p>
+
+        <p><b>npm registry</b><br>
+        <a href="https://registry.npmjs.org/@deepseek-ai%2Fdsh">registry.npmjs.org/@deepseek-ai/dsh</a>, 2026-08-14T05:53Z<br>
+        <span class="t">공개 시각, 버전별 라이선스, 의존성 61개의 1차 출처. <a href="https://registry.npmjs.org/@anthropic-ai%2Fclaude-code">registry.npmjs.org/@anthropic-ai/claude-code</a> 도 2026-08-14T05:54Z 에 같은 시각대로 조회했고, 7장의 배포 형태 칸이 거기서 왔다.</span></p>
+
+        <p><b>비교 대상의 공개 문서</b><br>
+        <a href="https://code.claude.com/docs/en/plugins">code.claude.com/docs/en/plugins</a> · <a href="https://code.claude.com/docs/en/setup">code.claude.com/docs/en/setup</a> · <a href="https://code.claude.com/docs/en/overview">code.claude.com/docs/en/overview</a> (<code class="wl">docs.claude.com/en/docs/claude-code/overview</code> 가 301로 여기 넘긴다) · <a href="https://learn.chatgpt.com/docs/config-file/config-reference">learn.chatgpt.com/docs/config-file/config-reference</a> (<code class="wl">developers.openai.com/codex/config-reference</code> 가 308로 넘긴다) · <a href="https://raw.githubusercontent.com/anthropics/claude-code/main/LICENSE.md">anthropics/claude-code LICENSE.md</a><br>
+        <span class="t">전부 2026-08-14 조회. 비공개 구현을 두고 추정하지는 않았다.</span></p>
+
+        <p><b>커널 upstream</b><br>
+        <a href="https://github.com/cordiverse/cordis">cordiverse/cordis</a><br>
+        <span class="t">벤더 매니페스트가 가리키는 커밋 <code class="wl">56b3d4f725681cf4556c1a8695a709cc3b6eed74</code>. upstream 저장소는 열지 않았고, 4장의 대조는 <code class="wl">vendor/README.md</code> 의 수정 로그를 근거로 한다.</span></p>
+      </div>
+
+      <p class="note">렌더 확인: 정적 게이트(<code class="wl">check-doc.mjs</code>)와 인용 대조(<code class="wl">check-claims.mjs</code>, 주장 54건)를 통과했다. 검증은 세 라운드를 돌았다. 3차에서 고친 슬라이드는 1·4·10·13 과 이 문단이 있는 15 이고, 고친 뒤에 headless Chrome 1440x1000 과 1440x1500 으로 다시 그려 읽었다. 나머지 슬라이드는 이번 라운드에 손대지 않았고 다시 그리지도 않았다. 2차에서 고친 1·2·4·5·7·8·10·11·12·13·14·15 는 그 라운드에 같은 방식으로 확인했다. 3차는 상한에 걸려 라운드 안에서 재검증을 받지 못했으므로, 3차가 고친 슬라이드만 라운드가 끝난 뒤 별도 컨텍스트에서 다시 읽었다. 그 검증이 4장에서 둘, 15장에서 하나를 더 찾았다. 그중 하나는 모노스페이스에서 가운뎃점이 마침표처럼 앉아 두 토막이 한 덩어리로 읽히는 결함이었고, 같은 모양이 4장에 하나, 12장에 하나 더 있어 함께 고쳤다. 고친 뒤 1·4·12·15 를 다시 그려 읽었다(12장은 2.6배, 4장의 문제 구간은 3배). 제목을 네 곳에서 바꾼 것도 그 사이의 일이다.</p>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 15</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
