@@ -1,0 +1,13 @@
+{
+  "title": "JIT-Agent: 하네스를 태스크마다 모델이 새로 조립하게 만든 27B 메타 모델",
+  "date": "2026-08-28",
+  "seq": 19,
+  "summary": "고정 하네스 하나로 버티면 태스크 형태가 바뀔 때 두 자릿수를 잃는다는 것을 통제 비교로 보인다. 이득은 더 넣어서가 아니라 덜 넣어서 나온다. 6개 설정 전부에서 토큰과 비용이 최저이고 평균 36.0% 싸다. 다만 Table 4 의 Claude Code, Codex, OpenCode, Hermes, NanoBot 은 공개 저장소에 구현이 없고 분산, 시드, API 단가도 논문에 없다.",
+  "category": "paper",
+  "format": "deck",
+  "tags": ["agent harness", "harness generation", "agent skills", "tool policy", "context engineering", "arXiv"],
+  "source": {
+    "label": "arXiv:2608.25593v1 · bingreeky/JIT @ ababa06c",
+    "url": "https://arxiv.org/abs/2608.25593v1"
+  }
+}
