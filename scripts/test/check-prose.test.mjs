@@ -1,0 +1,66 @@
+#!/usr/bin/env node
+// check-prose.mjs 시험. 잡아야 할 것과 잡으면 안 되는 것을 나란히 돌린다.
+//   node scripts/test/check-prose.test.mjs
+//
+// 오탐 쪽이 이 파일의 본론이다. 규칙 하나가 정상 한국어를 막기 시작하면 게이트 전체가
+// --allow 로 흘러가고, 그때부터는 아무것도 막지 않는 것과 같다.
+
+import { checkDoc, visibleProse, commaAfterConnective, PATTERNS } from '../check-prose.mjs';
+
+let pass = 0, fail = 0;
+const ids = (html) => checkDoc('t', html).map((p) => p.rule);
+
+function hit(name, rule, html) {
+  const got = ids(html);
+  if (got.includes(rule)) { pass++; return; }
+  fail++;
+  console.log(`FAIL  잡았어야 한다 [${rule}]  ${name}`);
+  console.log(`      실제로 잡힌 것: ${got.join(', ') || '(없음)'}`);
+}
+
+function clean(name, rule, html) {
+  const got = ids(html);
+  if (!got.includes(rule)) { pass++; return; }
+  fail++;
+  console.log(`FAIL  오탐 [${rule}]  ${name}`);
+  console.log(`      ${checkDoc('t', html).find((p) => p.rule === rule).msg}`);
+}
+
+const doc = (body) => `<html><body><section class="slide"><p>${body}</p></section></body></html>`;
+
+// ── 잡아야 하는 것 ────────────────────────────────────────────────────────
+hit('반응어', 'reaction-word', doc('흥미롭게도 단일 문서 질문에서는 뒤진다.'));
+hit('과장 형용사', 'promo-adjective', doc('정교한 캐시 계층을 갖추고 있다.'));
+hit('출처 없는 귀속', 'vague-attribution', doc('업계에서는 이를 규제 대응으로 본다.'));
+hit('독백', 'monologue', doc('여기서 잠깐 정리하면 캐시는 버전 단위다.'));
+hit('진행 서술', 'progress-narration', doc('이제 결과를 살펴보자.'));
+hit('이유 없는 유보', 'hedge-no-gap', doc('성능이 더 나을 수도 있어 보인다.'));
+hit('피동 겹침', 'passive-stack', doc('그 값은 런타임에 확인되어진다.'));
+hit('빈 요약', 'empty-summary', doc('요컨대 이 방식은 중요하다.'));
+hit('가능성 맺음', 'prospects-close', doc('여러 한계에도 불구하고 가능성은 열려 있다.'));
+hit('~에 의해 피동', 'by-passive', doc('설정은 런처에 의해 주입된다.'));
+
+// ── 잡으면 안 되는 것 ─────────────────────────────────────────────────────
+clean('`만들어지다` 는 정상 피동', 'passive-stack', doc('인덱스는 빌드 때 만들어진다.'));
+clean('`~에 의하면` 은 피동이 아니다', 'by-passive', doc('README 에 의하면 기본값은 3이다.'));
+clean('`정교하다` 서술형은 형용사 남용이 아니다', 'promo-adjective',
+  doc('저자들은 이 구현이 정교하다고 적었다.'));
+clean('인용 안의 표현은 문서의 산문이 아니다', 'reaction-word',
+  `<html><body><section class="slide"><blockquote class="q">흥미롭게도 이 값은 고정이다</blockquote></section></body></html>`);
+clean('code 안의 표현도 아니다', 'passive-stack',
+  doc('설정은 <code>확인되어진다</code> 라는 이름의 필드에 있다.'));
+
+// ── 추출과 지표 ───────────────────────────────────────────────────────────
+function eq(name, got, want) {
+  if (got === want) { pass++; return; }
+  fail++;
+  console.log(`FAIL  ${name}: ${got} (기대 ${want})`);
+}
+eq('blockquote 는 산문에서 빠진다',
+  /인용/.test(visibleProse('<blockquote class="q">인용</blockquote><p>본문</p>')), false);
+eq('연결어미 뒤 쉼표 비율', Math.round(commaAfterConnective('빠르고, 정확하고 싸다')), 50);
+eq('연결어미가 없으면 null', commaAfterConnective('숫자만 있다'), null);
+eq('규칙 id 는 중복되지 않는다', new Set(PATTERNS.map((p) => p[0])).size, PATTERNS.length);
+
+console.log(`\n${pass}개 통과, ${fail}개 실패`);
+process.exit(fail ? 1 : 0);
