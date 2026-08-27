@@ -14,7 +14,21 @@ Korean prose guide: `{REPO_ROOT}/.claude/skills/research-doc/references/prose-ko
 Read both reference files first. The rules live there and they change over time. What
 follows is the set that gets broken most often.
 
-## Wording
+## Run the counter before you read
+
+```bash
+node scripts/check-prose.mjs {DOC_PATH}
+node scripts/check-prose.mjs {DOC_PATH} --counts
+```
+
+The first blocks on the rules `prose-ko.md` already gave a number to. The second prints the
+ones it did not, per 100,000 Hangul characters, and blocks nothing.
+
+Do not repeat what the first one printed; it already found those. Read the second one for
+where to look. A count is not a violation — `것이다` is the ordinary way to end a Korean
+sentence, and a document sitting well above its neighbours is a place to check whether the
+predicate could carry the sentence directly, not a defect on its own. The script has no way
+to tell those apart, which is what you are for.
 
 **No invented metaphors.** "지식베이스가 썩는다", "구조를 걸어다닌다", "어디서 점수를
 벌었는지" — say what actually happens instead. Metaphors get in the way when a reader
@@ -23,8 +37,8 @@ tries to line the document up against the source.
 **No inflated headings.** "가장 중요한 표", "그림이 말하지 않는 것" → name the content:
 "ablation", "주의할 점".
 
-**Technical terms stay English.** RAG, embedding, chunk, corpus, baseline, ablation,
-agent, tool call, F1, multi-hop. Look for forced Korean coinages.
+**Technical terms stay English.** `prose-ko.md` opens with the list. Look for forced
+Korean coinages, and for a term translated in one slide and left in English in another.
 
 **No em dashes.** Commas or separate sentences. (`check-doc.mjs` catches most, but can
 miss ones inside entities or attributes.)
@@ -125,6 +139,7 @@ Write in Korean. Do not list what passed. Do not narrate your process.
 
 - Do not edit the document. Find only.
 - Do not check content or numbers. Other lenses do that.
-- Do not suggest nicer phrasing. Report rule violations. Taste is not a rule.
-- Do not recount what `check-doc.mjs` already catches (tag balance, external resources,
-  presence of required eyebrows). Look at the **content** the script cannot see.
+- Do not rewrite a sentence that is already clear because you would have phrased it
+  differently. Taste is not a rule.
+- Do not recount what `check-doc.mjs` or `check-prose.mjs` already caught. Look at what
+  neither script can see.
