@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JIT-Agent: 하네스를 태스크마다 모델이 새로 조립하게 만든 27B 메타 모델</title>
+<meta name="description" content="고정 하네스 하나로 버티면 태스크 형태가 바뀔 때 두 자릿수를 잃는다. 이득은 덜 넣어서 나온다. 논문과 공개 코드를 함께 읽는다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="JIT-Agent: 하네스를 태스크마다 모델이 새로 조립하게 만든 27B 메타 모델">
+<meta property="og:description" content="고정 하네스 하나로 버티면 태스크 형태가 바뀔 때 두 자릿수를 잃는다. 이득은 덜 넣어서 나온다. 논문과 공개 코드를 함께 읽는다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-28-jit-agent-harness-intelligence/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+
+/* ── 이 문서에서 더 쓰는 것 ─────────────────────────────── */
+.kbd { font-family: var(--mono); font-size: .9em; background: var(--card-2); border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px; color: var(--ink); }
+.ok  { color: var(--link); font-weight: 700; }
+.no  { color: var(--redlink); font-weight: 700; }
+td.dim, .dim-t { color: var(--muted); }
+.figure + .figure { margin-top: 16px; }
+.tablewrap + .note { margin-top: 14px; }
+ul.clean li .m.ok { color: var(--link); }
+.two-col { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
+@media (max-width: 860px) { .two-col { grid-template-columns: 1fr; } }
+</style></head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>고정 하네스의 벌점</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>타입 있는 조립 공간</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>분할 축의 차이</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>덜 넣기</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>단계별 노출</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>검증과 수리</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>frontier 만 저장</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>사례: Turnstile</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>결과: 점수</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>결과: 이식성</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>가져갈 것</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>결론</span></button>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>JIT-Agent: 하네스를 태스크마다 모델이 새로 조립하게 만든 27B 메타 모델</h1>
+      <p class="dek">arXiv:2608.25593v1 (2026-08-26 게시, cs.CL/cs.LG, 저자 16인, LV-NUS Lab). 피어리뷰를 거치지 않은 프리프린트이고 게시 이틀째다. 코드는 <span class="wl">bingreeky/JIT</span> @ <span class="wl">ababa06c</span>, 가중치는 <span class="wl">JIT-Agent/jit-27b</span> @ <span class="wl">0705ca15</span> 로 공개되어 있다.</p>
+
+      <p>이 저장소에는 하네스를 사람이 어떻게 짜는지 다룬 문서가 이미 넷 있다.
+      <a class="xref" href="../2026-08-14-deepseek-harness-plugin-architecture/#p5">DeepSeek Harness 의 플러그인 합성</a>,
+      <a class="xref" href="../2026-08-07-loopx-deterministic-loop-harness/#p5">LoopX 의 결정론적 제어 평면</a>,
+      <a class="xref" href="../2026-08-11-addyosmani-agent-skills/#p5">SKILL.md 의 프론트매터 계약</a>,
+      <a class="xref" href="../2026-08-12-omo-native-vs-opencode-plugin/#p10">omo 의 토큰 비용</a>.
+      이 논문은 같은 대상을 반대편에서 잡는다. 하네스를 사람이 짜는 물건이 아니라 모델이 태스크마다 조립하는 물건으로 바꾸면 무엇이 드러나는가.</p>
+
+      <p>드러난 것 중 여러 개는 사람이 짜는 하네스에도 그대로 걸린다. 이 문서는 그것을 쓴다. 벤치마크 순위는 그 시사점의 근거가 되는 자리에만 넣었다.</p>
+
+      <div class="stats">
+        <div class="stat hero"><span class="lab">9개 벤치마크 평균</span><span class="val">+8.8</span><span class="sub">DeepSeek-V4-Flash 66.7 → 75.5. 백본은 같고 스캐폴드만 바뀌는데 baseline 쪽 스캐폴드가 무엇인지는 논문에 없다(<a class="xref" href="#p12">12장</a>)</span></div>
+        <div class="stat hero"><span class="lab">케이스당 비용</span><span class="val">−36.0<span class="u">%</span></span><span class="sub">통제 비교 6개 설정, 각 설정의 최저가 고정 하네스 대비 평균</span></div>
+        <div class="stat bad"><span class="lab">Table 4 의 baseline 하네스</span><span class="val">0<span class="u">/5</span></span><span class="sub">Claude Code, Codex, OpenCode, Hermes, NanoBot 중 공개 저장소에 구현이 있는 것</span></div>
+      </div>
+
+      <p class="note"><b>이 문서가 다루지 않는 것.</b> 훈련 재현. 논문은 GPU 시간, 학습률, 에포크, 배치 크기를 하나도 적지 않는다(<span class="kbd">main.tex</span> 전체 검색 결과 0건). 가중치는 받을 수 있지만 훈련을 되돌릴 근거는 논문에 없다.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약. 고정 하네스 하나를 유지하는 값은 두 자릿수이고 JIT 의 이득은 더 넣어서가 아니라 덜 넣어서 나온다</h2>
+      <p class="dek">백본을 고정하고 하네스만 바꾼 6개 설정에서 어떤 고정 하네스도 전 태스크를 지배하지 못한다. NanoBot 은 Qwen3.6-Flash DeepSearchQA 에서 1위지만 같은 백본 AgentIF 에서 JIT 에 14.8점 뒤진다. 그리고 JIT 은 6개 설정 전부에서 토큰과 비용이 최저다.</p>
+
+      <ul class="clean">
+        <li><span class="m ok">1</span><div><b>타입이 붙어야 조립된다.</b> 논문은 하네스를 <span class="wl">h = (M, P, A, F)</span> 로 쪼개고 프로토콜을 고정해서 하네스 구성을 "제약 없는 프로그램 합성"에서 "타입 있는 재조합 공간 위의 조립"으로 바꾼다. 저자들이 그 문장을 직접 쓴다.</div></li>
+        <li><span class="m ok">2</span><div><b>이득은 덜 넣는 쪽에서 나온다.</b> DeepSeek-V4-Flash xBench-DS 에서 527K → 212K 토큰, $0.075 → $0.039 인데 점수는 78.0 → 82.0 으로 오른다. 저자들은 "이득이 더 긴 궤적으로 산 것이 아니다"라고 명시한다.</div></li>
+        <li><span class="m ok">3</span><div><b>도구 노출은 단계별 결정이다.</b> <span class="wl">F</span> 모듈의 정의 자체가 "각 단계에 어떤 외부 역량을 노출하나"이고 공개 코드의 인터페이스도 <span class="wl">step_number</span> 를 받는다. 그런데 손으로 쓴 seed 하네스 11개는 전부 그 인자를 무시하고 카탈로그 전체를 돌려준다.</div></li>
+        <li><span class="m bad">4</span><div><b>Table 4 의 숫자는 재현 불가다.</b> 다섯 baseline 하네스는 공개 저장소 어디에도 구현이 없다. 출시된 Claude Code 가 아니라 저자들이 남의 백본 위에 이식했다고 밝힌 스캐폴드이고 이식 충실도는 통째로 자유 변수다.</div></li>
+        <li><span class="m bad">5</span><div><b>오차 근거가 없다.</b> 논문에 표준편차, 신뢰구간, 시드 반복, 유의성 검정이 하나도 없다. 표본 크기를 적은 곳은 일반화 실험 캡션 한 군데뿐이고(벤치마크당 50~100개), Table 3 과 Table 4 의 표본은 어디에도 없다. Table 4 의 +2.9점 차이가 노이즈 밖인지 판단할 재료가 없다.</div></li>
+      </ul>
+
+      <p class="note">위 다섯 중 3번과 4번은 <a class="xref" href="#p7">7장</a>과 <a class="xref" href="#p14">14장</a>에서 코드로 확인한다. 나머지는 논문의 표에서 온다.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>문제 정의. 하나의 태스크 형태에 맞춘 하네스는 다른 형태에서 측정 가능하게 틀리고, 그 벌점이 두 자릿수다</h2>
+      <p class="dek">논문은 백본을 고정하고 하네스만 갈아끼우는 통제 비교를 돌린다. 결과는 "어느 하네스가 좋다"가 아니라 "1등이 태스크마다 바뀌고, 바뀌는 폭이 크다"이다. 아래 표는 논문 Table 4 의 Qwen3.6-Flash 블록에서 DeepSearchQA 와 AgentIF 두 열만 뽑은 것이다.</p>
+
+      <div class="figure">
+        <p class="fig-title">같은 백본, 같은 두 벤치마크. 1등이 자리를 바꾼다</p>
+        <p class="fig-sub">Qwen3.6-Flash 위의 점수. 논문 Table 4 (arXiv:2608.25593v1) 에서 두 열만 추림</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>하네스</th><th>DeepSearchQA</th><th>AgentIF-Oneday</th><th>두 열의 차</th></tr></thead>
+            <tbody>
+              <tr><td>NanoBot 스캐폴드</td><td class="win">74.2</td><td class="lose">43.5</td><td>30.7</td></tr>
+              <tr><td>Claude Code 스캐폴드</td><td>72.8</td><td>55.4</td><td>17.4</td></tr>
+              <tr><td>Codex 스캐폴드</td><td>68.5</td><td class="lose">34.2</td><td>34.3</td></tr>
+              <tr><td>OpenCode 스캐폴드</td><td>64.1</td><td>38.7</td><td>25.4</td></tr>
+              <tr><td>Hermes 스캐폴드</td><td class="lose">60.8</td><td>49.7</td><td>11.1</td></tr>
+              <tr class="hero"><td>JIT</td><td>70.3</td><td class="win">58.3</td><td>12.0</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>DeepSearchQA 1위인 NanoBot 이 AgentIF 에서는 여섯 중 넷째로 내려가고 JIT 에 14.8점 뒤진다. Codex 스캐폴드는 두 열 사이가 34.3점 벌어진다. 이 표는 "JIT 이 이겼다"를 말하지 않는다. JIT 은 DeepSearchQA 에서 NanoBot 에 3.9점 진다. 표가 말하는 것은 고정 하네스의 순위가 태스크 형태에 따라 뒤집히고, 뒤집히는 폭이 두 자릿수라는 것이다. "두 열의 차" 열은 논문에 없는 계산이다.</figcaption>
+      </div>
+
+      <p>DeepSeek-V4-Flash 블록에서도 같은 모양이 나온다. Claude Code 스캐폴드는 AgentIF 에서 66.9로 그 블록 1위인데, 같은 백본 DeepSearchQA 에서는 79.6으로 JIT 의 85.1 에 5.5점 뒤진다. 논문의 문장은 이렇다.</p>
+
+      <p class="q">No fixed harness dominates across tasks: for example, NanoBot is strongest on Qwen3.6-Flash DeepSearchQA but falls 14.8 points behind JIT-Agent on AgentIF.<cite>arXiv:2608.25593v1 §6.3, main.tex:739</cite></p>
+
+      <p>단일 <span class="wl">CLAUDE.md</span> 하나, 스킬 세트 하나를 유지하는 사람이 실제로 감수하는 값이 이 숫자다. 하네스가 나쁘다는 말이 아니라, 태스크 형태가 하네스 설계보다 먼저 점수를 정한다는 말이다.</p>
+
+      <p class="note">이 표의 baseline 하네스는 출시된 Claude Code 나 Codex 가 아니다. 논문이 그 스캐폴드를 Qwen3.6-Flash 위에 이식한 것이고("we instantiate each harness on DeepSeek-V4-Flash and Qwen3.6-Flash", <span class="kbd">main.tex:704</span>) 공개 저장소에는 그 구현이 없다. 근거는 <a class="xref" href="#p14">14장</a>에 있다. 이 문서는 그래서 표에서 "스캐폴드"라고 표기한다.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">typed-space</p>
+      <h2>구조 1. 프로토콜을 고정하면 하네스 작성이 프로그램 합성에서 조립으로 바뀐다</h2>
+      <p class="dek">모델에게 "에이전트를 하나 짜라"고 하면 생성 공간이 열려 있어 아무것도 보장되지 않는다. 논문은 그 공간을 네 겹으로 좁힌다. 좁히는 도구가 네 모듈 프로토콜이고 이게 이 논문에서 사람이 짜는 하네스로 가장 곧바로 옮겨가는 부분이다.</p>
+
+      <div class="figure">
+        <p class="fig-title">생성 공간은 네 겹이고 마지막 두 겹 사이의 간극이 repair 의 몫이다</p>
+        <p class="fig-sub">arXiv:2608.25593v1 §3.1 (main.tex:212, :227, :243–249)</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 760 264" role="img" aria-label="왼쪽은 생성 공간 네 겹의 포함 관계다. 가장 바깥이 원시 생성 공간 G, 그 안이 문법적으로 유효한 H^syn, 그 안이 프로토콜을 지키는 H_Pi, 가장 안쪽이 실제로 실행되는 H^exec_Pi 다. 프로토콜 준수와 실행 가능 사이의 간극을 Stage II 의 repair 가 메운다. 오른쪽은 런타임 의존 순서로, memory 가 만든 view 를 planning 이 directive 로 바꾸고, capability orchestration 이 그 directive 를 보고 이번 단계에 노출할 도구 집합을 고르고, action 이 그 전부를 받아 제어를 전진시킨다. 튜플 표기는 M, P, A, F 순이지만 실행 순서는 M, P, F, A 다.">
+          <rect class="box" x="10"  y="24"  width="416" height="212" rx="10"/>
+          <rect class="box" x="34"  y="52"  width="368" height="160" rx="9"/>
+          <rect class="box" x="58"  y="80"  width="320" height="108" rx="8"/>
+          <rect class="box-hi" x="82" y="108" width="272" height="56" rx="7"/>
+          <text class="txt"   x="22"  y="44">G</text>
+          <text class="txt-s" x="44"  y="44">원시 생성. 아무 텍스트나</text>
+          <text class="txt"   x="46"  y="72">H<tspan font-size="9" dy="3">syn</tspan></text>
+          <text class="txt-s" x="86"  y="72">문법적으로 유효한 코드</text>
+          <text class="txt"   x="70"  y="100">H<tspan font-size="9" dy="3">Π</tspan></text>
+          <text class="txt-s" x="98"  y="100">네 모듈 인터페이스를 지킴</text>
+          <text class="txt"   x="94"  y="130">H<tspan font-size="9" dy="3">exec</tspan><tspan font-size="9" dy="0">,Π</tspan></text>
+          <text class="txt-s" x="94"  y="150">실제로 끝까지 도는 것</text>
+          <text class="txt-s" x="72" y="180">이 두 겹 사이가 Stage II repair 의 몫이다</text>
+
+          <rect class="box" x="470" y="14"  width="278" height="46" rx="8"/>
+          <text class="txt"   x="484" y="34">M · memory</text>
+          <text class="txt-s" x="484" y="50">기록을 view 로 줄인다</text>
+          <path class="arw" d="M609 60 L609 76"/><path class="arw" d="M604 69 L609 76 L614 69"/>
+          <rect class="box" x="470" y="76"  width="278" height="46" rx="8"/>
+          <text class="txt"   x="484" y="96">P · planning</text>
+          <text class="txt-s" x="484" y="112">view 를 국소 directive 로 바꾼다</text>
+          <path class="arw" d="M609 122 L609 138"/><path class="arw" d="M604 131 L609 138 L614 131"/>
+          <rect class="box-hi" x="470" y="138" width="278" height="46" rx="8"/>
+          <text class="txt"   x="484" y="158">F · capability orchestration</text>
+          <text class="txt-s" x="484" y="174">이번 단계에 노출할 도구를 고른다</text>
+          <path class="arw" d="M609 184 L609 200"/><path class="arw" d="M604 193 L609 200 L614 193"/>
+          <rect class="box" x="470" y="200" width="278" height="46" rx="8"/>
+          <text class="txt"   x="484" y="220">A · action</text>
+          <text class="txt-s" x="484" y="236">제어를 전진시키고 행동을 낸다</text>
+          <text class="txt-s" x="470" y="256">튜플 표기는 (M, P, A, F). 런타임 순서는 M → P → F → A</text>
+        </svg>
+        </div>
+        <figcaption>왼쪽 네 겹은 논문의 <span class="wl">G ⊇ H^syn ⊇ H_Π ⊇ H^exec_Π</span> 다. 오른쪽은 §3.1 의 네 식(main.tex:243–249)을 그린 것이고 화살표는 데이터 의존이지 시간 순서가 아니다. 한 스텝 안에서 넷이 다 돈다.</figcaption>
+      </div>
+
+      <p>저자들이 이 설계의 값어치를 직접 쓴다. 인용 상대가 이 저장소에 이미 문서가 있는 <a class="xref" href="../2026-08-14-deepseek-harness-plugin-architecture/#p5">DeepSeek Harness</a> 다.</p>
+
+      <p class="q">Composability is equally central to JIT generation: it turns harness construction from unconstrained program synthesis into assembly over a typed, recombinable design space.<cite>arXiv:2608.25593v1 §3.1 Harness Composability box, main.tex:215</cite></p>
+
+      <p>스킬 라이브러리 설계에 그대로 걸린다. 스킬이 선언된 인터페이스를 가진 역할로 타입되어 있으면 재조합 대상이 되고 산문 덩어리면 안 된다. <a class="xref" href="../2026-08-11-addyosmani-agent-skills/#p5">addyosmani/agent-skills 의 SKILL.md 24개가 프론트매터에 <span class="wl">name</span> 과 <span class="wl">description</span> 만 쓴다</a>는 사실이 이 축에서 다시 읽힌다. 그 두 필드는 사람이 고르기에는 충분하지만 모델이 조립하기에는 타입이 아니다. 무엇을 받아 무엇을 돌려주는지가 선언되어 있지 않다.</p>
+
+      <p class="note">이 좁히기는 표현력을 깎는다. 논문 §3.1 은 ReAct 를 <span class="wl">(M_full, P_∅, A_react, F_all)</span> 로, Codex 와 OpenCode 를 <span class="wl">(M_compact, P_todo, A_react, F_all)</span> 로 적어 좌표계 안에 들어온다고 주장하지만, 이것은 논문의 주장이지 그 두 런타임을 열어 대조한 결과가 아니다. 저자들도 자기 인스턴스화가 프로덕션 런타임보다 의도적으로 빈약하다고 <a class="xref" href="#p15">따로 밝힌다</a>.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">split-axis</p>
+      <h2>구조 2. 작업 단계로 쪼갠 스킬은 재조합되지 않는다. JIT 은 운영 기능으로 쪼갠다</h2>
+      <p class="dek">이 저장소의 <span class="wl">.claude/skills/</span> 는 source → doc → verify 로 나뉜다. 작업이 흘러가는 순서다. JIT 의 네 모듈은 memory, planning, action, capability 로 나뉜다. 한 스텝 안에서 동시에 사는 기능이다. 같은 대상을 다르게 자른 두 축이고 각각 무엇을 가능하게 하고 무엇을 막는지가 다르다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>축</th><th>단위</th><th>가능해지는 것</th><th>막히는 것</th></tr></thead>
+          <tbody>
+            <tr><td>작업 단계<br><span class="dim-t">source → doc → verify</span></td><td class="dim">시간</td><td>단계 사이에 컨텍스트 경계를 그을 수 있다. verify 를 다른 컨텍스트에서 돌리는 것이 이 축에서만 성립한다</td><td>두 단계를 섞을 수 없다. doc 을 쓰다가 필요한 memory 전략만 바꿔 끼우는 조작이 정의되지 않는다</td></tr>
+            <tr class="hero"><td>운영 기능<br><span class="dim-t">M / P / A / F</span></td><td>스텝 내부</td><td>모듈 하나만 갈아끼우는 것이 타입 수준에서 정의된다. 13개 seed 하네스가 같은 좌표계의 서로 다른 점이 된다</td><td>단계 경계가 없다. 컨텍스트를 끊는 조작이 이 축에는 없고 논문도 그것을 다루지 않는다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note">이 대조는 논문에 없다. 논문의 네 모듈과 이 저장소의 skill 배치를 나란히 놓은 것이고 두 축이 경쟁하지 않는다는 점이 결론이다. 둘 다 필요하다면 두 겹으로 겹쳐야 하고 논문은 그 겹치기를 시도하지 않는다.</p>
+
+      <h3 style="margin-top:26px">공개 코드에서 이 축은 파일 다섯 개로 고정되어 있다</h3>
+
+      <p><span class="wl">harness_factory/harnesses/&lt;name&gt;/</span> 은 하네스 하나를 파일 다섯 개로 고정한다. <span class="wl">memory.py</span>, <span class="wl">planning.py</span>, <span class="wl">action.py</span>, <span class="wl">tool_policy.py</span>, <span class="wl">prompt.yaml</span>. 메타 모델이 생성할 때도 같은 다섯 개를 태그 블록에 담아 뱉는다(<span class="wl">jit/harness_ops.py:30</span> 의 <span class="wl">SECTION_TAG_TO_FILE</span>).</p>
+
+      <pre>harness_factory/harnesses/plan_and_execute/
+├── memory.py       <b>MemoryStrategy</b>      무엇을 기억하고, 매 스텝 어떻게 다시 짜나
+├── planning.py     <b>PlanningStrategy</b>    계획이 있는가, 어떻게 고치나
+├── action.py       <b>ActionStrategy</b>      한 스텝이 tool call 이나 최종 답이 되는 경로
+├── tool_policy.py  <b>ToolPolicyStrategy</b>  <span class="k">각 스텝에 어떤 도구를 내놓나</span>
+├── prompt.yaml                        이 모듈들이 렌더하는 프롬프트
+└── description.yaml                   메타데이터
+<span class="c">// harness_factory/README.md, ababa06c</span></pre>
+
+      <p>그 옆의 <span class="wl">descriptions/&lt;name&gt;.md</span> 는 설계 설명서인데, 저장소가 이렇게 못박는다.</p>
+
+      <p class="q">These same files are what the JIT meta model is shown as reference material in its generation prompt, so editing one changes both the documentation and the generation prompt.<cite>harness_factory/README.md, bingreeky/JIT @ ababa06c</cite></p>
+
+      <p>설명서와 생성 프롬프트가 같은 파일이다. 기본 모드(<span class="wl">desc</span>)에서 메타 모델은 11개 하네스의 설명서를 통째로 약 13K 토큰 받고, <span class="wl">code</span> 모드에서는 그중 셋을 무작위로 뽑아 전체 소스를 25K~46K 토큰 받는다(<span class="wl">jit/README.md</span>). 스킬 라이브러리를 문서로 쓰면서 동시에 프롬프트로 쓰는 구조이고 이 저장소의 <span class="wl">.claude/skills/</span> 도 같은 성질을 갖는다.</p>
+
+      <p class="note">논문 Table 2 는 seed 하네스를 13개로 적는다. 공개 저장소에 디렉터리가 있는 것은 11개이고 <span class="wl">ReAct</span> 와 <span class="wl">AOrchestra</span> 는 없다. README 의 카탈로그도 11행이고 <span class="wl">plan_and_execute</span> 를 "Linear ReAct. 최소 baseline"으로 설명한다. 논문이 13개를 다 돌렸는지 11개만 공개한 것인지는 저장소만으로 판단할 수 없다.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">subtraction</p>
+      <h2>구조 3. 이득은 더 넣어서가 아니라 덜 넣어서 나온다</h2>
+      <p class="dek">규칙을 더 쓰고 도구를 더 붙이는 것이 하네스를 손볼 때의 통상적 본능이다. 통제 비교 6개 설정 전부에서 JIT 이 토큰과 비용 최저를 기록하고 그중 넷에서 점수도 1위다. 남는 문장은 하나다. 점수를 가른 것은 컨텍스트에 넣지 않은 쪽이다.</p>
+
+      <div class="figure">
+        <p class="fig-title">DeepSeek-V4-Flash · xBench-DS. 가장 적게 쓰던 고정 하네스보다 토큰을 60% 줄이고 점수는 4.0점 올린다</p>
+        <p class="fig-sub">케이스당 평균 토큰(K). 논문 Table 4 (arXiv:2608.25593v1 §6.3). 위의 다섯은 전부 논문이 이 백본 위에 재구현한 스캐폴드다</p>
+        <div class="legend"><span><i class="sn"></i>고정 하네스</span><span><i class="s1"></i>JIT 이 조립한 하네스</span></div>
+        <div class="bars">
+          <div class="bar-row"><span class="bar-name">Hermes</span><span class="bar-track"><span class="bar" style="--w:78.4%"></span></span><span class="bar-val two">1,254K<br>72.0점</span></div>
+          <div class="bar-row"><span class="bar-name">OpenCode</span><span class="bar-track"><span class="bar" style="--w:72.3%"></span></span><span class="bar-val two">1,157K<br>65.0점</span></div>
+          <div class="bar-row"><span class="bar-name">Codex</span><span class="bar-track"><span class="bar" style="--w:42.5%"></span></span><span class="bar-val two">680K<br>70.0점</span></div>
+          <div class="bar-row"><span class="bar-name">Claude Code</span><span class="bar-track"><span class="bar" style="--w:34.9%"></span></span><span class="bar-val two">559K<br>75.0점</span></div>
+          <div class="bar-row"><span class="bar-name">NanoBot</span><span class="bar-track"><span class="bar" style="--w:32.9%"></span></span><span class="bar-val two">527K<br>78.0점</span></div>
+          <div class="bar-row is-hero"><span class="bar-name">JIT</span><span class="bar-track"><span class="bar s1" style="--w:13.3%"></span></span><span class="bar-val two">212K<br>82.0점</span></div>
+        </div>
+        <div class="bar-axis"><div class="ticks"><span>0</span><span>400</span><span>800</span><span>1,200</span><span>1,600K</span></div></div>
+        <figcaption>막대는 토큰이므로 짧을수록 좋고, 오른쪽 둘째 줄의 점수는 높을수록 좋다. 토큰이 가장 많은 Hermes 가 점수는 중간이고 가장 적은 JIT 이 점수 1위다. 토큰과 점수의 순위가 이 열에서는 거의 뒤집혀 있다. 다른 두 열(DeepSearchQA, AgentIF)에서는 뒤집힘이 이만큼 깨끗하지 않다. AgentIF 에서 JIT 은 Claude Code 스캐폴드에 3.1점 진다.</figcaption>
+      </div>
+
+      <p class="q">Thus, the gains are not explained by longer trajectories; the generated harnesses typically achieve stronger results with shorter, more selective execution.<cite>arXiv:2608.25593v1 §6.3, main.tex:742</cite></p>
+
+      <p>6개 설정 전부에서 최저 비용이고 각 설정에서 가장 싼 고정 하네스 대비 절감폭이 14.9%~54.1%, 평균 36.0% 다. 논문의 이 세 숫자는 Table 4 의 셀에서 직접 계산해 그대로 나온다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>설정</th><th>최저가 고정 하네스</th><th>JIT</th><th>절감</th><th>점수 방향</th></tr></thead>
+          <tbody>
+            <tr><td>DSF · DeepSearchQA</td><td>$0.088 (Claude Code)</td><td>$0.066</td><td class="win">25.0%</td><td class="win">80.4 → 85.1</td></tr>
+            <tr class="hero"><td>DSF · xBench-DS</td><td>$0.075 (NanoBot)</td><td>$0.039</td><td class="win">48.0%</td><td class="win">78.0 → 82.0</td></tr>
+            <tr><td>DSF · AgentIF</td><td>$0.114 (Claude Code)</td><td>$0.097</td><td class="win">14.9%</td><td class="lose">66.9 → 63.8</td></tr>
+            <tr><td>Qwen · DeepSearchQA</td><td>$0.140 (Claude Code)</td><td>$0.095</td><td class="win">32.1%</td><td class="lose">74.2 → 70.3</td></tr>
+            <tr><td>Qwen · xBench-DS</td><td>$0.119 (NanoBot)</td><td>$0.069</td><td class="win">42.0%</td><td class="win">63.0 → 70.0</td></tr>
+            <tr><td>Qwen · AgentIF</td><td>$0.170 (Codex)</td><td>$0.078</td><td class="win">54.1%</td><td class="win">55.4 → 58.3</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">"절감" 열은 최저가 고정 하네스 대비이고 "점수 방향"의 왼쪽은 그 벤치마크에서 가장 점수가 높은 고정 하네스다. 두 열의 기준이 다르므로 같은 행에서 두 값을 하나의 하네스 이야기로 읽으면 안 된다. 절감률은 논문이 범위와 평균만 적고 셀별로는 적지 않으므로 이 표에서 Table 4 의 값으로 계산했다. 여섯 값의 평균은 36.0% 로 논문과 일치한다. USD 단가는 논문이 밝히지 않는다(<a class="xref" href="#p14">14장</a>).</p>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">per-step-f</p>
+      <h2>구조 4. 도구와 스킬 노출은 전역 설정이 아니라 단계별 결정인데, 손으로 쓴 하네스는 전부 전역으로 쓴다</h2>
+      <p class="dek">논문의 <span class="wl">F</span> 모듈 정의는 "각 단계에 어떤 외부 역량을 노출하나"다. 식으로는 <span class="wl">C_t = F(C_τ, s_t, v_t, d_t) ⊆ C_τ</span> 이고 매 스텝 레지스트리의 부분집합을 고른다. 공개 코드의 인터페이스도 그렇게 되어 있다. 그런데 그 인터페이스를 쓰는 구현이 seed 하네스에는 하나도 없다.</p>
+
+      <div class="two-col">
+        <div>
+          <h3>인터페이스는 단계별이다</h3>
+          <pre>class BaseToolPolicy(ABC):
+    <span class="c">"""Per-step tool selection."""</span>
+
+    def select_tools(
+        self,
+        task: str,
+        <b>step_number: int,</b>
+        <b>memory_view: MemoryView,</b>
+        <b>plan: Optional[PlanState] = None,</b>
+    ) -&gt; ToolSelection:
+        <span class="c">"""Select which tools to expose
+           for this step."""</span>
+<span class="c">// scripts/kernel/protocols.py</span></pre>
+        </div>
+        <div>
+          <h3>구현 11개는 전부 인자를 버린다</h3>
+          <pre>class ToolPolicyStrategy(BaseToolPolicy):
+    <span class="c">"""Always expose the full tool
+       catalog and all loaded skills."""</span>
+
+    def select_tools(self, task, step_number,
+                     memory_view, plan=None):
+        return ToolSelection(
+            tools=<span class="r">self._catalog</span>,
+            tool_schemas_json=self._schemas_json,
+            skills_prompt=self._skills_prompt,
+        )
+<span class="c">// harness_factory/harnesses/*/tool_policy.py</span></pre>
+        </div>
+      </div>
+
+      <p><span class="wl">harness_factory/harnesses/</span> 아래 11개 하네스의 <span class="wl">tool_policy.py</span> 를 전부 열면 <span class="wl">select_tools</span> 본문이 모두 위와 같다. <span class="wl">step_number</span>, <span class="wl">memory_view</span>, <span class="wl">plan</span> 을 받아서 하나도 보지 않고 카탈로그 전체를 돌려준다. 파일 자체가 byte 단위로 같은 것이 5개다(md5 <span class="wl">36d701eb…</span>: flash_searcher, gam, oagent, plan_and_execute, resum). 논문 Table 2 는 DeepAgent 의 <span class="wl">F</span> 를 "Tool search"로 적지만, 공개된 <span class="wl">deepagent/tool_policy.py</span> 는 <span class="wl">plan_and_execute</span> 것과 주석과 빈 줄만 다르고 동작이 같다.</p>
+
+      <p>네 모듈 중 이렇게 한 가지 동작으로 수렴한 것은 <span class="wl">F</span> 뿐이다. 11개 하네스의 파일을 모듈별로 해시해 보면 <span class="wl">memory.py</span> 는 서로 다른 구현이 10종, <span class="wl">planning.py</span> 는 8종, <span class="wl">action.py</span> 는 8종인데, <span class="wl">tool_policy.py</span> 는 파일이 7종이면서 동작은 1종이다. 설계 공간을 네 축으로 열어 두고 세 축에서만 실제로 움직인 셈이다.</p>
+
+      <div class="figure">
+        <p class="fig-title">seed 하네스 11개, 모듈별로 서로 다른 구현이 몇 종인가</p>
+        <p class="fig-sub">harness_factory/harnesses/*/&lt;module&gt;.py 를 md5 로 묶은 결과. bingreeky/JIT @ ababa06c</p>
+        <div class="bars">
+          <div class="bar-row"><span class="bar-name">memory.py</span><span class="bar-track"><span class="bar" style="--w:90.9%"></span></span><span class="bar-val">10</span></div>
+          <div class="bar-row"><span class="bar-name">planning.py</span><span class="bar-track"><span class="bar" style="--w:72.7%"></span></span><span class="bar-val">8</span></div>
+          <div class="bar-row"><span class="bar-name">action.py</span><span class="bar-track"><span class="bar" style="--w:72.7%"></span></span><span class="bar-val">8</span></div>
+          <div class="bar-row is-hero"><span class="bar-name">tool_policy.py</span><span class="bar-track"><span class="bar s2" style="--w:9.1%"></span></span><span class="bar-val">1</span></div>
+        </div>
+        <div class="bar-axis"><div class="ticks"><span>0</span><span></span><span></span><span></span><span>11종</span></div></div>
+        <figcaption>가로축은 하네스 수 11 을 최대로 잡았다. 앞의 세 줄은 파일 해시가 서로 다른 것의 개수이고 마지막 줄은 파일 해시로는 7종이지만 <span class="wl">select_tools</span> 본문이 전부 같아 동작으로는 1종이다. 이 집계는 논문에 없다. 논문 Table 2 의 <span class="wl">F</span> 열은 11행이 "Full registry", DeepAgent 가 "Tool search", AOrchestra 가 "Agent Delegation" 인데, 뒤의 둘 중 AOrchestra 는 저장소에 없고 DeepAgent 는 Full registry 로 구현되어 있다.</figcaption>
+      </div>
+
+      <p>스킬 쪽도 같은 모양이다. <span class="wl">SkillRegistry</span> 는 <span class="wl">SKILL.md</span> 를 디렉터리에서 읽어 프롬프트에 넣는데 호출은 <span class="wl">load_all()</span> 하나뿐이고 <span class="wl">initialize()</span> 에서 한 번 돈다. 고를 수 있는 자리가 코드에 없다.</p>
+
+      <p class="q">Skills tell the agent <i>how</i> to approach problems, tools give it <i>what</i> to call.<cite>scripts/tools/skills/__init__.py:1-13, bingreeky/JIT @ ababa06c</cite></p>
+
+      <p><span class="wl">F</span> 를 실제로 단계별로 쓰는 것은 메타 모델이 생성한 하네스뿐이다. 논문 부록의 <span class="wl">Turnstile</span> 은 <span class="wl">DynamicToolPolicy</span> 로 아직 안 채운 증거 버킷에 맞는 검색 도구만 열고 <span class="wl">final_answer</span> 는 <span class="wl">is_complete()</span> 가 통과할 때까지 잠근다. <span class="wl">Mulligan</span> 은 DOCX 파일 하나를 다루는 태스크라서 Word 와 파일 조작만 열고 email, spreadsheet, PDF 도구를 숨긴다.</p>
+
+      <p class="note">여기서 사람이 가져갈 것은 "스킬을 다 켜두지 마라"가 아니라 그보다 좁다. <b>노출 결정이 어느 시점에 내려지는지가 설계 변수라는 것</b>이고 대부분의 하네스는 그 변수를 세션 시작 시점에 고정한 뒤 다시 건드리지 않는다. 이것은 <a class="xref" href="#p6">6장의 덜 넣기</a>와 같은 뿌리다. 다만 논문은 도구 노출만 따로 떼어낸 ablation 을 돌리지 않으므로, 절감의 몇 %가 <span class="wl">F</span> 에서 왔는지는 논문으로 알 수 없다.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">repair</p>
+      <h2>구조 5. 스키마를 통과한 설정과 실제로 도는 설정은 다르고, 훈련 3단계 중 한 단계가 통째로 그 간극이다</h2>
+      <p class="dek">Stage I 은 프로토콜을 지키는 하네스를 뱉게 가르친다. 프로토콜을 지켜도 돌지 않는 것이 남고, 그 남은 것이 <a class="xref" href="#p4">4장 그림의 안쪽 두 겹 사이</a>다. Stage II 는 그 간극만 담당한다.</p>
+
+      <div class="figure">
+        <p class="fig-title">validation 은 결정론적 검사이고 repair 는 그 뒤에 붙는 별개의 모델 호출이다</p>
+        <p class="fig-sub">arXiv:2608.25593v1 §4.2 · jit/meta_agent.py, jit/README.md @ ababa06c</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 760 176" role="img" aria-label="생성에서 검증을 거쳐 실행에 이르는 흐름이다. 메타 모델이 파일 다섯 개를 생성하면 결정론적 정적 검사가 파이썬 컴파일과 prompt.yaml 의 필수 키 다섯 개를 확인한다. 통과하면 실행으로 간다. 실패하면 진단 보고서와 함께 repair 로 가고, repair 는 메타 모델을 다시 불러 패치를 만들며 기본 다섯 번까지 시도한 뒤 다시 검증으로 돌아간다. 실행 중 예외가 나면 다시 repair 로 돌아가지만, 점수가 낮다는 이유로는 repair 를 돌리지 않는다.">
+          <rect class="box" x="8"   y="18" width="150" height="52" rx="8"/>
+          <text class="txt" x="20" y="40">생성</text><text class="txt-s" x="20" y="58">5개 태그 블록</text>
+          <path class="arw" d="M158 44 L196 44"/><path class="arw" d="M189 39 L196 44 L189 49"/>
+          <rect class="box-hi" x="196" y="18" width="180" height="52" rx="8"/>
+          <text class="txt" x="208" y="40">validation</text><text class="txt-s" x="208" y="58">compile() + 필수 키 5개</text>
+          <path class="arw" d="M376 44 L560 44"/><path class="arw" d="M553 39 L560 44 L553 49"/>
+          <text class="txt-s" x="430" y="34">통과</text>
+          <rect class="box" x="560" y="18" width="190" height="52" rx="8"/>
+          <text class="txt" x="572" y="40">실행</text><text class="txt-s" x="572" y="58">백본이 이 하네스로 돈다</text>
+
+          <path class="arw" d="M286 70 L286 106"/><path class="arw" d="M281 99 L286 106 L291 99"/>
+          <text class="txt-s" x="294" y="92">실패 + 진단 보고서</text>
+          <rect class="box" x="196" y="106" width="180" height="52" rx="8"/>
+          <text class="txt" x="208" y="128">repair</text><text class="txt-s" x="208" y="146">메타 모델 재호출, 기본 최대 5회</text>
+          <path class="arw" d="M196 132 L120 132 L120 70"/><path class="arw" d="M115 77 L120 70 L125 77"/>
+          <text class="txt-s" x="20" y="112">다시 검증</text>
+
+          <path class="arw" d="M655 70 L655 132 L376 132"/><path class="arw" d="M383 127 L376 132 L383 137"/>
+          <text class="txt-s" x="470" y="126">실행 중 예외가 나면</text>
+          <text class="txt-s" x="470" y="160">점수가 낮다는 이유로는 repair 하지 않는다</text>
+        </svg>
+        </div>
+        <figcaption>왼쪽 되돌아가는 화살표가 repair 루프이고 오른쪽 되돌아가는 화살표는 실행 중 예외 경로다. validation 상자는 모델을 부르지 않는다. <span class="wl">jit/meta_agent.py:821</span> 이 파이썬 모듈을 <span class="wl">compile()</span> 하고 <span class="wl">prompt.yaml</span> 이 <span class="wl">system_prompt, planning, summary, final_answer, step</span> 다섯 키를 갖는지만 본다.</figcaption>
+      </div>
+
+      <p>훈련 쪽 Stage II 는 Stage I 에서 버려진 실패 하네스와 그 진단 보고서를 모아 repair 궤적으로 바꾼다. 채택 조건이 좁다. 두 번 안에 실행 가능해진 궤적만 남긴다.</p>
+
+      <p class="q">We retain only trajectories that become executable within two repair rounds. … This keeps the corpus focused on realistic, locally recoverable failures instead of those requiring wholesale redesign.<cite>arXiv:2608.25593v1 §4.2, main.tex:502·508</cite></p>
+
+      <p>두 라운드는 훈련 코퍼스에 무엇을 남길지의 조건이지 배포 시 상한이 아니다. 공개 저장소의 실행 경로는 상한을 5 로 잡는다. <span class="wl">--max-repairs</span> 기본값이 5 이고(<span class="wl">scripts/run_jit.py:107</span>) 루프가 <span class="wl">total_rounds = max(1, max_repairs + 1)</span> 로 그 값을 그대로 쓴다(<span class="wl">jit/meta_agent.py:1454</span>). 두 경로가 같은 것은 상한값이 아니라 repair 를 여는 조건 쪽이다. 예외가 나야 repair 가 돌고 점수가 낮다는 이유로는 돌지 않는다.</p>
+
+      <p class="q">The meta model is <b>not</b> called again unless the run raises. On an exception, <span class="wl">--max-repairs</span> regeneration attempts are allowed; a harness that merely scores <i>low</i> is never repaired, since that would be optimising against the benchmark.<cite>jit/README.md:117, bingreeky/JIT @ ababa06c</cite></p>
+
+      <p>이 저장소의 게이트도 pass/block 이고 경고 등급이 없다. <span class="wl">check-doc.mjs</span>, <span class="wl">check-prose.mjs</span> 는 규칙 위반을 알려주고 멈춘다. 고치는 것은 사람 몫이다. JIT 은 여기에 한 단계를 더 둔다. 검사기가 낸 진단 보고서를 프롬프트에 넣어 고치는 쪽까지 모델에게 학습시킨다. 생성하거나 조립한 설정을 쓰는 파이프라인이라면, 검사기를 붙이는 것과 검사 결과를 되먹이는 것이 서로 다른 작업이라는 점이 그대로 적용된다.</p>
+
+      <p class="note">Stage II 에서 실제로 몇 %가 repair 로 살아났는지, repair 없이 몇 %가 처음부터 실행 가능했는지를 논문은 적지 않는다. 이 단계의 값어치를 재는 ablation 이 논문에 없다.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">frontier</p>
+      <h2>구조 6. 아카이브는 쓸모 있어 보이는 것을 저장하지 않는다. frontier 를 전진시킨 것만 저장한다</h2>
+      <p class="dek">에이전트 메모리를 설계할 때 기본값은 "쓸 만해 보이면 남긴다"이다. Stage III 의 보존 규칙은 그 반대편에 있고 규칙 자체가 한 문장이다.</p>
+
+      <p class="q">a candidate is retained only if it matches or exceeds the current reward frontier and then strictly improves at least one frontier dimension, either reward itself, latency, or cost.<cite>arXiv:2608.25593v1 §4.3, main.tex:605</cite></p>
+
+      <p>세 축이다. reward, latency, cost. 조건이 둘로 나뉘어 있다. 먼저 현재 frontier 를 <b>동등 이상</b>으로 맞추고, 그 다음 세 축 중 <b>최소 하나를 엄격히</b> 개선해야 한다. 동점은 저장되지 않는다. 같은 규칙이 배포 시점의 streaming inference 에도 그대로 쓰이고 그때 모델 파라미터 <span class="wl">θ</span> 는 frozen 이고 하네스 뱅크 <span class="wl">B_n</span> 만 자란다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>후보의 성적</th><th>reward</th><th>latency</th><th>cost</th><th>저장</th></tr></thead>
+          <tbody>
+            <tr><td>점수가 오름</td><td class="win">↑</td><td>=</td><td>=</td><td class="ok">저장</td></tr>
+            <tr><td>점수 같고 더 쌈</td><td>=</td><td>=</td><td class="win">↓</td><td class="ok">저장</td></tr>
+            <tr><td>점수 같고 다 같음</td><td>=</td><td>=</td><td>=</td><td class="no">버림</td></tr>
+            <tr><td>점수 오르는데 훨씬 비쌈</td><td class="win">↑</td><td>=</td><td class="lose">↑</td><td class="ok">저장</td></tr>
+            <tr><td>점수 떨어지고 훨씬 쌈</td><td class="lose">↓</td><td>=</td><td class="win">↓</td><td class="no">버림</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">이 표는 논문 §4.3 의 보존 규칙 한 문장을 경우별로 편 것이고 표 자체는 논문에 없다. reward 는 "동등 이상"이 문턱이므로 넷째 행은 저장되고 다섯째 행은 버려진다. 규칙이 비용에 대칭이 아니다.</p>
+
+      <p>이 규칙의 효과는 Static JIT 과 Streaming JIT 의 대조로 나온다. Streaming 은 DeepPlanning-Shopping, DeepPlanning-Travel, OfficeBench 세 스트림 전부에서 누적 정확도가 더 높게 끝나고 논문은 그 우위가 처음부터 있는 것이 아니라 피드백이 쌓이면서 나타난다고 적는다. 다만 논문은 그 그림(Figure 6)에서 끝점 수치를 본문에 옮겨 적지 않는다.</p>
+
+      <p>이 저장소에도 걸리는 데가 있다. <a class="xref" href="../2026-08-07-loopx-deterministic-loop-harness/#p5">LoopX 는 성과 없는 턴이 진행으로 계상되지 않게 막는다</a>. 회계 단위가 턴이고 막는 대상이 "진행했다는 기록"이다. Stage III 의 규칙은 회계 단위가 하네스이고 막는 대상이 "저장할 만하다는 판단"이다. 두 장치가 막는 것은 같다. 진전이 없는 것을 진전으로 기록하지 않는 장치가 없으면 아카이브는 커지기만 한다.</p>
+
+      <p class="note">Static 과 Streaming 의 격차가 세 스트림에서 몇 점인지, 스트림 길이가 얼마인지를 논문 본문은 밝히지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">trace</p>
+      <h2>사례. Turnstile 은 memory 를 요약 장치가 아니라 실행 가능한 커버리지 계약으로 쓴다</h2>
+      <p class="dek">논문 부록의 생성 하네스 여덟 개 중 하나다. 태스크는 여행 계획이고 날짜, 인원, 객실 수, 출발 시간대, 최고 평점 호텔, 명소, 식사, 일별 동선이 한꺼번에 요구된다. 네 모듈이 이 요구를 어떻게 나눠 가지는지가 이 사례의 전부다.</p>
+
+      <pre>태스크    "날짜 · 인원 · 객실 · 출발 시간대 · 최고 평점 호텔 · 명소 · 식사 · 일별 동선"
+
+<b>P</b>  TravelPlanning
+   요구를 타입 붙은 <span class="k">travel_spec</span> 하나와 수집 checklist 로 컴파일한다
+   ↓
+<b>M</b>  DataStoreMemory
+   증거 종류마다 전용 bucket 을 배정한다   [호텔] [명소] [식사] [교통] …
+   ↓
+<b>F</b>  DynamicToolPolicy
+   <span class="k">비어 있는 bucket</span> 에 맞는 검색 도구만 이번 스텝에 연다
+   <span class="r">final_answer 는 잠겨 있다</span>
+   ↓
+<b>A</b>  ReAct 루프가 한 스텝 진행 → 관측이 bucket 하나를 채운다
+   ↓
+   ┌─ bucket 이 남아 있으면 ────────────────────── M 으로 되돌아간다
+   └─ <span class="k">is_complete()</span> 가 통과하면 ──── F 가 final_answer 를 연다 → 답</pre>
+
+      <p>보통의 하네스에서 memory 는 궤적이 길어질 때 줄이는 장치다. 여기서 memory 는 줄이는 일을 하지 않는다. 무엇이 아직 없는지를 들고 있고 그 상태가 <span class="wl">F</span> 의 이번 스텝 결정을 정한다. 논문의 표현이 이렇다.</p>
+
+      <p class="q">Here memory is not used primarily to compress a long trace; it acts as an executable coverage contract that prevents itinerary synthesis before the required travel facts have been collected.<cite>arXiv:2608.25593v1 부록 A, main.tex:871</cite></p>
+
+      <p>같은 프로토콜에서 나온 다른 하네스는 전혀 다른 모양을 한다. <span class="wl">Palimpsest</span> 는 요구를 DAG 로 컴파일하고 폭과 깊이를 제한해 실행한다. <span class="wl">Trapdoor</span> 는 <span class="wl">delegate</span> 라는 도구를 합성해 다섯 스텝짜리 하위 에이전트를 열고, 돌아온 답만 부모 루프에 관측으로 넣는다. <span class="wl">Abacus</span> 는 집계를 언어 모델 추론에서 아예 빼내 shell 이나 Python 으로 넘기고 <span class="wl">RESULT_JSON</span> 을 파싱해 타입 있는 상태에 쓴다. 논문의 요약은 한 줄이다.</p>
+
+      <p class="q">The shared protocol constrains interfaces, not behavior.<cite>arXiv:2608.25593v1 §6.7, main.tex:821</cite></p>
+
+      <p class="note">이 추적은 논문 부록 A 의 그림 설명과 본문 문단에서 왔다. 그 하네스의 소스는 공개 저장소에 없다. 저장소가 담고 있는 것은 손으로 쓴 seed 하네스 11개이고 생성된 하네스는 실행 시에 만들어져 <span class="wl">runs/</span> 아래로 떨어진다.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>읽은 범위. 논문은 전문을 LaTeX 원본으로, 저장소는 2,878개 중 25개 정도를 열었다</h2>
+      <p class="dek">숫자는 <span class="wl">arxiv.org/e-print/2608.25593v1</span> 의 <span class="wl">main.tex</span>(930행) 표 셀에서 왔고, Figure 5 의 콜아웃 24개만 <span class="wl">figures/model_pair_jit_vs_react.pdf</span> 에서 텍스트로 뽑았다. HTML 변환본은 쓰지 않았다. 코드는 <span class="wl">bingreeky/JIT</span> 을 <span class="wl">--depth 1</span> 로 받아 <span class="wl">ababa06c</span> 에서 읽었다.</p>
+
+      <div class="two-col">
+        <div>
+          <h3>논문 (arXiv:2608.25593v1)</h3>
+          <ul class="clean">
+            <li><span class="m ok">✓</span><div>§1~§7 본문 전체, 부록 A 전체</div></li>
+            <li><span class="m ok">✓</span><div>Table 1(패러다임 비교), Table 2(seed bank 13행), Table 3(9벤치마크 주 결과), Table 4(통제 비교)</div></li>
+            <li><span class="m ok">✓</span><div>insightbox 3개(Harness Intelligence, Harness Composability, Position), 그림 캡션 16개(본문 8, 부록 8)</div></li>
+            <li><span class="m ok">✓</span><div>Figure 5(<span class="wl">model_pair_jit_vs_react.pdf</span>)와 Figure 6(<span class="wl">jit_growth_curves_streaming_comparison_.pdf</span>) 안의 텍스트. 내용 PDF 16개 중 텍스트가 나오는 것은 이 둘뿐이고, Figure 5 의 콜아웃 24개가 <a class="xref" href="#p13">13장</a>과 <a class="xref" href="#p14">14장</a>의 근거다</div></li>
+            <li><span class="m bad">✗</span><div>그림을 렌더한 화면(내용 PDF 16개 + 로고·타이틀 5개, 합계 13MB). 나머지 14개는 뽑히는 텍스트가 0바이트라 캡션 말고 읽은 것이 없고, Figure 6 에서 나오는 것은 축 눈금이라 곡선 끝점 수치를 이 문서는 쓰지 않는다</div></li>
+            <li><span class="m bad">✗</span><div><span class="wl">refs.bib</span> 923항목 본문. 특정 인용을 찾는 검색으로만 열었다</div></li>
+          </ul>
+        </div>
+        <div>
+          <h3>저장소 (bingreeky/JIT @ ababa06c)</h3>
+          <ul class="clean">
+            <li><span class="m ok">✓</span><div>README 3개(루트, <span class="wl">jit/</span>, <span class="wl">harness_factory/</span>)</div></li>
+            <li><span class="m ok">✓</span><div><span class="wl">scripts/kernel/protocols.py</span> 전문, <span class="wl">token_counter.py</span> 전문, <span class="wl">models/base.py</span> 토큰 집계부</div></li>
+            <li><span class="m ok">✓</span><div>11개 하네스의 <span class="wl">tool_policy.py</span> 전부, 나머지 세 모듈은 해시 비교만</div></li>
+            <li><span class="m ok">✓</span><div><span class="wl">jit/meta_agent.py</span> 의 정적 검사부와 실행 루프, <span class="wl">harness_ops.py</span> 태그 정의</div></li>
+            <li><span class="m ok">✓</span><div><span class="wl">scripts/tools/skills/</span> 전부(레지스트리 + SKILL.md 1개)</div></li>
+            <li><span class="m bad">✗</span><div><span class="wl">dataset/</span> 2,671개. 벤치마크 데이터이고 문서의 주장에 걸리는 것이 없다</div></li>
+            <li><span class="m bad">✗</span><div><span class="wl">benchmark/</span> 59개 중 <span class="wl">judge.py</span> 머리 부분만. 각 벤치마크의 채점 세부는 열지 않았다</div></li>
+            <li><span class="m bad">✗</span><div>11개 하네스의 <span class="wl">memory.py</span>, <span class="wl">planning.py</span>, <span class="wl">action.py</span> 33개 본문</div></li>
+          </ul>
+        </div>
+      </div>
+
+      <p style="margin-top:20px"><b>안 읽은 것이 이 문서에 물리는 값.</b> 세 군데다.</p>
+      <ul class="clean">
+        <li><span class="m bad">1</span><div><b>모듈 33개를 안 읽었으므로</b> <a class="xref" href="#p7">7장</a>의 "M, P, A 는 실제로 다르다"는 해시가 다르다는 것까지만 확인한 주장이다. 논문 Table 2 가 적은 <span class="wl">M</span> 과 <span class="wl">P</span> 의 전략 이름이 코드와 맞는지는 대조하지 않았다. 반대로 <span class="wl">F</span> 의 구현이 한 종류라는 쪽은 11개 파일 본문을 다 열어 확인했다.</div></li>
+        <li><span class="m bad">2</span><div><b>채점 코드를 안 읽었으므로</b> 각 벤치마크의 metric 은 논문이 적은 이름을 그대로 옮겼다. 다만 <span class="wl">benchmark/adapter/judge.py</span> 머리말은 "GAIA, WebwalkerQA, XBench, DeepSearchQA 전부 LLM 기반 판정을 쓴다"고 밝히고, AgentIF 쪽에는 별도 LLM scorer 디렉터리가 통째로 있다. <a href="#p14">한계 장</a>은 이 사실까지만 쓴다.</div></li>
+        <li><span class="m bad">3</span><div><b>가중치를 받지 않았으므로</b> <span class="wl">JIT-Agent/jit-27b</span> 는 리비전 <span class="wl">0705ca15</span> 로 비게이트 공개, safetensors 12샤드라는 사실만 기록했다. 모델을 띄워 하네스를 하나라도 생성해 보지 않았다.</div></li>
+      </ul>
+
+      <p class="note">shallow clone 이라 <span class="wl">.git/shallow</span> 가 있고 <span class="wl">git rev-list --count HEAD</span> 가 1 이다. 커밋 빈도, 기여자 분포, 릴리스 주기에 대한 주장은 이 체크아웃으로 세울 수 없다. 렌더된 페이지는 headless Chromium 으로 슬라이드 1, 3, 8, 11, 12, 13, 14, 15, 16, 17 을 열어 확인했다. 나머지 일곱 슬라이드는 HTML 소스로만 봤다.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-score</p>
+      <h2>결과 1. 직접 대응하는 18쌍 전부에서 오르고, 가장 크게 오르는 곳은 상태를 오래 들고 가야 하는 태스크다</h2>
+      <p class="dek">백본은 그대로 두고 기본 스캐폴드만 JIT 이 만든 하네스로 바꾼 비교다. 9개 벤치마크 × 2개 백본 = 18쌍이 전부 개선된다. 평균은 GLM-5.2 가 74.1 → 81.8, DeepSeek-V4-Flash 가 66.7 → 75.5 (+8.8) 이고 네 값 다 Table 3 의 셀로 다시 계산해 소수 첫째 자리까지 일치한다. 논문이 GLM-5.2 쪽 차를 +7.7 로 적는 것은 반올림된 두 값의 차이고 셀에서 계산하면 +7.8 이다.</p>
+
+      <div class="figure">
+        <p class="fig-title">DeepSeek-V4-Flash. 스캐폴드만 바꿨을 때 벤치마크별로 얼마나 오르나</p>
+        <p class="fig-sub">논문 Table 3 (arXiv:2608.25593v1 §6.2). 점수는 전부 0~100</p>
+        <div class="legend"><span><i class="sn"></i>기본 스캐폴드</span><span><i class="s1"></i>JIT 하네스</span></div>
+        <div class="bars">
+          <div class="bar-row"><span class="bar-name">Shopping</span><span class="bar-track"><span class="bar" style="--w:59.1%"></span></span><span class="bar-val">59.1</span></div>
+          <div class="bar-row is-hero"><span class="bar-name">Shopping · JIT</span><span class="bar-track"><span class="bar s1" style="--w:83.9%"></span></span><span class="bar-val">83.9</span></div>
+          <div class="bar-row"><span class="bar-name">xBench-DS</span><span class="bar-track"><span class="bar" style="--w:70.1%"></span></span><span class="bar-val">70.1</span></div>
+          <div class="bar-row is-hero"><span class="bar-name">xBench-DS · JIT</span><span class="bar-track"><span class="bar s1" style="--w:82.0%"></span></span><span class="bar-val">82.0</span></div>
+          <div class="bar-row"><span class="bar-name">DeepSearchQA</span><span class="bar-track"><span class="bar" style="--w:76.2%"></span></span><span class="bar-val">76.2</span></div>
+          <div class="bar-row is-hero"><span class="bar-name">DeepSearchQA · JIT</span><span class="bar-track"><span class="bar s1" style="--w:85.1%"></span></span><span class="bar-val">85.1</span></div>
+          <div class="bar-row"><span class="bar-name">OdysseyBench</span><span class="bar-track"><span class="bar" style="--w:71.0%"></span></span><span class="bar-val">71.0</span></div>
+          <div class="bar-row is-hero"><span class="bar-name">Odyssey · JIT</span><span class="bar-track"><span class="bar s1" style="--w:73.0%"></span></span><span class="bar-val">73.0</span></div>
+        </div>
+        <div class="bar-axis"><div class="ticks"><span>0</span><span>25</span><span>50</span><span>75</span><span>100</span></div></div>
+        <figcaption>9개 중 넷을 골랐다. 최대인 DeepPlanning-Shopping (+24.8), 그 다음인 xBench-DS (+11.9), DeepSearchQA (+8.9), 그리고 최소인 OdysseyBench (+2.0). 그림에 넣지 않은 다섯은 +2.4 에서 +11.2 사이에 있고 전부 양수다. 축은 0 에서 시작한다.</figcaption>
+      </div>
+
+      <p>JIT + GLM-5.2 는 9개 열 중 7개에서 1위다. 1위가 아닌 두 열은 DeepPlanning-Shopping 83.4 와 DeepPlanning-Travel 83.0 이고 GPT-5.6 이 두 열 모두에서 앞선다(83.7, 84.9). Shopping 1위는 83.9 의 JIT + DeepSeek-V4-Flash 이므로 JIT 계열이 1위를 놓친 열은 Travel 하나이고 그 차가 1.9점이다. JIT + DeepSeek-V4-Flash 는 같은 계열의 더 큰 모델인 DeepSeek-V4-Pro 를 9개 벤치마크 전부에서 앞서고 평균 차가 8.7점이다.</p>
+
+      <p class="note">Table 3 의 백본 baseline 이 어떤 스캐폴드에서 돌았는지를 논문은 "default scaffold" 라고만 적는다. 각 모델의 기본 스캐폴드가 무엇인지, 그것이 모델마다 얼마나 다른지는 논문에 없다. GPT-5.6 이나 Gemini 3.1 Pro 같은 frontier 모델 행도 마찬가지다. 즉 Table 3 은 "하네스만 바꾼 통제 비교"가 아니고, 그 통제가 되어 있는 것은 <a class="xref" href="#p3">Table 4</a> 쪽이다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-transfer</p>
+      <h2>결과 2. 6개 백본 × 4개 벤치마크 24쌍이 전부 ReAct 를 이기지만, 표본은 벤치마크당 50~100개다</h2>
+      <p class="dek">Qwen3.6-27B 로 훈련한 메타 모델이 다른 계열의 백본에도 붙는가를 보는 실험이다. DeepSeek-V4 Flash/Pro, Qwen3.6 Flash/Plus, Mimo-V2.5 Flash/Pro 여섯을 놓고, 같은 백본의 ReAct 하네스와 JIT 하네스를 비교한다. 24쌍 전부 개선되고 평균 +7.6 이다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>묶음</th><th>평균 개선</th><th>표본</th><th>메모</th></tr></thead>
+          <tbody>
+            <tr><td>DeepSeek V4 계열</td><td class="win">+10.2</td><td class="dim">벤치마크당 50~100</td><td class="dim">Flash / Pro 두 변종</td></tr>
+            <tr><td>Mimo 2.5 계열</td><td class="win">+8.6</td><td class="dim">벤치마크당 50~100</td><td class="dim">Flash / Pro 두 변종</td></tr>
+            <tr><td>Qwen 3.6 계열</td><td class="win">+4.0</td><td class="dim">벤치마크당 50~100</td><td class="dim">메타 모델의 훈련 계열</td></tr>
+            <tr class="hero"><td>DeepSearchQA (벤치마크 기준)</td><td class="win">+15.2</td><td>100개</td><td>Mimo-V2.5-Pro +22.2, DSF +19.0</td></tr>
+            <tr><td>AgentIF / Shopping / OfficeBench</td><td class="dim">+4.5 / +7.5 / +3.4</td><td>각 50개</td><td class="dim">Shopping 만 본문에 있고 둘은 콜아웃 계산</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="note">표본 크기는 논문 본문이 아니라 Figure 5 의 캡션에만 있다. "DeepSearchQA uses a 100-example subset; the other three benchmarks use 50-example subsets" (main.tex:771). 이 문장이 위 숫자 전부의 분모다.</p>
+
+      <p>메타 모델은 Qwen3.6-27B 로 훈련했는데 개선폭이 가장 작은 계열이 Qwen 3.6 (+4.0) 이고 가장 큰 계열이 DeepSeek V4 (+10.2) 다. 훈련 계열과 이득의 크기가 반대로 간다.</p>
+
+      <p>논문은 이 실험을 근거로 하네스 지능이 "모델 계열과 변종을 가로질러 이전된다"고 쓰고, 초록에서는 한 걸음 더 나가 "model scaling 과 직교하는 축"이라고 쓴다. 앞 문장은 이 표가 받쳐 준다. 뒤 문장은 받쳐 주지 못한다. 직교라고 하려면 백본을 키웠을 때 JIT 의 이득이 유지되거나 커진다는 것을 보여야 한다. Figure 5 의 콜아웃 24개가 Flash 와 Pro 로 분해돼 있어 그 자리를 볼 수 있다. 네 벤치마크 이득의 합은 DeepSeek V4 가 Flash 51.6 대 Pro 30.3, Qwen 3.6 이 Flash 20.2 대 Plus 12.1, Mimo 2.5 가 Flash 31.6 대 Pro 37.2 다. 두 계열에서 큰 변종이 덜 얻지만, 이 합을 가르는 것은 변종의 크기가 아니라 ReAct baseline 의 높이다. DeepSeek V4 의 격차 21.3 중 19.4 가 ShoppingPlanning 한 칸에서 나오고 그 칸의 baseline 은 Pro 81.6 대 Flash 59.1 이다. Qwen 3.6 의 격차 8.1 중 6.6 은 DeepSearchQA 한 칸이고 Plus 65.7 대 Flash 50.4 다. 0~100 척도에서 22.5점·15.3점 위에 있는 쪽의 절대 이득이 작은 것은 천장만으로도 나온다. 큰 변종의 baseline 이 오히려 낮은 칸에서는 방향이 뒤집힌다. Mimo 2.5 의 AgentIF 가 Pro 48.5 에서 +10.1, Flash 50.1 에서 +1.6 이다. 이 24개로는 직교가 확인되지도 반박되지도 않는다. 초록은 확인된 쪽으로 쓴다.</p>
+
+      <p class="note">이 24쌍의 baseline 은 ReAct 다. <a class="xref" href="#p3">3장의 통제 비교</a>에서 상대했던 Claude Code, Codex, NanoBot 같은 하네스가 아니다. "ReAct 대비 +7.6"과 "최강 고정 하네스 대비 +4.7"은 서로 다른 크기의 주장이고 둘을 섞어 읽으면 개선폭이 부풀려진다.</p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>해석의 한계. Table 4 의 baseline 하네스는 공개 저장소에 구현이 없고, 논문에는 분산도 단가도 없다</h2>
+      <p class="dek">아래 표에서 "누가 인정하나" 열이 책임 소재다. 논문이 스스로 밝힌 것과 이 문서가 코드나 검색으로 세운 주장을 섞으면 안 된다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>무엇이</th><th>어디까지가 사실인가</th><th>누가 인정하나</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>Table 4 의 다섯 baseline</td><td>Claude Code, Codex, OpenCode, Hermes, NanoBot 중 공개 저장소에 구현이 있는 것은 0개다. 전체 검색에서 나온 유일한 문자열이 <span class="wl">officebench_tools.py:647</span> 의 모델 이름 <span class="wl">"gpt-5.3-codex"</span> 뿐이다</td><td class="no">이 문서</td></tr>
+            <tr><td>그 숫자의 이름</td><td>DeepSeek-V4-Flash 나 Qwen3.6-Flash 위에서 돈 "Claude Code"는 출시된 Claude Code 가 아니다. 그 스캐폴드를 남의 백본에 이식한 것이고 이식 충실도가 자유 변수다</td><td class="no">이 문서</td></tr>
+            <tr><td>4모듈의 빈약함</td><td>Codex, Claude Code, DeepSeek Harness 가 자기네 4모듈 인스턴스화보다 훨씬 많은 메커니즘을 노출하며 그 격차가 의도적이라고 저자들이 적는다</td><td class="ok">논문 §3.1</td></tr>
+            <tr><td>표본 크기</td><td>일반화 실험은 DeepSearchQA 100개, 나머지 셋 각 50개 부분집합이다</td><td class="ok">논문 Fig.5 캡션</td></tr>
+            <tr><td>분산</td><td><span class="wl">main.tex</span> 전체에 standard deviation, variance, error bar, confidence, significan 이 0건이다. <span class="wl">std</span> 는 Evo-GDPO 의 advantage 정규화 식 안에서 두 번 나올 뿐이다. <span class="wl">seed</span> 는 "seed bank"와 "evaluation seeds"로만 나온다</td><td class="no">이 문서</td></tr>
+            <tr><td>USD 단가</td><td>pricing, price, per million, per 1M 이 논문에 0건이다. 공개 코드도 토큰만 세고(<span class="wl">models/base.py:215</span>) 비용을 계산하는 상수가 없다. 비용 열은 어딘가에서 단가표를 곱한 값이고 그 표가 어디에도 없다</td><td class="no">이 문서</td></tr>
+            <tr><td>채점자</td><td><span class="wl">benchmark/adapter/judge.py</span> 머리말이 "GAIA, WebwalkerQA, XBench, DeepSearchQA 전부 LLM 기반 판정"이라고 밝힌다. AgentIF 에는 전용 LLM scorer 디렉터리가 따로 있다</td><td class="no">이 문서</td></tr>
+            <tr><td>"최초"</td><td>논문 Table 1 은 Harness-R1 이 이미 harness model 을 훈련하고 repair 를 학습한다고 자기 손으로 적는다. JIT 이 유일하게 갖는 칸은 instance synthesis 다</td><td class="ok">논문 Table 1</td></tr>
+            <tr><td>인접 문헌</td><td>refs.bib 923항목에 HarnessForge, System Scaling, Scaling Laws for Agent Harnesses 가 0건이다. Code as Agent Harness (2605.18747) 는 인용한다</td><td class="no">이 문서</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:22px"><b>세 가지를 더 붙인다.</b></p>
+
+      <p><b>비교의 예산이 대칭이 아니다.</b> 저장소 기준으로 JIT 은 케이스마다 하네스 3개를 temperature 1.0 으로 생성해 그중 하나를 골라 돌린다. seed 하네스는 <span class="wl">--rollouts 1</span> 이 기본이고 실행 모델 temperature 0 이다. 그리고 보고되는 토큰은 <span class="wl">execute/</span> 단계의 것이라고 저장소가 명시한다. 하네스를 세 번 생성하는 데 든 토큰은 <span class="wl">generate/</span> 아래에 따로 기록된다. 기본 모드에서 참조 자료만 약 13K 토큰이 매 생성 프롬프트에 들어가므로, 케이스당 실제 총 지출은 <a class="xref" href="#p6">6장 표</a>의 숫자보다 크다. 그 차이가 얼마인지는 논문도 저장소도 적지 않는다.</p>
+
+      <p><b>전부 저자 자체 평가다.</b> JIT 이 자기 하네스를 만들고, 저자가 고른 벤치마크와 부분집합에서, 저자가 만든 어댑터로 채점한다. 게시 이틀째 프리프린트이므로 외부 재현은 아직 없다. 그리고 재현하려는 사람은 Table 4 의 baseline 다섯을 직접 다시 구현해야 한다.</p>
+
+      <p><b>"model scaling 과 직교"는 근거보다 넓다.</b> 초록의 이 문장이 <a class="xref" href="#p13">13장</a>의 24쌍 실험 위에 서 있는데, 그 실험이 보이는 것은 여섯 백본 각각에서 ReAct 대비 이득이 있다는 것까지다. 백본을 키웠을 때 이득이 어떻게 되는지는 Figure 5 의 콜아웃 24개에 Flash/Pro 로 분해돼 있지만, 거기서 이득의 크기를 가르는 것은 변종의 크기가 아니라 ReAct baseline 의 높이다. 계열별 합의 차이가 baseline 이 15점에서 22점 벌어진 한 칸에서 대부분 나오고, 큰 변종의 baseline 이 더 낮은 칸에서는 큰 변종이 더 얻는다. 직교를 확인하려면 baseline 을 맞춘 비교가 있어야 하는데 논문에 없다. 그리고 개선폭이 가장 작은 계열은 메타 모델의 훈련 계열인 Qwen 3.6 이다.</p>
+
+      <p class="note">한계를 다 걷어내도 남는 것이 하나 있고 그것이 이 문서가 논문에서 가져가는 부분이다. <b>고정 하네스의 순위가 태스크 형태에 따라 두 자릿수로 뒤집힌다</b>는 사실은 baseline 의 이식 충실도와 무관하게 성립한다. 이식이 서툴렀다면 다섯 스캐폴드가 고르게 낮아야 하는데 실제로는 다섯의 순위가 열마다 재배열된다. Hermes 는 두 백본 모두 DeepSearchQA 에서 고정 다섯 중 꼴찌인데 AgentIF 에서는 둘째로 올라가고, NanoBot 은 두 백본 모두 DeepSearchQA 1위인데 AgentIF 에서 넷째(DeepSeek-V4-Flash) 와 셋째(Qwen3.6-Flash) 로 내려간다. 이 패턴은 이식 품질로 설명되지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adopt</p>
+      <h2>가져갈 것. 모델을 붙이지 않고도 옮겨오는 결정이 다섯 있다</h2>
+      <p class="dek">JIT-27B 를 띄우는 것은 대부분의 사람에게 이 논문의 쓸모가 아니다. 하네스를 모델이 조립하는 물건으로 바꿔 봤더니 드러난 것들 중, 사람이 손으로 짜는 하네스에 그대로 걸리는 것을 정리한다. 왼쪽 열은 읽는 사람의 상황이다.</p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>지금 이렇다면</th><th>이 논문이 대는 근거</th><th>바꿀 것</th></tr></thead>
+          <tbody>
+            <tr><td>스킬이 산문 덩어리다.<br><span class="dim-t">이름과 설명만 프론트매터에 있다</span></td><td>프로토콜 고정이 하네스 작성을 프로그램 합성에서 조립으로 바꾼다고 저자들이 명시한다(§3.1)</td><td>스킬마다 무엇을 받고 무엇을 돌려주는지를 선언한다. 사람이 고르는 데는 설명으로 충분하지만 무엇이든 자동으로 재조합하려면 타입이 있어야 한다</td></tr>
+            <tr class="hero"><td>규칙과 도구를 계속 추가하고 있다</td><td>통제 비교 6개 설정 전부에서 JIT 이 토큰과 비용 최저이고 그중 넷에서 점수도 1위다. 평균 36.0% 싸다</td><td>다음 개선 후보를 "무엇을 더 넣을까"가 아니라 "무엇을 빼도 되나"에서 찾는다. 빼는 쪽의 기대값이 이 논문에서는 더 크다</td></tr>
+            <tr><td>도구와 스킬을 세션 시작에 전부 켠다</td><td>공개 코드의 <span class="wl">select_tools</span> 는 <span class="wl">step_number</span> 를 받는데 손으로 쓴 하네스 11개가 전부 그 인자를 버린다. 실제로 쓰는 것은 생성된 하네스뿐이다</td><td>노출 결정의 시점을 설계 변수로 올린다. 단계가 뚜렷한 작업이라면 단계마다 열고 닫는 것이 가능한지부터 본다</td></tr>
+            <tr><td>게이트가 통과/차단만 한다</td><td>훈련 3단계 중 한 단계가 통째로 repair 다. 프로토콜을 지키는 것과 실제로 도는 것 사이에 간극이 있고 저자들은 그 간극을 두 라운드 안에 메워지는 것으로 한정한다</td><td>검사 결과를 사람에게 넘기는 것과 고치는 쪽에 되먹이는 것을 다른 작업으로 본다. 생성하거나 조립한 설정을 쓴다면 후자가 필요해진다</td></tr>
+            <tr><td>에이전트가 쓸 만해 보이는 것을 다 저장한다</td><td>Stage III 는 현재 frontier 를 동등 이상으로 맞추고 reward, latency, cost 중 하나를 엄격히 개선할 때만 저장한다</td><td>저장 조건을 "유용해 보임"에서 "직전 최선을 어느 축에서 이겼나"로 바꾼다. 동점은 버린다</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p style="margin-top:22px"><b>반대로, 이 논문이 시키지 않는 것.</b> 저자들이 직접 선을 긋는다.</p>
+
+      <p class="q">This work is not to ask a model to reproduce an entire production runtime, but to establish a more fundamental result: even compact harnesses, generated just in time, can yield substantial gains. Besides, we believe the JIT paradigm is complementary to production harness engineering.<cite>arXiv:2608.25593v1 §3.1 Position box, main.tex:237</cite></p>
+
+      <p>결론 절에서는 더 구체적으로 쓴다.</p>
+
+      <p class="q">we believe future systems need not follow the deliberately radical form explored in this work, where the entire scaffold can be redesigned just in time: production runtimes may instead retain a stable core while allowing the model to construct, revise, or replace selected harness components when the task demands it.<cite>arXiv:2608.25593v1 §7 Future Work 문단, main.tex:829</cite></p>
+
+      <p>하네스 전체를 매번 새로 쓰는 문제가 아니라 어느 부분이 태스크마다 달라져야 하는지를 고르는 문제로 읽는 것이 정직한 독법이다.</p>
+
+      <p class="note">이 표의 왼쪽 세 줄은 <a class="xref" href="../2026-08-11-addyosmani-agent-skills/#p4">SKILL.md 를 쓰는 사람</a>에게 곧바로 걸리고, 넷째 줄은 게이트를 pass/block 으로 운영하는 저장소에 걸린다. 다섯째 줄은 에이전트 메모리를 설계하는 쪽이다. 다섯 줄 전부 JIT-27B 없이 적용된다.</p>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론. 이 논문의 주장은 Claude Code 를 대체하자는 것이 아니라, 태스크별 특화 축이 범용 런타임 축보다 덜 개발되어 있다는 것이다</h2>
+      <p class="dek">저자들이 자기 4모듈 인스턴스화를 프로덕션 런타임보다 의도적으로 빈약하게 만들었다고 밝히고 JIT 패러다임이 프로덕션 하네스 엔지니어링과 상보적이라고 쓴다.</p>
+
+      <p>남는 결과는 셋이다. 첫째, 하네스를 타입 있는 재조합 공간으로 만들면 모델이 조립할 수 있고 그러지 않으면 못 한다. 둘째, 고정 하네스 하나를 유지하는 값이 태스크 형태가 바뀔 때 두 자릿수다. 셋째, 그 값을 되찾는 방법이 컨텍스트를 더 채우는 쪽이 아니라 비우는 쪽에 있다. 6개 통제 설정 전부에서 토큰과 비용이 최저이고 평균 36.0% 싸다.</p>
+
+      <p>이 저장소의 앞선 문서 넷은 전부 하네스를 사람이 어떻게 짜는가를 다뤘다. <a class="xref" href="../2026-08-14-deepseek-harness-plugin-architecture/#p5">플러그인 한 행이 에이전트 루프가 되는 구성</a>, <a class="xref" href="../2026-08-07-loopx-deterministic-loop-harness/#p7">LLM 없이 턴을 승인하는 제어 평면</a>, <a class="xref" href="../2026-08-11-addyosmani-agent-skills/#p6">강제를 코드가 아니라 산문에 맡긴 스킬 팩</a>, <a class="xref" href="../2026-08-12-omo-native-vs-opencode-plugin/#p2">플러그인을 떠나 자기 호스트를 갖는 선택</a>. 이 논문은 같은 대상을 반대편에서 잡아 보고, 그 결과로 사람이 짜는 쪽에도 그대로 걸리는 것 다섯을 노출한다. 타입, 덜 넣기, 단계별 노출, 검사 결과 되먹이기, frontier 만 저장.</p>
+
+      <p>따라 하지 말아야 할 것도 분명하다. Table 4 의 다섯 baseline 하네스는 공개 저장소에 구현이 없고 그래서 그 표는 지금 재현할 수 없다. 논문에는 분산도, 시드 반복도, 유의성 검정도, API 단가도 없다. 게시 이틀째 프리프린트이고 외부 검증은 아직 없다. 이 문서에서 인용한 절감률과 점수차는 전부 그 조건 아래의 숫자다.</p>
+
+      <p class="note">다음에 확인할 값어치가 있는 것 하나. 논문에 <span class="wl">F</span> 만 떼어낸 ablation 이 없다. 36.0% 절감 중 도구 노출을 좁힌 몫이 얼마인지가 <a class="xref" href="#p15">15장 표의 셋째 줄</a>을 실제로 바꿀 수 있는지를 정한다. 지금은 정할 근거가 없다.</p>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처. 논문 v1, 커밋 하나, 리비전 하나로 고정했다</h2>
+      <p class="dek">세 대상 전부 다른 기계에서 같은 바이트를 받아 확인할 수 있는 식별자로 적었다. 로컬 경로는 쓰지 않았다.</p>
+
+      <div class="src">
+        <p><b>논문</b></p>
+        <p><a href="https://arxiv.org/abs/2608.25593v1">arXiv:2608.25593v1</a> · JIT-Agent: Scaling Harness Intelligence via Just-in-Time Harness Evolution · 2026-08-26 게시 · cs.CL / cs.LG · 저자 16인, LV-NUS Lab (Project Lead Guibin Zhang, Corresponding Wangchunshu Zhou · Shuicheng Yan) · <span class="t">피어리뷰 없음</span></p>
+        <p><a href="https://arxiv.org/e-print/2608.25593v1">arxiv.org/e-print/2608.25593v1</a> · <span class="t">LaTeX 원본 tarball. main.tex 930행 91KB, main.bbl, refs.bib 923항목, figures/ 21개 파일(내용 PDF 16개, 로고·타이틀 5개). 수치는 main.tex 표 셀에서 왔고, Figure 5 의 콜아웃 24개만 <span class="wl">figures/model_pair_jit_vs_react.pdf</span> 에서 텍스트로 뽑았다. 그림을 렌더한 것은 아니다</span></p>
+
+        <p style="margin-top:14px"><b>코드</b></p>
+        <p><a href="https://github.com/bingreeky/JIT">github.com/bingreeky/JIT</a> @ <span class="wl">ababa06c2f54d799fd9fbc356e5368f61a452260</span> (2026-08-27) · <span class="t">2,878 파일. dataset/ 2,671 · harness_factory/ 91 · benchmark/ 59 · scripts/ 39 · jit/ 8 · assets/ 3 · 루트 7. shallow clone 이므로 커밋 이력 없음</span></p>
+
+        <p style="margin-top:14px"><b>가중치</b></p>
+        <p><a href="https://huggingface.co/JIT-Agent/jit-27b">huggingface.co/JIT-Agent/jit-27b</a> @ <span class="wl">0705ca15b822942e6531b7301a79a16738175094</span> · <span class="t">비게이트 공개, safetensors 12샤드. 받지 않았고 띄우지 않았다</span></p>
+
+        <p style="margin-top:14px"><b>인접 문헌 (논문의 "최초" 주장 대조용)</b></p>
+        <p><a href="https://arxiv.org/abs/2605.18747">arXiv:2605.18747</a> Code as Agent Harness · <span class="t">논문이 인용한다 (refs.bib:875)</span></p>
+        <p><a href="https://arxiv.org/abs/2606.01779">arXiv:2606.01779</a> HarnessForge · <a href="https://arxiv.org/abs/2605.26112">arXiv:2605.26112</a> From Model Scaling to System Scaling · <a href="https://arxiv.org/abs/2605.29682">arXiv:2605.29682</a> Scaling Laws for Agent Harnesses via Effective Feedback Compute · <span class="t">셋 다 refs.bib 923항목에 없다. 세 편의 본문은 이 문서가 열지 않았으므로, 무엇이 겹치는지가 아니라 인용되지 않았다는 사실까지만 쓴다</span></p>
+
+        <p style="margin-top:14px"><b>이 저장소의 관련 문서</b></p>
+        <p><a class="xref" href="../2026-08-14-deepseek-harness-plugin-architecture/">deepseek-harness: 에이전트 루프도 모델 어댑터도 설정 한 행인 하네스</a> · <span class="t">논문의 Composability 박스가 명시적으로 인용하는 대상</span></p>
+        <p><a class="xref" href="../2026-08-11-addyosmani-agent-skills/">addyosmani/agent-skills: 강제는 산문에 맡기고, CI 는 스킬 자체에 건다</a> · <a class="xref" href="../2026-08-07-loopx-deterministic-loop-harness/">LoopX: 에이전트 루프가 할 일을 잊지 않게 만드는 결정론적 제어 평면</a> · <a class="xref" href="../2026-08-12-omo-native-vs-opencode-plugin/">omo 5.0 native: opencode 플러그인을 떠나 자기 호스트를 갖는다</a></p>
+      </div>
+
+      <p class="note">근거 스팬은 <span class="wl">.research/2026-08-28-jit-agent-harness-intelligence/evidence.jsonl</span> 에 인용과 locator 로 남아 있다.</p>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 17</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
