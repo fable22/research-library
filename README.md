@@ -13,6 +13,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 | 날짜 | 문서 | 분류 |
 |---|---|---|
 | 2026-08-28 | [JIT-Agent: 하네스를 태스크마다 모델이 새로 조립하게 만든 27B 메타 모델](https://fable22.github.io/research-library/research/2026-08-28-jit-agent-harness-intelligence/) | 논문 분석 |
+| 2026-08-28 | [OpsHarness: 자가진화 제안을 이중 게이트로만 들여보내는 RCA 외부 하네스](https://fable22.github.io/research-library/research/2026-08-28-opsharness-self-evolving-rca/) | 논문 분석 |
 | 2026-08-20 | [Cerebras Knowledge: 수집과 질의를 임베딩 테이블 한 장으로 갈라놓은 사내 지식베이스](https://fable22.github.io/research-library/research/2026-08-20-cerebras-kb-architecture/) | 주제 리서치 |
 | 2026-08-19 | [Claude Code 세션 비용 모델: 토큰 하나의 가격과 세션이 보내는 토큰의 개수](https://fable22.github.io/research-library/research/2026-08-19-claude-code-session-cost-model/) | 메모 |
 | 2026-08-18 | [J-Space Cognition Suite V3.6: 프롬프트 계층에서 상태를 다시 주입하는 추론시 통제 프로토콜](https://fable22.github.io/research-library/research/2026-08-18-j-space-cognition-suite/) | 오픈소스 분석 |
