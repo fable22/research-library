@@ -802,7 +802,7 @@ ul.clean li .m.ok { color: var(--link); }
     <div class="slide-inner">
       <p class="eyebrow">setup</p>
       <h2>읽은 범위. 논문은 전문을 LaTeX 원본으로, 저장소는 2,878개 중 25개 정도를 열었다</h2>
-      <p class="dek">숫자는 <span class="wl">arxiv.org/e-print/2608.25593v1</span> 의 <span class="wl">main.tex</span>(930행) 표 셀에서 왔고, 13·14장의 Flash/Pro 분해만 <span class="wl">figures/model_pair_jit_vs_react.pdf</span> 에서 텍스트로 뽑았다. HTML 변환본은 쓰지 않았다. 코드는 <span class="wl">bingreeky/JIT</span> 을 <span class="wl">--depth 1</span> 로 받아 <span class="wl">ababa06c</span> 에서 읽었다.</p>
+      <p class="dek">숫자는 <span class="wl">arxiv.org/e-print/2608.25593v1</span> 의 <span class="wl">main.tex</span>(930행) 표 셀에서 왔고, Figure 5 의 콜아웃 24개만 <span class="wl">figures/model_pair_jit_vs_react.pdf</span> 에서 텍스트로 뽑았다. HTML 변환본은 쓰지 않았다. 코드는 <span class="wl">bingreeky/JIT</span> 을 <span class="wl">--depth 1</span> 로 받아 <span class="wl">ababa06c</span> 에서 읽었다.</p>
 
       <div class="two-col">
         <div>
@@ -897,7 +897,7 @@ ul.clean li .m.ok { color: var(--link); }
 
       <p>메타 모델은 Qwen3.6-27B 로 훈련했는데 개선폭이 가장 작은 계열이 Qwen 3.6 (+4.0) 이고 가장 큰 계열이 DeepSeek V4 (+10.2) 다. 훈련 계열과 이득의 크기가 반대로 간다.</p>
 
-      <p>논문은 이 실험을 근거로 하네스 지능이 "모델 계열과 변종을 가로질러 이전된다"고 쓰고, 초록에서는 한 걸음 더 나가 "model scaling 과 직교하는 축"이라고 쓴다. 앞 문장은 이 표가 받쳐 준다. 뒤 문장은 받쳐 주지 못한다. 직교라고 하려면 백본을 키웠을 때 JIT 의 이득이 유지되거나 커진다는 것을 보여야 한다. 그 답은 Figure 5 의 콜아웃 24개에 Flash 와 Pro 로 분해돼 있고, 세 계열 중 둘에서 큰 변종이 작은 변종보다 덜 얻는다. 네 벤치마크 이득의 합으로 DeepSeek V4 는 Flash 51.6 대 Pro 30.3, Qwen 3.6 은 Flash 20.2 대 Plus 12.1 로 작은 변종이 더 얻는데, Mimo 2.5 만 Flash 31.6 대 Pro 37.2 로 뒤집힌다.</p>
+      <p>논문은 이 실험을 근거로 하네스 지능이 "모델 계열과 변종을 가로질러 이전된다"고 쓰고, 초록에서는 한 걸음 더 나가 "model scaling 과 직교하는 축"이라고 쓴다. 앞 문장은 이 표가 받쳐 준다. 뒤 문장은 받쳐 주지 못한다. 직교라고 하려면 백본을 키웠을 때 JIT 의 이득이 유지되거나 커진다는 것을 보여야 한다. Figure 5 의 콜아웃 24개가 Flash 와 Pro 로 분해돼 있어 그 자리를 볼 수 있다. 네 벤치마크 이득의 합은 DeepSeek V4 가 Flash 51.6 대 Pro 30.3, Qwen 3.6 이 Flash 20.2 대 Plus 12.1, Mimo 2.5 가 Flash 31.6 대 Pro 37.2 다. 두 계열에서 큰 변종이 덜 얻지만, 이 합을 가르는 것은 변종의 크기가 아니라 ReAct baseline 의 높이다. DeepSeek V4 의 격차 21.3 중 19.4 가 ShoppingPlanning 한 칸에서 나오고 그 칸의 baseline 은 Pro 81.6 대 Flash 59.1 이다. Qwen 3.6 의 격차 8.1 중 6.6 은 DeepSearchQA 한 칸이고 Plus 65.7 대 Flash 50.4 다. 0~100 척도에서 22.5점·15.3점 위에 있는 쪽의 절대 이득이 작은 것은 천장만으로도 나온다. 큰 변종의 baseline 이 오히려 낮은 칸에서는 방향이 뒤집힌다. Mimo 2.5 의 AgentIF 가 Pro 48.5 에서 +10.1, Flash 50.1 에서 +1.6 이다. 이 24개로는 직교가 확인되지도 반박되지도 않는다. 초록은 확인된 쪽으로 쓴다.</p>
 
       <p class="note">이 24쌍의 baseline 은 ReAct 다. <a class="xref" href="#p3">3장의 통제 비교</a>에서 상대했던 Claude Code, Codex, NanoBot 같은 하네스가 아니다. "ReAct 대비 +7.6"과 "최강 고정 하네스 대비 +4.7"은 서로 다른 크기의 주장이고 둘을 섞어 읽으면 개선폭이 부풀려진다.</p>
     </div>
@@ -933,7 +933,7 @@ ul.clean li .m.ok { color: var(--link); }
 
       <p><b>전부 저자 자체 평가다.</b> JIT 이 자기 하네스를 만들고, 저자가 고른 벤치마크와 부분집합에서, 저자가 만든 어댑터로 채점한다. 게시 이틀째 프리프린트이므로 외부 재현은 아직 없다. 그리고 재현하려는 사람은 Table 4 의 baseline 다섯을 직접 다시 구현해야 한다.</p>
 
-      <p><b>"model scaling 과 직교"는 근거보다 넓다.</b> 초록의 이 문장이 <a class="xref" href="#p13">13장</a>의 24쌍 실험 위에 서 있는데 그 실험이 보이는 것은 여섯 백본 각각에서 ReAct 대비 이득이 있다는 데 그치지 않는다. 백본을 키웠을 때 이득이 어떻게 되는지가 Figure 5 의 콜아웃 24개에 분해돼 있고, 세 계열 중 둘(DeepSeek V4, Qwen 3.6)에서 큰 변종이 덜 얻는다. 직교라면 나오지 않을 방향이다. 남은 하나인 Mimo 2.5 만 반대로 가고, 개선폭이 가장 작은 계열은 하필 메타 모델의 훈련 계열인 Qwen 3.6 이다.</p>
+      <p><b>"model scaling 과 직교"는 근거보다 넓다.</b> 초록의 이 문장이 <a class="xref" href="#p13">13장</a>의 24쌍 실험 위에 서 있는데, 그 실험이 보이는 것은 여섯 백본 각각에서 ReAct 대비 이득이 있다는 것까지다. 백본을 키웠을 때 이득이 어떻게 되는지는 Figure 5 의 콜아웃 24개에 Flash/Pro 로 분해돼 있지만, 거기서 이득의 크기를 가르는 것은 변종의 크기가 아니라 ReAct baseline 의 높이다. 계열별 합의 차이가 baseline 이 15점에서 22점 벌어진 한 칸에서 대부분 나오고, 큰 변종의 baseline 이 더 낮은 칸에서는 큰 변종이 더 얻는다. 직교를 확인하려면 baseline 을 맞춘 비교가 있어야 하는데 논문에 없다. 그리고 개선폭이 가장 작은 계열은 메타 모델의 훈련 계열인 Qwen 3.6 이다.</p>
 
       <p class="note">한계를 다 걷어내도 남는 것이 하나 있고 그것이 이 문서가 논문에서 가져가는 부분이다. <b>고정 하네스의 순위가 태스크 형태에 따라 두 자릿수로 뒤집힌다</b>는 사실은 baseline 의 이식 충실도와 무관하게 성립한다. 이식이 서툴렀다면 다섯 스캐폴드가 고르게 낮아야 하는데 실제로는 다섯의 순위가 열마다 재배열된다. Hermes 는 두 백본 모두 DeepSearchQA 에서 고정 다섯 중 꼴찌인데 AgentIF 에서는 둘째로 올라가고, NanoBot 은 두 백본 모두 DeepSearchQA 1위인데 AgentIF 에서 넷째(DeepSeek-V4-Flash) 와 셋째(Qwen3.6-Flash) 로 내려간다. 이 패턴은 이식 품질로 설명되지 않는다.</p>
     </div>
