@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OpsHarness: 자가진화 제안을 이중 게이트로만 들여보내는 RCA 외부 하네스</title>
-<meta name="description" content="검증 게이트를 뗀 no-verify 변형은 window 3 을 정점으로 꺾여 마지막 window A@1 0.33 으로 진화를 아예 끈 0.43 아래로 내려간다. 헤드라인 59.0%·+63.4%·4.02배의 분모를 각각 갈라 두고, 표 II 의 no-evolve 열이 본문 41.4% 와 어긋나 43.35% 로 나오는 것까지 대조했다. 코드·데이터 공개는 없다.">
+<meta name="description" content="검증 게이트를 뗀 no-verify 변형은 window 2~3 을 정점으로 꺾여 마지막 window A@1 0.33 으로 진화를 아예 끈 0.43 아래로 내려간다. 헤드라인 59.0%·+63.4%·4.02배의 분모를 각각 갈라 두고, 표 II 의 no-evolve 열이 본문 41.4% 와 어긋나 43.35% 로 나오는 것까지 대조했다. 코드·데이터 공개는 없다.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="OpsHarness: 자가진화 제안을 이중 게이트로만 들여보내는 RCA 외부 하네스">
-<meta property="og:description" content="검증 게이트를 뗀 no-verify 변형은 window 3 을 정점으로 꺾여 마지막 window A@1 0.33 으로 진화를 아예 끈 0.43 아래로 내려간다. 헤드라인 59.0%·+63.4%·4.02배의 분모를 각각 갈라 두고, 표 II 의 no-evolve 열이 본문 41.4% 와 어긋나 43.35% 로 나오는 것까지 대조했다. 코드·데이터 공개는 없다.">
+<meta property="og:description" content="검증 게이트를 뗀 no-verify 변형은 window 2~3 을 정점으로 꺾여 마지막 window A@1 0.33 으로 진화를 아예 끈 0.43 아래로 내려간다. 헤드라인 59.0%·+63.4%·4.02배의 분모를 각각 갈라 두고, 표 II 의 no-evolve 열이 본문 41.4% 와 어긋나 43.35% 로 나오는 것까지 대조했다. 코드·데이터 공개는 없다.">
 <meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-28-opsharness-self-evolving-rca/">
 <meta name="twitter:card" content="summary">
 <style>
@@ -564,7 +564,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
 
       <figure class="figure">
         <p class="fig-title">제안은 승격되거나 폐기되거나 evolver 로 되돌아간다</p>
-        <p class="fig-sub">논문 §V-A~§V-C. 되돌아가는 간선이 이 루프의 핵심이다. no-verify 변형을 논문이 정의하는 문장은 한 줄뿐이다. <em>"self-evolution on but the verification gate removed, promoting any proposal that helps its source cases"</em>. §V-C 전체가 sandbox → inner → outer → 재합성으로 이어지는 검증 단계이므로, 3번 상자에서 어디까지가 빠지는지도 되돌아가는 간선이 남는지도 논문에 없다. 확실한 것은 승격 기준이 '원본 케이스를 돕는가' 하나로 내려앉는다는 것이고, 그 문장은 식 (10) 의 g_in 보다 약하다. costOK 도 엄격 개선 조항도 거기 들어 있지 않다.</p>
+        <p class="fig-sub">논문 §V-A~§V-C. 되돌아가는 간선이 이 루프의 핵심이다. no-verify 변형을 논문이 정의하는 문장은 한 줄뿐이다. <em>"self-evolution on but the verification gate removed, promoting any proposal that helps its source cases"</em>. §V-C 전체가 sandbox → inner → outer → 재합성으로 이어지는 검증 단계이므로, 3번 상자에서 어디까지가 빠지는지도 되돌아가는 간선이 남는지도 논문에 없다. 확실한 것은 승격 기준이 '원본 케이스를 돕는가' 하나로 내려앉는다는 것이다. 돕는다는 말 자체가 원본 케이스에서의 엄격한 정확도 개선이므로, 식 (10) 의 엄격 개선 조항은 그 문장 안에 이미 들어 있다. 그 문장이 확실히 떨어뜨리는 것은 costOK 이고, 식 (11) 의 g_out 은 통째로 없다. 다만 한쪽으로 깨끗하게 약해지는 관계도 아니다. g_in 은 ΔA 가 0 이고 ΔC 가 음수인 제안도 통과시키는데, '돕는다'가 그 경우까지 덮는지는 논문이 말하지 않는다.</p>
         <div class="svgwrap">
         <svg class="chart" viewBox="0 0 760 260" role="img" aria-label="OpsHarness 자가진화 3단계 흐름. 진단 세션이 1단계 트라젝토리 마이닝으로 들어가 사용자 피드백으로 correct 와 wrong 라벨을 받고 positive 집합과 negative 집합으로 갈린다. 2단계 근거 마이닝과 제안 합성이 positive 에서 공통 패턴을, negative 에서 발산 지점 교정을 뽑아 add update delete 곱하기 skel op rule tool 열두 종류의 원자 연산 집합인 제안 P 를 만든다. 3단계 단계별 검증이 sandbox 사본에 P 를 적용하고 inner 게이트와 outer 게이트를 차례로 건다. 둘 다 통과하면 하네스가 h i 에서 h i+1 로 원자적으로 승격되고, 하나라도 실패하면 실패 케이스를 새 negative 로 붙여 2단계로 되돌아가며 최대 3라운드까지 재시도한 뒤 폐기한다.">
           <rect class="box" x="6" y="34" width="118" height="56" rx="8"/>
@@ -795,7 +795,7 @@ costOK ≡ ΔC ≤ max(β·C_h_i, 1)          <span class="c">β = 0.05</span>
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">result-ablation</p>
-      <h2>결과 2. no-verify 는 초반에 오르고 3번째 window 를 정점으로 꺾인다</h2>
+      <h2>결과 2. no-verify 는 초반에 오르고 2~3번째 window 를 정점으로 꺾인다</h2>
       <p class="dek">이 그림이 이 논문의 실제 기여다. 자가진화를 켜되 검증 게이트만 뗀 변형은 처음 세 window 동안 full 과 나란히 오르다가 꺾인다. 백본 4개 평균으로 마지막 window A@1 은 0.33 이고, 진화를 아예 끈 0.43 보다 낮다.</p>
 
       <figure class="figure">
