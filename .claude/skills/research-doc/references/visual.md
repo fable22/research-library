@@ -40,13 +40,16 @@ The gate requires `role="img"` and an `aria-label` on every `<svg>`. Write it be
 drawing, as a sentence describing what happens:
 
 ```
-aria-label="Error Book의 5단계 순환. Discover에서 검증기가 오류를 찾고, Attribute에서
-원인을 밝히고, Constrain에서 제약 조건으로 만들고, Inject에서 컴파일 프롬프트에 넣고,
-Verify 단계에서 재검증 후 종료한다. Inject에서 Discover로 되돌아가는 화살표가 있다."
+aria-label="Error Book의 5단계 순환. Discover에서 검증기가 오류를 찾는다. Attribute에서
+원인을 밝히고 Constrain에서 제약 조건으로 만든다. Inject에서 컴파일 프롬프트에 넣고
+Verify에서 재검증한 뒤 종료한다. Inject에서 Discover로 되돌아가는 화살표가 있다."
 ```
 
 If the sentence will not come, the figure has no claim in it. Name the returning edge
 explicitly; a reader who only hears the label should still learn that the loop closes.
+
+**No counter reads this sentence** — `check-prose.mjs` strips `<svg>` first. A step list is
+where `~하고,` piles up, so apply `prose-ko.md` here by hand.
 
 ## The figure's text does most of the work
 
@@ -63,7 +66,7 @@ A caption repeating the title is wasted. One doing its job:
 
 ```
 표 1(논문). 점선은 HippoRAG 2다. 문서 1개짜리 질문에서는 HippoRAG 2가 69.8로
-WikiLoop 69.1보다 0.7 높지만, 이 차이는 통계적으로 유의하지 않다고 논문이 밝히고 있다.
+WikiLoop 69.1보다 높지만 이 차이는 통계적으로 유의하지 않다고 논문이 밝히고 있다.
 ```
 
 Source pin, encoding, then the qualifier that stops a reader over-reading the one place
