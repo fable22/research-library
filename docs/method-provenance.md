@@ -39,6 +39,7 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | Uncompiled LaTeX is stripped before environments are counted | `check-claims.mjs` | a commented-out template shifted every table number by four, so a correct locator resolved to the wrong table. See the note below |
 | A missing ledger is reconstructed only where the sources are immutable | `AGENTS.md` | a HEAD eight days past the publication date would have pinned bytes the document never saw. See the note below |
 | The reader is a developer, and a symbol has to resolve here | `research-doc/SKILL.md`, `references/visual.md` | one document of twenty carried notation, and its `식 (10)` resolved only in the paper. See the note below |
+| The reader travels the whole chain, not just the writing step | `research-source`, `lens-completeness`, the ⑩ rows | stage 1 framed the question with no reader named, and the lens asking what is missing did not know for whom. See the note below |
 
 ## What the visualization rules were measured against
 
@@ -557,3 +558,28 @@ So the bar is not "fewer symbols". **A symbol has to be used again and to produc
 prediction the prose then cashes**, and a reference that resolves only in the source is the
 failure worth checking for, because it is checkable. `visual.md` now opens by naming the
 reader, and lens C checks the two mechanical cases.
+
+
+## Enumerating the cases was the wrong repair
+
+The first attempt at the notation problem added two checks to lens C — a symbol never defined
+in the document, a `식 (N)` with no numbered equation. Both are real and both are cheap, and
+they were mistaken for the answer. The case space does not close: block the equation
+reference and the next document cites `정리 2`, then a variable named in a figure and nowhere
+else. What a script can enumerate here is a rounding error against what a reader notices.
+
+What actually decides the output is whether the reader is present where a decision is made,
+and a count over the chain says where that stopped being true. `research-source` frames the
+question the document has to answer and names the reader **zero** times in 261 lines.
+`lens-completeness`, whose whole job is to ask what is missing, said `reader` zero times —
+missing for whom was not a question it could form. Both now carry it: one clause at the point
+where scope is set, one paragraph where absence is judged.
+
+The ⑩ rows in `paper.md` and `oss.md` gained four words. A review from the reader's position
+found that the largest thing standing between that document's subject and a production system
+— a person labelling roughly 480 cases by hand for the evolution loop to run — appeared
+nowhere in the adoption chapter, because the chapter asked when adoption makes sense and not
+what it costs to keep running.
+
+**A rule the model cannot count has to be a fact the model holds while deciding.** That is a
+different repair from a gate, and it is the only one available for most of what matters here.

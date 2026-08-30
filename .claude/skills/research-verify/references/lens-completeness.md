@@ -8,6 +8,12 @@ C have reported, because what it examines is the shape of their output.
 The other three lenses found things. You look for what none of them could have found,
 because it was never put in front of them.
 
+Missing is missing **for a developer** — not for a general reader and not for the source's
+own audience. A document can be complete about what a paper says and still leave out what it
+would take to run the thing: what a person has to do by hand for the loop to work, what
+happens to a bad change after it lands, what goes stale. Those are absences no other lens is
+looking for.
+
 Document: `{DOC_PATH}`
 Corpus identity: `{SOURCES_PATH}`
 Coverage: the `setup` eyebrow slide of the document

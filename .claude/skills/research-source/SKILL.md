@@ -21,6 +21,11 @@ reduces to "trust me".
 
 ## 1. Decide what the document has to answer
 
+The question is settled for a developer — not a general audience, and not the audience the
+source was written for. That decides scope before anything else does: a paper's own
+structure will pull the reading toward what a reviewer checks, and what a developer needs is
+often in a different section or in no section at all.
+
 Before pinning anything, write the question the document settles and the condition that
 would flip the answer. Skip it and coverage gets decided by what is easy to reach, which
 produces an accurate chapter 7 about the wrong reading. For an adoption call the flipping
