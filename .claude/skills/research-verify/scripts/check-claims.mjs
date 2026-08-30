@@ -41,7 +41,7 @@ const RULES = {
   'sources-file': '.research/<slug>/sources.jsonl 이 있고 파싱되는가',
   'claims-file': '.research/<slug>/claims.jsonl 이 있고 파싱되는가',
   'source-ref': 'evidence 가 가리키는 source id 가 sources.jsonl 에 있는가',
-  'source-identity': 'repo 는 repo+commit, paper 는 arxiv_id+version 이 있는가',
+  'source-identity': 'repo 는 repo+commit, paper 는 arxiv_id+version+text_sha256 이 있는가',
   'source-local-path': 'sources.jsonl 에 로컬 경로가 새어 들어가지 않았는가',
   'source-drift': '고정해 둔 원문이 지금 받은 것과 같은 바이트인가 (paper)',
   'empty-evidence': 'verdict=confirmed 인 주장에 근거가 있는가',
@@ -49,7 +49,7 @@ const RULES = {
   'quote-match': `quote 가 고정 커밋의 locator ±${LINE_SLACK}줄 안에 실제로 있는가`,
   'numeric-match': '주장에 적힌 수치가 인용한 표·절 안에 실제로 있는가 (paper)',
   'derived-inputs': 'kind=derived 주장이 계산의 입력값과 원문에 없다는 표시를 갖는가',
-  'locator-form': 'locator 가 path:line 또는 표/절 식별자 형태인가',
+  'locator-form': 'locator 가 path:line 또는 표/절 식별자 형태인가 (kind 값 검증도 여기서 난다)',
   scope: '무엇을 기준으로 확인했는지 scope 에 적혀 있는가',
   'absence-search': 'kind=absence 주장에 재실행 가능한 검색 명령이 있는가',
   'behavioral-limits': 'kind=behavioral 주장에 확인하지 못한 것이 적혀 있는가',
@@ -377,7 +377,8 @@ function scopeFor(text, locator, figures) {
 const PAPER_LOCATOR =
   /^(Table\s+[IVXLC\d]+|Figure\s+\d+|Algorithm\s+\d+|Listing\s+\d+|Appendix\s+[A-Z](\.\d+)*|§\s*\d+(\.\d+)*|Section\s+\d+(\.\d+)*|Abstract)$/i;
 
-// 발행할 만한 수치만 센다. 한두 자리 정수는 슬라이드 번호·항목 수라 잡음이 많다.
+// 발행할 만한 수치만 센다. 맨 정수는 자릿수와 무관하게 전부 건너뛴다. 파일 개수·토큰 수처럼
+// 구분자 없이 적힌 수치는 이 규칙이 보지 않고, 렌즈 B 의 몫이다.
 const NUMERIC =
   /(?<![\w.\/-])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+\.\d+|\d+(?:\.\d+)?%)(?![\w\/-])/g;
 const numsIn = (s) => [...String(s).matchAll(NUMERIC)].map((m) => m[1]);

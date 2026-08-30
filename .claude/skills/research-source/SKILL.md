@@ -50,7 +50,16 @@ Write `.research/<slug>/sources.jsonl`, one source per line, before opening file
 {"id":"r1","kind":"repo","repo":"owner/name","commit":"<full 40-char sha>",
  "shallow":true,"history_available":false,"scope_excluded":["assets"]}
 {"id":"p1","kind":"paper","arxiv_id":"2605.25480","version":"v1",
+ "text_sha256":"<64-char sha of the pinned text>",
  "sections_read":["1-7","A","B"],"retrieved_at":"2026-08-07T09:12:00Z"}
+```
+
+**`text_sha256` is required on a paper.** `arxiv_id` and `version` name an edition; the
+hash pins the bytes, so a later quote check runs against the text that was read. This
+prints it:
+
+```bash
+node .claude/skills/research-verify/scripts/pin-paper.mjs 2605.25480 v1
 ```
 
 **No local paths.** Not in `sources.jsonl`, not in `meta.json`, not in the document. A

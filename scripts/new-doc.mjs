@@ -176,7 +176,8 @@ async function create(slug, kind, opts) {
   await writeFile(join(workDir, 'sources.jsonl'),
     '// 조사 대상을 이식 가능한 신원으로 고정한다. 로컬 경로는 적지 않는다.\n' +
     (kind === 'paper'
-      ? '// {"id":"p1","kind":"paper","arxiv_id":"2605.25480","version":"v1","sections_read":["1-7","A"]}\n'
+      // text_sha256 은 필수다. pin-paper.mjs <id> <version> 이 낸다.
+      ? '// {"id":"p1","kind":"paper","arxiv_id":"2605.25480","version":"v1","text_sha256":"<pin-paper.mjs 가 낸 64자>","sections_read":["1-7","A"]}\n'
       : '// {"id":"r1","kind":"repo","repo":"owner/name","commit":"019ee16","shallow":true,"history_available":false}\n'));
   await writeFile(join(workDir, 'evidence.jsonl'),
     '// 소스를 연 채로 인용을 적는다. 요약이 아니라 원문과 그 위치다.\n' +
