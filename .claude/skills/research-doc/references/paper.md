@@ -1,7 +1,8 @@
 # Documenting a paper
 
 How the chapters get filled when the corpus is a paper. Read `prose-ko.md` and
-`visual.md` alongside this.
+`visual.md` alongside this; `visual.md` opens with who the reader is, and a paper is the
+corpus most likely to pull the chapters back toward its own structure.
 
 ## Chapter contents
 
@@ -14,7 +15,7 @@ How the chapters get filled when the corpus is a paper. Read `prose-ko.md` and
 | ⑦ | Which sections and appendices were read, which conditions the setup controlled and which it did not |
 | ⑧ | Results, from the tables |
 | ⑨ | Limits, with attribution: which the paper admits, which you are asserting |
-| ⑩ | The conditions under which adopting this makes sense |
+| ⑩ | The conditions under which adopting this makes sense, including what it costs to keep running |
 
 ## Numbers
 

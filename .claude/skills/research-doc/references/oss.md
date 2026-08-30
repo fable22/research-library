@@ -16,7 +16,7 @@ The reader is deciding whether to adopt. Everything below serves that.
 | ⑦ | Commit SHA, files read, directories not opened, whether the clone was shallow |
 | ⑧ | What the code does. Benchmarks only if the project publishes them, marked as self-reported |
 | ⑨ | Code not read, README-versus-code discrepancies, what reading alone cannot establish |
-| ⑩ | adopt / trial / assess / hold, with the grounds |
+| ⑩ | adopt / trial / assess / hold, with the grounds and what it costs to keep running |
 
 ## Chapter ⑥ is the one that carries the document
 
