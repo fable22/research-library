@@ -28,7 +28,7 @@ up mid-task, notes to a future self, hedged asides.
 when that is not obvious. Not four.
 
 **Worked specimens** — a ✗/✓ pair, a markup skeleton, a real caption. These earn their
-length because they lose meaning when abstracted. `references/prose-ko.md` is the model.
+length because they lose meaning when abstracted. `research-doc/references/prose-ko.md` is the model.
 
 **The reason the ✗ fails, in the same entry.** A named failure carries a rule; a named
 failure with the reason attached carries most of the gain over one without. A bare

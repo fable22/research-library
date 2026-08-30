@@ -7,7 +7,7 @@ it. Research procedure and
 writing rules live in the skills.
 
 **Documents are written in Korean.** These instructions are English; the product is not.
-Technical terms stay English; `research-doc/references/prose-ko.md` holds the list.
+Technical terms stay English; `.claude/skills/research-doc/references/prose-ko.md` holds the list.
 
 ## Where things go
 

@@ -189,6 +189,19 @@ async function updateReadme(entries) {
   if (next !== md) await writeFile(path, next, 'utf8');
 }
 
+// --help 가 파일을 쓰면 안 된다. 인자를 안 보던 시절에는 도움말을 부른 사람이
+// index.html 과 README.md 를 덮어썼다.
+if (process.argv.slice(2).some((a) => a === '--help' || a === '-h')) {
+  console.log('사용법: node scripts/build-index.mjs\n');
+  console.log('research/*/meta.json 을 모아 두 곳을 생성한다. 인자는 받지 않는다.');
+  console.log('  index.html                              Pages 목록 페이지 전체');
+  console.log('  README.md 의 <!-- docs:start --> 블록      문서 표\n');
+  console.log('정렬은 date 내림차순, 같은 날짜는 seq 내림차순이다.');
+  console.log(`category 라벨: ${Object.keys(CATEGORY_LABEL).join(', ')}. 없는 값은 그대로 찍힌다.`);
+  console.log('\n두 파일 다 생성물이다. 손으로 고치면 다음 실행에 사라진다.');
+  process.exit(0);
+}
+
 const entries = await collect();
 await writeFile(join(ROOT, 'index.html'), renderPage(entries), 'utf8');
 await updateReadme(entries);

@@ -37,7 +37,7 @@ const ROOT = findRoot(dirname(fileURLToPath(import.meta.url)));
 // 출발용 골격이다. 장 수는 정해져 있지 않고, eyebrow 중
 // index/tl-dr/problem/critique/conclusion/sources 만 check-doc.mjs 가 검사한다.
 // 나머지는 내용을 가리키는 이름으로 바꿔 쓰고, 필요하면 장을 더 넣는다.
-// paper 와 oss 가 다른 자리는 ③④⑥⑦⑨⑩ 여섯 개다.
+// paper 와 oss 는 ②~⑩ 아홉 자리가 모두 다르다. 힌트 문구까지 세면 그렇다.
 
 const CHAPTERS = {
   paper: [

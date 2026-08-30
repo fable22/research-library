@@ -29,6 +29,10 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | Count the prose rules that carry a number; leave the rest to the lens | `check-prose.mjs` | the rules were enforced in proportion to how greppable they were. See the count below |
 | `~가 아니라 ~다` is reported, not blocked | `check-prose.mjs` | the count that looked like a violation was mostly quotes and attribution. See the note below |
 | `~를 통해` is not translationese; `~들` is not noise; a comma after a connective ending is the tell | `references/prose-ko.md` | corpus measurement, against the prescriptive list the rules were built from. See the audit below |
+| Quotes leave the prose the gate reads, in every container the documents actually use | `check-prose.mjs`, `check-doc.mjs` | both gates said quotes were excluded and stripped only `blockquote` / `pre`+`code`. See the 2026-08-30 audit |
+| The polite register is blocked at zero | `check-prose.mjs`, `references/prose-ko.md` | the register rule had no counter, and all 13 occurrences in the corpus are quotes. See the 2026-08-30 audit |
+| No rule against ending a sentence on a noun phrase | `references/prose-ko.md`, by omission | an outside guide proposed it; measured here, the 9.8% are captions and labels. See the outside-style-guide note |
+| One rule for the doubled passive, not two | `check-prose.mjs` | `passive-stack` and `double-passive` both matched `되어지·되어진·불려진`. See the 2026-08-30 audit |
 
 ## What the visualization rules were measured against
 
@@ -200,7 +204,7 @@ human-written from LLM-written Korean. The strongest single signal is a comma af
 connective ending: 4.10 / 4.68 / 13.27% for humans across three genres, against
 19.83 / 15.57 / 28.01% for models.
 
-Measured the same way over the 18 published documents here — approximately, by eojeol-final
+Measured the same way over the 18 documents published as of 2026-08-19 — approximately, by eojeol-final
 string rather than morphological analysis — the rate is **37.1%**, higher than any LLM figure
 in the paper. The approximation inflates both terms of the ratio, so the absolute number does
 not belong beside theirs. What survives the caveat is that every document sits in the same
@@ -357,5 +361,53 @@ from three legitimate constructions that share its shape. So it moved to `--coun
 `~에 있어서`, which failed the same test.
 
 **A pattern whose matches in the corpus are mostly correct has no business blocking a
-document.** Every rule left in the gate now blocks zero of the 18 published documents, which
+document.** Every rule left in the gate now blocks zero of the 19 published documents, which
 is the state a regression guard should be in.
+
+## What an outside style guide was worth here
+
+[`snflkd/fluent-korean`](https://github.com/snflkd/fluent-korean) (MIT, `ce8683f`) diagnoses
+LLM Korean as the opposite of what this repo assumes: omission rather than excess, restoration
+rather than cutting. Two guides pointing opposite ways is worth a measurement, so the rules it
+carries that this repo lacks were measured before adoption.
+
+| Its rule | Measured here | Outcome |
+|---|---|---|
+| Do not end a sentence on a noun phrase | 534 of 5,474 sentences (9.8%) end without a 종결어미 | rejected — all sampled are figure captions, source markers, and label definitions, the category its own clause exempts |
+| Do not stack 관형격 `~의` | `~의 ~의` chains across 19 documents | rejected — 0 occurrences |
+| Avoid metaphor, avoid the em dash | already held by `lens-prose.md` and `check-doc.mjs` | no change |
+
+**Nothing was adopted.** Delivery is settled separately: output styles apply to the main
+conversation only, and `research-verify` runs its lenses as subagents, so an output style
+would not reach the place the Korean is written.
+
+## What the 2026-08-30 audit changed
+
+The instruction corpus had only been appended to, so it was read as a whole — 4,714 lines by
+five separated readers, one each for contradictions, duplication, intent defeat, stale
+references, and gate/prose drift. Findings were reproduced before being acted on.
+
+**The measurements that moved a rule:**
+
+| Measured | Changed |
+|---|---|
+| The four Korean specimens the skills hand an author ran at 100 / 100 / 33 / 100% comma-after-connective, against a human band of 4.1–13.3% | All four rewritten to 0%. `visual.md` now states that `visibleProse` strips `<svg>`, so no counter reads an `aria-label` |
+| 18 `derived` claims in `.research/`, against a 7-value `kind` list in `research-verify/SKILL.md` that omits it | The skill points at `check-claims.mjs --help` and explains only `derived`, which needs a decision rather than a lookup |
+| The skill's one worked claim specimen failed two gate rules: `locator: 표 1` is rejected, and its quote was 28 characters against a 40 floor | Specimen corrected; the `locator` grammar is now stated where it is written |
+| `text_sha256` blocks `source-identity` and appeared in 0 markdown files and neither scaffold | Documented in `research-source` with the command that produces it, and added to the scaffold |
+| Three of the five word-list rules lens C was told to sweep for are blocked at zero by the counter it runs first | `lens-prose.md` no longer sweeps them |
+| 4 documents ship `category: "oss"`, which `CATEGORY_LABEL` never registered, so the raw token rendered beside Korean labels | Registered; `new-doc.mjs` now emits the CLI's own type |
+| 1,557 quote containers (`.q`, `.wl`, `<cite>`) were counted as the document's own prose by both gates, which each state the opposite | `visibleProse` and `stripQuoted` strip them. The register rule found 13 polite endings, every one inside a quotation |
+| `passive-stack` and `double-passive` both matched `되어지·되어진·불려진`, so one sentence reported twice and a waiver needed two ids | Merged. `check-prose.test.mjs` now asserts no two rules share an alternative |
+| The register rule's first form blocked `~(으)니까`, which the same file counts as an ordinary connective | Rewritten to the ㅂ-batchim condition that actually separates 합쇼체 from the connective |
+
+**Separation paid in both directions.** Two readers independently found the `~니까` defect and
+four found the missing `derived`; independent discovery is what separates a finding from one
+reader's bias. Two pairs disagreed, and the disagreement was the useful part: `Three lenses` in
+the table above is accurate, because lens D is deliberately handed A/B/C's reports and the
+mutual-blindness rule is about those three — while the same phrasing inside a ✓ specimen was a
+real defect, since `AUTHORING.md` bars repository facts from specimens. A single reader returns
+one of those verdicts and stops.
+
+**Nothing found here was a bad rule.** Each was written correctly and then left while something
+beside it moved, which is invisible to a reader who starts from the rule being edited.
