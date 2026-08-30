@@ -40,27 +40,29 @@ tries to line the document up against the source.
 **Technical terms stay English.** `prose-ko.md` opens with the list. Look for forced
 Korean coinages, and for a term translated in one slide and left in English in another.
 
-**No em dashes.** Commas or separate sentences. (`check-doc.mjs` catches most, but can
-miss ones inside entities or attributes.)
+**No em dashes.** Commas or separate sentences. (`check-doc.mjs` misses the `&mdash;`
+entity. An em dash inside a quote belongs to the source: report it, do not edit it.)
 
 **No process narration.** "이 자료는 소개글이 아니라 원문을 직접 읽고 정리했다", "모든
 수치는 표에서 직접 가져왔다" tell the reader nothing. **The exception is flagging a
 calculation the source did not make** — that is not process narration, it is what the
 reader needs to check the original. Do not confuse the two.
 
-**AI slop.** Apply `prose-ko.md`, which has three families. The first is spot-checkable:
-progress narration (이제, 먼저 ~부터), reaction words (흥미롭게도, 놀랍게도, 주목할 점은),
-empty summary sentences, hedging with no named gap, forced symmetry.
+**AI slop.** Apply `prose-ko.md`, which has three families.
 
-The other two need a sweep, because every sentence in them is true and reads fine on its
-own. Go slide by slide and ask what each sentence buys the reader.
+**Do not sweep the first family's word lists** — progress narration, reaction words,
+monologue, vague attribution, promotional adjectives. The counter you already ran blocks all
+five at zero. What is left there for you: empty summary sentences, hedging with no named
+gap, forced symmetry, listing what passed.
+
+The other two families need a sweep, because every sentence in them is true and reads fine
+on its own. Go slide by slide and ask what each sentence buys the reader.
 
 - **Residue of the work** — an incidental finding from the research, sourcing narration
-  outside the coverage chapter, a parenthetical aside, monologue (여기서 잠깐 정리하면),
-  visible self-correction. The coverage chapter is the one place these belong. Everywhere
-  else, name the slide and say where it should move to or that it should go.
-- **Borrowed emphasis** — manufactured significance (중요한 전환점, ~을 시사한다), vague
-  attribution (업계에서는, 전문가들은), promotional adjectives, a
+  outside the coverage chapter, a parenthetical aside, visible self-correction. The coverage
+  chapter is the one place these belong. Everywhere else, name the slide and say where it
+  should move to or that it should go.
+- **Borrowed emphasis** — manufactured significance (중요한 전환점, ~을 시사한다), a
   challenges-and-prospects close, elegant variation.
 
 Two of these have a legitimate twin and a pattern match cannot tell them apart. A statement

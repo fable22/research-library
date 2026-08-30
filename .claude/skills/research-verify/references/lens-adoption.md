@@ -26,9 +26,11 @@ Here is what a developer actually checks. Go through them against the document.
 - **License.** Did the document check the actual file, or copy a badge or an API field?
   Check which one it used. An AGPL-family license changes the decision entirely and is
   sometimes absent from the README badges.
-- **Maintenance vitality.** Commit frequency, contributor spread, issue response. But if
+- **Maintenance vitality.** Commit frequency, contributor spread, release cadence. But if
   `{SOURCES_PATH}` or chapter 7 shows a shallow clone, these numbers **cannot have
-  a source.** If the document asserts them anyway, that is a finding.
+  a source.** If the document asserts them anyway, that is a finding — the gate catches it
+  only when the claim is filed as `kind:"history"`. Issue response time is never in the
+  checkout at all.
 - **Dependency risk.** What does adopting this tie you to — a vendor API, a runtime
   version, a paid service?
 - **Extension points.** When your requirements drift slightly, where do you have to cut?
