@@ -35,6 +35,7 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | One rule for the doubled passive, not two | `check-prose.mjs` | `passive-stack` and `double-passive` both matched `되어지·되어진·불려진`. See the 2026-08-30 audit |
 | An empty ledger fails rather than passes | `check-claims.mjs` | a scaffold with 0 claims printed the same 통과 as a document whose every quote was checked. See the note below |
 | LaTeX thousands separators are normalized before matching | `check-claims.mjs` | `2{,}000` became `2 , 000`, so a number the paper prints was reported missing. See the note below |
+| A Roman table number is resolved, not silently widened | `check-claims.mjs` | `Table II` passed the format check and failed to scope, so five claims were matched against a whole paper. See the note below |
 
 ## What the visualization rules were measured against
 
@@ -445,3 +446,32 @@ the braces are stripped, and `hasNum` normalizes its haystack the same way.
 failed; this one failed what should have passed, and a false positive is the worse of the
 two — `check-prose.test.mjs` opens by saying so. A rule that blocks correct work pushes the
 whole gate toward `--allow`, and the exception is written once and never revisited.
+
+
+## The table number that passed its own format check
+
+`locator-form` accepts `Table II`, because IEEE papers number their tables that way.
+`scopeFor` matched only `/^Table\s+(\d+)$/`, so a Roman locator fell through to the
+whole-document branch. The claim was still checked, against 65,000 characters instead of one
+table, and the only trace was an aggregate line at the end of the run.
+
+Five claims across the corpus were in that state. Resolving Roman numerals dropped one
+document's unscoped count from 40 of 43 to 35, and the newly narrowed claims did not pass:
+
+| Claim | Cited | Actually in |
+|---|---|---|
+| the no-evolve Final A@1 cells | `Table II` | `Table III` (`tab:rq1-main`) |
+| the evolved-artifact recall figures | `Table III` | `Table II` (`tab:rq2-knowledge`) |
+
+**The document had two tables swapped**, in 15 and 3 places plus its `meta.json` summary,
+and it had been merged. Nothing caught it because the wrong locator was never resolved: a
+quote from Table III matched fine when the haystack was the entire paper.
+
+The same narrowing then rejected one input of a derived claim. `41.4` was listed among the
+cells being averaged, and it is not a cell — it is the body value in §VI-B that the average
+is being compared against. The evidence now points at the table for the four cells and at
+the section for the number they disagree with.
+
+**A check that cannot narrow its search still reports success.** The unscoped count existed
+before this and said so honestly, but it is one line at the end of a passing run, and a
+passing run is what gets read.
