@@ -315,9 +315,16 @@ function resolvePaper(src) {
   return text;
 }
 
+// LaTeX 는 천 단위를 2{,}000 이나 2\,000 으로 적는다. 아래 delatex 가 중괄호를 공백으로
+// 바꾸므로 그대로 두면 2 , 000 이 되어 한 수치가 셋으로 쪼개진다. 원문에 있는 값이 없다고
+// 보고되고, 그 오탐은 게이트를 --allow 로 민다. 숫자 사이에서만 되돌린다.
+const fixNums = (s) => String(s)
+  .replace(/(\d)\{,\}(\d)/g, '$1,$2')
+  .replace(/(\d)\\[,;:!]\s*(\d)/g, '$1$2');
+
 // LaTeX 원문과 사람이 옮겨 적은 인용문을 같은 평면에 놓는다.
 // 명령어를 지우기만 하고 풀어 쓰지는 않는다. 풀어 쓰면 원문이 아니게 된다.
-const delatex = (s) => s
+const delatex = (s) => fixNums(s)
   .replace(/\\(textbf|textit|textsc|emph|texttt|mathrm|mathbf|text)\{([^{}]*)\}/g, '$2')
   .replace(/\\(cite[a-z]*|label|ref|eqref|footnote)\{[^{}]*\}/g, '')
   .replace(/\\begin\{[^{}]*\}|\\end\{[^{}]*\}/g, ' ')
@@ -383,7 +390,10 @@ const PAPER_LOCATOR =
 const NUMERIC =
   /(?<![\w.\/-])(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+\.\d+|\d+(?:\.\d+)?%)(?![\w\/-])/g;
 const numsIn = (s) => [...String(s).matchAll(NUMERIC)].map((m) => m[1]);
-const hasNum = (hay, n) => hay.includes(n) || hay.includes(n.replace(/,/g, ''));
+const hasNum = (hay, n) => {
+  const h = fixNums(hay);
+  return h.includes(n) || h.includes(n.replace(/,/g, ''));
+};
 
 let paperChecked = 0;
 let paperUnscoped = 0;

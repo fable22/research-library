@@ -34,6 +34,7 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | No rule against ending a sentence on a noun phrase | `references/prose-ko.md`, by omission | an outside guide proposed it; measured here, the 9.8% are captions and labels. See the outside-style-guide note |
 | One rule for the doubled passive, not two | `check-prose.mjs` | `passive-stack` and `double-passive` both matched `되어지·되어진·불려진`. See the 2026-08-30 audit |
 | An empty ledger fails rather than passes | `check-claims.mjs` | a scaffold with 0 claims printed the same 통과 as a document whose every quote was checked. See the note below |
+| LaTeX thousands separators are normalized before matching | `check-claims.mjs` | `2{,}000` became `2 , 000`, so a number the paper prints was reported missing. See the note below |
 
 ## What the visualization rules were measured against
 
@@ -422,3 +423,25 @@ correct and costs nothing: the only promise made about a fresh scaffold is that
 `check-doc.mjs` passes it.
 **A gate that cannot fail on absence measures presence only.** Worth checking for wherever a
 count of zero is a legal input.
+
+
+## The number the paper printed and the gate could not find
+
+Retro-fitting evidence onto `wikikv-hierarchical-kb-storage` turned this up. The document
+says the storage benchmark ran on a wiki of about 2,000 KV pairs. The paper says exactly
+that — `a medium-sized wiki ($\sim$2{,}000 KV pairs)` — and `check-claims.mjs` could not
+find it.
+
+`delatex` replaces `{` and `}` with spaces, which is right for commands and wrong for the
+one place LaTeX puts braces inside a number. `2{,}000` came out as `2 , 000`, so one value
+became three tokens: `quote-match` failed on any quote containing it, and `hasNum` searched
+the raw text for `2,000` and `2000` against a haystack holding neither.
+
+Four such numbers are in that one paper (`2{,}000`, `1{,}000`, `1{,}379`, `1{,}949`) and the
+document leans on two of them. `fixNums` now restores the separator between digits, before
+the braces are stripped, and `hasNum` normalizes its haystack the same way.
+
+**This is the empty-ledger defect in the other direction.** That one passed what should have
+failed; this one failed what should have passed, and a false positive is the worse of the
+two — `check-prose.test.mjs` opens by saying so. A rule that blocks correct work pushes the
+whole gate toward `--allow`, and the exception is written once and never revisited.
