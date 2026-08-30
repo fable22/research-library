@@ -37,6 +37,7 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | LaTeX thousands separators are normalized before matching | `check-claims.mjs` | `2{,}000` became `2 , 000`, so a number the paper prints was reported missing. See the note below |
 | A Roman table number is resolved, not silently widened | `check-claims.mjs` | `Table II` passed the format check and failed to scope, so five claims were matched against a whole paper. See the note below |
 | Uncompiled LaTeX is stripped before environments are counted | `check-claims.mjs` | a commented-out template shifted every table number by four, so a correct locator resolved to the wrong table. See the note below |
+| A missing ledger is reconstructed only where the sources are immutable | `AGENTS.md` | a HEAD eight days past the publication date would have pinned bytes the document never saw. See the note below |
 
 ## What the visualization rules were measured against
 
@@ -228,6 +229,7 @@ examples +65. Their full instruction, which also carried the prohibitions, score
 33 for definition-plus-examples. Removing negative examples moved GPT-3 from 24 to 44.
 
 The part worth keeping is that their human annotators rated the negative examples helpful.
+
 **A reader asked whether a prohibition helps will say yes, and be wrong**, which is why this
 weakness does not show up in review.
 
@@ -367,23 +369,28 @@ from three legitimate constructions that share its shape. So it moved to `--coun
 **A pattern whose matches in the corpus are mostly correct has no business blocking a
 document.** Every rule left in the gate now blocks zero of the 19 published documents, which
 is the state a regression guard should be in.
+
 ## What an outside style guide was worth here
 [`snflkd/fluent-korean`](https://github.com/snflkd/fluent-korean) (MIT, `ce8683f`) diagnoses
 LLM Korean as the opposite of what this repo assumes: omission rather than excess, restoration
 rather than cutting. Two guides pointing opposite ways is worth a measurement, so the rules it
 carries that this repo lacks were measured before adoption.
+
 | Its rule | Measured here | Outcome |
 |---|---|---|
 | Do not end a sentence on a noun phrase | 534 of 5,474 sentences (9.8%) end without a 종결어미 | rejected — all sampled are figure captions, source markers, and label definitions, the category its own clause exempts |
 | Do not stack 관형격 `~의` | `~의 ~의` chains across 19 documents | rejected — 0 occurrences |
 | Avoid metaphor, avoid the em dash | already held by `lens-prose.md` and `check-doc.mjs` | no change |
+
 **Nothing was adopted.** Delivery is settled separately: output styles apply to the main
 conversation only, and `research-verify` runs its lenses as subagents, so an output style
 would not reach the place the Korean is written.
+
 ## What the 2026-08-30 audit changed
 The instruction corpus had only been appended to, so it was read as a whole — 4,714 lines by
 five separated readers, one each for contradictions, duplication, intent defeat, stale
 references, and gate/prose drift. Findings were reproduced before being acted on.
+
 **The measurements that moved a rule:**
 | Measured | Changed |
 |---|---|
@@ -396,6 +403,7 @@ references, and gate/prose drift. Findings were reproduced before being acted on
 | 1,557 quote containers (`.q`, `.wl`, `<cite>`) were counted as the document's own prose by both gates, which each state the opposite | `visibleProse` and `stripQuoted` strip them. The register rule found 13 polite endings, every one inside a quotation |
 | `passive-stack` and `double-passive` both matched `되어지·되어진·불려진`, so one sentence reported twice and a waiver needed two ids | Merged. `check-prose.test.mjs` now asserts no two rules share an alternative |
 | The register rule's first form blocked `~(으)니까`, which the same file counts as an ordinary connective | Rewritten to the ㅂ-batchim condition that actually separates 합쇼체 from the connective |
+
 **Separation paid in both directions.** Two readers independently found the `~니까` defect and
 four found the missing `derived`; independent discovery is what separates a finding from one
 reader's bias. Two pairs disagreed, and the disagreement was the useful part: `Three lenses` in
@@ -403,17 +411,19 @@ the table above is accurate, because lens D is deliberately handed A/B/C's repor
 mutual-blindness rule is about those three — while the same phrasing inside a ✓ specimen was a
 real defect, since `AUTHORING.md` bars repository facts from specimens. A single reader returns
 one of those verdicts and stops.
+
 **Nothing found here was a bad rule.** Each was written correctly and then left while something
 beside it moved, which is invisible to a reader who starts from the rule being edited.
-document.** Every rule left in the gate now blocks zero of the 18 published documents, which
-is the state a regression guard should be in.
+
 ## Why an empty ledger is not a pass
 Committing the untracked evidence turned up one document, `cerebras-kb-architecture`, whose
 three ledger files hold nothing but the scaffold comments `new-doc.mjs` writes. Run against
 it, `check-claims.mjs` printed:
+
 ```
 OK    research/2026-08-20-cerebras-kb-architecture  (주장 0개, 근거 0개, 출처 0개)
 통과. 인용이 고정 원문과 일치한다.
+
 ```
 Indistinguishable from a document whose every quote was matched against a pinned commit,
 which is the opposite of what the gate exists to establish. The counts are printed, but a
@@ -423,6 +433,7 @@ nothing real is affected, and a missing `claims.jsonl` was already caught by `cl
 rather than reported twice. A freshly scaffolded document now fails this gate, which is
 correct and costs nothing: the only promise made about a fresh scaffold is that
 `check-doc.mjs` passes it.
+
 **A gate that cannot fail on absence measures presence only.** Worth checking for wherever a
 count of zero is a legal input.
 
@@ -504,3 +515,19 @@ pinned.
 **This is the third defect the same exercise has produced**, after the LaTeX thousands
 separator and the Roman table number, and all three share a shape: the gate was reading a
 representation of the paper that no reader ever sees.
+
+
+## Why a missing ledger is only sometimes recoverable
+
+Retro-fitting evidence onto documents published without it worked for papers and stopped at
+repositories. Re-fetching `2606.14275v1` reproduced `222b1e2a…`, the exact `text_sha256` the
+ledger holds, so a paper's pin is as good written later as written at the time.
+
+`cocoindex`, for the document published 2026-08-20, is not. Its HEAD is now a commit from
+2026-08-28 — eight days after publication. Writing that sha into `sources.jsonl` asserts the
+document was checked against bytes that did not exist when it was written, and no gate
+separates the two: `check-claims.mjs` verifies quotes against whatever commit the ledger names.
+
+**A later pin records what is true now, not what the document rests on.** Where the sources
+moved, a coverage chapter saying the evidence was not captured is the smaller claim and the
+only true one.
