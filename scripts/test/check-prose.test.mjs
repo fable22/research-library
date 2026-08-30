@@ -36,6 +36,9 @@ hit('독백', 'monologue', doc('여기서 잠깐 정리하면 캐시는 버전 �
 hit('진행 서술', 'progress-narration', doc('이제 결과를 살펴보자.'));
 hit('이유 없는 유보', 'hedge-no-gap', doc('성능이 더 나을 수도 있어 보인다.'));
 hit('피동 겹침', 'passive-stack', doc('그 값은 런타임에 확인되어진다.'));
+// double-passive 가 따로 있던 시절의 목록. 합친 뒤에도 같은 문자열을 잡아야 한다.
+hit('이중 피동 보여지다', 'passive-stack', doc('그래프에 경로가 보여진다.'));
+hit('이중 피동 잊혀지다', 'passive-stack', doc('캐시가 비면 값은 잊혀진다.'));
 hit('빈 요약', 'empty-summary', doc('요컨대 이 방식은 중요하다.'));
 hit('가능성 맺음', 'prospects-close', doc('여러 한계에도 불구하고 가능성은 열려 있다.'));
 hit('~에 의해 피동', 'by-passive', doc('설정은 런처에 의해 주입된다.'));
@@ -93,6 +96,18 @@ eq('그릇 밖의 본문은 남는다',
 eq('연결어미 뒤 쉼표 비율', Math.round(commaAfterConnective('빠르고, 정확하고 싸다')), 50);
 eq('연결어미가 없으면 null', commaAfterConnective('숫자만 있다'), null);
 eq('규칙 id 는 중복되지 않는다', new Set(PATTERNS.map((p) => p[0])).size, PATTERNS.length);
+// 규칙 둘이 같은 문자열을 잡으면 한 문장이 두 번 보고되고 예외에 id 를 두 개 적어야 한다.
+eq('규칙끼리 같은 문자열을 두 번 잡지 않는다', (() => {
+  for (let i = 0; i < PATTERNS.length; i++) {
+    for (let j = i + 1; j < PATTERNS.length; j++) {
+      const b = new Set(PATTERNS[j][2].source.split('|'));
+      if (PATTERNS[i][2].source.split('|').some((x) => b.has(x))) {
+        return `${PATTERNS[i][0]} ∩ ${PATTERNS[j][0]}`;
+      }
+    }
+  }
+  return 'none';
+})(), 'none');
 
 console.log(`\n${pass}개 통과, ${fail}개 실패`);
 process.exit(fail ? 1 : 0);
