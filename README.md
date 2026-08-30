@@ -50,11 +50,14 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 ├── scripts/                        # 발행 인프라. skill 없이도 돌아간다
 │   ├── build-index.mjs             # meta.json 을 모아 index.html 과 위 표를 생성
 │   ├── check-doc.mjs               # 문서가 형식과 규약을 지키는지 검사
-│   └── new-doc.mjs                 # 문서 골격과 작업 공간을 함께 생성·이동
+│   ├── check-prose.mjs             # 한국어 산문 규칙 중 셀 수 있는 것을 검사
+│   ├── new-doc.mjs                 # 문서 골격과 작업 공간을 함께 생성·이동
+│   └── test/                       # 게이트 자신의 시험
+├── docs/method-provenance.md       # 규칙이 어디서 왔는가 (skill 은 읽지 않는다)
 ├── .claude/skills/                 # 조사와 문서화 skill
 │   ├── research-source/            # 코퍼스를 이식 가능한 신원으로 고정
 │   ├── research-doc/               # 문서 작성
-│   │   └── references/             # prose-ko.md, paper.md, oss.md
+│   │   └── references/             # prose-ko.md, visual.md, paper.md, oss.md
 │   └── research-verify/            # 초고 적대적 검토
 │       ├── references/             # 렌즈 4개
 │       └── scripts/check-claims.mjs    # 주장이 고정된 원문에 근거하는지 검사
@@ -170,7 +173,7 @@ node scripts/new-doc.mjs rename <old-slug> <new-slug>
 
 ## 검사 스크립트
 
-발행물을 검사하는 스크립트입니다.
+발행물을 검사하는 스크립트가 둘입니다.
 
 ```bash
 node scripts/check-doc.mjs                    # 전체 문서
@@ -180,11 +183,20 @@ node scripts/check-doc.mjs --help             # 규칙 목록
 
 문서 형식과 저장소 규약을 확인합니다. doctype, charset, lang, viewport, 태그 균형, 외부 리소스, 다크 테마, `img` alt 같은 HTML 기본 사항에 더해 덱 구조(슬라이드 수와 목차 수 일치, 스크립트 중복), 문서 간 링크(`#pN` 앵커 범위, 계보 링크, 같은 `series` 상호 링크), 문안 규칙(em dash, 제작 과정 서술)을 봅니다. 전체 목록은 `--help` 가 알려줍니다.
 
+```bash
+node scripts/check-prose.mjs                    # 전체 문서
+node scripts/check-prose.mjs research/2026-...  # 특정 문서
+node scripts/check-prose.mjs --counts           # 막지 않는 밀도표
+node scripts/check-prose.mjs --help             # 규칙 목록
+```
+
+한국어 산문을 봅니다. 반응어, 과장 형용사, 출처 없는 귀속, 이중 피동, 합쇼체 종결처럼 **낱말 목록으로 셀 수 있는 것만** 막습니다. 인용은 검사 대상이 아니라서 인용 그릇과 따옴표 안은 먼저 걷어냅니다. 셀 수 없는 것은 `--counts` 가 밀도만 내고 판단은 사람이나 검토 렌즈가 합니다.
+
 **경고 등급은 없습니다.** 걸리면 종료 코드 1 입니다. 예외가 필요하면 `--allow=size` 처럼 규칙 id 를 명시해야 하고, 넘긴 항목은 출력에 남습니다. 경고 등급을 두면 전부 경고로 흘러가고 아무도 고치지 않기 때문입니다.
 
 정적 검사이므로 통과했더라도 브라우저에서 화면을 한 번 열어보는 편이 좋습니다.
 
-나머지 하나는 skill 안에 있습니다. `.research/` 의 작업 산출물을 다루기 때문에 그 절차 밖에서는 쓸 일이 없고, 발행물만 보는 위 게이트와 섞이면 어느 쪽이 저장소 규약인지 흐려집니다.
+세 번째는 skill 안에 있습니다. `.research/` 의 작업 산출물을 다루기 때문에 그 절차 밖에서는 쓸 일이 없고, 발행물만 보는 위 게이트와 섞이면 어느 쪽이 저장소 규약인지 흐려집니다.
 
 ```bash
 node .claude/skills/research-verify/scripts/check-claims.mjs research/2026-...
