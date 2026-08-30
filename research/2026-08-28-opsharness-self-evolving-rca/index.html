@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OpsHarness: 자가진화 제안을 이중 게이트로만 들여보내는 RCA 외부 하네스</title>
-<meta name="description" content="검증 게이트를 뗀 no-verify 변형은 window 2~3 이후로는 오르지 않아 마지막 window A@1 0.33 으로 진화를 아예 끈 0.43 아래로 내려간다. 헤드라인 59.0%·+63.4%·4.02배의 분모를 각각 갈라 두고, 표 II 의 no-evolve 열이 본문 41.4% 와 어긋나 43.35% 로 나오는 것까지 대조했다. 코드·데이터 공개는 없다.">
+<meta name="description" content="검증 게이트를 뗀 no-verify 변형은 window 2~3 이후로는 오르지 않아 마지막 window A@1 0.33 으로 진화를 아예 끈 0.43 아래로 내려간다. 헤드라인 59.0%·+63.4%·4.02배의 분모를 각각 갈라 두고, 표 III 의 no-evolve 열이 본문 41.4% 와 어긋나 43.35% 로 나오는 것까지 대조했다. 코드·데이터 공개는 없다.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="OpsHarness: 자가진화 제안을 이중 게이트로만 들여보내는 RCA 외부 하네스">
-<meta property="og:description" content="검증 게이트를 뗀 no-verify 변형은 window 2~3 이후로는 오르지 않아 마지막 window A@1 0.33 으로 진화를 아예 끈 0.43 아래로 내려간다. 헤드라인 59.0%·+63.4%·4.02배의 분모를 각각 갈라 두고, 표 II 의 no-evolve 열이 본문 41.4% 와 어긋나 43.35% 로 나오는 것까지 대조했다. 코드·데이터 공개는 없다.">
+<meta property="og:description" content="검증 게이트를 뗀 no-verify 변형은 window 2~3 이후로는 오르지 않아 마지막 window A@1 0.33 으로 진화를 아예 끈 0.43 아래로 내려간다. 헤드라인 59.0%·+63.4%·4.02배의 분모를 각각 갈라 두고, 표 III 의 no-evolve 열이 본문 41.4% 와 어긋나 43.35% 로 나오는 것까지 대조했다. 코드·데이터 공개는 없다.">
 <meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-28-opsharness-self-evolving-rca/">
 <meta name="twitter:card" content="summary">
 <style>
@@ -416,7 +416,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <p class="dek">no-verify 변형의 마지막 window A@1 은 백본 4개 평균 0.33 으로, 진화를 아예 끈 no-evolve 의 0.43 보다 낮다. 자가진화를 표방하는 시스템은 많지만 진화가 검증 없이는 성능을 떨어뜨린다는 것을 ablation 으로 보인 것이 이 논문의 실제 기여다.</p>
 
       <div class="stats">
-        <div class="stat hero"><span class="lab">Final A@1, 백본 4개 평균</span><span class="val">59.0<span class="u">%</span></span><span class="sub">Direct 36.1% · no-evolve 표 II 실측 43.35%</span></div>
+        <div class="stat hero"><span class="lab">Final A@1, 백본 4개 평균</span><span class="val">59.0<span class="u">%</span></span><span class="sub">Direct 36.1% · no-evolve 표 III 실측 43.35%</span></div>
         <div class="stat bad"><span class="lab">no-verify, window 12 평균</span><span class="val">0.33</span><span class="sub">no-evolve 0.43 · full 0.83</span></div>
         <div class="stat"><span class="lab">진화 지식 온디스크</span><span class="val">27<span class="u">KB</span></span><span class="sub">하네스 전체 228KB 중 12.0%</span></div>
         <div class="stat"><span class="lab">게이트 기각률</span><span class="val">37<span class="u">%</span></span><span class="sub">통과한 제안도 평균 1.7회 시도</span></div>
@@ -426,7 +426,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         <li><span class="m">1</span><span><b>전용 에이전트는 이미 진 기준선이다.</b> RCA 전용으로 설계된 RCA-Agent 와 mABC 는 백본 4개 전부에서 맨 Codex/Claude Code 보다 Overall 이 낮다. 다만 이 우위는 두 벤치마크를 합친 열에서만 성립하고 OpenRCA 단독으로는 RCA-Agent 가 4개 중 2개 백본에서 앞선다(④).</span></li>
         <li><span class="m">2</span><span><b>모자란 것은 추론력이 아니라 시스템별 진단 지식이다.</b> 절대 변화폭이 가장 큰 노이즈 카운터를 원인으로 집고, baseline 이 0 근처라 상대적으로 작게 움직인 진짜 원인을 놓치는 실패가 근거다(③).</span></li>
         <li><span class="m">3</span><span><b>비용 동급 주장은 진단 1건 단위에서만 성립한다.</b> 케이스당 106k 토큰은 Direct 112k 와 같은 급이지만 setup·evolve·verify 3.12M 토큰은 별도다. 논문은 손익분기를 계산하지 않는다(⑫).</span></li>
-        <li><span class="m bad">4</span><span><b>표 II 의 no-evolve 열은 본문 수치와 어긋난다.</b> 본문이 네 곳에서 41.4% 라 쓴 값이 표의 네 백본 열(52.8 / 37.8 / 51.2 / 31.6)에서는 43.35% 로 나온다(⑩).</span></li>
+        <li><span class="m bad">4</span><span><b>표 III 의 no-evolve 열은 본문 수치와 어긋난다.</b> 본문이 네 곳에서 41.4% 라 쓴 값이 표의 네 백본 열(52.8 / 37.8 / 51.2 / 31.6)에서는 43.35% 로 나온다(⑩).</span></li>
       </ul>
 
       <p class="note">이 요약은 두 공개 벤치마크(OpenRCA, RCAEval) 결과에 한정한다. 사내 데이터셋 Company A 의 0.74 대 0.24 는 데이터가 공개되지 않아 다른 성격의 수치이고 ⑭ 에서 따로 다룬다.</p>
@@ -710,7 +710,7 @@ costOK ≡ ΔC ≤ max(β·C_h_i, 1)          <span class="c">β = 0.05</span>
   <section class="slide">
     <div class="slide-inner">
       <p class="eyebrow">setup</p>
-      <h2>읽은 범위. 본문은 .tex 한 파일이라 전부 열었고, 표 II 의 표본 크기는 벤치마크 원 논문에서 채웠다</h2>
+      <h2>읽은 범위. 본문은 .tex 한 파일이라 전부 열었고, 표 III 의 표본 크기는 벤치마크 원 논문에서 채웠다</h2>
       <p class="dek">코퍼스는 arXiv e-print tarball 이다. 파일 13개이고 본문은 IEEE-conference-template-062824.tex 한 파일 706줄, 주 결과표는 tabs/exp_1.tex 다. HTML 변환본이 아니라 LaTeX 소스에서 표를 읽었기 때문에 셀 병합과 다단 헤더 때문에 값이 어긋날 여지가 없다.</p>
 
       <div class="grid g2">
@@ -725,8 +725,8 @@ costOK ≡ ΔC ≤ max(β·C_h_i, 1)          <span class="c">β = 0.05</span>
       </div>
 
       <figure class="figure" style="margin-top:16px">
-        <p class="fig-title">표 II 한 칸이 몇 개의 케이스 위에 서 있는가</p>
-        <p class="fig-sub">논문은 sub-dataset 별 test 크기를 쓰지 않는다. 아래 값을 세운 근거는 곱셈이 아니라 표 II 값의 배수 구조다. 20% 시간순 분할(논문 §VI-A)을 원 논문의 케이스 수에 곱하면 10.2 / 27.2 / 29.6 이 나와 11 · 28 과 어긋나고, 24칸이 1/11 과 1/28 의 배수로 떨어지는 쪽이 크기를 정한다. RCAEval 의 90×0.2=18 만 곱셈으로도 정확히 떨어진다.</p>
+        <p class="fig-title">표 III 한 칸이 몇 개의 케이스 위에 서 있는가</p>
+        <p class="fig-sub">논문은 sub-dataset 별 test 크기를 쓰지 않는다. 아래 값을 세운 근거는 곱셈이 아니라 표 III 값의 배수 구조다. 20% 시간순 분할(논문 §VI-A)을 원 논문의 케이스 수에 곱하면 10.2 / 27.2 / 29.6 이 나와 11 · 28 과 어긋나고, 24칸이 1/11 과 1/28 의 배수로 떨어지는 쪽이 크기를 정한다. RCAEval 의 90×0.2=18 만 곱셈으로도 정확히 떨어진다.</p>
         <div class="tablewrap wrap">
           <table>
             <thead><tr><th>sub-dataset</th><th>전체</th><th>test (20%)</th><th>1케이스 = A@1</th><th>교차 검증</th></tr></thead>
@@ -752,11 +752,11 @@ costOK ≡ ΔC ≤ max(β·C_h_i, 1)          <span class="c">β = 0.05</span>
     <div class="slide-inner">
       <p class="eyebrow">result-main</p>
       <h2>결과 1. 59.0% 는 백본 4개 × sub-dataset 6개의 이중 평균이고, 그 분해에 쓰인 41.4% 는 표와 맞지 않는다</h2>
-      <p class="dek">Final A@1 은 sub-dataset 6개 A@1 의 비가중 평균이고, 헤드라인은 그 값을 백본 4개에서 다시 평균한 것이다. 논문은 그 총 이득 22.9 포인트를 cold-start 5.3 과 자가진화 17.6 으로 가른다. 그 분해의 중간점 41.4% 가 표 II 자신의 no-evolve 열과 어긋난다.</p>
+      <p class="dek">Final A@1 은 sub-dataset 6개 A@1 의 비가중 평균이고, 헤드라인은 그 값을 백본 4개에서 다시 평균한 것이다. 논문은 그 총 이득 22.9 포인트를 cold-start 5.3 과 자가진화 17.6 으로 가른다. 그 분해의 중간점 41.4% 가 표 III 자신의 no-evolve 열과 어긋난다.</p>
 
       <figure class="figure">
         <p class="fig-title">헤드라인 세 숫자의 분모</p>
-        <p class="fig-sub">표 II(논문) Final A@1 열의 백본 4개 값과 그 평균. 오른쪽 두 칸은 논문 본문의 값과 표에서 다시 계산한 값이다.</p>
+        <p class="fig-sub">표 III(논문) Final A@1 열의 백본 4개 값과 그 평균. 오른쪽 두 칸은 논문 본문의 값과 표에서 다시 계산한 값이다.</p>
         <div class="tablewrap">
           <table>
             <thead><tr><th>프레임워크</th><th>GPT-5.5</th><th>Claude S4.6</th><th>GLM-5.2</th><th>DeepSeek-V4</th><th>논문 본문</th><th>표 재계산</th></tr></thead>
@@ -770,7 +770,7 @@ costOK ≡ ΔC ≤ max(β·C_h_i, 1)          <span class="c">β = 0.05</span>
             </tbody>
           </table>
         </div>
-        <figcaption>표 II(논문), Final A@1 %. 오른쪽 끝 열은 왼쪽 네 칸의 산술평균이고 <b>논문에는 없는 계산</b>이다. 여섯 행 중 다섯 행은 본문 값과 맞고, no-evolve 행만 1.95 포인트 어긋난다. 41.4 는 본문 네 곳(§VI-B 세 번, §VII 한 번)에 같은 값으로 나온다.</figcaption>
+        <figcaption>표 III(논문), Final A@1 %. 오른쪽 끝 열은 왼쪽 네 칸의 산술평균이고 <b>논문에는 없는 계산</b>이다. 여섯 행 중 다섯 행은 본문 값과 맞고, no-evolve 행만 1.95 포인트 어긋난다. 41.4 는 본문 네 곳(§VI-B 세 번, §VII 한 번)에 같은 값으로 나온다.</figcaption>
       </figure>
 
       <div class="grid g3">
@@ -880,7 +880,7 @@ costOK ≡ ΔC ≤ max(β·C_h_i, 1)          <span class="c">β = 0.05</span>
 
       <figure class="figure" style="margin-top:16px">
         <p class="fig-title">한 시스템에서 진화한 산출물 57개의 Recall 과 Precision</p>
-        <p class="fig-sub">표 III(논문). 논문의 정의는 Recall 이 <em>"the fraction of test cases that recall it"</em>, Precision 이 <em>"the fraction of correct cases in which it was recalled"</em> 이다.</p>
+        <p class="fig-sub">표 II(논문). 논문의 정의는 Recall 이 <em>"the fraction of test cases that recall it"</em>, Precision 이 <em>"the fraction of correct cases in which it was recalled"</em> 이다.</p>
         <div class="tablewrap">
           <table>
             <thead><tr><th>산출물</th><th>개수</th><th>Recall %</th><th>Precision %</th></tr></thead>
@@ -892,7 +892,7 @@ costOK ≡ ΔC ≤ max(β·C_h_i, 1)          <span class="c">β = 0.05</span>
             </tbody>
           </table>
         </div>
-        <figcaption>표 III(논문). 굵은 단위일수록 넓게 불리고(skeleton 91.7%), 잔 단위일수록 선택적으로 불리되 불릴 때 Precision 이 높다(note-rule 85.1%). 논문은 이 표가 <b>한 시스템</b>의 값이라고만 쓰고 어느 sub-dataset 인지는 밝히지 않는다.</figcaption>
+        <figcaption>표 II(논문). 굵은 단위일수록 넓게 불리고(skeleton 91.7%), 잔 단위일수록 선택적으로 불리되 불릴 때 Precision 이 높다(note-rule 85.1%). 논문은 이 표가 <b>한 시스템</b>의 값이라고만 쓰고 어느 sub-dataset 인지는 밝히지 않는다.</figcaption>
       </figure>
 
       <p class="note">Precision 의 정의가 <em>"the fraction of correct cases in which it was recalled"</em> 로 되어 있어 통상의 precision 과 서술 순서가 다르다. 어느 쪽으로 읽어도 산출물이 불린 것과 정답이 나온 것 사이의 연관일 뿐 인과가 아니다. 이 산출물을 뺀 대조 실행은 이 표에 없다.</p>
@@ -944,10 +944,10 @@ costOK ≡ ΔC ≤ max(β·C_h_i, 1)          <span class="c">β = 0.05</span>
           <thead><tr><th>항목</th><th>누가 말하는가</th><th>근거</th></tr></thead>
           <tbody>
             <tr><td>LLM 에이전트는 비결정적이다</td><td>논문 (§VIII)</td><td>대응책으로 반복 시행이 아니라 백본 4개·프레임워크 2개·sub-dataset 6개에 걸친 집계를 든다</td></tr>
-            <tr><td>seed · 표준편차 · 오차막대 · 신뢰구간이 없다</td><td class="lose">이 문서</td><td>본문에서 seed / std / variance / error bar / confidence interval / repeat 검색 결과 <b>측정에 관한 언급 0건</b>. 표 II 의 수치 456개는 모두 단일 실행이다</td></tr>
-            <tr><td>코드·데이터·아티팩트 공개가 없다</td><td class="lose">이 문서</td><td>본문에 <code>http</code> 0건, github / huggingface / zenodo / available at 는 본문·bib 모두 0건(참고문헌의 타 프로젝트 URL 제외)이다. <code>artifact</code> 는 본문에 3회 나오지만 셋 다 SRE 산출물과 표 III 머리를 가리키고 공개 링크가 아니다. arXiv abs 페이지에도 Comments 필드와 코드 링크가 없다</td></tr>
+            <tr><td>seed · 표준편차 · 오차막대 · 신뢰구간이 없다</td><td class="lose">이 문서</td><td>본문에서 seed / std / variance / error bar / confidence interval / repeat 검색 결과 <b>측정에 관한 언급 0건</b>. 표 III 의 수치 456개는 모두 단일 실행이다</td></tr>
+            <tr><td>코드·데이터·아티팩트 공개가 없다</td><td class="lose">이 문서</td><td>본문에 <code>http</code> 0건, github / huggingface / zenodo / available at 는 본문·bib 모두 0건(참고문헌의 타 프로젝트 URL 제외)이다. <code>artifact</code> 는 본문에 3회 나오지만 셋 다 SRE 산출물과 표 II 머리를 가리키고 공개 링크가 아니다. arXiv abs 페이지에도 Comments 필드와 코드 링크가 없다</td></tr>
             <tr><td>sub-dataset test 표본이 작다</td><td class="lose">이 문서</td><td>Telecom 11건, RCAEval 각 18건. Final A@1 이 비가중 평균이라 Telecom 1건이 1.52 포인트를 움직인다(⑨)</td></tr>
-            <tr><td>본문 41.4% 가 표 II 와 어긋난다</td><td class="lose">이 문서</td><td>표 II no-evolve 열 평균은 43.35. 어긋나는 방향은 논문에 유리한 쪽이 아니라 <b>불리한 쪽</b>이고, §VII 의 graceful degradation 주장은 43.35 를 넣으면 더 강해진다</td></tr>
+            <tr><td>본문 41.4% 가 표 III 와 어긋난다</td><td class="lose">이 문서</td><td>표 III no-evolve 열 평균은 43.35. 어긋나는 방향은 논문에 유리한 쪽이 아니라 <b>불리한 쪽</b>이고, §VII 의 graceful degradation 주장은 43.35 를 넣으면 더 강해진다</td></tr>
             <tr><td>RCAEval 을 270 케이스라고 소개한다</td><td class="lose">이 문서</td><td>RCAEval 저장소 README 는 RE1·RE2·RE3 9개 데이터셋 <b>735 케이스</b>다. 270 은 멀티소스 스위트 RE2(90×3) 하나다. 논문은 어느 스위트인지 쓰지 않는다</td></tr>
             <tr><td>백본과 에이전트 프레임워크가 교락한다</td><td class="lose">이 문서</td><td>§VI-A: Claude Sonnet 4.6 만 Claude Code, 나머지 셋은 Codex. 가장 낮은 범용 에이전트 행이 유일하게 다른 프레임워크 위에 있다</td></tr>
             <tr><td>pooled 평균은 시스템별 승자를 가린다</td><td>외부 (arXiv:2606.29159v1)</td><td>OpenRCA·RCAEval·PetShop 11개 sub-system 을 감사한 2026-06 보고. <em>"every random-effects 95% prediction interval crosses zero"</em>, leave-one-system-out 선택이 11개 중 최대 5개에서 낮은 점수 쪽을 고른다</td></tr>
@@ -1002,7 +1002,7 @@ costOK ≡ ΔC ≤ max(β·C_h_i, 1)          <span class="c">β = 0.05</span>
         <table>
           <thead><tr><th>당신의 상황</th><th>가져갈 것</th><th>근거의 강도</th></tr></thead>
           <tbody>
-            <tr class="hero"><td>도메인 전용 에이전트를 새로 설계하려 한다</td><td>먼저 범용 에이전트(Codex / Claude Code / Open Code) 맨몸을 기준선으로 재라. 그 위에 외부 하네스를 얹는 쪽이 처음부터 짓는 쪽보다 먼저 시도할 순서다</td><td>표 I·II. 백본 4개 · sub-dataset 6개. 다만 단일 실행이고 벤치마크 2개다</td></tr>
+            <tr class="hero"><td>도메인 전용 에이전트를 새로 설계하려 한다</td><td>먼저 범용 에이전트(Codex / Claude Code / Open Code) 맨몸을 기준선으로 재라. 그 위에 외부 하네스를 얹는 쪽이 처음부터 짓는 쪽보다 먼저 시도할 순서다</td><td>표 I·III. 백본 4개 · sub-dataset 6개. 다만 단일 실행이고 벤치마크 2개다</td></tr>
             <tr><td>이미 자가진화 루프를 돌리고 있다</td><td>승격 조건에 <b>분리 보류 집합에서의 비후퇴</b>를 넣어라. 원본 배치에서 엄격히 개선하라는 조건만으로는 과적합이 통과한다</td><td>⑧ 의 경로와 ⑪ 의 곡선. 이 논문이 실제로 잰 유일한 것</td></tr>
             <tr><td>보류 집합을 이미 쓰고 있다</td><td>매 사이클 다시 뽑아라. 고정 보류 집합은 반복하면 그 자체가 과적합 대상이 된다</td><td>§V-C 의 설계 근거. 고정 집합 대조군은 논문에 없다</td></tr>
             <tr><td>진화 주기를 정하려 한다</td><td>사이클당 evolve+verify 가 진단 21.7건분 토큰이다. 배치가 그보다 작으면 진화가 진단보다 비싸다</td><td>⑫ 의 계산. 논문에 없는 계산이고 토큰 단가가 두 경로에서 같다고 가정한다</td></tr>
@@ -1032,9 +1032,9 @@ costOK ≡ ΔC ≤ max(β·C_h_i, 1)          <span class="c">β = 0.05</span>
 
       <p><b>자가진화를 표방하는 시스템이 흔해진 자리에서, 진화가 검증 없이는 이득을 남기지 않는다는 것을 실제로 잰 것이 이 논문의 값이다.</b> 승격 조건을 두 겹으로 나눈 것, 안쪽은 엄격한 개선을 요구하고 바깥쪽은 비후퇴만 요구한 것, 바깥쪽 집합을 매 사이클 다시 뽑은 것, 이 세 가지가 no-verify 곡선이 붙잡는 설계다.</p>
 
-      <p>남은 것들은 프리프린트의 조건 그대로다. 심사가 없고, 반복 시행이 없고, sub-dataset 당 test 케이스가 11~30건이고, 산업 데이터는 자사 것이며 공개되지 않았고, 코드가 없다. 표 II 의 no-evolve 열은 본문의 41.4% 와 1.95 포인트 어긋난다. 그럼에도 ablation 의 <b>방향</b>은 이 결함들로 뒤집히지 않는다. 마지막 window 에서 no-verify 가 no-evolve 를 넘는 백본이 넷 중 하나도 없고, full 은 넷 모두에서 둘 위로 올라가기 때문이다.</p>
+      <p>남은 것들은 프리프린트의 조건 그대로다. 심사가 없고, 반복 시행이 없고, sub-dataset 당 test 케이스가 11~30건이고, 산업 데이터는 자사 것이며 공개되지 않았고, 코드가 없다. 표 III 의 no-evolve 열은 본문의 41.4% 와 1.95 포인트 어긋난다. 그럼에도 ablation 의 <b>방향</b>은 이 결함들로 뒤집히지 않는다. 마지막 window 에서 no-verify 가 no-evolve 를 넘는 백본이 넷 중 하나도 없고, full 은 넷 모두에서 둘 위로 올라가기 때문이다.</p>
 
-      <p class="note">이 결론이 뒤집히는 조건. no-verify 변형이 게이트 없이도 no-evolve 를 넘기는 재현 실험이 나오거나 표 II 의 값이 반복 시행에서 sub-dataset 당 ±10 포인트대의 분산을 보이면 ⑩ 의 표는 다시 읽어야 한다. 둘 다 원 저자든 제3자든 코드를 공개해야 확인 가능하다.</p>
+      <p class="note">이 결론이 뒤집히는 조건. no-verify 변형이 게이트 없이도 no-evolve 를 넘기는 재현 실험이 나오거나 표 III 의 값이 반복 시행에서 sub-dataset 당 ±10 포인트대의 분산을 보이면 ⑩ 의 표는 다시 읽어야 한다. 둘 다 원 저자든 제3자든 코드를 공개해야 확인 가능하다.</p>
     </div>
   </section>
   <!-- 19 -->

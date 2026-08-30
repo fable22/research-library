@@ -352,11 +352,27 @@ function envCount(text, kind) {
   return (text.match(new RegExp(`\\\\begin\\{${kind}\\*?\\}`, 'g')) || []).length;
 }
 
+// IEEE 조판은 표를 Table I, II, III 로 매긴다. locator-form 은 그 꼴을 받아 주는데
+// scopeFor 가 아라비아 숫자만 풀던 동안, 로마자 locator 는 형식 검사를 통과하고 범위
+// 좁히기만 조용히 실패해 문서 전체와 대조됐다. 통과가 실제보다 강해 보이는 자리다.
+const ROMAN = { i: 1, v: 5, x: 10, l: 50, c: 100 };
+function romanToInt(s) {
+  const t = s.toLowerCase();
+  if (!/^[ivxlc]+$/.test(t)) return NaN;
+  let n = 0;
+  for (let i = 0; i < t.length; i++) {
+    const v = ROMAN[t[i]], next = ROMAN[t[i + 1]];
+    n += next && v < next ? -v : v;
+  }
+  return n;
+}
+
 function scopeFor(text, locator, figures) {
   const l = (locator || '').trim();
   let m;
-  if ((m = /^Table\s+(\d+)$/.exec(l))) {
-    const env = envAt(text, 'table', Number(m[1]));
+  if ((m = /^Table\s+([IVXLC]+|\d+)$/i.exec(l))) {
+    const n = /^\d+$/.test(m[1]) ? Number(m[1]) : romanToInt(m[1]);
+    const env = Number.isFinite(n) && n > 0 ? envAt(text, 'table', n) : null;
     return env ? { text: env, scoped: true, what: l }
       : { text, scoped: false, what: l, overflow: envCount(text, 'table') };
   }
