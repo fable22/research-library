@@ -90,10 +90,19 @@ One claim per line:
 ```json
 {"id":"c1","kind":"numeric","text":"AuthTrace 전체 AC 62.6 으로 LLM-Wiki base 56.3 을 앞선다",
  "verdict":"confirmed","scope":"arXiv:2607.26604v1 표 1 기준",
- "evidence":[{"source":"p1","locator":"표 1","quote":"WikiLoop 69.1 54.8 47.5 62.6"}]}
+ "evidence":[{"source":"p1","locator":"Table 1",
+              "quote":"WikiLoop 69.1 54.8 47.5 62.6 / LLM-Wiki 66.0 51.2 44.8 56.3"}]}
 ```
 
-`kind` is one of `code`, `numeric`, `absence`, `behavioral`, `history`, `doc`, `web`.
+**`locator` is the one field that is not free text.** In a paper: `Table N`, `Figure N`,
+`§N.N`, `Section N`, `Appendix X`, `Algorithm N`, `Listing N`, `Abstract` — Latin, as the
+source prints it. `표 1` is rejected. In a repository: `path:line`. `scope` beside it is
+prose and stays Korean.
+
+`kind` values are in `check-claims.mjs --help`. One needs a decision rather than a lookup:
+**`derived`**, a number the source never printed and this document computed. It takes
+`derived_from` and a `note`, and it is the only kind exempt from the quote-in-source check.
+The same number filed as `numeric` is blocked, because the gate looks for it in the source.
 
 `code` means the implementation does this. A claim whose evidence is the project's own
 README or `docs/` is `doc` — what the maintainers wrote, which may or may not match the
