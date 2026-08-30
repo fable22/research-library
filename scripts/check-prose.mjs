@@ -27,40 +27,35 @@ const RESEARCH_DIR = join(ROOT, 'research');
 const P_BATCHIM = Array.from({ length: 588 },
   (_, k) => String.fromCharCode(0xAC00 + k * 28 + 17)).join('');
 
-// [규칙 id, 설명, 정규식, 문서당 허용 횟수]
-// 허용 0 은 prose-ko.md 가 쓰지 말라고 한 것, 2 는 "문서당 한두 번" 이라고 적힌 것이다.
+// [규칙 id, 설명, 정규식]. 전부 0건이고, 한도가 붙는 규칙은 없다.
 export const PATTERNS = [
   ['reaction-word', '반응어 (흥미롭게도, 놀랍게도, 주목할 점은)',
-    /흥미롭게도|놀랍게도|주목할\s*(만한\s*)?점은|눈여겨볼\s*(만한\s*)?점은|여기서\s*중요한\s*것은/g, 0],
+    /흥미롭게도|놀랍게도|주목할\s*(만한\s*)?점은|눈여겨볼\s*(만한\s*)?점은|여기서\s*중요한\s*것은/g],
   ['promo-adjective', '수식으로 때우는 형용사 (강력한, 획기적인, 정교한)',
-    /강력한|획기적(인|이다)|정교한|탄탄한|풍부한|눈부신|압도적인/g, 0],
+    /강력한|획기적(인|이다)|정교한|탄탄한|풍부한|눈부신|압도적인/g],
   ['vague-attribution', '출처 없는 귀속 (업계에서는, 전문가들은)',
-    /업계에서는|전문가들[은이]|일각에서는|많은\s*사람들[은이]/g, 0],
+    /업계에서는|전문가들[은이]|일각에서는|많은\s*사람들[은이]/g],
   ['monologue', '독백 (여기서 잠깐, 다시 말해, 헷갈릴 수 있는데)',
-    /여기서\s*잠깐|다시\s*말해|헷갈릴\s*수\s*있|짚고\s*넘어가/g, 0],
+    /여기서\s*잠깐|다시\s*말해|헷갈릴\s*수\s*있|짚고\s*넘어가/g],
   ['progress-narration', '진행 서술 (이제 ~보자, 먼저 ~부터)',
-    /이제\s+[^.]{0,20}(보자|보겠다|살펴)|먼저\s+[^.]{0,20}부터\s*(확인|살펴|보)/g, 0],
+    /이제\s+[^.]{0,20}(보자|보겠다|살펴)|먼저\s+[^.]{0,20}부터\s*(확인|살펴|보)/g],
   ['hedge-no-gap', '이유 없는 유보 (~일 수도 있어 보인다, ~라고 볼 여지가 있다)',
-    /수도\s*있어\s*보인다|볼\s*여지가\s*있|것으로\s*보인다고\s*할\s*수/g, 0],
-  ['passive-stack', '피동 겹침 (되어진다, 말해질 수 있다)',
-    /되어지|되어진|말해질\s*수|불려진|생각되어|여겨지어/g, 0],
+    /수도\s*있어\s*보인다|볼\s*여지가\s*있|것으로\s*보인다고\s*할\s*수/g],
+  // 이중 피동. 닫힌 목록이고 동형이의가 없어 정규식으로 안전하다.
+  ['passive-stack', '이중 피동 (되어지다, 보여지다, 잊혀지다, 말해질 수 있다)',
+    /되어지|되어진|되어졌|잊혀지|잊혀진|보여지|보여진|쓰여지|쓰여진|불려지|불려진|놓여지|놓여진|모여지|맺어지|짜여지|말해질\s*수|생각되어|여겨지어/g],
   ['empty-summary', '빈 요약 (요컨대 ~중요하다, 종합하면 장단점이)',
-    /요컨대[^.]{0,30}중요|종합하면[^.]{0,30}(장단점|있다)/g, 0],
+    /요컨대[^.]{0,30}중요|종합하면[^.]{0,30}(장단점|있다)/g],
   ['prospects-close', '한계에도 불구하고 가능성은 열려 있다 류의 맺음',
-    /한계에도\s*불구하고[^.]{0,30}(가능성|기대)|가능성은\s*열려\s*있/g, 0],
-  // 아래 둘은 닫힌 목록이고 동형이의가 없어 정규식으로 안전하다. 국립국어원 공공언어
-  // 지침과 회사 문서 가이드 여러 곳이 독립적으로 같은 규칙을 싣고 있고, 지금 이 라이브러리
-  // 18개 문서에서 0건이다. 스크립트에 규칙을 하나 더 두는 비용은 산문 규칙과 달리 없다.
-  ['double-passive', '이중 피동 (되어지다, 보여지다, 잊혀지다)',
-    /되어지|되어진|되어졌|잊혀지|잊혀진|보여지|보여진|쓰여지|쓰여진|불려지|불려진|놓여지|놓여진|모여지|맺어지|짜여지/g, 0],
+    /한계에도\s*불구하고[^.]{0,30}(가능성|기대)|가능성은\s*열려\s*있/g],
   // 피동 어미는 활용해서 붙는다. `되` 만 찾으면 `주입된다` 를 놓친다.
   ['by-passive', '`~에 의해` + 피동 (행위자를 조사로 미룬 영어 수동태)',
-    /에\s*의(해|하여)\s*[^.]{0,12}(되[는다어었]|된[다는]|됐|돼|받[는아]|당[하해]|[아어여]졌|[아어여]진[다는])/g, 0],
+    /에\s*의(해|하여)\s*[^.]{0,12}(되[는다어었]|된[다는]|됐|돼|받[는아]|당[하해]|[아어여]졌|[아어여]진[다는])/g],
   // 발행물의 문체는 평서형이고 prose-ko.md 「Sentence ending」 이 그렇게 정해 두었다.
   // 합쇼체는 `니` 앞 음절에 ㅂ 받침이 온다 (습니다, 합니다, 줄어듭니다). 평서형 `~(으)니까`
   // 는 그 자리에 ㅂ 받침이 오지 않으므로 (잡다→잡으니까) 이 한 조건으로 갈린다.
   ['honorific-register', '합쇼체 종결 (~습니다, ~합니다) — 발행물은 평서형 ~한다/~이다',
-    new RegExp(`[${P_BATCHIM}]니(다|까)`, 'g'), 0],
+    new RegExp(`[${P_BATCHIM}]니(다|까)`, 'g')],
 ];
 
 // 숫자가 붙어 있지 않아 막지 않는 것들. --counts 로만 보여준다.
@@ -81,8 +76,7 @@ const DENSITY = [
   ['`~가 아니라 ~다`', /(?<=[가-힣])(?<![만뿐])[이가]\s*아니라/g],
 ];
 
-const RULES = Object.fromEntries(PATTERNS.map(([id, desc, , cap]) =>
-  [id, cap === 0 ? desc : `${desc}`]));
+const RULES = Object.fromEntries(PATTERNS.map(([id, desc]) => [id, desc]));
 
 // 보이는 산문만 남긴다. 인용과 코드는 규칙 대상이 아니다.
 export function visibleProse(html) {
@@ -109,16 +103,16 @@ export function checkDoc(slug, html) {
   const slides = slidesOf(html);
   const problems = [];
 
-  for (const [id, desc, rx, cap] of PATTERNS) {
+  for (const [id, desc, rx] of PATTERNS) {
     const hits = prose.match(new RegExp(rx.source, 'g')) || [];
-    if (hits.length <= cap) continue;
+    if (!hits.length) continue;
     // 어느 슬라이드인지 같이 준다. 문서 전체에서 N건이라는 말만으로는 고칠 수 없다.
     const where = [];
     slides.forEach((s, i) => {
       const n = (s.match(new RegExp(rx.source, 'g')) || []).length;
       if (n) where.push(`${i + 1}${n > 1 ? `(${n})` : ''}`);
     });
-    const over = cap === 0 ? `${hits.length}건` : `${hits.length}건, 허용 ${cap}건`;
+    const over = `${hits.length}건`;
     // 매치 문자열만 내면 잘린 조각이라 어디를 고칠지 알 수 없다. 앞뒤를 붙여 준다.
     const at = prose.search(new RegExp(rx.source));
     const sample = prose.slice(Math.max(0, at - 18), at + 20).replace(/\s+/g, ' ').trim();
@@ -175,8 +169,8 @@ if (argv.includes('--help') || argv.includes('-h')) {
   console.log('규칙의 한도는 전부 prose-ko.md 에서 온 것이고, 이 파일이 새로 정하지 않는다.\n');
   console.log('규칙:');
   const w = Math.max(...PATTERNS.map(([id]) => id.length));
-  for (const [id, desc, , cap] of PATTERNS) {
-    console.log(`  ${id.padEnd(w)}  ${desc}${cap ? '' : ' — 0건'}`);
+  for (const [id, desc] of PATTERNS) {
+    console.log(`  ${id.padEnd(w)}  ${desc} — 0건`);
   }
   console.log('\n--counts 는 숫자가 붙지 않은 항목의 밀도표를 낸다. 막지 않는다.');
   console.log('세는 것과 판단하는 것은 다른 일이고, 뒤쪽은 렌즈 C 가 한다.');
