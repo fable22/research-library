@@ -40,6 +40,7 @@ const LINE_SLACK = 15;  // locator 앞뒤로 이만큼 안에 있으면 통과
 const RULES = {
   'sources-file': '.research/<slug>/sources.jsonl 이 있고 파싱되는가',
   'claims-file': '.research/<slug>/claims.jsonl 이 있고 파싱되는가',
+  'empty-ledger': 'claims.jsonl 에 주장이 하나라도 있는가 (빈 원장은 통과가 아니다)',
   'source-ref': 'evidence 가 가리키는 source id 가 sources.jsonl 에 있는가',
   'source-identity': 'repo 는 repo+commit, paper 는 arxiv_id+version+text_sha256 이 있는가',
   'source-local-path': 'sources.jsonl 에 로컬 경로가 새어 들어가지 않았는가',
@@ -584,6 +585,15 @@ if (missingPapers.size) {
   }
   console.log('');
   add('quote-match', `원문 없이 검증된 주장이 있다 (${[...missingPapers].join(', ')})`);
+}
+
+// 빈 원장은 통과가 아니다. 주장이 0개면 초고에서 아무것도 추출하지 않은 것인데, 그때 이
+// 스크립트가 내던 출력은 인용을 전부 고정 커밋과 대조한 문서의 것과 구별되지 않았다.
+// scaffold 를 그대로 둔 문서가 "검증됨" 으로 읽혔다.
+if (claims && claims.length === 0) {
+  add('empty-ledger',
+    'claims.jsonl 에 주장이 없다. 초고에서 주장을 추출하지 않았다는 뜻이고, '
+    + '이 상태로 통과시키면 "검증했다" 와 "검증할 것이 없었다" 가 같은 출력이 된다');
 }
 
 const blocked = problems.filter((x) => !allowed.has(x.rule));

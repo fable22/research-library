@@ -33,6 +33,7 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | The polite register is blocked at zero | `check-prose.mjs`, `references/prose-ko.md` | the register rule had no counter, and all 13 occurrences in the corpus are quotes. See the 2026-08-30 audit |
 | No rule against ending a sentence on a noun phrase | `references/prose-ko.md`, by omission | an outside guide proposed it; measured here, the 9.8% are captions and labels. See the outside-style-guide note |
 | One rule for the doubled passive, not two | `check-prose.mjs` | `passive-stack` and `double-passive` both matched `되어지·되어진·불려진`. See the 2026-08-30 audit |
+| An empty ledger fails rather than passes | `check-claims.mjs` | a scaffold with 0 claims printed the same 통과 as a document whose every quote was checked. See the note below |
 
 ## What the visualization rules were measured against
 
@@ -363,32 +364,24 @@ from three legitimate constructions that share its shape. So it moved to `--coun
 **A pattern whose matches in the corpus are mostly correct has no business blocking a
 document.** Every rule left in the gate now blocks zero of the 19 published documents, which
 is the state a regression guard should be in.
-
 ## What an outside style guide was worth here
-
 [`snflkd/fluent-korean`](https://github.com/snflkd/fluent-korean) (MIT, `ce8683f`) diagnoses
 LLM Korean as the opposite of what this repo assumes: omission rather than excess, restoration
 rather than cutting. Two guides pointing opposite ways is worth a measurement, so the rules it
 carries that this repo lacks were measured before adoption.
-
 | Its rule | Measured here | Outcome |
 |---|---|---|
 | Do not end a sentence on a noun phrase | 534 of 5,474 sentences (9.8%) end without a 종결어미 | rejected — all sampled are figure captions, source markers, and label definitions, the category its own clause exempts |
 | Do not stack 관형격 `~의` | `~의 ~의` chains across 19 documents | rejected — 0 occurrences |
 | Avoid metaphor, avoid the em dash | already held by `lens-prose.md` and `check-doc.mjs` | no change |
-
 **Nothing was adopted.** Delivery is settled separately: output styles apply to the main
 conversation only, and `research-verify` runs its lenses as subagents, so an output style
 would not reach the place the Korean is written.
-
 ## What the 2026-08-30 audit changed
-
 The instruction corpus had only been appended to, so it was read as a whole — 4,714 lines by
 five separated readers, one each for contradictions, duplication, intent defeat, stale
 references, and gate/prose drift. Findings were reproduced before being acted on.
-
 **The measurements that moved a rule:**
-
 | Measured | Changed |
 |---|---|
 | The four Korean specimens the skills hand an author ran at 100 / 100 / 33 / 100% comma-after-connective, against a human band of 4.1–13.3% | All four rewritten to 0%. `visual.md` now states that `visibleProse` strips `<svg>`, so no counter reads an `aria-label` |
@@ -400,7 +393,6 @@ references, and gate/prose drift. Findings were reproduced before being acted on
 | 1,557 quote containers (`.q`, `.wl`, `<cite>`) were counted as the document's own prose by both gates, which each state the opposite | `visibleProse` and `stripQuoted` strip them. The register rule found 13 polite endings, every one inside a quotation |
 | `passive-stack` and `double-passive` both matched `되어지·되어진·불려진`, so one sentence reported twice and a waiver needed two ids | Merged. `check-prose.test.mjs` now asserts no two rules share an alternative |
 | The register rule's first form blocked `~(으)니까`, which the same file counts as an ordinary connective | Rewritten to the ㅂ-batchim condition that actually separates 합쇼체 from the connective |
-
 **Separation paid in both directions.** Two readers independently found the `~니까` defect and
 four found the missing `derived`; independent discovery is what separates a finding from one
 reader's bias. Two pairs disagreed, and the disagreement was the useful part: `Three lenses` in
@@ -408,6 +400,25 @@ the table above is accurate, because lens D is deliberately handed A/B/C's repor
 mutual-blindness rule is about those three — while the same phrasing inside a ✓ specimen was a
 real defect, since `AUTHORING.md` bars repository facts from specimens. A single reader returns
 one of those verdicts and stops.
-
 **Nothing found here was a bad rule.** Each was written correctly and then left while something
 beside it moved, which is invisible to a reader who starts from the rule being edited.
+document.** Every rule left in the gate now blocks zero of the 18 published documents, which
+is the state a regression guard should be in.
+## Why an empty ledger is not a pass
+Committing the untracked evidence turned up one document, `cerebras-kb-architecture`, whose
+three ledger files hold nothing but the scaffold comments `new-doc.mjs` writes. Run against
+it, `check-claims.mjs` printed:
+```
+OK    research/2026-08-20-cerebras-kb-architecture  (주장 0개, 근거 0개, 출처 0개)
+통과. 인용이 고정 원문과 일치한다.
+```
+Indistinguishable from a document whose every quote was matched against a pinned commit,
+which is the opposite of what the gate exists to establish. The counts are printed, but a
+passing gate is what gets read.
+`empty-ledger` now blocks it. The 14 ledgers in the repository carry 11 to 54 claims each, so
+nothing real is affected, and a missing `claims.jsonl` was already caught by `claims-file`
+rather than reported twice. A freshly scaffolded document now fails this gate, which is
+correct and costs nothing: the only promise made about a fresh scaffold is that
+`check-doc.mjs` passes it.
+**A gate that cannot fail on absence measures presence only.** Worth checking for wherever a
+count of zero is a legal input.
