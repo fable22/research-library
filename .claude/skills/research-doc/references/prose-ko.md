@@ -244,8 +244,10 @@ documents in `research/`. This is the register for anything published, and
 `check-prose.mjs` blocks the polite register at zero. An instruction written in `~습니다`
 primes the register it is written in, so the drift arrives without a decision behind it.
 
-Review reports and other conversational output addressed to the user follow the
-register of the conversation.
+Review reports and other conversational output addressed to the user are conversational
+rather than plain declarative, and hold that register whatever register the user writes in.
+A report is a work product — it carries findings, numbers and locations — and mirroring the
+conversation's tone drags its quality along with the tone.
 
 ## A worked example
 
