@@ -40,6 +40,7 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | A missing ledger is reconstructed only where the sources are immutable | `AGENTS.md` | a HEAD eight days past the publication date would have pinned bytes the document never saw. See the note below |
 | The reader is a developer, and a symbol has to resolve here | `research-doc/SKILL.md`, `references/visual.md` | one document of twenty carried notation, and its `식 (10)` resolved only in the paper. See the note below |
 | The reader travels the whole chain, not just the writing step | `research-source`, `lens-completeness`, the ⑩ rows | stage 1 framed the question with no reader named, and the lens asking what is missing did not know for whom. See the note below |
+| Eight of eleven prose rules are a floor, not coverage | `check-prose.mjs`, `references/prose-ko.md` | the listed forms are caught 8 of 8; the same sentence in other words passes 10 of 10. See the note below |
 
 ## What the visualization rules were measured against
 
@@ -583,3 +584,26 @@ what it costs to keep running.
 
 **A rule the model cannot count has to be a fact the model holds while deciding.** That is a
 different repair from a gate, and it is the only one available for most of what matters here.
+
+
+## The word lists were called a fixed list, and are not one
+
+`prose-ko.md` described five of the slop families as "a fixed list of words, so a script holds
+them." Measured, that is false. Written as the gate lists them — 흥미롭게도, 정교한,
+업계에서는 — all eight test sentences are caught. Written as the same move in other words —
+인상적인 것은, 뛰어난, 현업에서는, 정리하자면, 가능성이 있다 — all ten pass.
+
+Three of the eleven rules are genuinely closed, because they are grammatical forms rather than
+vocabulary: the doubled passive, `~에 의해` plus a passive, and the 합쇼체 ending, which keys
+on a ㅂ batchim rather than a list. The other eight hold whichever forms recurred last time.
+
+**The damage was not the rules. It was believing them.** An earlier revision told lens C to
+stop sweeping that family because "the counter blocks all five at zero", which removed the only
+coverage there was and replaced it with eight strings. The instruction is now to sweep for the
+move and leave the exact strings to the counter.
+
+The other two gates are clean on this axis. `check-claims.mjs` asks only whether a thing is
+present — a file, a field, a quote at a locator, a number inside a table — and presence is
+closed by construction. `check-doc.mjs` is structural except for `em-dash`, which is one
+character, and `process-narration`, which is four regexes over an open class and carries the
+same caveat.

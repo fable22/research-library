@@ -20,13 +20,15 @@ verbatim.
 The reader wants findings. Anything that narrates the act of producing findings is
 noise, and it is the single most common way this output goes bad.
 
-**Five that are a fixed list of words, so a script holds them.** Progress narration
+**Five whose commonest forms a script holds.** The class is open — a reaction word can be
+흥미롭게도 or 인상적인 것은 or a phrasing nobody has written yet — so the script holds the
+handful that recur and nothing more. Passing it is not evidence the family is absent. Progress narration
 (이제 ~보자, 먼저 ~부터), reaction words (흥미롭게도, 놀랍게도, 주목할 점은), monologue
 (여기서 잠깐, 다시 말해), vague attribution (업계에서는, 전문가들은), promotional adjectives
 (강력한, 획기적인, 정교한, 탄탄한). Each one stands where the thing itself should be: the
 reader is told how to feel, or who agrees, or that a property is impressive, instead of being
-given the property and left to size it. `check-prose.mjs` blocks all five, so what is left
-here is the reason, not the list.
+given the property and left to size it. That move is what to look for; the words are only how
+it showed up last time.
 
 **Listing what passed.** In a review report, "나머지 수치는 모두 일치한다" is filler.
 Give a count if the scale matters, then move on. Silence means fine.

@@ -50,10 +50,13 @@ reader needs to check the original. Do not confuse the two.
 
 **AI slop.** Apply `prose-ko.md`, which has three families.
 
-**Do not sweep the first family's word lists** — progress narration, reaction words,
-monologue, vague attribution, promotional adjectives. The counter you already ran blocks all
-five at zero. What is left there for you: empty summary sentences, hedging with no named
-gap, forced symmetry, listing what passed.
+**Sweep the first family for the move, not the words.** The counter holds a handful of
+recurring forms — 흥미롭게도, 정교한, 업계에서는 — and an author who writes 인상적인 것은 or
+뛰어난 or 현업에서는 passes it untouched. Tested: the listed forms are caught, the same
+sentence in other words is not. So the count is a floor, and this family needs the same slide
+by slide pass as the other two. Do not re-report the exact strings the counter already
+printed; look for the sentence that tells the reader how to feel, or who agrees, or that a
+property is impressive.
 
 The other two families need a sweep, because every sentence in them is true and reads fine
 on its own. Go slide by slide and ask what each sentence buys the reader.
