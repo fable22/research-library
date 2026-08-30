@@ -25,6 +25,12 @@ Evidence travels with the publication because research happens on more than one 
 A document merged from elsewhere arrives with its `index.html`; if the ledger stayed
 behind, nobody here can re-check a single number in it, and neither can CI.
 
+Capture evidence while the source is open; that stays the primary form. A ledger missing
+afterwards can be reconstructed when the sources are immutable — an arXiv version or a DOI
+serves the same bytes forever — and it is worth doing. Sources that move cannot: a git HEAD
+advances and a page changes, so pinning today's state would assert the document was written
+against bytes it never saw, and the honest outcome is a coverage chapter that says so.
+
 ## Which skill to use
 
 Three skills divide the work. Research method, the chapter skeleton, visualization, and
