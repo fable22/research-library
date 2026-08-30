@@ -24,9 +24,11 @@ Read before writing:
   fact and never checked against the source.
 - `references/paper.md` or `references/oss.md` — pick by what the corpus is.
 
-The reader is a developer deciding whether to use this thing next week. Not a general
-audience. That single fact settles most questions about what to include: if it does not
-help someone decide or understand the mechanism well enough to predict behavior, cut it.
+The reader is a developer. Not a general audience, and not the audience the source was
+written for — nobody here is reading to follow a proof. Whether to adopt the thing is one
+angle on it, not the test it has to pass. The test is that a developer can follow the
+mechanism well enough to predict its behavior on a case the source does not show, and cut
+what does not serve that.
 
 It settles one more thing. **Do not write this simpler than the subject is.** Simplifying
 for a reader who already has the background costs them the detail they came for, and the

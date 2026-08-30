@@ -38,6 +38,7 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | A Roman table number is resolved, not silently widened | `check-claims.mjs` | `Table II` passed the format check and failed to scope, so five claims were matched against a whole paper. See the note below |
 | Uncompiled LaTeX is stripped before environments are counted | `check-claims.mjs` | a commented-out template shifted every table number by four, so a correct locator resolved to the wrong table. See the note below |
 | A missing ledger is reconstructed only where the sources are immutable | `AGENTS.md` | a HEAD eight days past the publication date would have pinned bytes the document never saw. See the note below |
+| The reader is a developer, and a symbol has to resolve here | `research-doc/SKILL.md`, `references/visual.md` | one document of twenty carried notation, and its `식 (10)` resolved only in the paper. See the note below |
 
 ## What the visualization rules were measured against
 
@@ -531,3 +532,28 @@ separates the two: `check-claims.mjs` verifies quotes against whatever commit th
 **A later pin records what is true now, not what the document rests on.** Where the sources
 moved, a coverage chapter saying the evidence was not captured is the smaller claim and the
 only true one.
+
+
+## The reader was named once, far from where form is chosen
+
+`SKILL.md` called the reader "a developer deciding whether to use this thing next week."
+Two things were wrong with it. Adoption is one angle on a document, not the test it has to
+pass — and the person these are written for says so. And the identity appeared **once**, at
+`SKILL.md:27`. Across the 943 lines an author loads while writing, `reader` occurs 44 times
+and `developer` occurs in no reference file at all: not `visual.md`, which decides what form
+a mechanism takes, not `paper.md`, not `prose-ko.md`. At the point where the choice between
+an equation and a diagram is actually made, `the reader` was a pronoun with no referent, and
+the default became the form the source used.
+
+Nothing governed equations anywhere. One document of twenty carries notation at any density,
+and a review of it from the reader's own position found the split: four places earn it —
+the two gate predicates side by side, `β=0.05`, the 3×4 operator product, the predicate
+checklist in the traced example — and the rest follows the paper's §IV–§V order without
+changing what a reader concludes. Two symbols are never defined in the document at all, and
+`식 (10)` refers to a numbering the document never introduced, so a reader has to open the
+paper to read our own sentence.
+
+So the bar is not "fewer symbols". **A symbol has to be used again and to produce a
+prediction the prose then cashes**, and a reference that resolves only in the source is the
+failure worth checking for, because it is checkable. `visual.md` now opens by naming the
+reader, and lens C checks the two mechanical cases.

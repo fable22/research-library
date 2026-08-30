@@ -1,5 +1,9 @@
 # What a slide can carry
 
+**The reader is a developer** — not a general audience, and not the audience the source was
+written for. Every choice below is decided against that: a form is right when a developer
+can read the mechanism off it, wrong when it needs the source's own training to parse.
+
 Past a slide's budget the reader stops reading and starts scanning, and a scanned slide
 delivers whatever is largest rather than whatever is true. The craft is deciding what goes
 in a picture, what goes in prose, and what goes on a different slide.
@@ -86,6 +90,22 @@ has to say so, and say what may not be combined.
   and identifiers stay selectable.
 - **a decision the reader has to make** — a table whose rows are the reader's situations,
   not the source's conditions.
+- **the source's own equations** — a diagram, or prose. Notation is the form a paper needs
+  because a reviewer has to check it exactly. A developer needs to predict behavior, and a
+  flow with the condition written on the edge does that better than the same condition as a
+  predicate.
+
+A symbol earns its place on two conditions, and both have to hold. **The document uses it
+again**, so introducing it buys something later. And **it produces a prediction the prose
+then cashes** — put the two gate predicates side by side and the reader sees the difference
+is one clause; write what that clause admits and the notation has paid for itself. A symbol
+that appears once, or that is translated into Korean in the same breath, is the source's
+table of contents rather than yours.
+
+**A reference that only resolves in the source is the worst case.** `식 (10)` where the
+document never numbered an equation sends the reader to the paper to read your sentence.
+Name the thing instead — `inner 게이트의 엄격 개선 조항`. Same for a symbol used without a
+definition anywhere in the document.
 
 `<pre>` is for one instance or one tree. Using it for every structure is what produces the
 dense-slide problem above.
