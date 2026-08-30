@@ -238,7 +238,9 @@ them will be missed.
 ## Sentence ending
 
 Research documents use the plain declarative (`~한다`, `~이다`), matching the existing
-documents in `research/`. This is the register for anything published.
+documents in `research/`. This is the register for anything published, and
+`check-prose.mjs` blocks the polite register at zero. An instruction written in `~습니다`
+primes the register it is written in, so the drift arrives without a decision behind it.
 
 Review reports and other conversational output addressed to the user follow the
 register of the conversation.
