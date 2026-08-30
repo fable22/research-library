@@ -17,6 +17,7 @@ const SERIES_LABEL = {
 
 const CATEGORY_LABEL = {
   paper: '논문 분석',
+  oss: '오픈소스 분석',
   topic: '주제 리서치',
   eval: '기술 평가',
   note: '메모',

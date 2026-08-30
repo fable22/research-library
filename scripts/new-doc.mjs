@@ -169,7 +169,8 @@ async function create(slug, kind, opts) {
     date,
     seq,
     summary,
-    category: kind === 'paper' ? 'paper' : 'topic',
+    // 새 값을 쓰면 build-index.mjs 의 CATEGORY_LABEL 에도 넣어야 한다. 없으면 라벨 없이 나간다.
+    category: kind,
   }, null, 2) + '\n');
 
   await mkdir(join(workDir, 'notes'), { recursive: true });

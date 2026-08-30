@@ -15,9 +15,9 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 | 2026-08-28 | [JIT-Agent: 하네스를 태스크마다 모델이 새로 조립하게 만든 27B 메타 모델](https://fable22.github.io/research-library/research/2026-08-28-jit-agent-harness-intelligence/) | 논문 분석 |
 | 2026-08-20 | [Cerebras Knowledge: 수집과 질의를 임베딩 테이블 한 장으로 갈라놓은 사내 지식베이스](https://fable22.github.io/research-library/research/2026-08-20-cerebras-kb-architecture/) | 주제 리서치 |
 | 2026-08-19 | [Claude Code 세션 비용 모델: 토큰 하나의 가격과 세션이 보내는 토큰의 개수](https://fable22.github.io/research-library/research/2026-08-19-claude-code-session-cost-model/) | 메모 |
-| 2026-08-18 | [J-Space Cognition Suite V3.6: 프롬프트 계층에서 상태를 다시 주입하는 추론시 통제 프로토콜](https://fable22.github.io/research-library/research/2026-08-18-j-space-cognition-suite/) | oss |
-| 2026-08-14 | [deepseek-harness: 에이전트 루프도 모델 어댑터도 설정 한 행인 하네스](https://fable22.github.io/research-library/research/2026-08-14-deepseek-harness-plugin-architecture/) | oss |
-| 2026-08-14 | [semantica: vector 검색 옆에 그래프 갈래를 하나 더 두는 컨텍스트 인프라](https://fable22.github.io/research-library/research/2026-08-14-semantica-graph-native-context/) | oss |
+| 2026-08-18 | [J-Space Cognition Suite V3.6: 프롬프트 계층에서 상태를 다시 주입하는 추론시 통제 프로토콜](https://fable22.github.io/research-library/research/2026-08-18-j-space-cognition-suite/) | 오픈소스 분석 |
+| 2026-08-14 | [deepseek-harness: 에이전트 루프도 모델 어댑터도 설정 한 행인 하네스](https://fable22.github.io/research-library/research/2026-08-14-deepseek-harness-plugin-architecture/) | 오픈소스 분석 |
+| 2026-08-14 | [semantica: vector 검색 옆에 그래프 갈래를 하나 더 두는 컨텍스트 인프라](https://fable22.github.io/research-library/research/2026-08-14-semantica-graph-native-context/) | 오픈소스 분석 |
 | 2026-08-13 | [A2E Agent Auditing Engine: 정답률은 0.11 폭에 몰리고 토큰은 최소 3.5배 벌어진다](https://fable22.github.io/research-library/research/2026-08-13-a2e-agent-auditing-engine/) | 논문 분석 |
 | 2026-08-12 | [omo 5.0 native: opencode 플러그인을 떠나 자기 호스트를 갖는다](https://fable22.github.io/research-library/research/2026-08-12-omo-native-vs-opencode-plugin/) | 주제 리서치 |
 | 2026-08-12 | [Cerebras Knowledge: 사내 지식을 RAG로 중앙집중화할 때 남는 문제](https://fable22.github.io/research-library/research/2026-08-12-cerebras-knowledge-base/) | 주제 리서치 |
@@ -25,7 +25,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 | 2026-08-11 | [addyosmani/agent-skills: 강제는 산문에 맡기고, CI 는 스킬 자체에 건다](https://fable22.github.io/research-library/research/2026-08-11-addyosmani-agent-skills/) | 주제 리서치 |
 | 2026-08-07 | [EviGraph: 리서치 에이전트의 작업 상태를 파이프라인 대신 근거 그래프로 둔다](https://fable22.github.io/research-library/research/2026-08-07-evigraph-evidence-graph-agent/) | 논문 분석 |
 | 2026-08-07 | [Cloudflare computer: 에이전트에게 준 것은 컨테이너가 아니라 파일시스템이다](https://fable22.github.io/research-library/research/2026-08-07-cloudflare-computer-filesystem-not-container/) | 주제 리서치 |
-| 2026-08-07 | [TencentDB Agent Memory: 기억을 자산으로 등록하고 agent 에게 장착시키는 층](https://fable22.github.io/research-library/research/2026-08-07-tencentdb-agent-memory-asset-layer/) | oss |
+| 2026-08-07 | [TencentDB Agent Memory: 기억을 자산으로 등록하고 agent 에게 장착시키는 층](https://fable22.github.io/research-library/research/2026-08-07-tencentdb-agent-memory-asset-layer/) | 오픈소스 분석 |
 | 2026-08-07 | [LoopX: 에이전트 루프가 할 일을 잊지 않게 만드는 결정론적 제어 평면](https://fable22.github.io/research-library/research/2026-08-07-loopx-deterministic-loop-harness/) | 주제 리서치 |
 | 2026-08-07 | [insane-search: 실패를 종료 상태로 인정하지 않는 웹 접근 엔진](https://fable22.github.io/research-library/research/2026-08-07-insane-search-nonterminal-failure/) | 주제 리서치 |
 | 2026-08-05 | [WikiLoop: 위키 구축과 순회를 함께 학습시키는 논문 분석](https://fable22.github.io/research-library/research/2026-08-05-wikiloop-feedback-coupled-wiki/) | 논문 분석 |
@@ -139,7 +139,7 @@ node scripts/new-doc.mjs rename <old-slug> <new-slug>
 | `date` | 예 | `YYYY-MM-DD`. 목록 정렬 1순위이자 연도 묶음의 기준 |
 | `seq` | 예 | 1 이상의 정수. 문서를 추가한 순서이고 같은 날짜 안의 정렬 2순위다 (아래) |
 | `summary` | 아니오 | 한두 문장 설명 |
-| `category` | 아니오 | `paper`, `topic`, `eval`, `note`. 새 값을 쓰려면 `scripts/build-index.mjs` 의 `CATEGORY_LABEL` 에 추가 |
+| `category` | 아니오 | `paper`, `oss`, `topic`, `eval`, `note`. 새 값을 쓰려면 `scripts/build-index.mjs` 의 `CATEGORY_LABEL` 에 먼저 추가하세요. 등록하지 않은 값은 막히지 않고 라벨 없이 그대로 발행됩니다 |
 | `format` | 아니오 | `deck`, `report`, `dashboard` 등 문서 형태 |
 | `series` | 아니오 | 같은 연구 흐름에 속한 문서를 묶는 식별자. 목록에 라벨로 표시된다. 표시 이름은 `scripts/build-index.mjs` 의 `SERIES_LABEL` 에 등록 |
 | `tags` | 아니오 | 문자열 배열 |
