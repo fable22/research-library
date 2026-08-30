@@ -42,9 +42,10 @@ compression subagent per hop and stitch them together yourself.
   live ("third-party components keep their original license, everything else is AGPLv3").
   So the answer is rarely a single SPDX id. "Which parts are under which license" is what
   adoption turns on, and only the whole file answers it.
-- **Maintenance vitality.** Commit frequency, contributor spread, issue response time. If
+- **Maintenance vitality.** Commit frequency, contributor spread, release cadence. If
   the clone was shallow, **these numbers do not exist in your checkout** and asserting
-  them is invention. `check-claims.mjs` blocks them when `history_available` is false.
+  them is invention. `check-claims.mjs` blocks these only when the claim is filed as
+  `kind:"history"`. Issue response time is not in the checkout at any depth.
 - **Dependency risk.** What does adopting this tie you to: a vendor API, a runtime
   version, a paid service?
 - **Extension points.** When requirements drift slightly, where do you have to cut?

@@ -57,4 +57,5 @@ Write in Korean. Do not restate what the other lenses found.
   can see.
 - Do not report a gap the document explicitly declined and explained. That is disclosure
   working, not a defect.
-- Do not treat a short unread list as a finding. Coverage is disclosure, not a requirement.
+- Do not treat a long unread list as a finding. Coverage is disclosure, not a requirement.
+  A list that does not add up is the defect.
