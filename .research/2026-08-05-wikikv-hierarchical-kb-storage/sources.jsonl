@@ -1,0 +1,6 @@
+// 조사 대상을 이식 가능한 신원으로 고정한다. 로컬 경로는 적지 않는다.
+{"id": "p1", "kind": "paper", "arxiv_id": "2606.14275", "version": "v1", "text_sha256": "222b1e2a87134d87d07945ba7e21d9b250f5fb24cc517f2b3d7150f8b84a0235", "sections_read": ["1-8"], "retrieved_at": "2026-08-30T06:05:04Z", "note": "본 문서의 1차 출처. e-print 를 pin-paper.mjs 로 고정했다. 표·절 번호는 comment 환경을 걷어낸 뒤의 번호이고, 그것이 렌더되는 번호다."}
+{"id": "p2", "kind": "paper", "arxiv_id": "2605.25480", "version": "v1", "note": "LLM-Wiki. 이 문서가 '검색 방법을 다룬 앞 논문' 으로 부르는 것. 수치 근거로는 쓰지 않는다."}
+{"id": "p3", "kind": "paper", "arxiv_id": "2605.25382", "version": "v1", "note": "AuthTrace. 표 IV 가 쓰는 벤치마크. 이 문서는 이름과 역할만 인용한다."}
+{"id": "p4", "kind": "paper", "arxiv_id": "2607.26604", "version": "v1", "note": "WikiLoop. 구축 정책 학습. 이름만 인용한다."}
+{"id": "p5", "kind": "paper", "arxiv_id": "2404.16130", "version": "v1", "note": "GraphRAG (Edge et al.). 표 IV 의 baseline 이름으로만 등장한다."}

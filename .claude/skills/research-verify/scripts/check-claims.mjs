@@ -311,8 +311,19 @@ function resolvePaper(src) {
   } else {
     missingPapers.add(ref);
   }
+  // 컴파일되지 않는 부분을 걷어낸다. e-print 에는 IEEE 템플릿 잔재가 comment 환경째 남아
+  // 있는 일이 흔하고, 그 안의 \begin{table} 까지 세면 표 번호가 통째로 밀린다. 실제로 한
+  // 논문에서 Table II 가 렌더되지 않는 표로 풀렸다. 올바른 locator 가 틀린 표를 가리키면
+  // quote-match 는 맞는 주장을 막는다. sha256 은 위에서 원본 바이트로 이미 쟀다.
+  if (text) text = stripUncompiled(text);
   paperCache.set(src.id, text);
   return text;
+}
+
+function stripUncompiled(s) {
+  return s
+    .replace(/\\begin\{comment\}[\s\S]*?\\end\{comment\}/g, '')
+    .split('\n').filter((l) => !/^\s*%/.test(l)).join('\n');
 }
 
 // LaTeX 는 천 단위를 2{,}000 이나 2\,000 으로 적는다. 아래 delatex 가 중괄호를 공백으로
