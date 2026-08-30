@@ -36,6 +36,7 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | An empty ledger fails rather than passes | `check-claims.mjs` | a scaffold with 0 claims printed the same 통과 as a document whose every quote was checked. See the note below |
 | LaTeX thousands separators are normalized before matching | `check-claims.mjs` | `2{,}000` became `2 , 000`, so a number the paper prints was reported missing. See the note below |
 | A Roman table number is resolved, not silently widened | `check-claims.mjs` | `Table II` passed the format check and failed to scope, so five claims were matched against a whole paper. See the note below |
+| Uncompiled LaTeX is stripped before environments are counted | `check-claims.mjs` | a commented-out template shifted every table number by four, so a correct locator resolved to the wrong table. See the note below |
 
 ## What the visualization rules were measured against
 
@@ -475,3 +476,31 @@ the section for the number they disagree with.
 **A check that cannot narrow its search still reports success.** The unscoped count existed
 before this and said so honestly, but it is one line at the end of a passing run, and a
 passing run is what gets read.
+
+
+## The table numbers that came from text nobody sees
+
+`envAt` counts `\begin{table}` in the order it finds them, which is how LaTeX numbers
+floats. It was counting them in the raw `.tex`, and an e-print carries more than what
+compiles.
+
+One paper's source still has the IEEE template inside a `\begin{comment}` block — its
+example table, its "Prepare Your Paper Before Styling" sections — plus three of its own
+tables commented out. Ten table environments in the file, six in the paper:
+
+| Locator | Gate resolved to | Reader sees |
+|---|---|---|
+| `Table II` | `tab:evolution-jobs` (never rendered) | `tab:microbench-p50` |
+| `Table IV` | `tab:nav-latency` (never rendered) | `tab:end-to-end` |
+
+Every number was off by four, and section numbering with it: what the paper prints as §VI-B
+was §VIII-B in the raw file. A locator written correctly against the published paper
+resolves to the wrong table, and `quote-match` then blocks a claim that was right.
+
+`stripUncompiled` removes `comment` environments and whole-line `%` comments before any of
+this runs. The sha256 identity check is untouched — it still measures the bytes that were
+pinned.
+
+**This is the third defect the same exercise has produced**, after the LaTeX thousands
+separator and the Roman table number, and all three share a shape: the gate was reading a
+representation of the paper that no reader ever sees.

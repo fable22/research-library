@@ -1,0 +1,14 @@
+// 소스를 연 채로 인용을 적는다. 요약이 아니라 원문과 그 위치다.
+{"id": "e1", "source": "p1", "locator": "Table II", "quote": "FS 0.021 0.436 6.480 0.091 gray!12 WikiKV gray!12 0.017 gray!12 0.088 gray!12 5.411", "why": "저장 백엔드별 P50 지연. Q1~Q4 열이 문서 슬라이드 ⑩ 표의 출처다."}
+{"id": "e2", "source": "p1", "locator": "Table II", "quote": "PostgreSQL 0.075 0.117 1.671 0.432 Neo4j 2.494 1.230 6.397 1.686", "why": "Q3 에서 PostgreSQL 이 WikiKV 보다 빠르다는 문서의 단서가 이 행에서 나온다."}
+{"id": "e3", "source": "p1", "locator": "§ 6.2", "quote": "our storage configurations using a medium-sized wiki ($\\sim$2{,}000 KV pairs), as shown in Table", "why": "표 II 실험의 규모. 문서가 비판 근거로 삼는 값이다."}
+{"id": "e4", "source": "p1", "locator": "Table III", "quote": "Metric WikiKV Fixed Static Page count 2385 2672 2290", "why": "스키마 세 구성의 페이지 수. 문서 슬라이드 ⑪ 의 2,672 / 2,290 이 여기서 온다."}
+{"id": "e5", "source": "p1", "locator": "Table III", "quote": "Avg.\\ first-token time (s)( ) 11.7 12.7 11.7 AC ( ) 63.2 53.5 52.5", "why": "스키마를 고정하거나 진화를 끄면 AC 가 어떻게 되는가. 문서의 63.2 → 52.5 가 이 행이다."}
+{"id": "e6", "source": "p1", "locator": "Table IV", "quote": "RAPTOR 60.1 35.6 30.8 50.0 gray!12 LLM-Wiki (WikiKV) gray!12 67.2 gray!12 60.9", "why": "AuthTrace fan-in 구간별 정확도. 문서의 67.2 / 60.9 가 여기다."}
+{"id": "e7", "source": "p1", "locator": "Table V", "quote": "Wiki tool calls / query 2.2 2 3 4.6 Wiki tool latency (s) 0.432 0.411 0.554 0.966", "why": "프로덕션 지연. 문서의 0.432 평균 / 0.966 P99."}
+{"id": "e8", "source": "p1", "locator": "Table V", "quote": "Online Latency and Human-Evaluated Quality on 1{,}000 Real Queries from the WeChat Official Account", "why": "사람 평가의 규모 1,000건. 캡션이 출처다."}
+{"id": "e9", "source": "p1", "locator": "§ 6.5", "quote": "graded by three annotators blind to the system configuration, with substantial inter-annotator agreement (Krippendorff's $\\alpha = 0.71$)", "why": "3인 블라인드와 α=0.71. 표에는 2.86 만 있고 절차는 본문에 있다."}
+{"id": "e10", "source": "p1", "locator": "Table VI", "quote": "Avg.\\ tool calls / query 3.53 3.75 5.42 Avg.\\ pages read / query 1.56 1.63 5.40", "why": "Lu Xun ablation. search routing 을 빼면 도구 호출과 읽는 페이지가 늘어난다."}
+{"id": "e11", "source": "p1", "locator": "Table VI", "quote": "Avg.\\ first-token latency (s) 11.9 14.8 15.1 AC ( ) 65.6 54.7 40.2", "why": "같은 ablation 의 정확도. 문서의 65.6 → 40.2."}
+{"id": "e12", "source": "p1", "locator": "§ 6.7", "quote": "The real penalty is accuracy: without search routing the AC drops by \\textbf{25.4 points}", "why": "25.4 포인트라는 표현 자체가 본문에 있다. 문서가 계산한 값이 아니다."}
+{"id": "e13", "source": "p1", "locator": "§ 3.1", "quote": "a wiki without a principled re-shaping discipline is unmaintainable past $10^4$ KV pairs in our deployments", "why": "문서가 '논문이 위험하다고 지목한 구간' 이라 부르는 자리."}
