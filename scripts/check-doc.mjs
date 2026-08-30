@@ -86,14 +86,18 @@ function stripCode(html) {
     .replace(/<!--[\s\S]*?-->/g, '');
 }
 
-// 문안 규칙은 문서가 스스로 쓴 문장에만 적용한다. <pre> 와 <code> 안은 원문 인용이라
-// 손대면 안 되는 자리다. 코드 주석에 em dash 가 있다고 인용을 고치면 그건 인용이
-// 아니게 된다. 그래서 문안 검사에서만 인용 구간을 뺀다. 태그 균형 검사는 그대로
-// 전체를 본다.
+// 문안 규칙은 문서가 스스로 쓴 문장에만 적용한다. 원문 인용은 손대면 안 되는 자리다.
+// 코드 주석에 em dash 가 있다고 인용을 고치면 그건 인용이 아니게 된다. 그래서 문안
+// 검사에서만 인용 구간을 뺀다. 태그 균형 검사는 그대로 전체를 본다.
+//
+// 이 저장소가 인용을 담는 그릇은 <pre>/<code> 가 아니라 `.q`, `.wl`, `<cite>` 다.
+// check-prose.mjs 의 visibleProse 와 같은 목록을 뺀다.
 function stripQuoted(html) {
   return stripCode(html)
     .replace(/<pre[\s\S]*?<\/pre>/gi, '')
-    .replace(/<code[\s\S]*?<\/code>/gi, '');
+    .replace(/<code[\s\S]*?<\/code>/gi, '')
+    .replace(/<(p|span|div)\b[^>]*class="[^"]*\b(?:q|wl)\b[^"]*"[^>]*>[\s\S]*?<\/\1>/gi, ' ')
+    .replace(/<cite\b[\s\S]*?<\/cite>/gi, ' ');
 }
 
 function checkTagBalance(html) {

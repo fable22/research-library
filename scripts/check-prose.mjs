@@ -12,8 +12,8 @@
 // 문장 길이 — 은 --counts 로만 나온다. 세는 것과 판단하는 것은 다른 일이고, 뒤쪽은
 // 렌즈 C 의 몫이다.
 //
-// 검사 대상은 눈에 보이는 산문뿐이다. blockquote, code, pre, svg 는 뺀다. 원문 인용은
-// 그대로 두는 것이 규칙이므로 인용 안의 표현으로 문서를 막으면 안 된다.
+// 검사 대상은 문서가 스스로 쓴 산문뿐이다. 코드와 인용은 뺀다. 무엇을 빼는지는
+// visibleProse 에 있다.
 
 import { readdir, readFile } from 'node:fs/promises';
 import { realpathSync } from 'node:fs';
@@ -81,7 +81,12 @@ export function visibleProse(html) {
   for (const tag of ['script', 'style', 'svg', 'code', 'pre', 'blockquote']) {
     s = s.replace(new RegExp(`<${tag}[\\s>][\\s\\S]*?</${tag}>`, 'gi'), ' ');
   }
-  return s.replace(/<[^>]+>/g, '\n').replace(/&[a-z]+;/gi, ' ');
+  // 이 저장소가 인용을 담는 그릇은 blockquote 가 아니라 `.q`, `.wl`, `<cite>` 다.
+  s = s.replace(/<(p|span|div)\b[^>]*class="[^"]*\b(?:q|wl)\b[^"]*"[^>]*>[\s\S]*?<\/\1>/gi, ' ');
+  s = s.replace(/<cite\b[\s\S]*?<\/cite>/gi, ' ');
+  s = s.replace(/<[^>]+>/g, '\n').replace(/&[a-z]+;/gi, ' ');
+  // 그릇 없이 따옴표로만 들어온 발췌도 같은 이유로 뺀다.
+  return s.replace(/["“][^"”]{0,400}["”]/g, ' ');
 }
 
 // 위반이 몇 번째 슬라이드인지 알려주려면 슬라이드 경계가 필요하다.
@@ -123,6 +128,8 @@ export function checkDoc(slug, html) {
 // 오탐은 `사고, 보고, 광고` 처럼 고로 끝나는 한자어 명사다. 이 코퍼스에서 실측하면 분모의
 // 2.5% 이고, 빼고 다시 재면 비율이 37.1% 에서 37.6% 로 오히려 올라간다. 분자와 분모에
 // 같이 들어가기 때문이다. 비교를 뒤집을 만한 크기가 아니다.
+//
+// 위 37.1% 은 인용을 포함해 잰 옛 값이다. 지금 기준으로는 35.9% 다.
 const CONNECTIVE = /(고|며|면서|지만|는데|어서|아서|여서|므로|니까|거나|든지|어도|아도)$/;
 
 export function commaAfterConnective(prose) {

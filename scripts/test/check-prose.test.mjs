@@ -58,6 +58,18 @@ function eq(name, got, want) {
 }
 eq('blockquote 는 산문에서 빠진다',
   /인용/.test(visibleProse('<blockquote class="q">인용</blockquote><p>본문</p>')), false);
+// 이 저장소가 실제로 쓰는 인용 그릇 셋. blockquote 만 빠지던 시절에는 1,557개가 문서
+// 자신의 산문으로 세어졌다.
+eq('`p.q` 는 산문에서 빠진다',
+  /인용/.test(visibleProse('<p class="q">인용</p><p>본문</p>')), false);
+eq('`span.wl` 은 산문에서 빠진다',
+  /인용/.test(visibleProse('<p>본문 <span class="wl">인용</span> 이라 적는다</p>')), false);
+eq('`cite` 는 산문에서 빠진다',
+  /출처/.test(visibleProse('<p class="x">본문<cite>출처</cite></p>')), false);
+eq('따옴표 인용은 산문에서 빠진다',
+  /인용/.test(visibleProse('<p>원문에 "인용" 이라는 문장이 있다</p>')), false);
+eq('그릇 밖의 본문은 남는다',
+  /본문/.test(visibleProse('<p class="q">인용</p><p>본문</p>')), true);
 eq('연결어미 뒤 쉼표 비율', Math.round(commaAfterConnective('빠르고, 정확하고 싸다')), 50);
 eq('연결어미가 없으면 null', commaAfterConnective('숫자만 있다'), null);
 eq('규칙 id 는 중복되지 않는다', new Set(PATTERNS.map((p) => p[0])).size, PATTERNS.length);
