@@ -114,6 +114,12 @@ there too.
 
 ## Accessibility
 
+**Does every symbol resolve inside the document?** `references/visual.md` in `research-doc`
+sets the bar: a symbol has to be used again and to produce a prediction the prose cashes.
+Two failures are checkable without judgment — a symbol that is never defined here, and a
+reference like `식 (10)` when the document numbered no equation. Both send a developer to
+the source to read our own sentence. Name the slide and the symbol.
+
 **Does every `<svg>` `aria-label` describe the figure in prose?** A bare "그림 1" is not
 enough. For a chart with values, those values belong in the sentence. (`check-doc.mjs`
 only checks that the attribute exists; the content is your job.)
