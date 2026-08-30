@@ -23,6 +23,10 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const RESEARCH_DIR = join(ROOT, 'research');
 
+// 종성이 ㅂ 인 음절 588개. 연속 범위가 아니라 정규식으로 못 적으므로 만들어 쓴다.
+const P_BATCHIM = Array.from({ length: 588 },
+  (_, k) => String.fromCharCode(0xAC00 + k * 28 + 17)).join('');
+
 // [규칙 id, 설명, 정규식, 문서당 허용 횟수]
 // 허용 0 은 prose-ko.md 가 쓰지 말라고 한 것, 2 는 "문서당 한두 번" 이라고 적힌 것이다.
 export const PATTERNS = [
@@ -52,6 +56,11 @@ export const PATTERNS = [
   // 피동 어미는 활용해서 붙는다. `되` 만 찾으면 `주입된다` 를 놓친다.
   ['by-passive', '`~에 의해` + 피동 (행위자를 조사로 미룬 영어 수동태)',
     /에\s*의(해|하여)\s*[^.]{0,12}(되[는다어었]|된[다는]|됐|돼|받[는아]|당[하해]|[아어여]졌|[아어여]진[다는])/g, 0],
+  // 발행물의 문체는 평서형이고 prose-ko.md 「Sentence ending」 이 그렇게 정해 두었다.
+  // 합쇼체는 `니` 앞 음절에 ㅂ 받침이 온다 (습니다, 합니다, 줄어듭니다). 평서형 `~(으)니까`
+  // 는 그 자리에 ㅂ 받침이 오지 않으므로 (잡다→잡으니까) 이 한 조건으로 갈린다.
+  ['honorific-register', '합쇼체 종결 (~습니다, ~합니다) — 발행물은 평서형 ~한다/~이다',
+    new RegExp(`[${P_BATCHIM}]니(다|까)`, 'g'), 0],
 ];
 
 // 숫자가 붙어 있지 않아 막지 않는 것들. --counts 로만 보여준다.
