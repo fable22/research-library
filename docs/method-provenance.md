@@ -385,9 +385,24 @@ carries that this repo lacks were measured before adoption.
 | Do not stack 관형격 `~의` | `~의 ~의` chains across 19 documents | rejected — 0 occurrences |
 | Avoid metaphor, avoid the em dash | already held by `lens-prose.md` and `check-doc.mjs` | no change |
 
-**Nothing was adopted.** Delivery is settled separately: output styles apply to the main
-conversation only, and `research-verify` runs its lenses as subagents, so an output style
-would not reach the place the Korean is written.
+**None of its rules were adopted.** Delivery is settled separately: output styles apply to
+the main conversation only, and `research-verify` runs its lenses as subagents, so an output
+style would not reach the place the Korean is written.
+
+**Its diagnosis was.** Two things in this repository trace to reading it. The guide states
+that it writes its own instruction text in the register it prescribes, to control priming —
+and that is what exposed a hole here: `prose-ko.md` fixed the plain declarative for published
+documents and nothing counted it, so the drift could arrive without a decision behind it.
+`honorific-register` exists because of that reading, and adding it is what surfaced the 1,557
+quote containers both gates were counting as the document's own prose. The sentence in
+`prose-ko.md` that says an instruction primes the register it is written in is that guide's
+argument, kept.
+
+The second is its scope rule against mirroring the user's tone. This repo said the opposite —
+review reports "follow the register of the conversation" — and practice had already sided with
+the guide: reports here hold a conversational register while the conversation runs in 반말. A
+report is a work product, so its quality should not track the conversation's temperature. The
+rule now says that, with the published-document register left where it was.
 
 ## What the 2026-08-30 audit changed
 The instruction corpus had only been appended to, so it was read as a whole — 4,714 lines by
