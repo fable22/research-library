@@ -58,7 +58,7 @@ attention and hand back nothing.
 you, weightless to a reader deciding anything.
 
 - ✗ SWEET 논문이 인용한 탐지기 목록에 GPTZero 도 들어 있다.
-- ✓ (자르거나, 그 사실이 실제로 바꾸는 주장 옆으로 옮긴다)
+- ✓ (자르거나 그 사실이 실제로 바꾸는 주장 옆으로 옮긴다)
 
 **Sourcing narration outside ⑦.** Which tool fetched it, which route failed, how many
 tries it took.
@@ -135,8 +135,8 @@ actor as the subject. `check-prose.mjs` blocks the doubled forms and the `~에 �
 **Pronouns that Korean would drop.** 그것은, 이것은, 그들은 repeated across sentences
 reads as machine output. Korean omits the subject when context carries it.
 
-- ✗ 이 skill 은 문서를 검사한다. 그것은 세 렌즈를 사용한다. 그것들은 서로 독립적이다.
-- ✓ 이 skill 은 문서를 세 렌즈로 검사한다. 렌즈끼리는 서로의 결과를 모른다.
+- ✗ 이 게이트는 문서를 검사한다. 그것은 세 규칙을 적용한다. 그것들은 서로 독립적이다.
+- ✓ 이 게이트는 문서를 세 규칙으로 검사한다. 규칙끼리는 서로의 결과를 모른다.
 
 **Nested relative clauses in English order.** Korean puts modifiers before the noun, so
 stacking them the way English stacks them after produces sentences nobody can parse.
@@ -260,5 +260,5 @@ Same finding, written three ways.
 **Right:**
 > 수치 42개를 원문과 대조해 1건이 어긋난다. 슬라이드 11 에서 표 9 의 격차가
 > 7.5/12.8/9.6 에서 5.1/10.5/16.9 로 **좁아지는데** 문서는 넓어진다고 썼다. 거기에
-> "약한 모델이 구조에서 더 이득을 본다"는 해석까지 얹혀 있어서, 방향을 고치면 그
+> "약한 모델이 구조에서 더 이득을 본다"는 해석까지 얹혀 있어서 방향을 고치면 그
 > 문단 전체를 다시 써야 한다.

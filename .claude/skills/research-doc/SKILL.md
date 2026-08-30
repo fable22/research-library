@@ -224,8 +224,8 @@ Write the document **chapter by chapter**. A finished deck is large enough that 
 write risks truncation.
 
 `check-doc.mjs --help` lists what the gate blocks, and it changes with the code. Build
-those in rather than repairing them later. Three things it enforces without being able to
-tell you how, and one it does not check at all:
+these in rather than repairing them later. Two it enforces without being able to tell you
+how, one it only half-enforces, and one it does not check at all:
 
 - **No external resources means no CDN, at all.** Inline CSS and JS, `data:` URIs for
   images, system font stacks. One file has to open offline and survive being moved. Source
@@ -234,8 +234,10 @@ tell you how, and one it does not check at all:
 - **Both themes come out of tokens.** Define colors as CSS custom properties and have
   components reference only the tokens. Write the dark rule any other way and it becomes a
   second copy of every component that then drifts from the first.
-- **An `aria-label` says what the figure shows**, not "그림 1". `visual.md` treats writing
-  that label first as the test of whether the figure is worth drawing at all.
+- **An `aria-label` says what the figure shows**, not "그림 1". The gate checks only that
+  the attribute exists, so a bare "그림 1" passes it — the content is yours. `visual.md`
+  treats writing that label first as the test of whether the figure is worth drawing at all,
+  and notes that no counter reads the label's Korean either.
 - **`overflow-x: auto` on anything wide** — tables, code blocks, charts. The gate does not
   check this one, and the page body must never scroll sideways.
 
