@@ -1,0 +1,7 @@
+// 조사 대상을 이식 가능한 신원으로 고정한다. 로컬 경로는 적지 않는다.
+// 13~16장의 측정값은 웹 소스가 아니라 이 머신의 관측이다. 그래서 source 를 두지 않고
+// claims.jsonl 에서 kind=behavioral / verdict=measured / limits 로 표시한다.
+{"id": "w1", "kind": "web", "url": "https://claude.com/blog/maximizing-the-value-of-your-claude-code-sessions", "retrieved_at": "2026-08-19", "title": "Maximizing the Value of Your Claude Code Sessions", "author": "Lydia Hallie", "published": "2026-08-14", "note": "본문 추출본이 notes/source-article.md 에 있다. 다만 추출은 그림 속 글자를 가져오지 못했다 — 1.9배, 5 vs 18 요청, 6/1/0턴은 원문 도해에만 있는 값이라 추출본으로 대조할 수 없고, 문서에 임베드한 PNG 를 눈으로 읽어야 한다. 원문 그림 자리는 10곳이고 그중 7장을 임베드했다."}
+{"id": "w2", "kind": "web", "url": "https://github.com/anthropics/claude-code/issues/17944", "retrieved_at": "2026-08-19", "title": "[BUG] BASH_MAX_OUTPUT_LENGTH ignored after v2.1.2", "note": "closed as not planned / stale"}
+{"id": "w3", "kind": "web", "url": "https://github.com/anthropics/claude-code/issues/19901", "retrieved_at": "2026-08-19", "title": "[DOCS] Missing documentation on Bash tool output limits (30k characters) and truncation behavior"}
+{"id": "w4", "kind": "web", "url": "https://code.claude.com/docs/en/settings", "retrieved_at": "2026-08-19", "title": "Claude Code settings", "note": "BASH_MAX_OUTPUT_LENGTH 가 이 페이지에 없다는 부재 확인에 쓴다"}
