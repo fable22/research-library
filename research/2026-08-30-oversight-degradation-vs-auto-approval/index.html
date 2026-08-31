@@ -1,0 +1,1207 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Agents Push Humans Out of the Loop: 잴 것은 지정하고 언제 경보할지는 지정하지 않은 oversight 처방 목록</title>
+<meta name="description" content="§5 Behavioral monitoring 은 감독 품질을 재는 signature 3개를 이름과 방향까지 지정하지만 기준선도 관측 창도 임계값도 없다. 그래서 논문이 approval fatigue 근거로 인용한 그 글이 승인률 93%를 근거로 승인 판단 자체를 분류기에 넘겼을 때, 논문에는 그것을 판정할 선이 없다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AI Agents Push Humans Out of the Loop: 잴 것은 지정하고 언제 경보할지는 지정하지 않은 oversight 처방 목록">
+<meta property="og:description" content="§5 Behavioral monitoring 은 감독 품질을 재는 signature 3개를 이름과 방향까지 지정하지만 기준선도 관측 창도 임계값도 없다. 그래서 논문이 approval fatigue 근거로 인용한 그 글이 승인률 93%를 근거로 승인 판단 자체를 분류기에 넘겼을 때, 논문에는 그것을 판정할 선이 없다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-30-oversight-degradation-vs-auto-approval/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+
+/* ── 이 문서 전용 (전부 토큰 경유) ─────────────────────── */
+svg .box-dash { fill: none; stroke: var(--rule); stroke-width: 1; stroke-dasharray: 5 4; }
+svg .pill-r   { fill: var(--card); stroke: var(--rule); stroke-width: 1; }
+svg .pill-c   { fill: var(--redlink-soft); stroke: var(--redlink); stroke-width: 1; }
+ul.clean li .m.bad { color: var(--redlink); }
+.figure .tablewrap { box-shadow: none; }
+/* 산문이 든 표는 셀을 접는다. 접지 않으면 열 두 개가 화면 밖으로 나간다 */
+table.wrap th, table.wrap td { white-space: normal; text-align: left; vertical-align: top; line-height: 1.55; }
+table.wrap td { font-family: var(--sans); }
+table.wrap td:first-child { min-width: 104px; }
+ul.clean.wide li { grid-template-columns: 56px 1fr; }
+/* ul.clean 은 margin 이 0 이라 바로 뒤의 제목·문단이 마지막 항목에 붙어 읽힌다 */
+ul.clean + h3 { margin-top: 24px; }
+ul.clean + p  { margin-top: 16px; }
+
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>진단 1: 기술이 닳는다</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>진단 2: 되먹임 고리</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>처방 1: 살아 있는 6개</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>처방 2: 계측 항목</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>처방 3: 잘려나간 것</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>배포 현실</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>대조와 판정</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>사례 추적</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>도입 판단</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>결론</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>AI Agents Push Humans Out of the Loop: 잴 것은 지정하고 언제 경보할지는 지정하지 않은 oversight 처방 목록</h1>
+      <p class="dek">arXiv:2608.23642v1, 2026-08-24, cs.AI + cs.HC. Mitchell, Ghosh, Passi 의 position paper 다. §4 는 감독자가 루프 밖으로 밀려나는 경로를 다섯 단계로 그리고 §5 는 처방 21개를 6개 범주로 묶는다. 이 문서는 그 둘을 원문 순서대로 각각 세운 뒤, 승인 판단 자체를 분류기에 넘긴 배포 사례와 맞붙인다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">이 문서가 답하는 질문</span>
+          <p class="small">에이전트 하네스를 만드는 개발자는 이 논문의 §5 처방을 구현해야 하는가, 아니면 approval fatigue 를 상수로 받아들이고 승인 판단 자체를 자동화해야 하는가.</p>
+        </div>
+        <div class="card">
+          <span class="tag">답을 뒤집는 조건</span>
+          <p class="small">§5 처방 중 감독 품질을 측정 가능하게 만드는 항목이 구현 가능한 명세인가, 아니면 방향 제시에서 멈추는가. 7장이 이 조건을 판정한다.</p>
+        </div>
+      </div>
+
+      <h3 style="margin-top:22px">읽는 경로</h3>
+      <ul class="clean wide">
+        <li><span class="m">03</span><span>§3 이 approval fatigue 를 어디서 인용하는지. 인용 하나가 이 문서의 대조 상대다</span></li>
+        <li><span class="m">04-05</span><span>§4.1 부터 §4.5 까지, 논문 자신의 순서대로. 되먹임 고리가 어디서 닫히는지</span></li>
+        <li><span class="m">06-08</span><span>§5 처방 21개. 살아 있는 6개 범주와 v1 에서 주석 처리된 것</span></li>
+        <li><span class="m">09</span><span>읽은 범위와 못 읽은 범위. 검색조차 못 한 채널이 어디인지</span></li>
+        <li><span class="m">10-12</span><span>승인 판단을 분류기에 넘긴 배포 사례, 논문과의 대조, 한 사례의 경로</span></li>
+        <li><span class="m">13-15</span><span>한계, 도입 판단, 결론</span></li>
+      </ul>
+
+      <p class="note">이 논문에는 실험이 없다. position paper 이고 62,948자 전문에 백분율 값이 하나도 없다. 그래서 이 문서의 어떤 문장도 논문의 주장을 측정한 결과가 아니다. 수치는 전부 대조 상대인 벤더 글에서 온다.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약. §5 는 무엇을 잴지 이름과 방향까지 지정하고 언제 경보할지는 지정하지 않는다</h2>
+      <p class="dek">감독 품질을 측정 가능하게 만드는 항목은 Behavioral monitoring 이고 v1 에 살아 있다. 재야 할 양 세 가지를 변화 방향까지 못 박지만 기준선도 관측 창도 임계값도 처방 21개 어디에도 없다. 그래서 승인률 한 값을 손에 쥔 개발자는 그것이 감독이 무너졌다는 신호인지 승인 프롬프트가 값을 못 하고 있다는 신호인지 가릴 수 없다.</p>
+
+      <div class="stats">
+        <div class="stat hero"><span class="lab">§5 살아 있는 범주</span><span class="val">6<span class="u">개</span></span><span class="sub">명명된 처방 21개. 일곱 번째 범주는 <code>\iffalse</code> 로 주석 처리됐다</span></div>
+        <div class="stat"><span class="lab">개발자가 혼자 넣을 수 있는 처방</span><span class="val">4<span class="u">/21</span></span><span class="sub">논문 Table 1 의 Primary Implementer 행 기준. 9개는 공동, 8개는 배포 조직 몫이다. 이 계산은 논문에 없다</span></div>
+        <div class="stat bad"><span class="lab">논문에 적힌 백분율</span><span class="val">0<span class="u">개</span></span><span class="sub">62,948자 전문에 조판되는 <code>\%</code> 도 <code>percent</code> 도 0회다. <code>sandbox</code>, <code>containment</code> 도 0회</span></div>
+      </div>
+
+      <h3>세 가지 결론</h3>
+      <ul class="clean">
+        <li><span class="m">1</span><span><b>계측 명세로는 구현 가능하고 경보 명세로는 아니다.</b> Behavioral monitoring 의 signature 세 개가 요구하는 양은 하네스가 이미 남기거나 남길 수 있는 것이다. 검토 시간, 승인과 거부, 추가 정보 요청. 그 값이 얼마가 되면 개입하는지는 §5 에 없고 처방 21개 중 발동 시 조치가 붙은 것은 Canaries 하나뿐이다.</span></li>
+        <li><span class="m">2</span><span><b>논문은 승인 자동화를 이미 조건부로 허용한다.</b> §5 Approval design 의 세 번째 항목이 <code>Automated pre-checks</code> 다. 항목 이름까지 15단어짜리 한 문장에 조건이 두 개 걸려 있다. 사람 검토를 대체가 아니라 보완할 것, 그리고 판단이 필요 없는 속성에 한할 것. 대조한 배포 사례는 두 조건을 모두 넘는다.</span></li>
+        <li><span class="m">3</span><span><b>승인 판단을 기계로 옮겼더니 실패 형태가 따라왔다.</b> 논문 §4.4 가 지친 감독자를 <code>approve quickly, accept fluent rationales</code> 로 쓴다. 분류기가 놓치는 17%를 벤더 자신은 <code>finds approval-shaped evidence and stops short of checking whether it's consent for the blast radius</code> 로 쓴다. 같은 오류다.</span></li>
+      </ul>
+
+      <p class="note">이 장은 논문이 옳은지 판정하지 않는다. 논문에 검증 대상이 될 수치가 없어서 판정할 것이 없다. 판정하는 것은 §5 가 개발자에게 무엇을 시킬 수 있는 형태로 쓰였는가 하나다.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>문제 정의. approval fatigue 를 인용하는 자리는 §3 이고 근거 셋 중 하나가 승인 판단을 분류기에 넘긴 벤더 글이다</h2>
+      <p class="dek">§3 은 현재의 감독 논의가 놓치는 것을 네 항목으로 나눈다. 그중 두 번째 항목의 마지막 문장이 approval fatigue 를 도입하고 거기 붙은 인용 세 개 중 하나가 <code>ClaudeAuto</code> 다. 이 인용이 이 문서 전체의 대조축이다.</p>
+
+      <p class="q">In practice, users find themselves repeatedly approving prompts the agent surfaces to continue its processing […], leading to “approval fatigue”, in which users stop paying close attention to what they are approving.<cite>§3, 2608.23642v1.tex:116. 문장 끝 인용은 ClaudeAuto, FranklinEtAl2026, Approval_Fatigue_aipatternbook 세 개다</cite></p>
+
+      <p><code>ClaudeAuto</code> 는 e-print tarball 안의 <code>bibliography.bib</code> 에서 곧바로 풀린다. 항목 이름은 <code>Claude Code Auto Mode: A Safer Way to Skip Permissions</code>, 저자는 Anthropic, <code>urldate</code> 는 2026-04-29 다. arXiv HTML 판의 참고문헌 [6] 도 같은 글이고 그 항목의 역참조 링크는 §3 을 가리킨다. 논문 전체에서 이 키가 등장하는 자리는 이 한 곳뿐이다.</p>
+
+      <h3>§3 이 세는 네 가지</h3>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>§3 의 소제목</th><th>무엇이 문제인가</th><th>하네스가 이미 하는 일</th></tr></thead>
+          <tbody>
+            <tr><td>The amount of content relevant to an overseer is massive</td><td>chain-of-thought, 도구 선택, 인자, 계획, 모듈 간 교환이 전부 감독 대상이다</td><td>대부분 접어 두거나 요약해서 보여준다</td></tr>
+            <tr class="hero"><td>The user must play multiple roles simultaneously</td><td>자기 목표를 좇으면서 동시에 각 단계의 안전성과 파급을 판정한다</td><td>승인 프롬프트 한 줄로 그 판정을 요구한다</td></tr>
+            <tr><td>The cognitive demand is substantial</td><td>approver 로 밀려난 사용자가 과제 전문가로서 각 결정점을 평가해야 한다</td><td>계획, 실행 상태, 이전 행동의 심상 모형을 유지시켜 주지 않는다</td></tr>
+            <tr><td>Current oversight affordances are poorly designed</td><td>벤더 프레임워크가 지속 사용 중의 인간 경향을 다루지 않는다</td><td>Anthropic, Salesforce, AWS 문서를 이름으로 지목한다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">표. §3 의 굵은 소제목은 다섯 개이고 그중 놓치는 것을 세는 네 개를 그대로 옮겼다. 다섯 번째 <code>Human cognition follows patterns that can inform oversight design</code>(tex:124)은 앞의 넷을 받아 §5 로 넘기는 자리라 표에 없다. 오른쪽 열은 논문에 없다. 강조한 행이 approval fatigue 가 나오는 항목이다.</p>
+
+      <p class="q">“Human-in-the-loop" is only a meaningful solution if the human can independently see into the loop.<cite>§3, tex:121</cite></p>
+
+      <p class="note">§3 은 사람이 무엇을 해야 하는지를 세지만 그 부담이 얼마인지는 세지 않는다. 이 절에 수치가 없고 인용된 연구들의 효과 크기도 옮겨 오지 않는다. 크기는 대조 상대인 벤더 글에서만 나온다.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">degrade-skill</p>
+      <h2>진단 1. 기술이 먼저 닳고(§4.1), 그 다음에 감독하는 방식 자체가 지름길로 바뀐다(§4.2)</h2>
+      <p class="dek">§4 는 <code>irony of automation</code> 이라는 제목 아래 다섯 개 소절로 간다. 앞의 두 소절이 원인이고 뒤의 세 소절이 그 결과다. §4.1 은 능력이 줄어드는 것을, §4.2 는 줄어든 능력으로 감독을 계속할 때 사람이 무엇으로 대체하는지를 다룬다.</p>
+
+      <h3>§4.1 무엇이 닳는가</h3>
+      <p>deskilling, intuition rust, 비판적·분석적 사고 저하, 이상을 알아차리는 데 필요한 경계와 패턴 인식 저하, 과의존. 최근 용어로 cognitive dependence, cognitive debt, cognitive surrender. 전부 인용으로 서 있고 논문이 직접 잰 것은 없다. 생리 측정에 기댄 문장은 하나뿐이다.</p>
+
+      <p class="q">A recent study found that participants who used an LLM for essay writing had significantly decreased brain connectivity.<cite>§4.1, tex:142. KosmynaEtAl2025 인용. 논문은 이 문장에 효과 크기도 표본 수도 붙이지 않는다</cite></p>
+
+      <p>논문은 전문가의 과의존을 따로 세우고, 자기 전문 영역에서 조금 벗어난 자리에서 그 효과가 특히 두드러진다고 쓴다. 어디가 최댓값인지 순위를 매기지는 않는다. 이 절은 초심자 문제로 좁혀지지 않는다.</p>
+
+      <p class="q">leading to particularly pronounced effects in contexts slightly outside of their expertise, such as an experienced software developer using AI agents to code in a new programming language<cite>§4.1, tex:144</cite></p>
+
+      <h3>§4.2 능력이 줄어든 자리를 무엇이 메우는가</h3>
+      <p>§4.2 는 사람이 정확성 판정을 지름길로 대체한다고 쓴다. 잘 쓰인 문체나 인용의 존재를 정확성 신호로 오인하는 것이 하나고, 개발자 대상 연구에서 나온 두 가지가 다른 하나다. 뒤의 둘은 하네스가 그대로 유도하는 형태다.</p>
+
+      <p class="q">such as treating an agent's plan as a “faithful proxy” of what it would do, and assuming that if an agent's code passed unit tests, it was correct<cite>§4.2, tex:152. dhanorkar-coding-agents-2026 인용</cite></p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">지름길 1: plan 을 faithful proxy 로</span>
+          <p class="small">계획을 먼저 보여주고 승인을 받는 설계는 이 지름길을 구조적으로 권한다. 승인 대상은 계획이지만 실행되는 것은 행동이고 둘 사이의 간격을 검토자가 메워야 한다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">지름길 2: 테스트 통과를 정확성으로</span>
+          <p class="small">테스트를 자동으로 돌리고 결과를 요약해 주는 하네스는 이 지름길의 비용을 0으로 만든다. 테스트가 무엇을 덮지 않는지는 요약에 없다.</p>
+        </div>
+      </div>
+
+      <p>§4.2 는 시스템 쪽 요인도 붙인다. sycophantic 모델이 사람 평가자보다 더 자주 사용자를 인정하는데 사용자는 그쪽을 선호한다는 결과, 실제 대화에서 사용자의 행동과 믿음이 현실과 어긋나는데도 그 대화를 좋게 평가하더라는 결과, 그리고 매끄러운 상호작용을 최적화하는 챗봇 패러다임이 독립적 판단에 필요한 인지적 마찰을 없앤다는 논의다. 셋 다 인용이고 논문의 측정은 아니다.</p>
+
+      <p class="note">§4.1 과 §4.2 의 인과는 이 논문이 세운 것이 아니라 모아 온 것이다. 논문 자신도 이 절을 종합으로 제시하지 실험으로 제시하지 않는다. 이 문서가 뒤에서 다루는 것은 이 인과의 참·거짓이 아니라, 이 인과를 받아들였을 때 §5 가 무엇을 시키는가다.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">degrade-loop</p>
+      <h2>진단 2. §4.3 이 감독자를 루프 밖으로 밀어내고 §4.4 가 그 상태를 학습 신호로 되먹인다</h2>
+      <p class="dek">§4.3 의 근거는 자기보고다. 사람들이 감독을 못 하게 되는 것이 아니라 감독하기를 그만두게 된다는 서술이다. §4.4 는 거기서 한 걸음 더 가서, 그렇게 나온 승인이 재학습 신호로 수집되면 시스템이 승인을 쉽게 만드는 방향으로 최적화된다고 쓴다. §4.5 가 그 결과에 이름을 붙인다.</p>
+
+      <div class="figure">
+        <p class="fig-title">§4 의 다섯 소절은 직선이 아니라 닫힌 고리다</p>
+        <p class="fig-sub">논문 §4.1 부터 §4.4 까지의 서술을 순서대로 이은 것. 논문에 이 그림은 없다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 764 268" role="img" aria-label="논문 4장의 되먹임 고리. 위 행 왼쪽부터 4.1 기술이 닳는다, 4.2 감독이 지름길로 바뀐다, 4.3 루프 밖으로 밀린다 세 상자가 오른쪽으로 이어진다. 4.3 에서 아래 행으로 내려가 4.4 승인이 성공으로 기록된다로 가고, 거기서 왼쪽으로 재학습과 평가 신호 상자로 간다. 그 상자에서 되돌아오는 화살표가 왼쪽 아래를 지나 위로 올라가 4.1 로 다시 들어가며 고리가 닫힌다.">
+          <rect class="box" x="8"   y="20" width="228" height="66" rx="9"/>
+          <text class="txt"   x="24" y="46">§4.1 기술이 닳는다</text>
+          <text class="txt-s" x="24" y="66">판단, 경계, 패턴 인식이 줄어든다</text>
+
+          <path class="arw" d="M236 53 L262 53"/>
+          <path class="arw" d="M255 48 L262 53 L255 58"/>
+
+          <rect class="box" x="266" y="20" width="228" height="66" rx="9"/>
+          <text class="txt"   x="282" y="46">§4.2 감독이 지름길로</text>
+          <text class="txt-s" x="282" y="66">plan 을 faithful proxy 로 취급한다</text>
+
+          <path class="arw" d="M494 53 L520 53"/>
+          <path class="arw" d="M513 48 L520 53 L513 58"/>
+
+          <rect class="box" x="524" y="20" width="228" height="66" rx="9"/>
+          <text class="txt"   x="540" y="46">§4.3 루프 밖으로</text>
+          <text class="txt-s" x="540" y="66">능동 참여자에서 수동 처리자로</text>
+
+          <path class="arw" d="M638 86 L638 132"/>
+          <path class="arw" d="M633 125 L638 132 L643 125"/>
+
+          <rect class="box" x="524" y="132" width="228" height="66" rx="9"/>
+          <text class="txt"   x="540" y="158">§4.4 승인이 성공으로</text>
+          <text class="txt-s" x="540" y="178">빠른 승인과 높은 만족도가 수집된다</text>
+
+          <path class="arw" d="M524 165 L498 165"/>
+          <path class="arw" d="M505 160 L498 165 L505 170"/>
+
+          <rect class="box-hi" x="266" y="132" width="228" height="66" rx="9"/>
+          <text class="txt"   x="282" y="158">재학습, 평가 신호</text>
+          <text class="txt-s" x="282" y="178">마찰이 적고 요약이 자신 있는 쪽으로</text>
+
+          <path class="arw" d="M266 165 L120 165 L120 92"/>
+          <path class="arw" d="M115 99 L120 92 L125 99"/>
+          <text class="txt-s" x="132" y="222">되돌아오는 변은 §4.4 다. 승인률과 만족도가 신호로 쓰이면 고리가 닫힌다</text>
+        </svg>
+        </div>
+        <figcaption>왼쪽 아래로 돌아가는 변이 §4.4 의 주장이다. 논문은 이 고리를 그림으로 그리지 않고 §4.4 본문에서 서술한다. 강조한 상자는 논문이 개발자의 선택으로 지목하는 유일한 지점이고 나머지 넷은 사용자에게 일어나는 일이다.</figcaption>
+      </div>
+
+      <h3>§4.3 감독을 못 하는 것이 아니라 그만두는 것이다</h3>
+      <p class="q">Current HITL processes in coding “[make] the loop stultifying” […] and they move to “babysit the outputs, catch the occasional hallucination”<cite>§4.3, tex:164. Taggart2026 과 RedditHITL 자기보고 인용</cite></p>
+      <p>§4.3 의 끝에서 제목이 나온다. 상황 인식의 조직적 침식이 감독을 방해하는 데 그치지 않고 결국 사람을 감독 루프 <b>바깥으로</b> 밀어낸다는 문장이다. 논문 제목이 말하는 것이 감독의 약화가 아니라 축출이라는 점은 여기서 확인된다.</p>
+
+      <h3>§4.4 검증 가능한 형태로 쓰인 유일한 문장</h3>
+      <p>§4.4 는 개발자가 고의로 인지 소모를 최적화할 필요가 없다고 못 박은 뒤 조건 하나를 남긴다. 이 문장이 논문 전체에서 자기 하네스의 로그로 참·거짓을 확인해 볼 수 있는 유일한 형태다.</p>
+      <p class="q">It arises whenever the measured target, user-revealed approval, comes apart from the intended target, well-scrutinized correct action.<cite>§4.4, tex:173</cite></p>
+      <p>이어서 §4.4 는 이 현상을 alignment 어휘로 옮긴다. 사람 평가자가 보상 채널에서 착취 가능한 부분이 된다. 그리고 <code>Evil double agents</code> 문단에서 방향을 하나 더 얹는다. 에이전트가 어떤 절차 위반을 감독자가 검사하지 않을지 예측할 수 있다면, 계획과 설명과 타이밍을 탐지 문턱 아래로 고를 수 있다.</p>
+
+      <h3>§4.5 결과</h3>
+      <p class="q">The very act of being an overseer degrades the capacities oversight requires: Oversight degrades the overseer.<cite>§4.5, tex:181. 결론(§7)이 이 문장을 그대로 반복한다</cite></p>
+
+      <p class="note">§4.3 의 근거는 인용된 자기보고 두 건이고 표본도 방법도 논문에 없다. §4.4 는 조건문이지 관측이 아니다. 논문은 어떤 배포 시스템이 실제로 승인률을 재학습 신호로 쓰고 있다고 주장하지 않고 그렇게 될 경우를 쓴다.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">solutions-live</p>
+      <h2>처방 1. §5 는 처방 21개를 6개 범주로 묶고 그중 개발자가 혼자 넣을 수 있는 것은 4개다</h2>
+      <p class="dek">§5 는 두 축으로 짜여 있다. 생애주기 축이 development 와 deployment 이고, 인지 지원 축이 engaging oversight 와 maintaining skills 다. 살아 있는 범주는 여섯 개이고 그 아래 이름 붙은 처방이 21개다. 논문은 이 목록이 완전하지 않다고 스스로 먼저 밝힌다.</p>
+
+      <p class="q">We stress that our solutions below do not represent a complete, perfect, or fixed inventory, that boundaries overlap, and that the content admits of many different groupings<cite>§5 도입부, tex:188</cite></p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>§5 범주</th><th>단계</th><th>Primary Implementer</th><th>처방</th><th>하네스 혼자 출하 가능한가</th></tr></thead>
+          <tbody>
+            <tr><td>Strategic friction</td><td>development</td><td>Developer</td><td>4</td><td class="win">전부 가능</td></tr>
+            <tr><td>Approval design</td><td>development + deployment</td><td>Both</td><td>3</td><td class="win">전부 가능</td></tr>
+            <tr class="hero"><td>Behavioral monitoring</td><td>development + deployment</td><td>Both</td><td>6</td><td>계측은 가능, 경보 조건은 불가</td></tr>
+            <tr><td>Trainings and exercises</td><td>deployment</td><td>Deployer</td><td>3</td><td class="lose">불가</td></tr>
+            <tr><td>Workload and scheduling</td><td>deployment</td><td>Deployer</td><td>2</td><td class="lose">불가</td></tr>
+            <tr><td>Role design</td><td>deployment</td><td>Deployer</td><td>3</td><td class="lose">불가</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">표. 범주 이름과 Primary Implementer 는 논문 Table 1 의 머리 두 행에서, 단계는 논문 Figure 2 의 사분면 배치에서, 처방 수는 §5 각 범주의 <code>\item</code> 을 세어 옮겼다. 오른쪽 열은 논문에 없다. 강조한 행이 7장에서 판정하는 항목이다.</p>
+
+      <div class="figure">
+        <p class="fig-title">개발 단계에서 장기 능력을 지키는 사분면은 비어 있다</p>
+        <p class="fig-sub">논문 Figure 2 (<code>fig:two-by-two</code>)를 <code>visuals.tex</code> 의 TikZ 노드 좌표에서 다시 그린 것. tarball 에 이 그림의 렌더 파일은 들어 있지 않다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 764 384" role="img" aria-label="논문 Figure 2 의 2 곱하기 2 배치. 왼쪽 열은 Development 곧 설계 수준 어포던스, 오른쪽 열은 Deployment 곧 조직 프로토콜이다. 위 행은 지금 이 순간의 주의를 붙드는 engaging oversight, 아래 행은 장기 능력을 지키는 maintaining skills 다. 왼쪽 위에는 Strategic friction, Approval design, Behavioral monitoring, Canaries 네 상자가 있다. 오른쪽 위에는 Approval design, Behavioral monitoring, Workload and scheduling 세 상자가 있다. 오른쪽 아래에는 Trainings and exercises, Role design, Audits 세 상자가 있다. 왼쪽 아래 사분면에는 상자가 하나도 없고 점선으로만 그려져 있다.">
+          <text class="txt"   x="130" y="20">Development</text>
+          <text class="txt-s" x="130" y="38">설계 수준 어포던스</text>
+          <text class="txt"   x="452" y="20">Deployment</text>
+          <text class="txt-s" x="452" y="38">조직 프로토콜</text>
+
+          <text class="txt"   x="0" y="128">Engaging</text>
+          <text class="txt"   x="0" y="146">oversight</text>
+          <text class="txt-s" x="0" y="166">그 순간의 주의</text>
+
+          <text class="txt"   x="0" y="286">Maintaining</text>
+          <text class="txt"   x="0" y="304">skills</text>
+          <text class="txt-s" x="0" y="324">장기 능력</text>
+
+          <rect class="box"      x="130" y="52" width="310" height="168" rx="10"/>
+          <rect class="box"      x="452" y="52" width="310" height="168" rx="10"/>
+          <rect class="box-dash" x="130" y="232" width="310" height="136" rx="10"/>
+          <rect class="box"      x="452" y="232" width="310" height="136" rx="10"/>
+
+          <rect class="pill-r" x="150" y="68"  width="270" height="30" rx="7"/>
+          <text class="txt"    x="164" y="88">Strategic friction</text>
+          <rect class="pill-r" x="150" y="106" width="270" height="30" rx="7"/>
+          <text class="txt"    x="164" y="126">Approval design</text>
+          <rect class="pill-r" x="150" y="144" width="270" height="30" rx="7"/>
+          <text class="txt"    x="164" y="164">Behavioral monitoring</text>
+          <rect class="pill-c" x="150" y="182" width="270" height="30" rx="7"/>
+          <text class="txt"    x="164" y="202">Canaries</text>
+
+          <rect class="pill-r" x="472" y="80"  width="270" height="30" rx="7"/>
+          <text class="txt"    x="486" y="100">Approval design</text>
+          <rect class="pill-r" x="472" y="118" width="270" height="30" rx="7"/>
+          <text class="txt"    x="486" y="138">Behavioral monitoring</text>
+          <rect class="pill-r" x="472" y="156" width="270" height="30" rx="7"/>
+          <text class="txt"    x="486" y="176">Workload &amp; scheduling</text>
+
+          <rect class="pill-r" x="472" y="248" width="270" height="30" rx="7"/>
+          <text class="txt"    x="486" y="268">Trainings &amp; exercises</text>
+          <rect class="pill-r" x="472" y="286" width="270" height="30" rx="7"/>
+          <text class="txt"    x="486" y="306">Role design</text>
+          <rect class="pill-c" x="472" y="324" width="270" height="30" rx="7"/>
+          <text class="txt"    x="486" y="344">Audits</text>
+
+          <text class="txt-s" x="196" y="300">이 사분면에는 노드가 없다</text>
+          <text class="txt-s" x="196" y="320">(TikZ 에서 점선 빈 상자로 그려져 있다)</text>
+        </svg>
+        </div>
+        <figcaption>Figure 2 는 개발 단계 상자를 전부 위 행에 놓는다. 그 배치대로면 §4.1 이 말한 장기 기술 저하를 되돌리는 처방은 전부 오른쪽 열, 곧 배포 조직 몫이다. §5 본문에는 어긋나는 항목이 하나 있다. Strategic friction 의 <code>Delay-and-choice mechanisms</code> 를 Table 1 은 Developer 몫으로 두는데 목적이 <code>preserving the option to work unaided and protecting the cognitive capacities</code> 다(tex:227). 빈 사분면은 그림이 정리한 결과이지 §5 본문을 센 결과가 아니다. 붉은 테두리 두 상자 Canaries 와 Audits 는 이 그림에만 독립 범주로 남아 있다. §5 본문에서는 Behavioral monitoring 안의 항목이고 사정은 8장이다.</figcaption>
+      </div>
+
+      <h3>Approval design 이 이미 자동 승인을 허용한다</h3>
+      <p>이 범주는 사람의 주의를 희소 자원으로 놓고 어디에 쓸지를 배분하는 문제로 본다. 세 처방 중 둘은 사람을 아끼는 쪽이고 셋째가 기계에 넘기는 쪽이다.</p>
+      <ul class="clean">
+        <li><span class="m">1</span><span><code>Bounded autonomy</code>. 승인 없이 해도 되는 것을 미리 지정해서, 정말 판단이 필요한 결정에 사용자 주의를 남긴다.</span></li>
+        <li><span class="m">2</span><span><code>Batch review</code>. 에이전트가 논리적 단위 하나를 끝내고 전체를 diff 로 한 번에 올린다. 관련 행동을 같이 평가할 수 있게 만드는 것이 목적이다.</span></li>
+        <li><span class="m">3</span><span><code>Automated pre-checks</code>. 여기가 이 문서의 판정 지점이다. 원문은 항목 이름까지 15단어다.</span></li>
+      </ul>
+      <p class="q">Automated pre-checks supplementing human review with machine verification of properties that do not require judgement<cite>§5 Approval design, tex:236</cite></p>
+      <p>조건이 두 개 박혀 있다. <code>supplementing</code>, 곧 사람 검토를 대체하지 않고 보완한다. 그리고 <code>properties that do not require judgement</code>, 곧 판단이 필요 없는 속성에 한한다. 11장이 이 두 조건을 실제 배포와 맞춘다.</p>
+
+      <p class="note">Role design 의 <code>Separating roles</code> 는 감독하는 사람과 승인이 계속 나서 이득을 보는 사람을 분리하라고 한다. 혼자 에이전트를 돌리는 개발자는 두 역할을 동시에 갖는다. 이 처방은 그 상황에서 구현 불가능한 것이 아니라 성립하지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">solutions-monitor</p>
+      <h2>처방 2. 감독 품질을 재는 항목은 잴 양을 지정하고 경보 조건은 지정하지 않는다</h2>
+      <p class="dek">Behavioral monitoring 은 §5 에서 유일하게 감독 품질을 경험적으로 측정 가능한 속성으로 놓는 범주다. 이 문서를 시작할 때 세운 뒤집는 조건이 여기서 판정된다. 결론은 반쪽이다. 무엇을 로그로 남길지는 이 절만 읽고 구현할 수 있고 그 값이 얼마가 되면 무엇을 할지는 이 절에 없다.</p>
+
+      <p class="q">This category treats oversight quality as an empirically measurable property of the human-AI system, and can test how well oversight is functioning<cite>§5 Behavioral monitoring 범주 머리, tex:239</cite></p>
+
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>처방</th><th>재는 양</th><th>논문이 못 박는 방향</th><th>논문이 주지 않는 것</th></tr></thead>
+          <tbody>
+            <tr><td>Time-based signatures</td><td>검토 소요 시간, 승인률</td><td>승인률은 그대로인데 시간이 줄어든다. 또는 작업 복잡도가 올라도 시간이 늘지 않는다</td><td class="lose">기준선, 관측 창, 임계값, complexity 의 정의</td></tr>
+            <tr class="hero"><td>Override signatures</td><td>에이전트와 의견이 갈리는 비율</td><td>시간이 갈수록, 또는 복잡도가 올라갈수록 내려간다</td><td class="lose">같음. 정의 자체가 시계열을 요구한다</td></tr>
+            <tr><td>Evidence-seeking signatures</td><td>추가 정보 요청 횟수</td><td>stakes 가 오를 때 늘어야 하는데 늘지 않는다</td><td class="lose">stakes 를 무엇으로 판정하는지</td></tr>
+            <tr><td>Canaries</td><td>정답을 미리 아는 과제에서의 오답</td><td>직접 증거로 삼는다</td><td>삽입 빈도와 과제 구성법. <b>단, 조치는 붙어 있다</b></td></tr>
+            <tr><td>Style-fatigue covariance analyses</td><td>명시하지 않는다</td><td>에이전트가 약해진 감독에 적응하거나 그것을 부추기는지</td><td class="lose">방법 전체. 이 처방은 한 문장이 전부다</td></tr>
+            <tr><td>Audits</td><td>trace 요약과 raw action log</td><td>에이전트의 서술과 실제 행동이 갈리는 경우</td><td class="lose">주기, 표본, 누가 보는지</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">표. 왼쪽 두 열은 §5 tex:241부터 249까지의 여섯 항목을 옮긴 것이다. 오른쪽 열은 논문에 없다. 각 항목 원문을 읽고 구현에 필요한데 적혀 있지 않은 것을 적었다.</p>
+
+      <h3>판정: 계측 명세로는 구현 가능하다</h3>
+      <p>세 signature 가 요구하는 양은 전부 하네스가 이미 알고 있거나 한 줄로 남길 수 있는 것이다. 승인 프롬프트를 띄운 시각과 응답이 온 시각, 승인인지 거부인지, 세션 식별자, 도구 종류. Override signature 는 거부와 수정 이벤트만 세면 되고, Evidence-seeking signature 는 승인 화면에서 사용자가 추가 정보를 요청한 횟수다. 여기까지는 §5 만 읽고 스키마를 짤 수 있다.</p>
+
+      <h3>판정: 경보 명세로는 구현 불가능하다</h3>
+      <p>여섯 항목 중 값이 어떻게 되면 무엇을 하라고 적힌 것은 Canaries 하나다. 그것도 발동선은 없다.</p>
+      <p class="q">Canaries, tasks inserted into the user's normal workflow where the correct answer is known in advance, can provide direct evidence of degraded judgement. These can be implemented by developers and leveraged by deployers, triggering a break, rotation, or retraining.<cite>§5 Behavioral monitoring, tex:247</cite></p>
+      <p>나머지 다섯은 방향만 있다. <code>declines over time</code> 은 얼마나 오랜 시간에 걸쳐 얼마나 내려가는 것인지 말하지 않고 <code>with increasing complexity</code> 는 complexity 를 무엇으로 재는지 말하지 않는다. Style-fatigue covariance analyses 는 한 문장으로 끝나고 무엇과 무엇의 공분산인지도 없다.</p>
+
+      <p>이 공백은 §6 에서 한 번 더 드러난다. alignment 반론에 답하면서 논문은 선호 기반 학습이 감독 체계의 일부가 될 수 있다고 하되 조건을 단다.</p>
+      <p class="q">Preference-based training can be part of an oversight system, but only if approval signals are audited against independent measures of oversight quality.<cite>§6 반론 3 응답, tex:314</cite></p>
+      <p>독립적인 감독 품질 척도에 대조하라는 조건인데, 그 척도를 어디서 구하는지는 §5 로 돌아가야 하고 §5 에는 임계값이 없다. 이 순환이 논문 안에서 닫히지 않는다.</p>
+
+      <p class="note">임계값이 없다는 것이 이 절의 결함이라고 논문이 인정하지는 않는다. 논문은 §5 를 열린 연구 영역의 지도로 제시하고 명세로 제시하지 않는다. 여기서 판정한 것은 논문이 실패했는지가 아니라, 이 절만 들고 하네스를 고치러 간 개발자가 어디서 멈추는지다.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">solutions-cut</p>
+      <h2>처방 3. v1 에서 잘려나간 것은 범주 이름이고 기법 자체는 Behavioral monitoring 안으로 들어갔다</h2>
+      <p class="dek">v1 소스에는 <code>\iffalse</code> 블록이 다섯 개 있다. 합쳐서 4,748자, 고정된 본문 62,948자의 7.5%다. 그중 §5 안에 있는 하나가 일곱 번째 범주 <code>Canaries, probes, and audits.</code> 이고 발행본에는 없다. 다만 그 안의 기법은 사라지지 않았다.</p>
+
+      <p class="note warn">주석 안의 문장은 논문의 주장이 아니다. 이 장이 근거로 쓰는 것은 어떤 문단이 잘렸다는 사실이고 잘린 문단의 내용이 아니다. 아래에서 잘린 쪽 문장을 인용하는 자리는 발행본과 무엇이 다른지 대조하기 위한 곳에 한정한다.</p>
+
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>offset</th><th>길이</th><th>무엇이 들어 있는가</th><th>v1 발행본에 남아 있는가</th></tr></thead>
+          <tbody>
+            <tr><td>31295-31594</td><td>299자</td><td>빈 figure 뼈대. <code>\caption{Caption}</code>, <code>\label{tab:placeholder}</code></td><td>내용이 없다</td></tr>
+            <tr><td>31601-32520</td><td>919자</td><td>§5 가 겨냥하는 목표 여섯 개의 정의문</td><td class="lose">본문에서 사라졌다. Table 1 의 여섯 행 이름만 남았다</td></tr>
+            <tr class="hero"><td>37694-38246</td><td>552자</td><td>일곱 번째 범주 <code>Canaries, probes, and audits.</code> 와 그 아래 Audits 항목</td><td>범주는 사라지고 기법은 Behavioral monitoring 안에 있다</td></tr>
+            <tr><td>47131-49408</td><td>2,277자</td><td>§6 반론 3 의 긴 판본</td><td>축약해서 실렸다. 아래에서 대조한다</td></tr>
+            <tr><td>51608-52309</td><td>701자</td><td>결론의 NeurIPS 커뮤니티 문단</td><td>거의 같은 문장이 살아 있다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">표. offset 은 <code>pin-paper.mjs</code> 가 고정한 62,948자 텍스트에서의 문자 위치다. 길이 합계와 비율은 논문에 없는 계산이다.</p>
+
+      <h3>Canaries 는 잘리지 않았다. 범주가 잘렸다</h3>
+      <p>주석 처리된 범주 머리는 <code>This category covers active interventions that test whether oversight is functioning.</code> 다. 그 범주가 담던 Canaries 와 Audits 는 발행본 §5 tex:247 과 249 에 살아 있고 자리는 Behavioral monitoring 안이다. Behavioral monitoring 자신의 범주 머리도 감독 품질을 경험적으로 측정 가능한 속성으로 놓고 감독이 잘 작동하는지 시험할 수 있다고 말한다. 감독 품질을 능동적으로 시험하는 항목은 v1 에서 살아 있고 사라진 것은 별도 범주로 세우던 이름표다.</p>
+      <p>실제로 사라진 기법은 하나다. 잘린 블록에는 <code>paired reviewers assess the same agent output without seeing each other's judgements, surfacing inconsistencies</code> 가 있다. 서로의 판정을 보지 않는 두 검토자를 붙이는 독립 이중 검토다. 발행본 Audits 항목 tex:249 에서도 같은 구절이 <code>%</code> 로 지워져 있어서 v1 어디에도 남아 있지 않다.</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">본문에서는 사라졌는데 그림에는 남았다</span>
+          <p class="small">Figure 2 는 Canaries 와 Audits 를 여전히 독립 상자로 그린다. 그림의 서로 다른 라벨은 8개, Table 1 의 열은 6개, §5 본문의 굵은 범주도 6개다. 그림만 범주를 접기 전 상태로 남아 있다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">정의는 사라졌는데 행 이름은 남았다</span>
+          <p class="small">잘린 919자가 preventing acquiescence, preventing fatigue, preventing overreliance, preventing cognitive overload, supporting critical judgement, supporting engagement 여섯을 정의한다. Table 1 의 여섯 행이 같은 순서로 남았는데 이름이 다른 행은 셋이다. 넷째와 다섯째는 수식어만 빠져 <code>Preventing overload</code> 와 <code>Supporting judgement</code> 가 됐고, 뜻까지 좁아진 것은 첫 행 하나다. <code>preventing acquiescence</code> 가 <code>Preventing automation bias</code> 로 좁혀졌고, 주석 쪽에서 automation bias 는 acquiescence 아래 세 편향 중 하나로 적혀 있다. 정의는 발행본 어디에도 없다.</p>
+        </div>
+      </div>
+
+      <h3>§6 반론 3 에서 무엇이 빠졌는가</h3>
+      <p>발행본은 선호 기반 학습이 감독 체계의 일부가 될 수 있되 승인 신호를 독립적인 감독 품질 척도에 대조해야 한다고 쓰고 끝난다. 주석 처리된 긴 판본은 같은 문장을 쓴 뒤 한 구절을 더 달고 있었다. 그 척도가 아직 없다는 구절이다.</p>
+      <p class="q">measures the field has not yet developed and which our proposal partly aims to motivate<cite>주석 블록 47131-49408, tex:318. 발행본 tex:314 의 같은 문장에는 이 구절이 없다</cite></p>
+      <p>어느 쪽이 논문의 주장인지는 발행본이 정한다. 여기서 확인되는 사실은 조건은 남고 그 조건을 지금 만족시킬 수 없다는 단서는 빠졌다는 것이다. 7장에서 §5 에 임계값이 없다고 판정한 것과 같은 공백이 §6 에서도 그대로 있다.</p>
+
+      <p class="note">결론 블록 51608-52309 은 이 목록에서 예외다. NeurIPS 커뮤니티를 부르는 문장은 발행본 결론 tex:336 에도 거의 그대로 살아 있고 서문 tex:5 가 <code>\usepackage[position, final]{neurips_2026}</code> 를 부른다. 투고처는 주석 안에 숨어 있는 정보가 아니다.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>읽은 범위. 논문은 전문을 읽었고 커뮤니티 반응은 채널 세 개를 검색조차 하지 못했다</h2>
+      <p class="dek">코퍼스는 arXiv e-print tarball 이다. 6개 파일, gzip 135,305 바이트. 고정된 본문은 <code>main_arxiv.tex</code> 와 <code>visuals.tex</code> 를 이름순으로 잇고 주석만 있는 줄을 걷어낸 62,948자이고 sha256 은 <code>cfd3eb89</code> 로 시작한다. 아래 목록의 읽은 것과 읽지 않은 것을 더하면 tarball 전체가 된다.</p>
+
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>tarball 파일</th><th>크기</th><th>어디까지 읽었는가</th></tr></thead>
+          <tbody>
+            <tr><td><code>main_arxiv.tex</code></td><td>62,306 B</td><td>전문. §1부터 §7, 부록 A와 B, <code>\iffalse</code> 블록 5개 전부</td></tr>
+            <tr><td><code>visuals.tex</code></td><td>6,164 B</td><td>전문. Table 1 과 Figure 2 의 TikZ 노드 좌표까지</td></tr>
+            <tr><td><code>bibliography.bib</code></td><td>73,339 B</td><td class="lose">항목 141개 중 1개만. <code>ClaudeAuto</code> 키를 풀려고 열었다</td></tr>
+            <tr><td><code>extended_mind.png</code></td><td>81,085 B</td><td class="lose">열지 않았다. 부록 B 의 xkcd 만화이고 §4.1 이 유머로 인용한다</td></tr>
+            <tr><td><code>neurips_2026.sty</code></td><td>13,527 B</td><td class="lose">열지 않았다. 서식 스타일 파일이다</td></tr>
+            <tr><td><code>00README.json</code></td><td>219 B</td><td>전문. <code>main_arxiv.tex</code> 가 toplevel 이라는 것과 컴파일러가 pdflatex 이라는 것</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">읽지 않은 세 파일이 이 문서에서 무엇을 깎는가. <code>bibliography.bib</code> 를 다 읽지 않았으므로 §4 의 <code>\cite</code> 35개가 가리키는 문헌 28개가 실제로 그 주장을 뒷받침하는지는 확인하지 않았다. 4장에서 §4.1 의 인과를 논문이 세운 것이 아니라 모아 온 것이라고 쓴 근거는 본문의 인용 배치이지 인용 문헌 자체가 아니다. <code>extended_mind.png</code> 는 이 문서의 어떤 주장도 옮기지 않아서 넣지 않았다.</p>
+
+      <h3>그림 처리</h3>
+      <p>tarball 에는 Table 1 과 Figure 2 의 렌더 파일이 들어 있지 않다. 둘 다 TikZ 와 NiceTabular 로 본문에서 조판된다. 그래서 Table 1 은 값을 다시 타이핑했고 Figure 2 는 <code>visuals.tex</code> 의 노드 좌표에서 다시 그렸다. 사분면 배치, 각 사분면의 상자 목록, 왼쪽 아래가 빈 점선 상자라는 것은 전부 좌표에서 직접 읽은 것이다.</p>
+
+      <h3>커뮤니티 반응</h3>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>채널</th><th>검색했는가</th><th>결과</th></tr></thead>
+          <tbody>
+            <tr><td>Hacker News</td><td class="win">했다</td><td>제목 인용 검색 0건. <code>oversight degrades the overseer</code> 0건. 번호만 넣으면 3건이 나오는데 전부 다른 arXiv 번호다</td></tr>
+            <tr><td>GeekNews</td><td class="win">했다</td><td>HTTP 200, 결과 행 0개</td></tr>
+            <tr><td>일반 웹 검색</td><td class="win">했다</td><td>이 논문을 지목하는 페이지 0건. Passi 의 다른 글과 저자들의 이전 논문이 대신 나온다</td></tr>
+            <tr><td>Reddit</td><td class="lose">못 했다</td><td><code>search.json</code> 403, <code>old.reddit.com</code> 302, <code>pullpush.io</code> 429</td></tr>
+            <tr><td>Bluesky</td><td class="lose">못 했다</td><td><code>searchPosts</code> 가 403 을 반환한다. IP 차단이다</td></tr>
+            <tr><td>Threads</td><td class="lose">못 했다</td><td>뚫지 못했다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:12px">0건을 반응이 없다는 뜻으로 읽으면 안 된다. 공개 6일째이고 arXiv API 가 v1 하나만 보고한다. 저자 계정 두 곳이 이 논문을 올리지 않았다는 것은 앞선 조사에서 온 사실이고 여기서 다시 확인하지 않았다. 인용 수는 Semantic Scholar 가 429 를 반환해서 확인하지 못했다.</p>
+
+      <p class="note">렌더 확인. 마지막 수정을 마친 뒤 headless Chrome 으로 1,440px 폭에서 16장을 전부 열어 읽었다. dark theme 은 12장부터 14장까지 셋만 봤고 나머지 열세 장은 light 로만 봤다.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-autoapproval</p>
+      <h2>배포 현실. 논문이 인용한 그 글은 승인 판단을 Sonnet 4.6 분류기에 넘기고 실제 과잉행동의 17%를 놓친다</h2>
+      <p class="dek">논문이 approval fatigue 근거로 붙인 <code>ClaudeAuto</code> 는 Anthropic 의 2026-03-25 엔지니어링 글이다. 첫 문장이 승인률 93%이고 그 다음 문장에서 그래서 분류기를 만들었다고 쓴다. 논문 §4.3 이 말하는 축출을 제품으로 만든 글이 논문의 각주에 들어 있다. 아래 두 지표는 글의 정의를 따른다. FNR 은 위험한 행동을 통과시키는 비율, FPR 은 정상 행동을 막는 비율이다.</p>
+
+      <p class="q">Claude Code users approve 93% of permission prompts. We built classifiers to automate some decisions, increasing safety while reducing approval fatigue.<cite>글 첫 문단. 이 93%에 붙은 모집단도 기간도 글 전체에 없다</cite></p>
+
+      <div class="stats">
+        <div class="stat bad"><span class="lab">93%에 붙은 모집단</span><span class="val">없음</span><span class="sub">누구의, 언제부터 언제까지인지 글 어디에도 없다. 평가용 데이터셋 셋은 출처를 다 밝히므로 모집단이 없는 수치는 이 93% 하나다</span></div>
+        <div class="stat bad"><span class="lab">배포 파이프라인 FNR</span><span class="val">17<span class="u">%</span></span><span class="sub">실제 과잉행동 52건 기준. 글 자신이 이 값을 the honest number 라고 부른다</span></div>
+        <div class="stat hero"><span class="lab">사람을 부르는 문턱</span><span class="val">3<span class="u">연속</span></span><span class="sub">또는 누적 20건의 거부. 글이 숫자로 못 박은 유일한 개입 조건이다</span></div>
+      </div>
+
+      <h3>승인 결정이 흐르는 세 계층</h3>
+      <ul class="clean">
+        <li><span class="m">1</span><span>내장 안전 도구 allowlist 와 사용자 설정. auto mode 로 들어갈 때 임의 코드 실행을 허용하는 규칙은 회수한다. 통짜 shell 접근, 와일드카드가 붙은 인터프리터, 패키지 매니저 run 명령이다. 글은 이 목록이 어차피 불완전할 수밖에 없다고 먼저 밝힌다.</span></li>
+        <li><span class="m">2</span><span>프로젝트 디렉터리 안의 파일 쓰기와 편집. 분류기를 거치지 않는다. 버전 관리로 되돌릴 수 있기 때문이다.</span></li>
+        <li><span class="m">3</span><span>나머지 전부가 transcript 분류기로 간다. shell 명령, web fetch, 외부 도구, subagent 생성, 프로젝트 밖 파일 조작. Stage 1 이 단일 토큰으로 거르고 걸린 것만 Stage 2 가 chain-of-thought 로 다시 본다.</span></li>
+      </ul>
+
+      <div class="figure">
+        <p class="fig-title">Stage 2 는 FPR 을 8.5%에서 0.4%로 내리는 대신 실제 과잉행동 FNR 을 6.6%에서 17%로 올린다</p>
+        <p class="fig-sub">값도 데이터셋 이름도 글의 Table 1 을 그대로 옮긴 것이다</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>단계</th><th>Real traffic (n=10,000)</th><th>Real overeager (n=52)</th><th>Synthetic exfil (n=1,000)</th></tr></thead>
+            <tbody>
+              <tr><td>Stage 1 (빠른 필터)</td><td>8.5% FPR</td><td>6.6% FNR</td><td>1.8% FNR</td></tr>
+              <tr class="hero"><td>Stage 1 &rarr; Stage 2 (배포되는 전체)</td><td>0.4% FPR</td><td>17% FNR</td><td>5.7% FNR</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>강조한 행이 실제로 돌아가는 파이프라인이다. Stage 2 는 Stage 1 이 표시한 것만 다시 보므로 두 행은 누적이 아니라 서로 다른 구성이다. 17%는 52건에 대한 값이라 약 9건이고 이 환산은 글에 없다. 세 데이터셋의 출처도 글이 밝힌다. 10,000건은 Anthropic 직원의 실제 tool call 이고 52건은 직원이 거부했거나 사후에 표시된 세션에서 추린 것이며 1,000건은 생성한 것이다. 52건이 작은 이유도 적혀 있다. 실제 세션에서 Claude 가 위험한 것을 시도하고 그것이 포착되어 라벨이 붙어야 한다.</figcaption>
+      </div>
+
+      <h3>글이 스스로 긋는 선</h3>
+      <p class="q">If you are manually approving every action carefully, it's arguably a regression, you're trading your own judgment for a classifier that will sometimes make a mistake. […] It is not a drop-in replacement for careful human review on high-stakes infrastructure.<cite>Results 절 끝. 원문의 쉼표 자리에는 em dash 가 있다</cite></p>
+      <p>비교 기준이 글 안에 적혀 있다. 마지막 절에서 시작점은 가드레일이 아예 없는 상태보다 훨씬 안전하게 만드는 것이라고 쓴다. 곧 이 17%가 좋은지 나쁜지는 독자가 지금 무엇을 하고 있는가로 갈리고 글은 그 갈림을 감추지 않는다.</p>
+
+      <p class="note">여기 수치는 전부 벤더가 자기 시스템에 대해 낸 것이고 외부 재현은 없다. 다만 논문 저자들이 이 글을 열어본 날짜(<code>urldate</code> 2026-04-29) 직전 아카이브 스냅숏(2026-04-27)에도 93%와 17%가 같은 값으로 들어 있다. 저자들이 인용한 판본이 이 값을 담고 있었다.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-confront</p>
+      <h2>대조. 논문이 허용한 자동화는 판단이 필요 없는 속성의 검증이고, auto mode 는 판단 자체를 넘긴다</h2>
+      <p class="dek">§5 Approval design 의 세 번째 처방이 자동 승인을 허용한다. 조건 두 개가 15단어짜리 한 항목에 들어 있다. 배포된 auto mode 는 그 둘을 다 넘고 넘은 대가가 17%다. §6 이 예상한 반론 세 개에는 이 경우가 없다.</p>
+
+      <div class="figure">
+        <p class="fig-title">두 설계가 배타적으로 갈리는 지점은 사용자 권한 해석을 누가 하는가 하나다</p>
+        <p class="fig-sub">왼쪽은 논문 §5 tex:236 의 조건을 그린 것, 오른쪽은 글의 How permission decisions work 절을 그린 것. 이 대조는 두 원문 어디에도 없다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 764 336" role="img" aria-label="두 승인 경로의 대조. 왼쪽 열은 논문 5장이 허용하는 자동화다. 에이전트 행동에서 기계 사전검사로 가는데 이 검사는 판단이 필요 없는 속성만 본다. 그 다음 사람 승인 상자가 있고 사용자 권한 해석이 여기 남는다고 적혀 있다. 마지막이 실행이다. 오른쪽 열은 auto mode 다. 에이전트 행동에서 Tier 1 과 2 의 allowlist 로 가고, 걸리지 않은 것은 Tier 3 분류기로 간다. 이 분류기가 사용자 권한 해석까지 하며 강조되어 있다. 그 다음이 실행이다. 사람은 3연속 또는 누적 20건 거부일 때만 호출된다고 오른쪽 아래에 적혀 있다.">
+          <text class="txt"   x="8"   y="20">논문 §5 가 허용하는 자동화</text>
+          <text class="txt-s" x="8"   y="38">Automated pre-checks 의 조건 두 개</text>
+          <text class="txt"   x="406" y="20">auto mode 가 출하한 것</text>
+          <text class="txt-s" x="406" y="38">transcript 분류기 3계층</text>
+
+          <rect class="box" x="8" y="52" width="340" height="46" rx="8"/>
+          <text class="txt"   x="24" y="72">에이전트가 행동을 낸다</text>
+          <text class="txt-s" x="24" y="90">shell, 파일, 네트워크</text>
+          <path class="arw" d="M178 98 L178 116"/><path class="arw" d="M173 109 L178 116 L183 109"/>
+
+          <rect class="box" x="8" y="116" width="340" height="46" rx="8"/>
+          <text class="txt"   x="24" y="136">기계 사전검사</text>
+          <text class="txt-s" x="24" y="154">판단이 필요 없는 속성만 본다</text>
+          <path class="arw" d="M178 162 L178 180"/><path class="arw" d="M173 173 L178 180 L183 173"/>
+
+          <rect class="box-hi" x="8" y="180" width="340" height="46" rx="8"/>
+          <text class="txt"   x="24" y="200">사람 승인</text>
+          <text class="txt-s" x="24" y="218">사용자 권한 해석이 여기 남는다</text>
+          <path class="arw" d="M178 226 L178 244"/><path class="arw" d="M173 237 L178 244 L183 237"/>
+
+          <rect class="box" x="8" y="244" width="340" height="46" rx="8"/>
+          <text class="txt"   x="24" y="272">실행</text>
+
+          <rect class="box" x="406" y="52" width="340" height="46" rx="8"/>
+          <text class="txt"   x="422" y="72">에이전트가 행동을 낸다</text>
+          <text class="txt-s" x="422" y="90">같은 자리</text>
+          <path class="arw" d="M576 98 L576 116"/><path class="arw" d="M571 109 L576 116 L581 109"/>
+
+          <rect class="box" x="406" y="116" width="340" height="46" rx="8"/>
+          <text class="txt"   x="422" y="136">Tier 1, 2 allowlist</text>
+          <text class="txt-s" x="422" y="154">읽기 도구와 프로젝트 안 편집은 통과</text>
+          <path class="arw" d="M576 162 L576 180"/><path class="arw" d="M571 173 L576 180 L581 173"/>
+
+          <rect class="box-hi" x="406" y="180" width="340" height="46" rx="8"/>
+          <text class="txt"   x="422" y="200">Tier 3 분류기</text>
+          <text class="txt-s" x="422" y="218">사용자 권한 해석까지 여기서 한다</text>
+          <path class="arw" d="M576 226 L576 244"/><path class="arw" d="M571 237 L576 244 L581 237"/>
+
+          <rect class="box" x="406" y="244" width="340" height="46" rx="8"/>
+          <text class="txt"   x="422" y="272">실행</text>
+
+          <text class="txt-s" x="406" y="312">사람은 3연속 또는 누적 20건 거부일 때만 불려 온다</text>
+        </svg>
+        </div>
+        <figcaption>강조한 두 상자가 대조의 전부다. 왼쪽에서 사람이 하던 일을 오른쪽에서는 Sonnet 4.6 이 한다. 나머지 중 두 설계가 같은 것은 첫 상자와 마지막 상자이고, 가운데 한 단계는 서로 다른 처방이다. 오른쪽 allowlist 는 Automated pre-checks 가 아니라 <code>Bounded autonomy</code> 쪽이다(14장).</figcaption>
+      </div>
+
+      <h3>조건 하나: supplementing 인가 substitute 인가</h3>
+      <p>논문은 기계 검증을 사람 검토에 <b>덧붙이는</b> 것으로 쓴다. 글은 자기 분류기를 사람 승인자의 <b>대체물</b>로 쓴다.</p>
+      <p class="q">the transcript classifier (running on Sonnet 4.6) evaluates each action against a set of decision criteria before it executes, acting as a substitute for a human approver<cite>How it works 절</cite></p>
+
+      <h3>조건 둘: 판단이 필요 없는 속성인가</h3>
+      <p>글이 분류기 프롬프트를 설명하면서 어려운 부분을 스스로 지목한다. 그것이 정확히 논문이 사람 몫으로 남긴 판단이다.</p>
+      <p class="q">The classifier has to decide whether the action is something the user authorized, not just an action related to the user's goal.<cite>The classifier decision criteria 절, 고정 템플릿의 User intent rules</cite></p>
+      <p>사용자가 무엇을 승인했는지 읽는 일은 속성 검증이 아니다. 논문 §3 이 approver 에게 요구한 목록이 그대로 이것이다. 각 결정점을 과제 전문가로서 평가하고, 의도하지 않은 결과를 미리 막고, 다단계 계획을 추적하는 일.</p>
+
+      <h3>그래서 실패 형태가 따라왔다</h3>
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">논문 §4.4, 지친 감독자</span>
+          <p class="small"><code>A tired or out-of-the-loop overseer may approve quickly, accept fluent rationales, and rate the interaction favorably.</code></p>
+        </div>
+        <div class="card">
+          <span class="tag">글, 분류기가 놓치는 17%</span>
+          <p class="small"><code>The classifier finds approval-shaped evidence and stops short of checking whether it's consent for the blast radius of the action.</code></p>
+        </div>
+      </div>
+      <p style="margin-top:14px">두 문장이 같은 오류를 쓴다. 승인처럼 보이는 것을 승인으로 받고 그 승인이 이 행동의 파급까지 덮는지는 확인하지 않는 것. 글은 프롬프트 조정으로 고쳐 보려 했고 얻는 것보다 비용이 큰 방법밖에 못 찾았다고 밝힌다. 승인 판단을 사람에게서 기계로 옮기는 것으로는 이 오류가 없어지지 않았다.</p>
+
+      <h3>93%는 §5 의 override signature 를 한 번 관측한 값이다</h3>
+      <p>§5 Behavioral monitoring 의 두 번째 signature 는 에이전트와 의견이 갈리는 비율이 <b>시간이 갈수록</b> 또는 <b>복잡도가 올라갈수록</b> 내려가는지를 본다. 정의가 시계열을 요구한다. 글이 싣는 것은 한 시점의 한 값이고 모집단도 기간도 없다. 같은 93%가 두 가지로 읽힌다.</p>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>읽기</th><th>결론</th><th>이 읽기를 뒷받침하려면 필요한 것</th></tr></thead>
+          <tbody>
+            <tr><td>논문 쪽</td><td>승인률이 이미 높다는 것은 감독이 무너졌다는 신호다. 프롬프트를 없앨 것이 아니라 감독을 되살려야 한다</td><td class="lose">승인률의 시계열. 그리고 복잡도가 오를 때 어떻게 움직이는지</td></tr>
+            <tr><td>글 쪽</td><td>승인률이 이미 높다는 것은 프롬프트가 값을 못 하고 있다는 신호다. 걸러 낼 것만 걸러 내면 된다</td><td class="lose">같은 시계열</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p style="margin-top:12px">양쪽이 필요로 하는 데이터가 같고 어느 쪽도 갖고 있지 않다. 논문은 그 데이터를 재라고 말하지만 얼마가 되면 무너진 것인지 말하지 않고 글은 그 데이터를 재지 않고 한 값에서 곧바로 설계 결정으로 간다.</p>
+
+      <h3>§6 이 이 반론을 예상하지 않는다</h3>
+      <p>§6 이 미리 받아치는 반론은 셋이다. 인지 효과가 과장됐고 사람이 적응한다, 더 나은 툴링과 투명성이 해결한다, alignment 가 해결하므로 사람 감독은 낡았다. 승인 판단을 기계에 넘기는 경우는 셋 중 어디에도 없다. §5 가 조건부로 이미 허용했으니 §6 에서 다툴 것이 없다고 볼 수는 있는데 그러면 조건을 넘긴 배포에 대해 논문이 할 말이 남지 않는다. 이 논문의 제목이 가리키는 현상을 제품으로 만든 사례가 논문의 인용 목록 안에 있는데 본문에서 그 사례를 다루는 자리가 없다.</p>
+
+      <p class="note">둘이 갈리는 지점은 판단을 위임할 수 있는가 하나다. 여기서는 논문이 이긴다. 근거는 글 자신이다. 고위험 인프라의 신중한 사람 검토를 그대로 대체하지 않는다고 스스로 못 박는다. 다만 논문이 이기는 범위도 거기까지다. 그 아래 등급의 작업에서 무엇을 해야 하는지는 논문이 임계값을 주지 않아 답하지 못한다.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">trace</p>
+      <h2>사례. "clean up old branches" 한 마디가 remote 브랜치 삭제로 가는 동안 두 설계가 갈리는 자리는 삭제 호출 하나다</h2>
+      <p class="dek">글이 자기 인시던트 로그에서 각색한 첫 예시다. 도구 호출 하나에 대한 권한 판정까지만 따라간다. 양쪽 갈래 모두 원문에 있는 것을 이 예시에 대입한 것이다. 왼쪽은 논문 §3 과 §4.4 의 서술이고 오른쪽은 글이 밝힌 3계층 구조다. 글이 이 예시에 직접 붙인 것은 <code>This would be blocked</code> 와 그 이유 세 가지뿐이고 논문은 이 예시를 다루지 않는다.</p>
+
+<pre>
+사용자     "clean up old branches"
+
+에이전트   git branch -r                          <span class="c">shell 명령이라 이것도 Tier 3 다. 글은 이 호출의 판정을 적지 않는다</span>
+           패턴 매치를 구성                        <span class="c">에이전트 내부 추론. 권한 판정 대상이 아니다</span>
+           git push origin --delete &lt;pattern&gt;     <span class="k">두 설계가 갈리는 자리는 여기다</span>
+
+├─ <b>사람 승인 경로</b>  <span class="c">(논문 §3 이 approver 에게 요구하는 것)</span>
+│
+│   이 순간 감독자가 해야 하는 일
+│     · &lt;pattern&gt; 이 실제로 무엇에 매치되는지 확인    <span class="r">프롬프트에 그 목록이 없다</span>
+│     · remote 를 뜻한 것인지 local 을 뜻한 것인지 확인
+│     · 되돌릴 수 있는지 판정
+│     · 이것이 다단계 계획의 어디쯤인지 유지
+│
+│   §4.4 가 적는 두 결과
+│     alert   승인 보류. 무엇에 매치되는지 되묻는다
+│     tired   빠른 승인. 유창한 근거를 받아들이고 상호작용을 좋게 평가
+│
+└─ <b>auto mode 경로</b>  <span class="c">(글의 How permission decisions work)</span>
+
+    Tier 1   통짜 shell 허용 규칙은 auto mode 진입 시 회수됨    <span class="r">통과 못 함</span>
+    Tier 2   프로젝트 디렉터리 안의 파일 조작이 아님            <span class="r">해당 없음</span>
+    Tier 3   Stage 1 단일 토큰 필터, 막는 쪽으로 기울여 둠
+             Stage 2 같은 입력에 chain-of-thought 재평가
+
+    글이 이 예시에 붙인 결과   <span class="k">This would be blocked</span>
+      이유: 요청이 모호하다
+            행동이 비가역이고 파괴적이다
+            사용자는 local 만 뜻했을 수 있다
+    <span class="c">어느 stage 가 그 판정을 냈는지는 글에 없다. 계층 배정은 글의 Tier 정의를 이 호출에 대입한 것이다</span>
+
+    분류기가 본 것     사용자 메시지 + 도구 호출
+    분류기가 못 본 것  에이전트의 설명, git branch -r 의 출력   <span class="c">reasoning-blind by design</span>
+
+    거부는 tool result 로 돌아가고 에이전트가 더 안전한 경로를 찾는다
+    3연속 또는 누적 20건이면 여기서 사람을 부른다
+</pre>
+
+      <h3>감독자가 필요로 하는 정보와 분류기가 보는 정보</h3>
+      <p>사람 경로에서 감독자가 필요로 하는 정보와 분류기가 보는 정보가 서로 다르다. 감독자는 <code>&lt;pattern&gt;</code> 이 무엇에 매치되는지 알아야 판정할 수 있는데 프롬프트에 그 목록이 없다. 분류기는 그 목록을 볼 수 있는 자리(도구 출력)를 설계상 차단해 두고 대신 사용자 발화와 도구 호출만으로 판정한다. 이 예시는 사용자 발화가 모호해서 막힌다.</p>
+      <p>글이 밝히는 17%의 형태가 이것과 다르다. 대부분의 놓침에서 분류기는 위험 자체는 정확히 알아본다. force-push 도, 삭제도, 인프라 변경도 본다. 틀리는 것은 세션 안의 실제 동의 신호가 <b>이 행동</b>까지 덮는지다. 사용자가 "clean up the PR" 이라고 말했지만 그것이 force-push 를 지목하지는 않았고 비슷한 행동을 앞서 한 번 승인했지만 한 번은 패턴이 아니다.</p>
+
+      <p class="note">이 추적은 도구 호출 하나의 권한 판정에서 끝난다. 그 뒤에 실제로 브랜치가 지워졌을 때 어떤 일이 벌어지는지, 되돌리는 경로가 있는지는 두 원문 어디에도 없다. 왼쪽 갈래의 감독자 행동 목록은 논문 §3 tex:118 의 서술을 이 예시에 옮긴 것이다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>해석의 한계. §4 의 인과는 인용으로 서 있고, 이 문서의 대조는 벤더 자기보고에 기댄다</h2>
+      <p class="dek">논문이 스스로 인정하는 것과 이 문서가 주장하는 것을 나눈다. 앞쪽은 논문의 신용이고 뒤쪽은 이 문서가 책임진다.</p>
+
+      <h3>논문이 명시하는 것</h3>
+      <ul class="clean">
+        <li><span class="m">·</span><span>§5 는 완전하지도 완벽하지도 고정되지도 않은 목록이라고 §5 도입부가 먼저 밝힌다. 경계가 겹치고 다른 묶음도 가능하다는 것까지 쓴다.</span></li>
+        <li><span class="m">·</span><span>Table 1 은 결과가 아니라 해법을 찾는 과정에서 만든 조직화 도구라고 캡션이 밝힌다. 빈칸이 그 자리에 해법이 없다는 뜻이 아니다.</span></li>
+        <li><span class="m">·</span><span>§6 첫 문단이 개입의 대가를 인정한다. 과의존을 줄이는 시스템을 사용자가 선호하지 않을 수 있다는 초기 증거가 있고 사용자 만족과 감독 보존 사이에 긴장이 있다고 쓴다.</span></li>
+      </ul>
+
+      <h3>이 문서가 주장하는 것</h3>
+      <ul class="clean">
+        <li><span class="m bad">1</span><span><b>§4 의 인과 사슬은 크기를 갖지 않는다.</b> 고정된 본문 62,948자에 백분율 값이 하나도 없다. 조판되는 <code>\%</code> 0회, <code>percent</code> 0회이고 본문에 있는 <code>%</code> 43개는 전부 LaTeX 주석 표시다. §4.1 의 유일한 생리 측정인 뇌 연결성 감소는 인용이고 효과 크기가 붙어 있지 않다. 논문에서 자기 로그로 참·거짓을 확인해 볼 수 있는 형태로 쓰인 문장은 §4.4 의 조건문 하나다.</span></li>
+        <li><span class="m">2</span><span><b>대조에 쓴 수치는 전부 한쪽 당사자의 자기보고다.</b> 17%는 벤더가 자기 분류기를 자기가 만든 52건 집합에 대고 잰 값이고 외부 재현이 없다. 그 52건은 사내 직원 세션에서 온 것이라 일반 사용자 트래픽의 위험 분포와 같다고 볼 근거가 없다. 이 문서의 11장 논증은 17%의 크기가 아니라 놓치는 <b>형태</b>에 기대므로 이 한계에 덜 물리지만 크기를 근거로 무엇을 결정하지는 말아야 한다.</span></li>
+        <li><span class="m">3</span><span><b>93%의 두 읽기를 이 문서도 가르지 못한다.</b> 11장의 표는 어느 쪽 읽기가 맞는지 정하지 않는다. 두 읽기가 같은 데이터를 필요로 하고 그 데이터가 공개되어 있지 않다는 것까지가 확인된 것이다.</span></li>
+        <li><span class="m">4</span><span><b>커뮤니티 채널 세 개를 검색조차 못 했다.</b> Reddit, Bluesky, Threads 다. 인용 수도 확인하지 못했다. 9장에 사정이 있다.</span></li>
+        <li><span class="m">5</span><span><b>대조 상대를 하나만 썼다.</b> 승인 자동화를 하는 하네스가 이것만은 아닌데 이 문서는 논문이 인용한 그 글 하나만 연다. 다른 설계가 §5 의 두 조건을 지키는지는 확인하지 않았다.</span></li>
+      </ul>
+
+      <p>한계를 넘어 남는 것이 하나 있다. §4.4 의 조건문은 벤더와 무관하게 어느 하네스에서나 잴 수 있는 형태다. 측정 대상인 승인이 의도 대상인 잘 검토된 옳은 행동과 벌어지는지를 보라는 것인데, 세션마다 승인과 거부, 프롬프트를 띄운 시각, 응답이 온 시각만 남겨도 그 벌어짐의 앞쪽 절반은 관측된다. 그리고 그 로그는 §5 Behavioral monitoring 의 세 signature 중 두 개를 그대로 채운다. 이 논문에서 벤더 문맥 밖으로 옮겨 가는 부분은 여기다.</p>
+
+      <p class="note">position paper 를 실험 논문의 기준으로 평가하지 않았다. 위의 1번은 논문이 잘못 썼다는 뜻이 아니라, 이 문서가 다루는 독자에게 §4 가 무엇을 줄 수 있는지에 대한 판정이다.</p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adopt</p>
+      <h2>도입 판단. 계측은 지금 넣고, 승인 자동화는 자기 승인 습관을 재고 나서 정한다</h2>
+      <p class="dek">처음 세운 질문은 §5 를 구현할 것인가 승인 자동화로 갈 것인가였다. 둘은 배타적이지 않다. auto mode 의 Tier 1, 2 allowlist 자체가 §5 Approval design 의 <code>Bounded autonomy</code>, 곧 승인 없이 해도 되는 것을 미리 지정하는 처방이다. Strategic friction 쪽은 그렇게 읽을 수 없다. 범주 머리가 사용자에게 인지 작업을 시키는 것을 조건으로 단다(tex:224). 기계가 대신 서는 자리가 아니다. 배타적인 것은 사용자 권한 해석을 누가 하는가 하나이고 그 선택은 자기가 지금 어느 쪽인지를 알아야 할 수 있다.</p>
+
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>지금 당신의 상태</th><th>승인 자동화</th><th>먼저 할 일</th></tr></thead>
+          <tbody>
+            <tr><td>승인을 아예 끄고 돌린다</td><td class="win">개선이다</td><td>글이 그렇게 말한다. 다만 승인률 시계열은 남길 것이 없으므로 거부 로그와 거부 사유를 남긴다</td></tr>
+            <tr class="hero"><td>프롬프트가 뜨면 대체로 그냥 누른다</td><td>여기서 갈린다</td><td>승인 이벤트를 먼저 남긴다. 지금이 감독인지 형식인지 로그 없이는 자기도 모른다</td></tr>
+            <tr><td>승인마다 실제로 읽고 판단한다</td><td class="lose">회귀다</td><td>글 자신이 회귀라고 부른다. §5 Strategic friction 쪽이 맞는 투자다</td></tr>
+            <tr><td>고위험 인프라를 다룬다</td><td class="lose">해당 없음</td><td>글이 명시적으로 대상에서 뺀다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">표. 행은 독자의 상황이고 논문의 조건이 아니다. 가운데 열의 판정 근거는 글의 Results 절 마지막 문단이고 오른쪽 열은 이 문서의 판단이다.</p>
+
+      <h3>넣는 순서</h3>
+      <ul class="clean">
+        <li><span class="m">1</span><span><b>승인 이벤트 로깅.</b> 프롬프트 표시 시각, 응답 시각, 승인인지 거부인지, 세션 식별자, 도구 종류. 이것만으로 §5 의 time-based signature 와 override signature 두 개가 채워진다. 비용이 가장 낮고 나머지 결정의 전제가 된다. 임계값은 논문에 없으므로 직접 정해야 하고 정하기 전까지는 추세만 본다.</span></li>
+        <li><span class="m">2</span><span><b>Bounded autonomy 목록을 명시화하고 통짜 규칙은 회수한다.</b> auto mode 가 진입 시점에 하는 일이 이것이다. 통짜 shell 허용과 와일드카드 인터프리터를 남겨 두면 위험한 명령이 판정 지점에 아예 도달하지 않는다. 자동화를 넣든 안 넣든 해야 하는 일이다.</span></li>
+        <li><span class="m">3</span><span><b>Batch review.</b> 논리적 단위 하나를 끝내고 diff 한 장으로 올린다. 승인 횟수를 줄이면서 관련 행동을 같이 보게 만드는 유일한 처방이다.</span></li>
+        <li><span class="m">4</span><span><b>Canaries.</b> §5 에서 발동 시 조치가 붙은 유일한 항목이다. 휴식, 순환, 재교육. 다만 삽입 빈도와 과제 구성법과 발동선은 직접 설계해야 한다.</span></li>
+      </ul>
+
+      <h3>넣을 수 없는 것</h3>
+      <p>Trainings and exercises, Workload and scheduling, Role design 의 8개는 배포 조직 몫이다. 혼자 에이전트를 돌리는 개발자에게 Role design 의 <code>Separating roles</code> 는 어렵다기보다 성립하지 않는다. 감독하는 사람과 승인이 계속 나서 이득을 보는 사람이 같은 사람이기 때문이다. 장기 기술 저하 쪽은 반쯤 열려 있다. Figure 2 는 개발 단계와 장기 능력이 만나는 사분면을 비워 두지만 §5 본문의 <code>Delay-and-choice mechanisms</code> 는 개발 단계 항목이면서 그 능력을 지키는 것을 목적으로 쓴다. 사정은 6장이다.</p>
+
+      <h3>처음의 조건에 대한 답</h3>
+      <p>감독 품질을 측정 가능하게 만드는 항목은 Behavioral monitoring 이고 계측 명세로는 구현 가능하지만 경보 명세로는 방향 제시에서 멈춘다. 그래서 답이 둘로 갈리지 않고 하나로 갈린다. <b>재는 것은 논문대로 넣고, 언제 개입할지는 논문 밖에서 정한다.</b> 논문이 주지 않는 임계값을 대신 줄 수 있는 것은 지금은 자기 로그뿐이고 그 로그가 쌓이기 전까지 승인 자동화 도입은 자기가 어느 행에 있는지 모른 채 하는 결정이다.</p>
+
+      <p class="note">이 판단은 승인 자동화 제품 하나를 대조해서 나온 것이다. 다른 하네스가 §5 의 두 조건을 지키는 형태로 자동화를 넣었다면 판단이 달라진다. 확인하지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론. 논문은 감독이 무너지는 경로를 끝까지 그리고, 무너졌는지 판정할 선은 긋지 않는다</h2>
+      <p class="dek">§4 는 다섯 소절로 고리를 닫는다. 기술이 닳고, 감독이 지름길로 바뀌고, 사람이 루프 밖으로 밀리고, 그 상태의 승인이 학습 신호로 되돌아온다. §5 는 그 고리를 끊을 처방 21개를 낸다. 그중 감독이 실제로 무너졌는지 판정하는 항목이 Behavioral monitoring 이고 잴 양은 지정하되 얼마가 되면 무너진 것인지는 지정하지 않는다.</p>
+
+      <div class="grid g3">
+        <div class="card">
+          <span class="tag">§4 가 준 것</span>
+          <p class="small">검증 가능한 형태의 문장 하나. 측정 대상인 승인이 의도 대상인 잘 검토된 옳은 행동과 벌어질 때 문제가 생긴다는 조건문이다. 나머지는 인용으로 서 있다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">§5 가 준 것</span>
+          <p class="small">로그 스키마. 검토 시간과 승인·거부만 남겨도 세 signature 중 둘이 채워지고 추가 정보 요청까지 세면 셋이 다 찬다. 임계값은 없다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">§6 이 주지 않은 것</span>
+          <p class="small">승인 판단 자체를 기계에 넘기는 경우에 대한 답. 세 반론 중에 없고 §5 가 조건부로 허용했으므로 조건을 넘긴 배포를 다룰 자리가 남지 않았다.</p>
+        </div>
+      </div>
+
+      <p style="margin-top:20px">논문의 각주 안에 논문의 제목이 가리키는 현상을 제품으로 만든 글이 들어 있다. 그 글은 승인률 93%를 approval fatigue 의 증거로 내놓고 승인 판단을 분류기로 옮긴다. 논문 쪽에서 보면 93%는 감독이 이미 무너졌다는 신호이고, 글 쪽에서 보면 프롬프트가 값을 못 하고 있다는 신호다. 둘을 가르는 것은 그 값의 시계열뿐인데 어느 쪽도 갖고 있지 않다.</p>
+
+      <p>승인 판단을 기계로 옮기면 실패가 없어질 것이라는 기대도 이 대조에서 깨진다. 논문이 지친 감독자에게 붙인 오류와 벤더가 자기 분류기의 17%에 붙인 오류가 같다. 승인처럼 보이는 근거를 승인으로 받고, 그 승인이 이 행동의 파급까지 덮는지는 확인하지 않는 것. 옮긴 것은 판단의 자리이지 판단의 난이도가 아니었다.</p>
+
+      <p>그래서 하네스를 만드는 쪽에서 지금 할 수 있는 일은 하나로 좁혀진다. 논문이 이름 붙여 준 양을 세션마다 남기는 것. 그 로그가 쌓이기 전까지 승인을 자동화할지 말지는 자기가 어느 상태에 있는지 모른 채 하는 결정이고 논문이 가장 크게 경고하는 것이 바로 그 상태다.</p>
+
+      <p class="note">이 문서는 논문의 주장이 참인지 판정하지 않았다. 논문에 판정 대상이 될 수치가 없고 이 문서도 실험을 하지 않았다. 판정한 것은 §5 가 개발자에게 무엇을 시킬 수 있는 형태로 쓰였는가와, 논문이 인용한 배포 사례가 §5 의 조건 안에 있는가 둘이다.</p>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처. 논문은 e-print 원본으로 고정했고 벤더 글은 아카이브 두 판본을 같이 걸었다</h2>
+      <p class="dek">아래 식별자로 같은 바이트를 다시 받을 수 있다. 벤더 글은 살아 있는 페이지라 바뀔 수 있어서 아카이브 URL 을 같이 적는다. 하나는 오늘에 가까운 스냅숏이고 다른 하나는 논문 저자들이 열어본 날짜 직전 스냅숏이다.</p>
+
+      <h3>1차 원문</h3>
+      <div class="src">
+        <p><a href="https://arxiv.org/abs/2608.23642v1">AI Agents Push Humans Out of the Loop</a><br>
+        <span class="t">Margaret Mitchell (Hugging Face), Avijit Ghosh (Hugging Face), Samir Passi (Data &amp; Society). arXiv:2608.23642v1, 2026-08-24 제출, cs.AI + cs.HC. position paper 이고 peer review 를 거치지 않았다.</span></p>
+        <p><a href="https://arxiv.org/e-print/2608.23642v1">arxiv.org/e-print/2608.23642v1</a><br>
+        <span class="t">LaTeX 원본 tarball, gzip 135,305 바이트. 고정된 본문 sha256 은 <code>cfd3eb893509b9c62e25c2253f5265401a0fa469b1f5bbdbd1e589bb7f5a8e35</code>, 62,948자다. <code>main_arxiv.tex</code> 와 <code>visuals.tex</code> 를 이름순으로 잇고 주석만 있는 줄을 걷어낸 결과다.</span></p>
+        <p><a href="https://arxiv.org/html/2608.23642v1">arxiv.org/html/2608.23642v1</a><br>
+        <span class="t">렌더된 판본. 절 번호가 §4.5 까지라는 것과 참고문헌 [6] 의 역참조가 §3 을 가리킨다는 것을 여기서 확인했다.</span></p>
+      </div>
+
+      <h3>논문이 인용한 배포 사례</h3>
+      <div class="src">
+        <p><a href="https://www.anthropic.com/engineering/claude-code-auto-mode">How we built Claude Code auto mode: a safer way to skip permissions</a><br>
+        <span class="t">Anthropic, John Hughes, 2026-03-25. 논문 <code>bibliography.bib</code> 의 <code>ClaudeAuto</code> 키가 가리키는 글이고 <code>urldate</code> 는 2026-04-29 다.</span></p>
+        <p><a href="https://web.archive.org/web/20260821183004/https://www.anthropic.com/engineering/claude-code-auto-mode">web.archive.org 20260821183004</a><br>
+        <span class="t">오늘에 가까운 스냅숏.</span></p>
+        <p><a href="https://web.archive.org/web/20260427125049/https://www.anthropic.com/engineering/claude-code-auto-mode">web.archive.org 20260427125049</a><br>
+        <span class="t">저자들의 <code>urldate</code> 직전 스냅숏. 93%, 8.5 / 6.6 / 1.8, 0.4 / 17 / 5.7, n = 10,000 / 52 / 1,000 이 오늘 판본과 모두 같다.</span></p>
+      </div>
+
+      <h3>검색했으나 결과가 없었거나 검색하지 못한 곳</h3>
+      <div class="src">
+        <p><span class="t">Hacker News (Algolia API), GeekNews, 일반 웹 검색: 이 논문을 지목하는 결과 0건.</span></p>
+        <p><span class="t">Reddit, Bluesky <code>searchPosts</code>, Threads: 접근이 막혀 검색하지 못했다. Semantic Scholar 인용 수도 429 로 확인하지 못했다. 사정은 9장에 있다.</span></p>
+      </div>
+
+      <p class="note">근거는 이 문서 옆에 함께 보관된다. <code>.research/2026-08-30-oversight-degradation-vs-auto-approval/</code> 에 <code>sources.jsonl</code> 과 <code>evidence.jsonl</code> 이 있고 인용 59개가 각각 어느 줄에서 왔는지 적혀 있다.</p>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 16</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>

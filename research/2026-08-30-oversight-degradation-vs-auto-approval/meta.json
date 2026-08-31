@@ -1,0 +1,19 @@
+{
+  "title": "AI Agents Push Humans Out of the Loop: 잴 것은 지정하고 언제 경보할지는 지정하지 않은 oversight 처방 목록",
+  "summary": "§5 Behavioral monitoring 은 감독 품질을 재는 signature 3개를 이름과 방향까지 지정하지만 기준선도 관측 창도 임계값도 없다. 그래서 논문이 approval fatigue 근거로 인용한 그 글이 승인률 93%를 근거로 승인 판단 자체를 분류기에 넘겼을 때, 논문에는 그것을 판정할 선이 없다.",
+  "date": "2026-08-30",
+  "seq": 21,
+  "category": "paper",
+  "format": "deck",
+  "tags": [
+    "human oversight",
+    "agent harness",
+    "approval",
+    "HITL",
+    "position paper"
+  ],
+  "source": {
+    "label": "arXiv:2608.23642",
+    "url": "https://arxiv.org/abs/2608.23642v1"
+  }
+}
