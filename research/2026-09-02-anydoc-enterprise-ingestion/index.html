@@ -1,0 +1,662 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>anydoc: 픽셀 대신 Office 원본 구조와 PDF text layer를 읽는다</title>
+<meta name="description" content="Office package와 모든 page에 text layer가 있는 PDF를 local에서 읽는다. image-only page·diagram·Atlassian body에는 별도 parser와 OCR·VLM lane이 필요하다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="anydoc: 픽셀 대신 Office 원본 구조와 PDF text layer를 읽는다">
+<meta property="og:description" content="Office package와 모든 page에 text layer가 있는 PDF를 local에서 읽는다. image-only page·diagram·Atlassian body에는 별도 parser와 OCR·VLM lane이 필요하다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-09-02-anydoc-enterprise-ingestion/">
+<meta name="twitter:card" content="summary">
+<style>
+:root {
+  color-scheme: light;
+  --paper:#eef0f5; --card:#fff; --card2:#f6f8fb; --ink:#111620; --ink2:#4d5666;
+  --muted:#7c8698; --rule:#dde2ea; --grid:#e6eaf1; --blue:#1f5fc4; --blue2:#dbe6f9;
+  --red:#b32424; --red2:#f7dede; --green:#17704a;
+  --shadow:0 1px 2px rgba(17,22,32,.06),0 8px 28px -14px rgba(17,22,32,.28);
+  --sans:"Pretendard Variable",Pretendard,-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Segoe UI","Malgun Gothic","Noto Sans KR",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"D2Coding","Nanum Gothic Coding",monospace;
+  --serif:"Iowan Old Style",Georgia,"Nanum Myeongjo","Noto Serif KR",serif;
+}
+@media (prefers-color-scheme:dark) {
+  :root { color-scheme:dark; --paper:#0b0e13; --card:#151a22; --card2:#1b2029; --ink:#eef1f6;
+    --ink2:#a4afc0; --muted:#7f8b9e; --rule:#262d38; --grid:#232935; --blue:#5a9cf4;
+    --blue2:#1c2c45; --red:#ef6a6a; --red2:#3a2023; --green:#55bd8c;
+    --shadow:0 1px 2px rgba(0,0,0,.5),0 10px 30px -16px rgba(0,0,0,.8); }
+}
+* { box-sizing:border-box; }
+html,body { margin:0; min-height:100%; }
+body { font-family:var(--sans); }
+.deck { position:fixed; inset:0; display:grid; grid-template-columns:224px 1fr; background:var(--paper); color:var(--ink); font-size:16px; line-height:1.62; }
+.rail { overflow-y:auto; padding:20px 0 22px; border-right:1px solid var(--rule); background:var(--card); }
+.rail-head { padding:0 19px 12px; color:var(--muted); font:11px var(--mono); letter-spacing:.1em; text-transform:uppercase; }
+.rail-item { display:grid; grid-template-columns:24px 1fr; gap:8px; align-items:baseline; width:100%; padding:5px 18px; border:0; border-left:2px solid transparent; color:var(--ink2); background:none; text-align:left; font:13px var(--sans); cursor:pointer; }
+.rail-item .n { color:var(--muted); font:11px var(--mono); }
+.rail-item:hover { color:var(--ink); background:var(--card2); }
+.rail-item[aria-current="true"] { color:var(--blue); border-left-color:var(--blue); background:var(--card2); font-weight:700; }
+.rail-item[aria-current="true"] .n { color:var(--blue); }
+.rail-sep { height:1px; margin:9px 20px; background:var(--rule); }
+.stage { position:relative; overflow:hidden; }
+.slide { position:absolute; inset:0; overflow-y:auto; overflow-x:hidden; padding:clamp(28px,3.5vw,54px) clamp(20px,4.2vw,64px) 104px; opacity:0; visibility:hidden; transform:translateX(16px); transition:opacity .25s ease,transform .25s ease,visibility .25s; }
+.slide[data-active="true"] { opacity:1; visibility:visible; transform:none; }
+.slide-inner { max-width:1040px; margin:0 auto; }
+.eyebrow { margin:0 0 10px; color:var(--blue); font:12px var(--mono); letter-spacing:.04em; }
+.eyebrow::before { content:"[["; opacity:.45; } .eyebrow::after { content:"]]"; opacity:.45; }
+h1,h2,h3,p,li,th,td,.dek,.note,.q { word-break:keep-all; overflow-wrap:anywhere; }
+h1 { margin:0 0 18px; max-width:19ch; font-size:clamp(33px,4.7vw,54px); line-height:1.12; letter-spacing:-.025em; text-wrap:balance; }
+h2 { margin:0 0 8px; max-width:29ch; font-size:clamp(24px,3.1vw,34px); line-height:1.2; letter-spacing:-.019em; text-wrap:balance; }
+h3 { margin:0 0 7px; font-size:15px; line-height:1.35; }
+p { margin:0 0 12px; }
+.dek { max-width:70ch; margin:0 0 25px; color:var(--ink2); font-size:clamp(15px,1.6vw,18px); }
+.q { max-width:68ch; margin:0 0 24px; padding:3px 0 3px 20px; border-left:3px solid var(--blue); font:italic clamp(18px,2vw,23px)/1.5 var(--serif); }
+.q cite { display:block; margin-top:9px; color:var(--muted); font:normal 12px var(--mono); }
+.grid { display:grid; gap:14px; } .g2 { grid-template-columns:repeat(2,minmax(0,1fr)); } .g3 { grid-template-columns:repeat(3,minmax(0,1fr)); } .g4 { grid-template-columns:repeat(4,minmax(0,1fr)); }
+.card,.stat,.figure,.tablewrap { border:1px solid var(--rule); border-radius:10px; background:var(--card); box-shadow:var(--shadow); }
+.card { padding:16px 18px; } .card p:last-child { margin-bottom:0; }
+.tag { display:block; margin-bottom:8px; color:var(--muted); font:11px var(--mono); letter-spacing:.06em; text-transform:uppercase; }
+.small { color:var(--ink2); font-size:13.5px; line-height:1.57; }
+.good { color:var(--green); } .bad { color:var(--red); } .blue { color:var(--blue); }
+.note { margin:16px 0 0; padding:11px 15px; border-left:3px solid var(--blue); border-radius:0 8px 8px 0; background:var(--card2); color:var(--ink2); font-size:13px; }
+.note.warn { border-left-color:var(--red); }
+.stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:12px; margin:0 0 22px; }
+.stat { padding:14px 16px; } .stat .lab,.stat .sub { display:block; color:var(--muted); font-size:12px; }
+.stat .val { display:block; margin:2px 0; font-size:29px; line-height:1.12; font-weight:800; letter-spacing:-.03em; }
+.stat.hero .val { color:var(--blue); } .stat.bad .val { color:var(--red); }
+.tablewrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+th,td { padding:9px 11px; border-bottom:1px solid var(--rule); text-align:left; vertical-align:top; white-space:normal; }
+.dense { min-width:760px; }
+.dense th,.dense td { padding:6px 10px; }
+thead th { background:var(--card2); color:var(--muted); font:600 11px var(--sans); letter-spacing:.04em; text-transform:uppercase; }
+tbody td { color:var(--ink2); } tbody tr:last-child td { border-bottom:0; } tr.hero td { background:var(--blue2); color:var(--ink); font-weight:700; }
+.mono,code { font-family:var(--mono); }
+pre { margin:0 0 14px; padding:14px 16px; overflow-x:auto; border:1px solid var(--rule); border-radius:10px; background:var(--card2); color:var(--ink2); font:12px/1.62 var(--mono); tab-size:2; }
+pre b { color:var(--ink); } pre .k { color:var(--blue); } pre .r { color:var(--red); } pre .c { color:var(--muted); }
+ul.clean { display:grid; gap:9px; margin:0; padding:0; list-style:none; }
+ul.clean li { display:grid; grid-template-columns:20px 1fr; gap:9px; color:var(--ink2); font-size:14px; }
+ul.clean .m { color:var(--blue); font:12px/1.8 var(--mono); } ul.clean .m.bad { color:var(--red); } ul.clean b { color:var(--ink); }
+.flow { overflow-x:auto; }
+svg.chart { display:block; width:100%; height:auto; min-width:620px; }
+svg .box { fill:var(--card2); stroke:var(--rule); } svg .box-hi { fill:var(--blue2); stroke:var(--blue); }
+svg .box-bad { fill:var(--red2); stroke:var(--red); } svg .arrow { fill:none; stroke:var(--muted); stroke-width:1.6; marker-end:url(#arrow); }
+svg .txt { fill:var(--ink); font:650 13px var(--sans); } svg .subtxt { fill:var(--ink2); font:11px var(--sans); }
+.src { display:grid; gap:8px; color:var(--ink2); font-size:13px; }
+a { color:var(--blue); text-underline-offset:2px; overflow-wrap:anywhere; }
+.hud { position:absolute; left:224px; right:0; bottom:0; display:flex; align-items:center; gap:12px; padding:12px clamp(20px,4vw,60px); background:linear-gradient(to top,var(--paper) 62%,transparent); pointer-events:none; }
+.hud>* { pointer-events:auto; }
+.nav-btn { padding:6px 13px; border:1px solid var(--rule); border-radius:7px; background:var(--card); color:var(--ink2); box-shadow:var(--shadow); font:13px var(--mono); cursor:pointer; }
+.nav-btn:disabled { opacity:.35; cursor:default; } .counter,.hint { color:var(--muted); font:12px var(--mono); }
+.progress { flex:1; max-width:340px; height:2px; overflow:hidden; border-radius:2px; background:var(--rule); }
+.progress i { display:block; height:100%; width:0; background:var(--blue); transition:width .25s ease; }
+.hint { margin-left:auto; font-size:11px; }
+:focus-visible { outline:2px solid var(--blue); outline-offset:2px; }
+@media (max-width:900px) { .deck{grid-template-columns:1fr}.rail{display:none}.hud{left:0}.g2,.g3,.g4{grid-template-columns:1fr}.hint{display:none} }
+@media (prefers-reduced-motion:reduce) { .slide,.progress i{transition:none;transform:none} }
+@media print { .deck{position:static;display:block}.rail,.hud{display:none}.stage{overflow:visible}.slide{position:static;opacity:1;visibility:visible;transform:none;page-break-after:always;padding:28px 0} }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>도입 판단</span></button>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>입력 분기</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>core 구조</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>DOCX trace</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>rich fixture</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>XLSX·PPTX</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>모델 경계</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>classic OCR</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>layout OCR·VLM</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>source 이점</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>visual 경계</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>사내 문서 적합도</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>Jira·Confluence</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>diagram·draw.io</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>PDF 경계</span></button>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>self-host</span></button>
+    <button class="rail-item" data-go="17"><span class="n">18</span><span>ACL·운영</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="18"><span class="n">19</span><span>benchmark audit</span></button>
+    <button class="rail-item" data-go="19"><span class="n">20</span><span>관심과 성숙도</span></button>
+    <button class="rail-item" data-go="20"><span class="n">21</span><span>조사 범위</span></button>
+    <button class="rail-item" data-go="21"><span class="n">22</span><span>검증 공백</span></button>
+    <button class="rail-item" data-go="22"><span class="n">23</span><span>권장 구조</span></button>
+    <button class="rail-item" data-go="23"><span class="n">24</span><span>production gate</span></button>
+    <button class="rail-item" data-go="24"><span class="n">25</span><span>결론</span></button>
+    <button class="rail-item" data-go="25"><span class="n">26</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+    <section class="slide" id="p1" data-active="true" aria-hidden="false"><div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>anydoc: 픽셀 대신 Office 원본 구조와 PDF text layer를 읽는다</h1>
+      <p class="dek">범용 OCR 대체재가 아니다. 사내 도입 가치는 Office attachment의 표·heading·note·link를 source field에서 회수하는 데 있다.</p>
+      <div class="stats">
+        <div class="stat hero"><span class="lab">도입 판단</span><span class="val">TRIAL</span><span class="sub">Office·text-layer PDF attachment lane</span></div>
+        <div class="stat bad"><span class="lab">보류 판단</span><span class="val">HOLD</span><span class="sub">scan·screenshot·diagram 단일 해법</span></div>
+        <div class="stat"><span class="lab">검토 기준점</span><span class="val">0.2.4</span><span class="sub">commit 261fc257, 2026-09-02 pin</span></div>
+      </div>
+      <p class="note"><b>판단 범위:</b> Office와 text-layer PDF attachment parser는 trial한다. image-only page, diagram, Atlassian body까지 해결하는 단일 제품으로는 채택하지 않는다.</p>
+    </div></section>
+
+    <section class="slide" id="p2" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>source-native lane으로 한정하면 도입 이유가 선명하다</h2>
+      <p class="dek">같은 파일을 OCR보다 무조건 정확하게 읽는 제품이 아니다. 원본 package가 가진 구조를 먼저 쓰고, 그 구조가 없을 때 OCR·VLM·source adapter로 넘기는 router의 한 component다.</p>
+      <div class="grid g3">
+        <article class="card"><span class="tag good">채택</span><h3>Office와 text-layer PDF</h3><p class="small">DOCX·PPTX·XLSX·legacy Office·ODF·RTF·EPUB·CSV와 모든 page에 text layer가 있는 PDF를 local 처리한다.</p></article>
+        <article class="card"><span class="tag bad">비채택</span><h3>scan과 screenshot</h3><p class="small">PNG·JPEG는 입력 목록 밖이다. image-only PDF는 <code>NeedsOcr</code>로 중단한다.</p></article>
+        <article class="card"><span class="tag blue">별도 통합</span><h3>Atlassian과 diagram</h3><p class="small">Jira ADF·Confluence body·draw.io topology는 각 source representation을 읽는 adapter가 필요하다.</p></article>
+      </div>
+      <p class="note"><b>권장 판단:</b> 범용 document AI 구매가 아니라 내부 ingestion router의 source parser 후보로 평가한다.</p>
+    </div></section>
+
+    <section class="slide" id="p3" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>file extension보다 의미가 놓인 위치가 parser를 결정한다</h2>
+      <p class="dek">사내 문서의 의미는 package XML, PDF text layer, rendered pixel, SaaS source API에 흩어진다. 한 engine으로 모두 읽으려 하면 이미 존재하는 구조를 버리거나 visual semantics를 놓친다.</p>
+      <div class="grid g4">
+        <article class="card"><span class="tag">package</span><h3>DOCX·PPTX·XLSX</h3><p class="small">heading style, cell type, merge, hyperlink target, speaker note가 source에 명시된다.</p></article>
+        <article class="card"><span class="tag">text layer</span><h3>text-layer PDF</h3><p class="small">모든 page에 extractable text가 있다. page별 image-only 여부를 먼저 판별해야 한다.</p></article>
+        <article class="card"><span class="tag">pixels</span><h3>scan·screenshot</h3><p class="small">문자와 배치는 raster에만 남는다. OCR 또는 vision model의 영역이다.</p></article>
+        <article class="card"><span class="tag">source API</span><h3>ADF·draw.io graph</h3><p class="small">node, edge, label, attachment 관계가 JSON/XML과 product API에 남는다.</p></article>
+      </div>
+      <p class="note warn"><b>용어:</b> 모든 page에 extractable text가 있으면 <code>text-layer PDF</code>, image-only page가 하나라도 있으면 <code>image-page PDF</code>로 부른다. 확장자만으로 두 lane을 구분할 수 없다.</p>
+    </div></section>
+
+    <section class="slide" id="p4" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">mechanism</p>
+      <h2>Office parser는 typed Document를 만들고 PDF parser는 Markdown을 직접 낸다</h2>
+      <p class="dek">모델 호출은 두 경로 모두에 없다. Office·ODF·RTF·EPUB parser는 source container를 공통 block과 asset으로 만들고 renderer를 거친다. PDF는 <code>pdf-inspector</code>가 직접 Markdown으로 바꾼다.</p>
+      <div class="card flow">
+        <svg class="chart" viewBox="0 0 920 235" role="img" aria-label="Office 계열은 format parser와 공통 Document model을 거쳐 Markdown으로 가고 PDF는 pdf-inspector parser에서 Document model을 우회해 Markdown으로 직접 가는 anydoc core 흐름">
+          <defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+          <rect class="box" x="20" y="72" width="145" height="78" rx="9"/><text class="txt" x="92" y="102" text-anchor="middle">input bytes</text><text class="subtxt" x="92" y="126" text-anchor="middle">path / reader / slice</text>
+          <path class="arrow" d="M165 111H218"/>
+          <rect class="box" x="218" y="72" width="155" height="78" rx="9"/><text class="txt" x="296" y="102" text-anchor="middle">format resolver</text><text class="subtxt" x="296" y="126" text-anchor="middle">signature → extension</text>
+          <path class="arrow" d="M373 111H424"/>
+          <rect class="box-hi" x="424" y="28" width="185" height="64" rx="9"/><text class="txt" x="516" y="56" text-anchor="middle">Office / ODF / RTF</text><text class="subtxt" x="516" y="77" text-anchor="middle">ZIP·XML·OLE·BIFF</text>
+          <rect class="box-hi" x="424" y="130" width="185" height="64" rx="9"/><text class="txt" x="516" y="158" text-anchor="middle">PDF parser</text><text class="subtxt" x="516" y="179" text-anchor="middle">text-layer or NeedsOcr</text>
+          <path class="arrow" d="M609 60H660"/>
+          <rect class="box" x="660" y="72" width="120" height="78" rx="9"/><text class="txt" x="720" y="102" text-anchor="middle">Document</text><text class="subtxt" x="720" y="126" text-anchor="middle">blocks + assets</text>
+          <path class="arrow" d="M780 111H820M609 162H790Q805 162 805 146V128Q805 111 820 111"/>
+          <rect class="box" x="820" y="72" width="80" height="78" rx="9"/><text class="txt" x="860" y="103" text-anchor="middle">MD</text><text class="subtxt" x="860" y="126" text-anchor="middle">render</text>
+        </svg>
+      </div>
+      <p class="note">diagram의 아래 화살표처럼 PDF path는 공통 Document model을 우회한다. model과 network의 경계는 8장에서 따로 확인한다.</p>
+    </div></section>
+
+    <section class="slide" id="p5" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">mechanism-trace</p>
+      <h2>DOCX 한 건은 한 process 안에서 여섯 경계를 지난다</h2>
+      <p class="dek">실제 request trace는 source-native라는 표현을 구체화한다. 각 단계가 package field를 읽어 어떤 Markdown block으로 옮기는지 분리해 볼 수 있다.</p>
+      <pre><span class="c">1</span> to_markdown(path)                           <span class="c">src/lib.rs:101</span>
+<span class="c">2</span> read bytes; Format::from_bytes / from_path   <span class="c">src/lib.rs:103</span>
+<span class="c">3</span> to_markdown_bytes(bytes, format)             <span class="c">src/lib.rs:116</span>
+<span class="c">4</span> to_document → formats::parse                 <span class="c">src/lib.rs:134</span>
+<span class="c">5</span> docx::parse → relationship-aware blocks      <span class="c">src/formats/docx/</span>
+<span class="c">6</span> document_to_markdown(&amp;Document)              <span class="c">render/markdown/</span></pre>
+      <div class="grid g2">
+        <article class="card"><span class="tag">얻는 것</span><p class="small">style 기반 heading, list nesting, table cell, hyperlink target, footnote, image alt, cached chart data를 typed block으로 옮긴다.</p></article>
+        <article class="card"><span class="tag">거치지 않는 단계</span><p class="small">page screenshot과 문자 recognition을 만들지 않는다. model·network 경계는 8장에서 다룬다.</p></article>
+      </div>
+      <p class="note">이 구조는 pixel을 읽지 않는다는 장점과 한계를 동시에 만든다.</p>
+    </div></section>
+
+    <section class="slide" id="p6" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">result-fixture</p>
+      <h2>cached chart data는 table로 변환되고 SmartArt edge와 image pixel은 출력되지 않는다</h2>
+      <p class="dek"><code>handmade-rich.docx</code>는 chart·SmartArt·image·OLE object를 함께 담은 controlled fixture다. output은 source field별 추출 범위를 한 파일에서 고정한다.</p>
+      <div class="grid g2">
+        <article class="card"><span class="tag">fixture에 넣은 구조</span><pre>chart cache
+  Q1 → 10
+  Q2 → 14
+
+SmartArt labels
+  Plan / Build / Ship
+
+image descr
+  "tiny dot image"
+
+OLE progId
+  Excel.Sheet.12</pre></article>
+        <article class="card"><span class="tag">실제 Markdown snapshot</span><pre>**Quarterly Widgets**
+
+| Quarter | Widgets |
+| --- | --- |
+| Q1 | 10 |
+| Q2 | 14 |
+
+- Plan
+- Build
+- Ship
+
+tiny dot image
+
+Embedded object: Excel.Sheet.12</pre></article>
+      </div>
+      <p class="note warn"><b>해석:</b> cached data와 label은 source metadata라서 회수된다. SmartArt node 간 edge, chart styling, image 내부 문자는 Markdown에 나타나지 않는다.</p>
+    </div></section>
+
+    <section class="slide" id="p7" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">result-office</p>
+      <h2>cell format과 speaker note는 OCR 없이 문서 구조가 된다</h2>
+      <p class="dek">XLSX output에는 number format과 merged grid가 남는다. PPTX output에는 slide text와 speaker note가 함께 남는다.</p>
+      <div class="grid g2">
+        <article class="card"><span class="tag">XLSX snapshot 발췌</span><pre>| Percent  | 15.5%     |
+| Currency | $1,234.50 |
+| Thousands| 9,876,543 |
+| Date     | 2026-03-15|
+| Duration | 26:30:15  |
+| Tiny     | 0.0000004 |
+| Boolean  | TRUE      |
+
+## Merged Grid</pre><p class="small">cell number format과 merged grid를 Markdown table로 render한다.</p></article>
+        <article class="card"><span class="tag">PPTX snapshot 확인</span><pre>Deck Title Slide
+
+- Top level point
+  - Nested detail
+
+> Speaker note for the intro slide.
+
+Numbers Slide
+
+| Region | Total |
+| North  | 42    |
+
+Inside a group shape.</pre><p class="small">slide text, nested list, table, grouped shape text, speaker note가 남는다.</p></article>
+      </div>
+      <p class="note warn">formula를 재계산하지 않고 cached value를 읽는다. XLSX의 hidden·veryHidden sheet는 출력에서 빠진다. source value 자체가 오래됐으면 Markdown도 오래된 값을 담는다.</p>
+    </div></section>
+
+    <section class="slide" id="p8" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">model-boundary</p>
+      <h2>모델 성능은 core conversion이 아니라 fallback·평가·downstream에서 들어온다</h2>
+      <p class="dek">“이미지 모델이 아닌데 어떻게 가능한가”의 답은 document representation에 있다. core는 image를 해석하지 않고 package의 XML·OLE·BIFF field를 parsing한다.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>지점</th><th>모델</th><th>입력</th><th>성능이 좌우하는 것</th></tr></thead>
+        <tbody>
+          <tr class="hero"><td>anydoc core</td><td>없음</td><td>Office·ODF·RTF·EPUB·PDF bytes</td><td>parser coverage와 renderer fidelity</td></tr>
+          <tr><td>hosted OCR fallback</td><td>pinned repo에서 비공개</td><td><code>NeedsOcr</code>가 난 whole document</td><td>scan 인식 품질과 외부 전송 경계</td></tr>
+          <tr><td>maintainer benchmark judge</td><td>Claude Sonnet 5</td><td>원본·Markdown의 rendered page image</td><td>README의 quality score 81</td></tr>
+          <tr><td>사내 RAG downstream</td><td>embedding·LLM 선택</td><td>생성 Markdown과 metadata</td><td>검색·응답 품질, repo는 측정하지 않음</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">benchmark judge의 model 의존성과 runtime의 model 의존성을 섞으면 안 된다. score 81은 model이 runtime에서 parsing한다는 뜻이 아니다.</p>
+    </div></section>
+
+    <section class="slide" id="p9" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">comparison-classic-ocr</p>
+      <h2>Tesseract와 anydoc는 정확도 경쟁 전에 입력 공간이 다르다</h2>
+      <p class="dek">classic OCR은 raster에서 glyph를 추정한다. anydoc는 source package에서 field와 relationship을 읽는다. 원본 DOCX를 image로 바꾸는 순간 heading style과 hyperlink target은 pixel 밖으로 버려진다.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>축</th><th>anydoc</th><th>Tesseract</th></tr></thead>
+        <tbody>
+          <tr><td>기본 입력</td><td>Office·ODF·RTF·EPUB·CSV·PDF</td><td>Leptonica가 읽는 raster image</td></tr>
+          <tr><td>PDF</td><td>text-layer PDF를 직접 parsing</td><td>PDF 미지원, rasterization 또는 OCRmyPDF 필요</td></tr>
+          <tr><td>구조 근거</td><td>XML/OLE/BIFF field와 relationship</td><td>pixel pattern과 page segmentation</td></tr>
+          <tr><td>출력</td><td>Markdown. Office 계열은 render 전 Document에 asset을 보유하고 PDF는 직접 출력</td><td>text 기본, hOCR·TSV에서 bbox와 confidence 제공</td></tr>
+          <tr><td>강점</td><td>native metadata 보존, 문자 recognition 불필요</td><td>scan·photo처럼 source structure가 없는 입력</td></tr>
+          <tr><td>둘 다 local 가능한가</td><td>가능</td><td>가능</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">OCR을 plain text 전용으로 묘사하면 틀리다. Tesseract도 hOCR·TSV로 위치와 confidence를 낸다. 차이는 구조의 출처다.</p>
+    </div></section>
+
+    <section class="slide" id="p10" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">comparison-layout-ocr</p>
+      <h2>pixel이 유일한 근거라면 layout OCR와 VLM의 범위가 더 넓다</h2>
+      <p class="dek">modern document AI는 OCR 뒤에 layout model을 붙여 heading, table, selection mark, section structure를 추정한다. chart와 diagram의 visual relation은 별도 VLM 평가 대상으로 남긴다.</p>
+      <div class="grid g3">
+        <article class="card"><span class="tag">layout OCR</span><h3>Azure Document Intelligence</h3><p class="small">OCR와 deep learning으로 text·table·selection mark·structure·bounding region을 낸다. Office도 받지만 DOCX/XLSX/PPTX의 embedded image는 지원하지 않고 XLSX table analysis도 지원하지 않는다.</p></article>
+        <article class="card"><span class="tag">VLM 평가 후보</span><h3>rendered page 이해</h3><p class="small">screenshot·chart·spatial grouping처럼 의미가 pixel에만 있는 corpus에서 승인된 model을 측정한다. source ID와 native edge 보존은 model 가정이 아니라 adapter의 별도 통과 조건으로 둔다.</p></article>
+        <article class="card"><span class="tag">source parser</span><h3>anydoc</h3><p class="small">page layout를 추정하지 않는다. 대신 Office 내부 표·note·link·cached value를 model call 없이 읽는다.</p></article>
+      </div>
+      <p class="note warn">“OCR보다 낫다”는 일반 명제는 성립하지 않는다. source package가 있고 필요한 정보가 package에 명시됐을 때만 anydoc 쪽 근거가 더 직접적이다.</p>
+    </div></section>
+
+    <section class="slide" id="p11" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">result-advantage</p>
+      <h2>source field에서 직접 회수되는 정보는 네 범주다</h2>
+      <p class="dek">parser가 직접 회수하는 범위는 field value, native role, local data boundary, legacy format coverage다. 같은 문서를 OCR과 동시 측정한 accuracy 수치는 공개되지 않았다.</p>
+      <div class="grid g2">
+        <article class="card"><span class="tag good">source field recovery</span><h3>명시된 값은 추정하지 않는다</h3><p class="small">cell string, hyperlink target, footnote, speaker note, chart cached value를 source field에서 읽는다. glyph 오인식이 개입할 자리가 없다.</p></article>
+        <article class="card"><span class="tag good">structure</span><h3>native role을 Markdown role로 옮긴다</h3><p class="small">heading·list nesting·table·merge를 visual 좌표에서 다시 추론하지 않는다.</p></article>
+        <article class="card"><span class="tag good">data boundary</span><h3>core는 network와 model이 없다</h3><p class="small">Rust library, CLI, WASM path에서 지원 문서를 local 처리할 수 있다. strict environment에서 egress를 막기 쉽다.</p></article>
+        <article class="card"><span class="tag good">format reach</span><h3>legacy Office까지 같은 entry point로 읽는다</h3><p class="small"><code>.doc/.xls/.ppt</code>, OOXML, ODF, RTF, EPUB, CSV, PDF를 한 API로 받는다. PDF는 공통 <code>Document</code>를 거치지 않는다.</p></article>
+      </div>
+      <p class="note">이 장점은 downstream answer quality를 자동 보장하지 않는다. Markdown chunking, asset indexing, ACL filter는 별도 품질 축이다.</p>
+    </div></section>
+
+    <section class="slide" id="p12" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">result-limits</p>
+      <h2>visual relation에는 OCR·layout model·VLM 또는 source adapter가 필요하다</h2>
+      <p class="dek">anydoc는 pixel과 geometry를 해석하지 않는다. source field에 없는 정보는 visual lane이나 format-specific source adapter가 맡아야 한다.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>필요한 정보</th><th>anydoc 결과</th><th>더 적합한 lane</th></tr></thead>
+        <tbody>
+          <tr><td>scan 속 문자와 bbox</td><td><code>NeedsOcr</code></td><td>OCR / layout OCR</td></tr>
+          <tr><td>flowchart node의 공간·edge</td><td>label 일부 또는 asset alt</td><td>draw.io source adapter, 없으면 VLM</td></tr>
+          <tr><td>chart 색·축·trend의 시각 의미</td><td>cached data가 있으면 table, style은 손실</td><td>chart source parser + rendered vision</td></tr>
+          <tr><td>image 내부 문자</td><td>alt text만 Markdown에 반영</td><td>asset-level OCR</td></tr>
+          <tr><td>formula 최신 계산값</td><td>cached value, 재계산 없음</td><td>spreadsheet engine 검증</td></tr>
+          <tr><td>encrypted 문서</td><td><code>Encrypted</code> 실패</td><td>승인된 decrypt 단계</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note warn">Office container 지원과 embedded visual semantics 지원은 같은 말이 아니다.</p>
+    </div></section>
+
+    <section class="slide" id="p13" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">enterprise-fit</p>
+      <h2>사내 문서는 유형보다 의미 보관 위치로 route해야 한다</h2>
+      <p class="dek">직접 지원 목록만으로 적합도를 판정하지 않는다. 각 문서에서 필요한 의미가 source field와 pixel 중 어디에 있는지를 함께 본다.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>사내 입력</th><th>anydoc</th><th>기대 결과</th><th>추가 lane</th></tr></thead>
+        <tbody>
+          <tr class="hero"><td>Word 기술 명세·요구사항</td><td>직접</td><td>heading, list, table, link, note, equation</td><td>삽입 screenshot은 asset OCR</td></tr>
+          <tr class="hero"><td>PowerPoint architecture deck</td><td>직접</td><td>slide text, list, table, speaker note</td><td>diagram 관계는 source/VLM</td></tr>
+          <tr class="hero"><td>Excel data dictionary·규격표</td><td>직접</td><td>display value, merge, visible grid</td><td>formula recalc·chart 검증</td></tr>
+          <tr><td>text-layer PDF</td><td>직접</td><td>text-based Markdown</td><td>page layout fidelity 평가</td></tr>
+          <tr><td>image-page PDF</td><td>local core 중단</td><td><code>NeedsOcr</code></td><td>selective OCR</td></tr>
+          <tr><td>PNG·JPEG screenshot</td><td>미지원</td><td>없음</td><td>OCR·VLM</td></tr>
+          <tr><td>Markdown·HTML·JSON·YAML·source code</td><td>미지원</td><td>없음</td><td>기존 text/AST ingestion</td></tr>
+          <tr><td>password-protected Office·PDF</td><td>실패</td><td><code>Encrypted</code></td><td>policy-controlled unlock</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">같은 DOCX에서도 본문 표는 anydoc lane, 삽입 screenshot은 asset OCR lane으로 갈릴 수 있다.</p>
+    </div></section>
+
+    <section class="slide" id="p14" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">enterprise-atlassian</p>
+      <h2>Jira·Confluence에서는 body와 attachment가 서로 다른 pipeline이다</h2>
+      <p class="dek">anydoc는 Atlassian connector가 아니다. REST API가 caller에게 허용한 object를 받은 뒤 content representation과 별도 authorization context로 갈라야 한다.</p>
+      <div class="card flow">
+        <svg class="chart" viewBox="0 0 940 260" role="img" aria-label="Confluence와 Jira에서 body는 ADF 또는 storage adapter로, Office PDF attachment는 anydoc로 분기하는 사내 ingestion 흐름">
+          <defs><marker id="arrow2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="var(--muted)"/></marker></defs>
+          <rect class="box" x="24" y="86" width="165" height="82" rx="9"/><text class="txt" x="107" y="116" text-anchor="middle">Atlassian REST</text><text class="subtxt" x="107" y="140" text-anchor="middle">caller-authorized object</text>
+          <path d="M189 127H260" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#arrow2)"/>
+          <rect class="box" x="260" y="24" width="210" height="78" rx="9"/><text class="txt" x="365" y="54" text-anchor="middle">page / issue body</text><text class="subtxt" x="365" y="78" text-anchor="middle">storage HTML · ADF JSON</text>
+          <rect class="box-hi" x="260" y="156" width="210" height="78" rx="9"/><text class="txt" x="365" y="186" text-anchor="middle">attachment bytes</text><text class="subtxt" x="365" y="210" text-anchor="middle">docx · xlsx · pptx · pdf …</text>
+          <path d="M470 63H558" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#arrow2)"/><path d="M470 195H558" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#arrow2)"/>
+          <rect class="box" x="558" y="24" width="164" height="78" rx="9"/><text class="txt" x="640" y="54" text-anchor="middle">ADF / storage</text><text class="subtxt" x="640" y="78" text-anchor="middle">별도 body adapter</text>
+          <rect class="box-hi" x="558" y="156" width="164" height="78" rx="9"/><text class="txt" x="640" y="186" text-anchor="middle">anydoc</text><text class="subtxt" x="640" y="210" text-anchor="middle">eligible attachment</text>
+          <path d="M722 63H794M722 195H794" stroke="var(--muted)" stroke-width="1.6" marker-end="url(#arrow2)"/>
+          <rect class="box" x="794" y="86" width="122" height="82" rx="9"/><text class="txt" x="855" y="116" text-anchor="middle">index</text><text class="subtxt" x="855" y="140" text-anchor="middle">content + auth ref</text>
+        </svg>
+      </div>
+      <div class="grid g2">
+        <article class="card"><span class="tag">Confluence</span><p class="small">page body는 storage·ADF·view representation이다. page attachment API는 download link와 pagination을 제공한다.</p></article>
+        <article class="card"><span class="tag">Jira</span><p class="small">description과 rich text는 ADF JSON이다. attachment content API는 원본 bytes를 반환한다.</p></article>
+      </div>
+      <p class="note warn">이 API는 호출자의 접근권한을 적용하지만 user·group ACL 목록을 attachment 응답에 실어 주지는 않는다. 별도 permission resolver와 identity mapping, revocation sync를 설계해야 한다.</p>
+    </div></section>
+
+    <section class="slide" id="p15" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">enterprise-diagram</p>
+      <h2>diagram은 screenshot보다 원본 graph를 먼저 읽어야 한다</h2>
+      <p class="dek">draw.io는 graph topology를 source representation으로 제공한다. node와 edge가 이미 존재하는데 OCR로 label만 읽으면 핵심 관계를 버린다.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>입력 상태</th><th>보존 가능한 정보</th><th>권장 경로</th><th>anydoc 역할</th></tr></thead>
+        <tbody>
+          <tr class="hero"><td>draw.io XML / structural JSON</td><td>node, edge, source·target ID, label, metadata</td><td>draw.io source adapter</td><td>없음</td></tr>
+          <tr><td>Confluence·Jira의 draw.io attachment</td><td>diagram data 또는 XML이 든 PNG</td><td>attachment download → draw.io parser</td><td>없음</td></tr>
+          <tr><td>Office SmartArt·native chart</td><td>label, cached data, 일부 object</td><td>anydoc + asset/source 보완</td><td>부분 추출</td></tr>
+          <tr><td>PNG·JPEG screenshot만 존재</td><td>pixel, text, spatial relation</td><td>OCR + VLM</td><td>미지원</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">draw.io 공식 embed API의 structural JSON은 topology·label·metadata를 담고 style·geometry는 담지 않는다. 완전한 visual 재현에는 XML 또는 rendered asset도 함께 보관해야 한다.</p>
+    </div></section>
+
+    <section class="slide" id="p16" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">enterprise-pdf</p>
+      <h2>image-only page가 하나라도 있으면 local PDF conversion 전체가 중단된다</h2>
+      <p class="dek">mixed fixture는 1쪽에 text layer가 있고 2쪽은 image-only다. local 실행은 부분 Markdown을 반환하지 않고 typed error를 냈다.</p>
+      <div class="grid g2">
+        <article class="card"><span class="tag">실행</span><pre>$ cargo run --locked --example convert \
+  tests/fixtures/pdf/handmade-mixed.pdf
+
+<span class="r">error: page 2 of 2 needs OCR</span>
+exit code 1</pre></article>
+        <article class="card"><span class="tag">behavior</span><ul class="clean">
+          <li><span class="m">01</span><span><b>text-layer PDF</b>는 core가 local parsing한다.</span></li>
+          <li><span class="m bad">02</span><span><b>image-page PDF</b>는 <code>NeedsOcr</code>를 낸다.</span></li>
+          <li><span class="m bad">03</span><span><b>hosted OCR opt-in</b>은 whole document를 Firecrawl Parse로 보낸다.</span></li>
+          <li><span class="m">04</span><span><b>Rust crate</b>에는 OCR option과 network call이 없다.</span></li>
+        </ul></article>
+      </div>
+      <p class="note warn">pinned anydoc에는 page selection이 없다. 민감한 PDF에서 한 쪽만 OCR이 필요해도 hosted path는 전체 파일 egress가 된다.</p>
+    </div></section>
+
+    <section class="slide" id="p17" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">self-host</p>
+      <h2>core는 self-host 가능하지만 OCR까지 turnkey self-host라고 말할 근거는 없다</h2>
+      <p class="dek">배포 경계를 세 층으로 나눠야 한다. local parser와 Firecrawl hosted Parse, 인접한 local OCR runtime은 서로 다른 제품 경계다.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>구성</th><th>사내 실행</th><th>필요 component</th><th>확인된 경계</th></tr></thead>
+        <tbody>
+          <tr class="hero"><td>anydoc core</td><td>가능</td><td>Rust library/CLI, Node·Python binding, WASM</td><td>지원 문서는 외부 service 없이 처리</td></tr>
+          <tr><td>anydoc hosted OCR option</td><td>아님</td><td>Firecrawl Parse endpoint</td><td>opt-in, whole document 전송</td></tr>
+          <tr><td>custom <code>FIRECRAWL_API_URL</code></td><td>endpoint 지정 가능</td><td>별도 Parse deployment</td><td>OCR turnkey 지원까지는 pinned repo가 증명하지 않음</td></tr>
+          <tr><td>pdf-inspector local OCR</td><td>가능</td><td>PDFium + ONNX Runtime + PP-OCRv6 Small</td><td>약 31MB pinned artifact, offline prefill 가능, anydoc에 미연결</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note"><b>권장 trial artifact:</b> package는 0.2.4이고 검토 pin은 <code>261fc257</code>다. pin의 <code>src</code>와 <code>Cargo.lock</code> tree는 v0.2.4 tag와 같고 README만 다르다. Rust 1.88+로 internal OCI image를 build해 digest와 SBOM을 기록한다.</p>
+      <p class="note warn"><b>License:</b> Sideguide Technologies Inc. 명의 MIT이며 배포 copy에 copyright·permission notice를 보존해야 한다. transitive license·CVE·sandbox 검토와 hosted Parse의 retention·region·DPA·가격 확인은 남아 있다.</p>
+    </div></section>
+
+    <section class="slide" id="p18" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">enterprise-security</p>
+      <h2>local parsing만으로 사내 문서 보안이 완성되지는 않는다</h2>
+      <p class="dek">ingestion은 원본 system 밖에 새 copy를 만든다. local conversion 여부와 별개로 provenance와 ACL lifecycle을 함께 설계해야 한다.</p>
+      <div class="grid g2">
+        <article class="card"><span class="tag">반드시 동반할 metadata</span><ul class="clean">
+          <li><span class="m">ID</span><span>source object·attachment ID와 canonical URL</span></li>
+          <li><span class="m">VER</span><span>version, modified time, content checksum</span></li>
+          <li><span class="m">AUTH</span><span>permission resolver가 만든 principal set 또는 source authorization handle</span></li>
+          <li><span class="m">DER</span><span>parser version, options, derived asset lineage</span></li>
+        </ul></article>
+        <article class="card"><span class="tag">운영 control</span><ul class="clean">
+          <li><span class="m">REV</span><span>권한 축소와 private comment 변경을 index에 동기화</span></li>
+          <li><span class="m">DEL</span><span>source 삭제 시 Markdown·chunk·asset을 함께 삭제</span></li>
+          <li><span class="m">LIM</span><span>bytes, page, cell, relationship depth에 resource limit 적용</span></li>
+          <li><span class="m">AST</span><span>embedded object·asset을 quarantine하고 malware scan</span></li>
+        </ul></article>
+      </div>
+      <p class="note warn">service account 권한이 crawl 범위를 결정한다. source API가 ACL snapshot을 자동 반환한다고 가정하면 안 된다. downstream retrieval은 별도 resolver가 만든 authorization context를 확인해야 한다.</p>
+    </div></section>
+
+    <section class="slide" id="p19" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">comparison-benchmark</p>
+      <h2>README의 score 81은 방향성 신호지만 coverage 분모가 일치하지 않는다</h2>
+      <p class="dek">maintainer benchmark는 rendering 결과를 vision judge로 비교한다. 공개 설명과 pinned harness를 대조하면 coverage 숫자가 하나로 정리되지 않는다.</p>
+      <div class="stats">
+        <div class="stat hero"><span class="lab">README quality</span><span class="val">81</span><span class="sub">Claude Sonnet 5 judge, 94 documents</span></div>
+        <div class="stat"><span class="lab">README median</span><span class="val">4.4<span style="font-size:15px">ms</span></span><span class="sub">Ryzen 9 9950X3D, warm conversion</span></div>
+        <div class="stat bad"><span class="lab">coverage 표기</span><span class="val">14 / 15 / 13</span><span class="sub">headline / harness extensions / quality rows</span></div>
+      </div>
+      <div class="grid g2">
+        <article class="card"><span class="tag">확인된 harness</span><p class="small"><code>ALL_FORMATS</code>에는 15 extension이 있다. judge는 CSV를 명시적으로 skip한다. per-format quality 표는 13행이고 CSV·XLSB가 없다.</p></article>
+        <article class="card"><span class="tag">benchmark 밖</span><p class="small">bench README는 PDF를 out of scope라고 적는다. sample corpus는 repository에 없어 사내 corpus로 재현할 수 없다.</p></article>
+      </div>
+      <p class="note warn">4.4ms를 사내 latency SLO로 쓰거나 score 81을 OCR 대비 정확도라고 읽으면 안 된다.</p>
+    </div></section>
+
+    <section class="slide" id="p20" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">comparison-adoption</p>
+      <h2>관심은 빠르게 모였고 production maturity는 아직 별도 검증 대상이다</h2>
+      <p class="dek">2026-09-02 live snapshot과 pinned history는 강한 launch signal과 짧은 운영 이력을 동시에 보여 준다. star 증가 원인을 직접 입증하는 historical series는 확보하지 못했다.</p>
+      <div class="stats">
+        <div class="stat hero"><span class="lab">GitHub stars</span><span class="val">19.9k</span><span class="sub">2026-09-02 live snapshot</span></div>
+        <div class="stat"><span class="lab">forks</span><span class="val">1.2k</span><span class="sub">같은 시점 live snapshot</span></div>
+        <div class="stat"><span class="lab">pinned history span</span><span class="val">28.44<span style="font-size:15px">일</span></span><span class="sub">첫 commit부터 pinned HEAD까지</span></div>
+        <div class="stat bad"><span class="lab">top author share</span><span class="val">90.8%</span><span class="sub">118 / 130 commits, author string 기준</span></div>
+      </div>
+      <div class="grid g2">
+        <article class="card"><span class="tag">관심을 설명하는 가설</span><p class="small">Rust·local-first, broad Office claim, one-call Markdown, Agent Skill packaging, Firecrawl distribution, benchmark headline이 이해하기 쉬운 launch story를 만든다.</p></article>
+        <article class="card"><span class="tag">사실로 단정할 수 없는 것</span><p class="small">어떤 요인이 star 상승을 만들었는지, 실제 production deployment가 얼마나 되는지, contributor base가 지속적으로 넓어지는지는 현재 자료로 확인되지 않는다.</p></article>
+      </div>
+      <p class="note">14개 tag와 130 commits는 빠른 release cadence를 보인다. issue response SLO, security fix policy, deprecation window, release artifact provenance는 확인하지 않았다.</p>
+    </div></section>
+
+    <section class="slide" id="p21" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>source와 runtime을 분리해 확인했고 OCR 비교 실험은 환경 한계로 중단했다</h2>
+      <p class="dek">핵심 결론은 README만 읽은 요약이 아니다. code path, fixture generator, expected snapshot, official comparator 문서를 함께 열었다.</p>
+      <div class="grid g2">
+        <article class="card"><span class="tag">pinned corpus</span><ul class="clean">
+          <li><span class="m">A</span><span>anydoc commit <code>261fc257</code>, tracked path 329개 중 evidence가 직접 가리키는 path 22개</span></li>
+          <li><span class="m">B</span><span>pdf-inspector commit <code>65b7fa15</code>, OCR runtime 문서</span></li>
+          <li><span class="m">C</span><span>Tesseract docs commit <code>09a89d48</code>, input·output 문서</span></li>
+          <li><span class="m">W</span><span>Atlassian, draw.io, Azure 공식 web documentation</span></li>
+        </ul></article>
+        <article class="card"><span class="tag">local runtime</span><ul class="clean">
+          <li><span class="m">✓</span><span>Rust library test 286, robustness 1, snapshot 9 pass·1 ignore</span></li>
+          <li><span class="m">✓</span><span>controlled DOCX·XLSX·PPTX와 image-page PDF fixture 직접 변환</span></li>
+          <li><span class="m bad">×</span><span><code>libreoffice</code>, PDF rasterizer, <code>tesseract</code> 부재로 same-file OCR 미실행</span></li>
+          <li><span class="m bad">×</span><span>hosted OCR, live Atlassian, Korean 사내 corpus 미실행</span></li>
+        </ul></article>
+      </div>
+      <p class="note">따라서 “glyph error가 개입하지 않는다”는 mechanism 기반 결론이고 “OCR보다 몇 % 정확하다”는 실험 결론은 제시하지 않는다.</p>
+    </div></section>
+
+    <section class="slide" id="p22" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>feasibility 경계는 좁혔지만 production fidelity는 아직 측정하지 못했다</h2>
+      <p class="dek">현재 근거는 source-native parser의 feasibility를 보여 준다. 다음 항목은 production fidelity와 integration risk로 남는다.</p>
+      <div class="grid g2">
+        <article class="card"><span class="tag bad">품질 공백</span><ul class="clean">
+          <li><span class="m bad">01</span><span>동일 문서를 anydoc·Tesseract·layout OCR·VLM으로 비교한 golden set이 없다.</span></li>
+          <li><span class="m bad">02</span><span>한국어 조합, 한글 Office, 복잡한 수식·SmartArt·chart corpus를 시험하지 않았다.</span></li>
+          <li><span class="m bad">03</span><span>PDF page reading order와 multi-column fidelity를 별도 측정하지 않았다.</span></li>
+        </ul></article>
+        <article class="card"><span class="tag bad">통합 공백</span><ul class="clean">
+          <li><span class="m bad">04</span><span>Jira·Confluence body adapter와 ACL revocation을 live tenant에서 검증하지 않았다.</span></li>
+          <li><span class="m bad">05</span><span>draw.io source adapter, asset OCR, VLM router는 권장 설계일 뿐 구현물이 아니다.</span></li>
+          <li><span class="m bad">06</span><span>Node·Python·WASM binding과 hosted Parse OCR은 실행하지 않았다.</span></li>
+        </ul></article>
+      </div>
+      <p class="note warn">이 공백 때문에 현재 결론은 <b>production 승인</b>이 아니라 <b>제한된 trial 승인</b>이다.</p>
+    </div></section>
+
+    <section class="slide" id="p23" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">adoption-architecture</p>
+      <h2>사내 구조는 source-first router와 용도별 좁은 lane으로 나눈다</h2>
+      <p class="dek">anydoc에 모든 입력을 강제로 넣지 않는다. body·diagram·package·page image·embedded asset마다 가장 직접적인 information source를 선택한다.</p>
+      <pre>Atlassian / file share / upload
+  │
+  ├─ ADF · storage HTML ─────────→ body adapter
+  ├─ draw.io XML · graph JSON ───→ diagram source adapter
+  ├─ Office · ODF · RTF · EPUB ──→ <b>anydoc core</b>
+  └─ PDF
+       ├─ text-layer PDF ─────────→ <b>anydoc core</b>
+       └─ image-page PDF ─────────→ approved local OCR
+
+embedded assets
+  ├─ image text ─────────────────→ asset OCR
+  └─ visual relation ─────────────→ policy-approved VLM
+
+all lanes → internal blocks + raw asset + provenance + auth ref → index</pre>
+      <div class="grid g3">
+        <article class="card"><span class="tag">원칙 1</span><h3>source before pixels</h3><p class="small">native role과 edge가 있으면 먼저 읽는다.</p></article>
+        <article class="card"><span class="tag">원칙 2</span><h3>page/asset selective</h3><p class="small">OCR와 VLM 범위를 필요한 page·asset으로 좁힌다.</p></article>
+        <article class="card"><span class="tag">원칙 3</span><h3>provenance intact</h3><p class="small">Markdown만 저장하지 않고 source·asset·authorization lineage를 보존한다.</p></article>
+      </div>
+      <p class="note">common schema는 anydoc <code>Document</code>가 아니라 사내 normalized model로 둔다. pinned crate의 <code>Format</code>은 닫힌 enum이고 renderer는 public extension surface가 아니며 PDF는 <code>Document</code>를 우회한다.</p>
+    </div></section>
+
+    <section class="slide" id="p24" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">adoption-production-gate</p>
+      <h2>Production 승격 전에 golden manifest와 zero-tolerance failure를 승인한다</h2>
+      <p class="dek">parser trial은 pinned artifact와 대표 Office·PDF golden set으로 시작한다. production 승격 때는 route별 원본 source와 rendered page를 reference로 두고 문서 owner·security owner·search owner가 필수 field와 허용 손실을 승인한다.</p>
+      <div class="tablewrap"><table class="dense">
+        <thead><tr><th>gate</th><th>검사 대상</th><th>통과 조건</th><th>실패 시 조치</th></tr></thead>
+        <tbody>
+          <tr><td>text fidelity</td><td>한글·영문·숫자·link target·note</td><td>golden diff에서 의미 변경 없음</td><td>format parser 보류</td></tr>
+          <tr><td>structure fidelity</td><td>heading, list depth, table, merge, reading order</td><td>필수 relation 보존 또는 loss marker</td><td>source adapter/layout lane</td></tr>
+          <tr><td>visual coverage</td><td>chart, SmartArt, screenshot, embedded image</td><td>누락 asset 탐지와 fallback route</td><td>asset OCR·VLM</td></tr>
+          <tr><td>security</td><td>egress, encrypted file, zip bomb, malware, ACL</td><td>policy default-deny와 audit event</td><td>quarantine</td></tr>
+          <tr><td>lifecycle</td><td>수정·삭제·권한 축소</td><td>derived index와 asset 동기화</td><td>production 차단</td></tr>
+          <tr><td>capacity</td><td>peak RSS, timeout, concurrency, oversized file</td><td>platform owner가 승인한 worker budget 안</td><td>size cap·queue 격리</td></tr>
+          <tr><td>regression</td><td>candidate와 baseline의 parser-version별 output</td><td>manifest 밖 diff 없음</td><td>이전 image digest로 rollback, candidate output purge·replay</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note"><b>zero tolerance:</b> ACL leak, source 삭제 미동기화, encrypted file 우회, 누락 asset 미탐지는 한 건도 허용하지 않는다. text·structure loss는 golden manifest의 field별 diff를 세 owner가 승인한다.</p>
+    </div></section>
+
+    <section class="slide" id="p25" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>anydoc를 source parser로 trial하고 universal document AI로는 보류한다</h2>
+      <p class="dek">Office와 text-layer PDF attachment를 local Markdown으로 정규화하는 pinned Rust path는 source locator로 추적할 수 있다. image-page PDF·diagram·Atlassian body·ACL lifecycle까지 해결한다고 확대 해석하면 제품 경계를 넘는다.</p>
+      <div class="grid g3">
+        <article class="card"><span class="tag good">지금 할 일</span><h3>pinned Rust trial</h3><p class="small"><code>261fc257</code> source와 lockfile로 internal image를 build하고 대표 Office·text-layer PDF golden set을 측정한다.</p></article>
+        <article class="card"><span class="tag blue">함께 할 일</span><h3>router와 provenance</h3><p class="small">ADF·storage·draw.io·OCR lane을 분리하고 authorization context와 asset lineage를 끝까지 전달한다.</p></article>
+        <article class="card"><span class="tag bad">하지 않을 일</span><h3>무근거 확장</h3><p class="small">score 81을 OCR accuracy로 쓰거나 hosted OCR을 self-host 기능으로 소개하지 않는다.</p></article>
+      </div>
+      <p class="note"><b>최종 판단:</b> anydoc는 source parser lane에 한해 TRIAL이다. universal document AI와 hosted OCR self-host 기능으로는 HOLD다.</p>
+    </div></section>
+
+    <section class="slide" id="p26" aria-hidden="true"><div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>고정 source와 조회 source map</h2>
+      <p class="dek">repository source는 commit으로 고정했다. web source는 official product documentation으로 제한하고 조회 시각을 ledger에 기록했지만 당시 bytes를 archive하지는 못했다.</p>
+      <div class="src">
+        <div><b>[r1]</b> <a href="https://github.com/firecrawl/anydoc/tree/261fc257d17c3eab0f673be31c408fd9fdc2171a">firecrawl/anydoc @ 261fc257</a> <span class="t">LICENSE, README, src, tests, snapshots, bench</span></div>
+        <div><b>[r2]</b> <a href="https://github.com/firecrawl/pdf-inspector/blob/65b7fa152ba9a728ad8b56e282e74559d81c0a40/docs/ocr-runtime.md">pdf-inspector OCR runtime @ 65b7fa15</a></div>
+        <div><b>[r3]</b> <a href="https://github.com/tesseract-ocr/tessdoc/tree/09a89d485f1f34285611562fed9f8ab85721bab8">Tesseract documentation @ 09a89d48</a></div>
+        <div><b>[w1]</b> <a href="https://github.com/firecrawl/anydoc">GitHub repository landing page</a> <span class="t">2026-09-02 live counters</span></div>
+        <div><b>[w3]</b> <a href="https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-page/">Confluence Cloud REST v2: Page</a></div>
+        <div><b>[w4]</b> <a href="https://developer.atlassian.com/cloud/confluence/rest/v2/api-group-attachment/">Confluence Cloud REST v2: Attachment</a></div>
+        <div><b>[w5]</b> <a href="https://developer.atlassian.com/cloud/jira/platform/apis/document/structure/">Jira: Atlassian Document Format</a></div>
+        <div><b>[w6]</b> <a href="https://developer.atlassian.com/cloud/jira/platform/rest/v3/api-group-issue-attachments/">Jira Cloud REST v3: Issue attachments</a></div>
+        <div><b>[w9]</b> <a href="https://learn.microsoft.com/en-us/azure/ai-services/document-intelligence/prebuilt/layout?view=doc-intel-4.0.0">Azure Document Intelligence layout model v4.0</a></div>
+        <div><b>[w10]</b> <a href="https://www.drawio.com/docs/reference/embed-mode/">draw.io embed mode: structural JSON</a></div>
+        <div><b>[w11]</b> <a href="https://www.drawio.com/docs/manual/export/xml-in-png/">draw.io: embedded XML in PNG</a></div>
+        <div><b>[w12]</b> <a href="https://drawio-app.com/blog/updates-to-the-draw-io-apps-for-confluence-and-jira/">draw.io: Confluence·Jira attachment storage</a></div>
+      </div>
+      <p class="note">web quote는 2026-09-02 조회본이며 <code>archive_url</code>이 없어 당시 exact bytes는 재현할 수 없다. live GitHub counter의 historical series도 없어 상승 원인의 causal claim은 하지 않았다.</p>
+    </div></section>
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 26</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides=Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var rail=Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev=document.getElementById('prev'),next=document.getElementById('next');
+  var counter=document.getElementById('counter'),bar=document.getElementById('progbar'),stage=document.getElementById('stage');
+  var i=0,x0=null,y0=null;
+  function pad(n){return(n<10?'0':'')+n;}
+  function show(n,hash){
+    i=Math.max(0,Math.min(slides.length-1,n));
+    slides.forEach(function(s,k){s.setAttribute('data-active',k===i?'true':'false');s.setAttribute('aria-hidden',k===i?'false':'true');if(k===i){s.scrollTop=0;}});
+    rail.forEach(function(b,k){b.setAttribute('aria-current',k===i?'true':'false');});
+    counter.textContent=pad(i+1)+' / '+pad(slides.length);bar.style.width=((i+1)/slides.length*100)+'%';prev.disabled=i===0;next.disabled=i===slides.length-1;
+    if(hash!==false){try{history.replaceState(null,'','#p'+(i+1));}catch(e){}}
+  }
+  prev.addEventListener('click',function(){show(i-1);}); next.addEventListener('click',function(){show(i+1);});
+  rail.forEach(function(b){b.addEventListener('click',function(){show(parseInt(b.getAttribute('data-go'),10));});});
+  document.addEventListener('keydown',function(e){if(e.metaKey||e.ctrlKey||e.altKey){return;}var t=e.target;if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA')){return;}if(e.key==='ArrowRight'||e.key==='PageDown'||e.key===' '){e.preventDefault();show(i+1);}else if(e.key==='ArrowLeft'||e.key==='PageUp'){e.preventDefault();show(i-1);}else if(e.key==='Home'){e.preventDefault();show(0);}else if(e.key==='End'){e.preventDefault();show(slides.length-1);}});
+  stage.addEventListener('touchstart',function(e){x0=e.changedTouches[0].clientX;y0=e.changedTouches[0].clientY;},{passive:true});
+  stage.addEventListener('touchend',function(e){if(x0===null){return;}var dx=e.changedTouches[0].clientX-x0,dy=e.changedTouches[0].clientY-y0;if(Math.abs(dx)>56&&Math.abs(dx)>Math.abs(dy)*1.6){show(dx<0?i+1:i-1);}x0=null;y0=null;},{passive:true});
+  window.addEventListener('hashchange',function(){var h=/^#p(\d+)$/.exec(window.location.hash||'');if(h){show(parseInt(h[1],10)-1,false);}});
+  var h=/^#p(\d+)$/.exec(window.location.hash||'');show(h?parseInt(h[1],10)-1:0,false);
+})();
+</script>
+</body>
+</html>
