@@ -1,0 +1,7 @@
+{
+  "title": "anydoc: 픽셀 대신 Office 원본 구조와 PDF text layer를 읽는다",
+  "date": "2026-09-02",
+  "seq": 21,
+  "summary": "Office package와 모든 page에 text layer가 있는 PDF를 local에서 읽는다. attachment lane은 trial 대상이고 image-only page·diagram·Atlassian body에는 별도 parser와 OCR·VLM 경계가 필요하다.",
+  "category": "oss"
+}
