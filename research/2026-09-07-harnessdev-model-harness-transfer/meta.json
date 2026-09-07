@@ -1,0 +1,18 @@
+{
+  "title": "HarnessDev: LLM이 실행 하네스를 만들고 고치는 능력을 재는 벤치마크",
+  "date": "2026-09-07",
+  "seq": 23,
+  "summary": "Threads가 강조한 모델 교체 후 중복 검색을 출발점으로 Creation, Evolution, 모델 간 전이를 원문 실험 조건과 대조한다.",
+  "category": "paper",
+  "format": "deck",
+  "tags": [
+    "agent",
+    "harness",
+    "evaluation",
+    "self-improvement"
+  ],
+  "source": {
+    "label": "HarnessDev · arXiv:2609.01437v1",
+    "url": "https://arxiv.org/abs/2609.01437v1"
+  }
+}
