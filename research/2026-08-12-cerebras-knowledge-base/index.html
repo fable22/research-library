@@ -3,11 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cerebras Knowledge: 사내 지식을 RAG로 중앙집중화할 때 남는 문제</title>
-<meta name="description" content="Cerebras가 공개한 사내 지식베이스의 검색 파이프라인과, 회사 지식을 하나의 임베딩 테이블로 모을 때 프로덕션에서 실제로 걸리는 지점들">
+<title>Cerebras Knowledge: 여러 업무 도구의 지식을 함께 검색하는 사내 KB</title>
+<meta name="description" content="Cerebras의 원천별 검색 자료, hybrid search와 rerank, Web UI·MCP 구조를 설명하고 자체 보고·외부 실험·비평의 근거 범위를 구분한다.">
 <meta property="og:type" content="article">
-<meta property="og:title" content="Cerebras Knowledge: 사내 지식을 RAG로 중앙집중화할 때 남는 문제">
-<meta property="og:description" content="Cerebras가 공개한 사내 지식베이스의 검색 파이프라인과, 회사 지식을 하나의 임베딩 테이블로 모을 때 프로덕션에서 실제로 걸리는 지점들">
+<meta property="og:title" content="Cerebras Knowledge: 여러 업무 도구의 지식을 함께 검색하는 사내 KB">
+<meta property="og:description" content="Cerebras의 원천별 검색 자료, hybrid search와 rerank, Web UI·MCP 구조를 설명하고 자체 보고·외부 실험·비평의 근거 범위를 구분한다.">
 <meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-12-cerebras-knowledge-base/">
 <meta name="twitter:card" content="summary">
 <style>
@@ -135,7 +135,7 @@ body { margin: 0; }
 }
 .eyebrow::before { content: "[["; opacity: .45; }
 .eyebrow::after  { content: "]]"; opacity: .45; }
-/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다. scaffold 에 이 규칙이 없다 */
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
 h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
 h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
 h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
@@ -199,7 +199,7 @@ strong { font-weight: 700; }
   background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
 }
 .bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
-/* display:block 은 scaffold 에 없다. span 이라 이게 없으면 막대가 렌더되지 않는다 */
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
 .bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
 .bar.s1 { background: var(--link); }
 .bar.s2 { background: var(--redlink); }
@@ -227,7 +227,6 @@ tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; 
 tr.hero td:first-child { color: var(--ink); }
 td.win { color: var(--link); font-weight: 700; }
 td.lose { color: var(--redlink); font-weight: 700; }
-td.wrap, th.wrap { white-space: normal; min-width: 150px; }
 
 /* ── code / md sample ─────────────────────────────────────── */
 pre {
@@ -244,21 +243,6 @@ pre .c { color: var(--muted); }
 /* ── paper figures (light-source PNGs; keep a white plate) ─ */
 .plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
 .plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
-
-/* 원문에서 그대로 가져온 그림. 색과 클래스 이름은 원문 페이지의 .cb-fig 정의를 옮긴 것이라
-   이 문서의 토큰을 쓰지 않는다. .plate 의 흰 바탕이 다크 모드에서도 이 그림을 살린다 */
-.cbfig { --cobalt-50: oklch(0.98 0.012 45); --cobalt-100: oklch(0.945 0.038 45);
-         --cobalt-300: oklch(0.79 0.125 39); --cobalt-600: #a93613; --label: rgb(0 0 0 / 0.5); }
-.cbfig svg { display: block; width: 100%; height: auto; }
-.cbfig .stroke { fill: none; stroke: var(--cobalt-600); stroke-width: 1.25; vector-effect: non-scaling-stroke; }
-.cbfig .stroke-muted { fill: none; stroke: var(--cobalt-300); stroke-width: 1; vector-effect: non-scaling-stroke; }
-.cbfig .dash { stroke-dasharray: 4 4; }
-.cbfig .fill-white { fill: #fff; }
-.cbfig .fill-50 { fill: var(--cobalt-50); }
-.cbfig .fill-100 { fill: var(--cobalt-100); }
-.cbfig .fill-300 { fill: var(--cobalt-300); }
-.cbfig .svg-label { fill: var(--cobalt-600); font-family: var(--mono); font-size: 10px; letter-spacing: .05em; text-transform: uppercase; }
-.cbfig .svg-label-muted { fill: var(--label); font-family: var(--mono); font-size: 9px; letter-spacing: .05em; text-transform: uppercase; }
 
 /* ── svg charts ───────────────────────────────────────────── */
 .svgwrap { overflow-x: auto; }
@@ -278,12 +262,9 @@ svg .dot.s1 { fill: var(--link); }
 svg .dot.s2 { fill: var(--redlink); }
 svg .box { fill: var(--card-2); stroke: var(--rule); }
 svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
-svg .box-bad { fill: var(--redlink-soft); stroke: var(--redlink); }
 svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
-svg .arw-hi { stroke: var(--link); stroke-width: 1.8; fill: none; }
 svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
 svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
-svg .txt-m { fill: var(--muted); font-family: var(--mono); font-size: 10.5px; }
 
 /* ── misc lists ───────────────────────────────────────────── */
 ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
@@ -364,961 +345,164 @@ a.xref {
 .note a { color: var(--link); text-underline-offset: 2px; }
 figcaption a { color: var(--link); text-underline-offset: 2px; }
 .card a { color: var(--link); text-underline-offset: 2px; }
+
+/* 이 문서의 설명 표와 출처 그림 */
+.dek{max-width:76ch}.slide-inner{max-width:1000px} .citation{display:block;font-size:12px;margin-top:9px;color:var(--ink-2)} a{color:var(--link);text-underline-offset:3px} .tablewrap table{font-size:14px;table-layout:fixed} th,td{white-space:normal;text-align:left;vertical-align:top;overflow-wrap:anywhere} tbody td{font-family:var(--sans);line-height:1.6} th:first-child,td:first-child{width:23%;color:var(--ink)} .steps{padding-left:24px;margin:0;display:grid;gap:13px}.steps li::marker{color:var(--link);font-weight:700}.steps li p{color:var(--ink-2);margin:3px 0 0}.steps strong{font-size:16px} code{font-family:var(--mono);font-size:.88em;overflow-wrap:anywhere}.plate{padding:0;box-shadow:none}.figure .plate img{max-height:490px;object-fit:contain}#p6 .figure .plate img{max-height:405px}.svgwrap svg .txt{font-size:16px}.svgwrap svg .txt-s{font-size:13px} .sources-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px}.sources-grid p{font-size:13px}.sources-grid b{display:block}.bar-name{font-size:13px}.bar-row{grid-template-columns:210px 1fr 52px}.bar-axis{grid-template-columns:210px 1fr 52px}.note{font-size:13.5px}.tagline{font-size:13px;color:var(--ink-2);margin-bottom:20px}.formula{font-family:var(--mono);font-size:19px;padding:16px;border:1px solid var(--rule);background:var(--card);border-radius:8px;margin-bottom:16px}.compact td{font-size:13px} .figure figcaption{color:var(--ink-2)}
+@media(max-width:620px){.sources-grid{grid-template-columns:1fr}.tablewrap table{min-width:620px}.bar-row{grid-template-columns:130px 1fr 45px}.bar-axis{grid-template-columns:130px 1fr 45px}.figure{padding:14px 12px}.figure .plate{min-width:600px}.figure:has(.plate){overflow-x:auto}.formula{font-size:14px;overflow-wrap:anywhere}}
 </style>
 </head>
 <body>
 <div class="deck">
   <nav class="rail" aria-label="목차">
     <div class="rail-head">_index.md</div>
-    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
-    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
-    <div class="rail-sep"></div>
-    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
-    <button class="rail-item" data-go="3"><span class="n">04</span><span>단일 테이블</span></button>
-    <button class="rail-item" data-go="4"><span class="n">05</span><span>Slack 정규화</span></button>
-    <button class="rail-item" data-go="5"><span class="n">06</span><span>네 신호와 RRF</span></button>
-    <button class="rail-item" data-go="6"><span class="n">07</span><span>planner 구조</span></button>
-    <button class="rail-item" data-go="7"><span class="n">08</span><span>grep 논쟁</span></button>
-    <button class="rail-item" data-go="8"><span class="n">09</span><span>chunk 경계 추적</span></button>
-    <button class="rail-item" data-go="9"><span class="n">10</span><span>읽은 범위</span></button>
-    <button class="rail-item" data-go="10"><span class="n">11</span><span>공개된 수치</span></button>
-    <div class="rail-sep"></div>
-    <button class="rail-item" data-go="11"><span class="n">12</span><span>프로덕션 쟁점</span></button>
-    <button class="rail-item" data-go="12"><span class="n">13</span><span>해석의 한계</span></button>
-    <button class="rail-item" data-go="13"><span class="n">14</span><span>도입 판단</span></button>
-    <button class="rail-item" data-go="14"><span class="n">15</span><span>결론</span></button>
-    <button class="rail-item" data-go="15"><span class="n">16</span><span>출처</span></button>
+<button class="rail-item" data-go="0"><span class="n">01</span><span>문서 안내</span></button>
+<button class="rail-item" data-go="1"><span class="n">02</span><span>설계 요약</span></button>
+<button class="rail-item" data-go="2"><span class="n">03</span><span>문제와 사용 목적</span></button>
+<button class="rail-item" data-go="3"><span class="n">04</span><span>전체 구조</span></button>
+<button class="rail-item" data-go="4"><span class="n">05</span><span>RAG 구성과 설계 선택</span></button>
+<button class="rail-item" data-go="5"><span class="n">06</span><span>Slack 검색 표현</span></button>
+<button class="rail-item" data-go="6"><span class="n">07</span><span>Hybrid와 rerank</span></button>
+<button class="rail-item" data-go="7"><span class="n">08</span><span>Cerebras 자체 보고</span></button>
+<button class="rail-item" data-go="8"><span class="n">09</span><span>Anthropic 검색 실험</span></button>
+<button class="rail-item" data-go="9"><span class="n">10</span><span>Cursor·Slack 사례</span></button>
+<button class="rail-item" data-go="10"><span class="n">11</span><span>파생 해설의 읽기</span></button>
+<button class="rail-item" data-go="11"><span class="n">12</span><span>실제 논의의 쟁점</span></button>
+<button class="rail-item" data-go="12"><span class="n">13</span><span>적용할 때 정할 정책</span></button>
+<button class="rail-item" data-go="13"><span class="n">14</span><span>가져갈 실천</span></button>
+<button class="rail-item" data-go="14"><span class="n">15</span><span>조사·검증 범위</span></button>
+<button class="rail-item" data-go="15"><span class="n">16</span><span>출처</span></button>
   </nav>
 
   <main class="stage" id="stage">
 
-  <!-- 01 표지 -->
-  <section class="slide" data-active="true">
-    <div class="slide-inner">
-      <p class="eyebrow">index</p>
-      <h1>Cerebras Knowledge: 사내 지식을 RAG로 중앙집중화할 때 남는 문제</h1>
-      <p class="dek">Cerebras가 사내 지식베이스의 검색 파이프라인을 문서 한 편으로 공개했다. 하루 15,000개가 넘는 질문을 받고, 사람과 자동화 스크립트와 에이전트가 같은 창구에 묻는다. 이 문서는 그 파이프라인을 단계별로 뜯고, 같은 것을 프로덕션에 올릴 때 원문이 답하지 않는 지점을 표시한다.</p>
+<section class="slide" id="p1" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">index</p>
+<h2>Cerebras Knowledge:<br>여러 업무 도구의 지식을 함께 검색하는 사내 KB</h2>
+<p class="dek">Slack, 문서, 코드에 흩어진 지식을 어떤 형태로 모으고 질문에 연결하는가. 공개된 설계와 인용 실험, 외부 비평을 구분해 읽는다.</p>
+<p><span class="tagline">Cerebras 기술 블로그 · 2026-07-15 / 문서 개정 · 2026-09-07</span></p><div class="grid g2"><div class="card"><h3>설계부터 읽기</h3><p><a href="#p5">RAG 구성과 설계 선택</a>에서 검색 자료의 형태와 tool 사용 방식을 보고, Slack 처리와 후보 선별의 동작으로 이어진다.</p></div><div class="card"><h3>근거부터 읽기</h3><p><a href="#p8">Cerebras 자체 보고</a>, <a href="#p9">외부 실험</a>, <a href="#p11">해설과 실제 논의</a>에서 각 주장이 어디까지 확인되는지 살핀다.</p></div></div>
+<p class="note">수집·저장 형태와 검색 절차의 상세 설명은 <a href="../2026-08-20-cerebras-kb-architecture/">아키텍처 문서</a>로 이어진다.</p>
+</div></section>
+
+<section class="slide" id="p2" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">tl-dr</p>
+<h2>핵심은 원천을 유지하면서 검색과 근거 반환을 통합한 설계다</h2>
+<p class="dek">Cerebras는 사람들이 이미 쓰는 도구에서 자료를 수집해 공통 검색 계층을 만든다. 원천마다 검색할 단위를 다르게 만들고, 질문에 맞는 검색 도구와 결과를 조합한다.</p>
+<div class="grid g2"><div class="card"><h3>수집의 공통 인터페이스</h3><p>Slack thread, 코드 chunk, 문서 등에서 텍스트·vector·metadata를 만든다. 새 source는 connector로 참여한다.</p></div><div class="card"><h3>질의의 공통 결과</h3><p>검색 도구가 반환한 근거를 공통 형식으로 모아 답변과 인용에 사용한다. MCP client는 근거를 받아 자체 작업을 진행한다.</p></div></div>
+<p class="note">이는 운영 사례를 설명한 글이다. 사용량과 자체 개선 경험은 보고하지만 시스템 전체의 정확도·비용 우위를 검증한 비교 실험은 제시하지 않는다.<span class="citation"><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base" target="_blank" rel="noopener">Cerebras 원문</a></span></p>
+</div></section>
+
+<section class="slide" id="p3" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">problem</p>
+<h2>찾을 대상과 아는 사람이 여러 시스템에 나뉘어 있었다</h2>
+<p class="dek">원문이 제시한 문제는 반복되는 위치·개념·전문가 질문이다. 모든 팀의 기록 습관을 바꾸는 대신, 기록이 생기는 시스템에서 직접 수집하는 방향을 택했다.</p>
+<div class="tablewrap"><table><thead><tr><th scope="col">질문 유형</th><th scope="col">필요한 근거</th><th scope="col">공개된 사용 경로</th></tr></thead><tbody><tr><td>어디에 있는가</td><td>문서 위치, 코드 구현, 과거 대화</td><td>통합 search와 search_code</td></tr><tr><td>무엇이며 어떻게 동작하는가</td><td>설명 문서와 관련 코드, 논의 맥락</td><td>여러 source의 근거를 종합한 Web UI 답변</td></tr><tr><td>누구에게 물어야 하는가</td><td>해당 주제에 관한 활동·전문성</td><td>who_knows</td></tr><tr><td>agent가 작업하려면 무엇을 읽어야 하는가</td><td>코드·PR·관련 대화의 구체적 근거</td><td>MCP의 검색 도구 호출</td></tr></tbody></table></div>
+<p class="note">표는 원문의 질문 예와 tool 목록을 연결한 사용 시나리오다.<span class="citation"><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base" target="_blank" rel="noopener">Cerebras 원문</a></span></p>
+</div></section>
+
+<section class="slide" id="p4" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">architecture</p>
+<h2>공통 DB는 원천 시스템과 질문 처리를 연결한다</h2>
+<p class="dek">connector가 각 시스템에서 검색에 필요한 자료를 만들어 Postgres에 저장한다. 업무 기록의 원본은 기존 시스템에 남고, 공유된 검색 자료가 여러 사용자 인터페이스를 지원한다.</p>
+<figure class="figure"><div class="plate"><img src="data:image/png;base64,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NM3eNxyqj5+63O56f0Dr211fmadENsqqar/L5/obbVEfR9W06mpVDssGgh599+QG+qbpY88//+sFgJGHN70HcAmRw5hC1jChBQOa/dTEut3lVoP+oCaGRR9DdfUra3Ly3i7Os0FNDp3az5jYD/rleOVghU+VbVmO3eol2i6HYevrA9q5q9gH67L9cgOau8Sn84jAGdtR7epAQ7MAMPJxNT2AS4jqdLmDFeufk/fcPq96erGckO8b2NQvty9/rlY2O7vb5xtgRFCTg57r6+X3VXdJqevciKCcpffbZTv09J3bedb6HvmwVj6UifLJcqZexlVXPFcrxzp9ZfrqWqBaH6IMiEB50Fd604mzju1OOQFfpd+Tw7buysr16/WCqp8GEKyvrKwO6DXS6S11/c06qp8wavfEzlOwq0HZaj1yFr5yfaBWlme312XXx3o1f2X5L61ynXFFt5S6z95/r4sRUgAjTUpvb68YFqZxySX3ksgNvr/n9RW3Ld3sT3DugMgll1xyySW3Xy7T9AAAADAMZRQAAACGoYwCAADAMJRRAAAAGIYyCgAAAMNQRgEAAGAYyigAAAAMQxkFAACAYSijAAAAMAxlFAAAAIahjAIAAMAwlFEAAAAYhjIKAAAAw1BGAQAAYJg0kaw+ee+d7k+PX/j6vd1d8jbFlOifGLkG5o51XpF++SQBAADiJnnL6I5/W6m1NqdaVAEMJNreVnDn16avXCMAAEDcJG8ZlT7/8NO58xcLYCBvr1slAABAnHHOKAAAAAxDGQUAAIBhKKMAAAAwDGUUAAAAhqGMAgAAwDCUUQAAABiGMgoAAADDUEYBAABgGMooAAAADEMZBQAAgGEoowAAADAMZRQAAACGGX4Z7TreIb9EwhmVC8RDsh1H5JJLLrnkktsvd5hltKPxYDSsyS95RySQUblAPCTbcUQuueSSSy655+am9XZFxRDpHVZVx2bnyPvHW5qioWNpYzNE/BmVi+TV0zOMA+QCJez3uberK3YbTXBuP+SSSy655JI7YG6awNB9WvPc20+Wd0aEaer93jVLTa8t3163bN5355j867c93jbtiVX29k17nny6pUnrFpm5331+es7OnY880dLU3HmozTKpQM2ZNW3tulzLu/se//a+fWFL4dc//9Bd4yLbdtzz5db5LyxcWRD84e1vVN8w7+drHdazg9vlOssD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" alt="Slack, Confluence, 코드, netlist, PRM 문서, custom DB가 connector를 통해 공통 embeddings table로 모이고 MCP·Web UI·agent가 질의한다." loading="lazy"></div><figcaption>Cerebras 원본 그림 002. 표 안의 항목은 데이터 인터페이스를 설명한다. 실제 DDL이나 전체 DB의 테이블 수를 공개한 그림은 아니다. <span class="citation"><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base" target="_blank" rel="noopener">Cerebras 원문</a></span></figcaption></figure>
+<p class="note">이 구조에서 “중앙화”는 검색 가능한 사본과 접근 경로를 모은다는 뜻이다. 모든 팀의 원본 DB를 대체하거나 모든 질의를 원천 DB에 실시간 전달한다는 뜻으로 읽으면 안 된다.</p>
+</div></section>
+
+<section class="slide" id="p5" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">rag-comparison</p>
+<h2>검색 기법의 조합보다 업무 자료를 다루는 설계에 주목한다</h2>
+<p class="dek">정확한 문자열과 paraphrase를 함께 찾고, 질문에 맞게 후보를 재정렬하는 일은 업무용 RAG가 이미 다뤄야 하는 검색 문제다. Hybrid·RRF·rerank를 갖췄다는 사실만으로 Cerebras 사례의 강점이 설명되지는 않는다.</p>
+<p><strong>RAG 검색 흐름 예:</strong> lexical + vector → rank fusion(RRF 등) → rerank → 근거 기반 답변</p><div class="tablewrap"><table><thead><tr><th scope="col">설계 질문</th><th scope="col">Cerebras의 구체적인 선택</th><th scope="col">참고할 처리 방식</th></tr></thead><tbody><tr><td>무엇을 검색 단위로 만드는가</td><td>Slack의 원문·thread·burst. 코드의 파일·함수 수준 vector와 repository의 ripgrep</td><td>대화 주제와 세부 답, 코드의 의미와 정확한 문자열을 서로 다른 경로로 찾음</td></tr><tr><td>원천을 어떻게 연결하고 갱신하는가</td><td>source별 connector가 공통 Postgres row를 출력. 코드는 변경 chunk만 갱신</td><td>업무 원천을 유지하며 검색 자료의 형식과 갱신 경로를 정함</td></tr><tr><td>질문마다 어디를 찾는가</td><td>관련 source를 묶은 project 범위에서 planner가 통합 search·Slack·ripgrep 등 tool을 선택</td><td>검색 점수 결합과 여러 tool의 선택·호출을 별도 계층으로 둠</td></tr><tr><td>찾은 근거를 누가 사용하는가</td><td>Web UI는 답변·인용을 생성. MCP client는 검색 근거를 자체 작업에 사용</td><td>동일한 retrieval 도구를 사람의 질문과 agent의 작업에 제공</td></tr></tbody></table></div><p>따라서 이 사례를 참고할 때는 검색 기법의 도입 여부보다, 그 기법에 넣을 자료를 어떻게 만들고 갱신하며 실제 사용 경로에 연결했는지를 봐야 한다. 다음 장의 thread 요약과 burst가 그 선택을 구체적으로 보여 준다.</p>
+<p class="note">원문은 raw text의 vector 검색만으로 관련 자료를 충분히 찾지 못한 경험에서 출발한다. 이 경험은 hybrid의 필요성을 뒷받침하지만, hybrid·rerank를 갖춘 RAG 대비 이 설계의 추가 효과를 보여 주는 비교는 아니다.<span class="citation"><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base" target="_blank" rel="noopener">Cerebras 원문</a> · <a href="https://www.anthropic.com/engineering/contextual-retrieval" target="_blank" rel="noopener">Anthropic · Contextual Retrieval</a> · <a href="https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf" target="_blank" rel="noopener">RRF 원 논문 · SIGIR 2009</a></span></p>
+</div></section>
+
+<section class="slide" id="p6" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">representation</p>
+<h2>Slack에서는 원문·thread 요약·burst가 서로 다른 누락을 줄인다</h2>
+<p class="dek">전체 대화를 요약하면 주제는 선명해지지만 곁가지의 해결 단서가 사라질 수 있다. Cerebras는 검색 자료를 하나로 줄이지 않고 원문 검색과 두 종류의 vector 표현을 함께 둔다.</p>
+<div class="grid g2"><div class="card"><h3>Raw transcript → lexical search</h3><p>오류 문자열과 flag처럼 문자 그대로 찾아야 하는 단서를 보존한다. 수집한 원문에 Postgres GIN full-text index를 둔다.</p></div><div class="card"><h3>Thread distillation → vector search</h3><p>대화 전체에서 질문, 요약, 해결 내용, 시스템·코드 참조를 추출한다. 인사말과 대화 순서를 넘어 검색할 주제를 만든다.</p></div><div class="card"><h3>Burst → 별도 vector search</h3><p>같은 작성자가 연속해서 쓴 메시지를 묶고 thread 주제를 앞에 붙인다. 전체 요약에서 빠진 세부 답을 찾는 경로다.</p></div><div class="card"><h3>검색 후 원문 맥락 복원</h3><p>찾기 좋은 표현과 답변에 필요한 근거의 크기는 다를 수 있다. 원문 위치와 주변 맥락을 따라갈 연결이 필요하다.</p></div></div>
+<p class="note">Cerebras는 정규화 뒤 정확도가 개선됐다고 서술한다. 어떤 평가셋에서 각 표현이 얼마나 기여했는지는 공개하지 않는다.<span class="citation"><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base" target="_blank" rel="noopener">Cerebras 원문</a></span></p>
+</div></section>
+
+<section class="slide" id="p7" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">hybrid-rerank</p>
+<h2>Hybrid search는 후보를 넓히고 rerank는 질문에 맞게 다시 판단한다</h2>
+<p class="dek">원문·thread·burst에서 찾은 후보에는 같은 근거가 중복되거나 질문의 조건과 어긋난 내용이 섞일 수 있다. RRF는 검색별 순위 목록을 합치고 rerank는 모인 후보의 내용을 질문과 대조한다.</p>
+<div class="tablewrap"><table><thead><tr><th scope="col">단계</th><th scope="col">입력과 동작</th><th scope="col">해결하려는 문제</th></tr></thead><tbody><tr><td>Hybrid retrieval</td><td>lexical·vector 등의 검색 결과를 각각 구함</td><td>정확한 식별자와 다른 표현으로 쓴 같은 의미를 함께 찾음</td></tr><tr><td>RRF fusion</td><td>각 목록의 순위만 사용해 공통 점수를 합산</td><td>vector 점수와 lexical 점수의 척도가 서로 다름</td></tr><tr><td>Rerank</td><td>질문과 후보 내용을 모델이 읽고 관련성을 재평가</td><td>같은 단어를 많이 포함해도 다른 문제를 설명하는 문서가 섞임</td></tr><tr><td>Context expansion</td><td>선택된 결과의 주변 내용을 붙임</td><td>chunk 경계에서 잘린 제목·조건·주의사항을 되돌림</td></tr></tbody></table></div>
+<p class="note">Cerebras의 search 경로는 중복과 파일별 편중을 줄인 후보 20개를 rerank해 10개를 남긴다. <a href="../2026-08-20-cerebras-kb-architecture/#p14">RRF 계산</a>과 <a href="../2026-08-20-cerebras-kb-architecture/#p15">rerank 단계</a>에서 동작과 한계를 자세히 설명한다.<span class="citation"><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base" target="_blank" rel="noopener">Cerebras 원문</a></span></p>
+</div></section>
+
+<section class="slide" id="p8" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">result-cerebras</p>
+<h2>사용량은 운영 활용을 보여 주지만 정확도의 증거는 따로 필요하다</h2>
+<p class="dek">공개된 수치는 서비스가 실제로 쓰인다는 근거다. 질문 수를 답변 품질이나 개발 생산성으로 바로 바꿔 읽을 수는 없다.</p>
+<div class="tablewrap"><table><thead><tr><th scope="col">보고 내용</th><th scope="col">확인되는 범위</th><th scope="col">이 자료로 알 수 없는 것</th></tr></thead><tbody><tr><td>출시 3개월 시점에 하루 15,000건 초과 질문</td><td>Cerebras가 보고한 사람·automation·agent의 합산 사용량</td><td>고유 사용자 수, 업무 성공률, 질문당 비용</td></tr><tr><td>Thread 정규화 뒤 정확도 개선</td><td>개발팀의 자체 실험 경험에 관한 정성적 보고</td><td>평가 질문, 정답, baseline, 효과 크기</td></tr><tr><td>일부 코드 repo는 40 GB 초과</td><td>변경분 처리 필요성을 설명하는 원천 repo 크기</td><td>index 크기, 검색 지연시간, DB 메모리 요구량</td></tr></tbody></table></div>
+<p class="note">일평균 질문 수로 peak QPS나 필요한 DB 인스턴스 수를 추정하지 않는다. 공개된 corpus 규모·동시성·tool fan-out 측정이 없어 용량 산정의 입력이 부족하다.<span class="citation"><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base" target="_blank" rel="noopener">Cerebras 원문</a></span></p>
+</div></section>
+
+<section class="slide" id="p9" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">result-contextual</p>
+<h2>인용 실험은 문맥 보강·hybrid·rerank의 누적 효과를 보여 준다</h2>
+<p class="dek">검색 구성의 효과를 나누어 본 자료로 Anthropic의 비교 실험이 있다. Chunk 앞에 문서 내 위치와 의미를 설명하는 문맥을 붙이고, 원래 chunk를 유지하며 dense 검색과 BM25에 같은 보강 문맥을 사용했다.</p>
+<figure class="figure"><p class="fig-title">검색 실패율: 1 − recall@20 · 낮을수록 좋다</p><p class="fig-sub">Gemini Text 004 구성, 평가한 지식 분야의 평균</p><div class="bar-row"><span class="bar-name">기본 embedding</span><div class="bar-track"><i class="bar " style="--w:95.0000%"></i></div><span class="bar-val">5.7%</span></div><div class="bar-row"><span class="bar-name">Contextual embedding</span><div class="bar-track"><i class="bar " style="--w:61.6667%"></i></div><span class="bar-val">3.7%</span></div><div class="bar-row"><span class="bar-name">+ Contextual BM25</span><div class="bar-track"><i class="bar " style="--w:48.3333%"></i></div><span class="bar-val">2.9%</span></div><div class="bar-row"><span class="bar-name">+ Rerank</span><div class="bar-track"><i class="bar s1" style="--w:31.6667%"></i></div><span class="bar-val">1.9%</span></div><div class="bar-axis"><div class="ticks"><span>0%</span><span>3%</span><span>6%</span></div></div><figcaption>Anthropic 본문 수치를 재도식화했다. 첫 설정 대비 마지막 설정의 검색 실패율이 67% 감소했다는 보고다. 답변 정확도 67% 상승을 뜻하지 않는다.</figcaption></figure><p>Rerank 실험은 후보 150개에서 20개를 남기며 Cohere reranker를 사용했다. Cerebras의 후보 수와 reranker 구성은 다르다.</p>
+<p class="note">Cerebras의 burst에 문맥을 붙이는 선택을 참고할 근거는 된다. Thread를 구조화한 요약으로 대체하는 distillation의 효과까지 이 실험이 입증하지는 않는다.<span class="citation"><a href="https://www.anthropic.com/engineering/contextual-retrieval" target="_blank" rel="noopener">Anthropic · Contextual Retrieval</a></span></p>
+</div></section>
+
+<section class="slide" id="p10" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">result-related</p>
+<h2>코드 검색과 대화 요약에서도 관련 선택을 시험한 자료가 있다</h2>
+<p class="dek">Cerebras가 코드에 semantic search를 둔 선택은 Cursor의 실험과 연결된다. Slack AI 자료는 대화에서 어떤 메시지에 비중을 둘지 다룬다. 두 자료는 각 제품 개발팀이 공개한 경험과 실험이다.</p>
+<div class="grid g2"><div class="card"><h3>Cursor: 검색 도구를 바꾼 비교</h3><p>자체 Context Bench에서 semantic search가 있는 구성이 평균 12.5% 높은 정확도를 보고했다. 온라인 A/B에서는 같은 모델에 검색 도구 제공 여부를 바꿨다. grep과 semantic search를 함께 사용한다.<span class="citation"><a href="https://cursor.com/blog/semsearch" target="_blank" rel="noopener">Cursor · Semantic Search 실험</a></span></p></div><div class="card"><h3>Slack AI: 메시지마다 같은 처리를 하지 않음</h3><p>기존 검색 신호와 AI 판단을 결합하고, 요약에서는 결정·행동 항목·reaction이 있는 메시지에 비중을 둔다. 실시간 기능과 미리 계산하는 recap의 처리도 구분한다.<span class="citation"><a href="https://engineering.salesforce.com/how-slack-ai-processes-billions-of-messages-to-reduce-information-overload-with-ai-powered-search-and-summarization/" target="_blank" rel="noopener">Slack AI · 검색과 요약의 운영</a></span></p></div></div>
+<p class="note">Cursor의 12.5%는 원문 표현을 따른다. 원시 점수와 집계 방식 없이 percentage point로 바꿔 쓰지 않는다. Slack 자료는 운영 설계 설명이며 Cerebras distillation의 비교 실험이 아니다.<span class="citation"><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base" target="_blank" rel="noopener">Cerebras 원문</a></span></p>
+</div></section>
+
+<section class="slide" id="p11" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">reviews</p>
+<h2>외부 해설은 인터페이스의 확장성과 지식 관리 책임을 짚는다</h2>
+<p class="dek">검색 품질 실험만으로는 새 source를 붙일 때 바뀌는 범위나 자료의 갱신 책임을 알기 어렵다. DataSci Ocean과 Falconer는 각각 공통 인터페이스의 역할과 지식 관리의 책임에 초점을 둔다.</p>
+<div class="tablewrap"><table><thead><tr><th scope="col">자료</th><th scope="col">참고할 해석</th><th scope="col">그대로 받아들이지 않을 주장</th></tr></thead><tbody><tr><td><a href="https://datasciocean.com/en/paper-intro/cerebras-rag/" target="_blank" rel="noopener">DataSci Ocean · Cerebras 해설</a></td><td>공통 데이터 인터페이스가 수집과 검색의 변경 범위를 줄인다는 설명</td><td>정확히 다섯 컬럼이라는 물리 schema 단정, 공개 흐름만으로 재검색 부재를 확정하는 해석</td></tr><tr><td><a href="https://falconer.com/notes/cerebras-knowledge-base/" target="_blank" rel="noopener">Falconer · Knowledge Base 비평</a></td><td>검색 품질과 별도로 문서 소유자·갱신·상충 정보 관리가 필요하다는 비평</td><td>knowledge graph가 project scope보다 우월하다는 일반화, 합산 질문 수를 직원별 사용량으로 환산</td></tr></tbody></table></div>
+<p class="note">DataSci Ocean은 외부 구현자의 해설이다. Falconer 글은 전직 Stripe·Uber 문서 담당자의 경험과 자사 제품 관점을 함께 담는다. 두 글 모두 Cerebras 내부 성능을 독립 측정한 리뷰는 아니다.</p>
+</div></section>
+
+<section class="slide" id="p12" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">discussion</p>
+<h2>실제 논의는 평가 질문과 agent 전체 작업을 함께 보라고 지적한다</h2>
+<p class="dek">MCP client는 검색 근거로 후속 작업을 하므로 검색 한 번의 결과와 작업 전체의 성과를 나누어 볼 필요가 있다. 관련 토론에서는 실제 질문셋, index 갱신 비용, agent의 재검색 비용, 설계 배경의 보존이 쟁점으로 이어진다.</p>
+<div class="tablewrap"><table><thead><tr><th scope="col">논의</th><th scope="col">실제 나온 쟁점</th><th scope="col">이 사례에서 확인할 질문</th></tr></thead><tbody><tr><td><a href="https://news.ycombinator.com/item?id=41600451" target="_blank" rel="noopener">HN · 운영자의 RAG 평가 경험</a></td><td>정부기관 RAG 운영자는 synthetic 질문에서 hybrid·LLM rerank의 유의한 개선을 보지 못했다고 보고</td><td>실제 사용자 질문과 전문가 질문에서도 같은 개선이 남는가</td></tr><tr><td><a href="https://news.ycombinator.com/item?id=41602956" target="_blank" rel="noopener">HN · 문맥 생성 비용 논의</a></td><td>LLM으로 문맥을 생성하는 index 생성·갱신 비용과 제목 기반 보강의 대안을 제기</td><td>LLM 처리의 이득이 갱신 비용을 상쇄하는가</td></tr><tr><td><a href="https://news.ycombinator.com/item?id=48175701" target="_blank" rel="noopener">HN · Semble 작성자의 평가 답변</a></td><td>작성자는 harness·모델을 아우르는 agent benchmark를 더 만들고 있다고 답변</td><td>검색 출력이 짧아져도 재검색·재읽기를 포함한 작업 비용이 줄어드는가</td></tr><tr><td><a href="https://news.ycombinator.com/item?id=49185963" target="_blank" rel="noopener">HN · 코드가 설명하지 않는 설계 이유</a></td><td>Falconer 글의 댓글은 코드가 현재 동작을 보여 줘도 설계 이유는 설명하지 못한다고 지적</td><td>결정 배경과 폐기된 대안도 근거로 찾을 수 있는가</td></tr></tbody></table></div>
+<p class="note">관련 HN thread의 개별 댓글 링크다. 댓글의 주장을 Cerebras에서 관측된 실패로 바꾸어 서술하지 않는다.</p>
+</div></section>
+
+<section class="slide" id="p13" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">critique</p>
+<h2>같은 구조를 적용할 때는 권한·갱신·실패 처리 규칙을 정해야 한다</h2>
+<p class="dek">Cerebras는 인증·인가·감사 계층과 thread 재수집, 코드 변경분 처리를 설명한다. 갱신의 일관성 보장, 삭제·권한 전파, 상충 정보의 우선순위는 이 설명만으로 확정할 수 없다.</p>
+<div class="tablewrap"><table><thead><tr><th scope="col">남은 질문</th><th scope="col">왜 결과에 영향을 주는가</th><th scope="col">공개 자료의 경계</th></tr></thead><tbody><tr><td>권한이 바뀌거나 자료가 삭제되면</td><td>검색 결과와 인용에서 접근 불가 자료가 제거되어야 함</td><td>권한 필터 위치, 전파 지연, 삭제 처리 절차 미공개</td></tr><tr><td>오래된 답과 새 답이 충돌하면</td><td>최신 답이 항상 해당 버전에 맞는 답은 아님</td><td>age decay는 설명하지만 버전·공식성 우선순위는 미공개</td></tr><tr><td>정답 문서가 검색되지 않으면</td><td>rerank는 후보에 없는 근거를 되살리지 못함</td><td>단계별 recall과 재검색 정책 측정 미공개</td></tr><tr><td>요약이 원문을 잘못 바꾸면</td><td>요약의 오류가 검색과 답변에 이어질 수 있음</td><td>distillation의 사실 보존 평가 미공개</td></tr></tbody></table></div>
+<p class="note">이는 공개 설명으로 구현을 재현할 때 남는 질문이다. Cerebras 운영 시스템에 해당 기능이 없거나 문제가 발생했다고 확인한 목록은 아니다.<span class="citation"><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base" target="_blank" rel="noopener">Cerebras 원문</a></span></p>
+</div></section>
+
+<section class="slide" id="p14" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">conclusion</p>
+<h2>가져갈 실천은 검색 자료·후보·근거를 각각 설계하는 것이다</h2>
+<p class="dek">원천별로 검색할 단위를 정하고, 서로 다른 검색 방식의 후보를 모은 뒤, 질문에 맞는 근거를 선별해 돌려준다. 이 구분이 Cerebras 사례를 구현 관점에서 참고할 수 있게 만든다.</p>
+<ol class="steps"><li><strong>검색 자료의 단위를 원천에 맞춘다</strong><p>Slack의 전체 대화와 곁가지, 코드의 파일과 함수처럼 질문이 찾을 수 있어야 하는 단위를 나눈다.</p></li><li><strong>검색 단계별로 실패를 확인한다</strong><p>미수집·후보 누락·순위 오류·답변 오류를 구분해야 어떤 단계를 바꿀지 결정할 수 있다.</p></li><li><strong>근거를 여러 사용 경로에 제공한다</strong><p>Web UI는 답변까지 만들고 MCP client는 근거를 자체 작업에 사용한다. 원문으로 돌아갈 출처와 맥락을 함께 유지한다.</p></li></ol>
+<p class="note">이 실천의 근거는 원문에 설명된 처리 방식과 운영 경험이다. 성과의 측정 범위는 <a href="#p8">Cerebras 자체 보고</a>와 <a href="#p9">관련 실험</a>에서 구분한다.</p>
+</div></section>
+
+<section class="slide" id="p15" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">setup</p>
+<h2>원문·인용 자료·외부 논의를 서로 다른 근거로 읽었다</h2>
+<p class="dek">이번 개정은 Cerebras 본문 전체와 원본 그림, 직접 인용한 자료, 기술 문서와 관련 논의를 대조했다. 원문이 공개하지 않은 운영 로그와 내부 구현을 추정해 채우지 않았다.</p>
+<div class="tablewrap"><table><thead><tr><th scope="col">범위</th><th scope="col">확인한 내용</th><th scope="col">검증의 한계</th></tr></thead><tbody><tr><td>Cerebras 원문</td><td>2026-09-07 HTTP 응답에 포함된 본문 데이터와 원본 그림. 문서에 넣은 원본 그림을 로컬에서 렌더링</td><td>HTTP 오류 상태에서도 본문 payload는 회수했다. 과거 archive 본문은 확보하지 못함</td></tr><tr><td>인용 자료</td><td>Contextual Retrieval 본문·부록 그림, Cursor 실험, RRF 논문. 나머지 reference의 관련 절은 상세 문서에서 용도를 구분</td><td>외부 실험을 재실행하지 않음. 인용됐다는 사실과 Cerebras에서 검증됐다는 주장을 구분</td></tr><tr><td>비평·논의</td><td>DataSci Ocean, Falconer, HN 공개 API의 본문과 관련 답글</td><td>전체 인터넷 반응을 수집한 표본은 아님</td></tr><tr><td>검증 기록</td><td>개정 시점의 source·evidence·claim 원장을 추가</td><td>web 인용은 자동 quote-match 대상이 아니므로 별도 원문 대조가 필요</td></tr></tbody></table></div>
+<p class="note">원문의 <a href="../2026-08-20-cerebras-kb-architecture/#p20">reference별 역할</a>과 <a href="../2026-08-20-cerebras-kb-architecture/#p22">읽은 범위</a>는 상세 문서에 있다. 기존 발행 당시의 누락 원장을 소급 복원한 자료가 아니라 이번 개정의 근거 기록이다.</p>
+</div></section>
+
+<section class="slide" id="p16" aria-hidden="true"><div class="slide-inner">
+<p class="eyebrow">sources</p>
+<h2>설계·실험·논의의 출처를 구분해서 따라간다</h2>
+<p class="dek">구현 흐름은 Cerebras 원문을 기준으로 삼는다. 성능 수치는 해당 실험의 원문에, 외부 해석은 해설자와 댓글 작성자에게 귀속한다.</p>
+<div class="sources-grid"><p><b>사례 본문</b><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base" target="_blank" rel="noopener">Cerebras 원문</a> · Isaac Tai, Daniel Kim, Mike Gao. 수집·tool·검색·project 설명.</p><p><b>검색 품질 실험</b><a href="https://www.anthropic.com/engineering/contextual-retrieval" target="_blank" rel="noopener">Anthropic · Contextual Retrieval</a> · 문맥 보강과 rerank. <a href="https://cursor.com/blog/semsearch" target="_blank" rel="noopener">Cursor · Semantic Search 실험</a> · 코드 검색 도구 제공 여부 비교.</p><p><b>검색 기법</b><a href="https://cormack.uwaterloo.ca/cormacksigir09-rrf.pdf" target="_blank" rel="noopener">RRF 원 논문 · SIGIR 2009</a> · 순위를 합치는 수식과 IR 실험.</p><p><b>관련 운영 사례</b><a href="https://engineering.salesforce.com/how-slack-ai-processes-billions-of-messages-to-reduce-information-overload-with-ai-powered-search-and-summarization/" target="_blank" rel="noopener">Slack AI · 검색과 요약의 운영</a> · 검색과 요약의 처리 방식.</p><p><b>파생 해설</b><a href="https://datasciocean.com/en/paper-intro/cerebras-rag/" target="_blank" rel="noopener">DataSci Ocean · Cerebras 해설</a> · 인터페이스 분리 관점. <a href="https://falconer.com/notes/cerebras-knowledge-base/" target="_blank" rel="noopener">Falconer · Knowledge Base 비평</a> · 문서 유지·소유권 비평.</p><p><b>실제 논의</b><a href="https://news.ycombinator.com/item?id=41600451" target="_blank" rel="noopener">HN · 운영자의 RAG 평가 경험</a> · <a href="https://news.ycombinator.com/item?id=41602956" target="_blank" rel="noopener">HN · 문맥 생성 비용 논의</a> · <a href="https://news.ycombinator.com/item?id=48175701" target="_blank" rel="noopener">HN · Semble 작성자의 평가 답변</a> · <a href="https://news.ycombinator.com/item?id=49185963" target="_blank" rel="noopener">HN · 코드가 설명하지 않는 설계 이유</a></p></div>
+<p class="note"><a href="../2026-08-20-cerebras-kb-architecture/">상세 아키텍처 문서</a>에는 원천별 저장 형태, code indexing, RRF 계산과 reference 검토가 이어진다.</p>
+</div></section>
 
-      <p class="q">AI 경쟁의 다음 전장은 모델이 아니라 회사의 기억입니다.<cite>@choi.openai, Threads, 2026</cite></p>
-
-      <p>이 문서가 답하는 질문은 하나다. <strong>회사 지식을 embedding 테이블 하나로 모으는 설계에서, 실제로 옮겨 쓸 수 있는 부분은 어디까지인가.</strong> 답을 뒤집는 조건도 명확하다. 원문이 설명하지 않은 계층이 옮겨 쓸 수 없을 만큼 크면, 남는 것은 아키텍처가 아니라 기법 목록이다.</p>
-
-      <div class="grid g3">
-        <div class="card">
-          <span class="tag">03 – 07</span>
-          <p class="small">문제와 메커니즘. 단일 테이블, Slack 정규화, 네 신호의 RRF 융합, planner와 executor.</p>
-        </div>
-        <div class="card">
-          <span class="tag">08 – 11</span>
-          <p class="small">근거와 그 범위. grep으로 충분한가에 대한 Cursor의 수치, CocoIndex 코드 추적, 읽은 범위, 공개된 수치.</p>
-        </div>
-        <div class="card">
-          <span class="tag">12 – 16</span>
-          <p class="small">프로덕션 쟁점, 한계, 도입 판단. 권한, 무효화, embedding 모델 고착, 평가 부재.</p>
-        </div>
-      </div>
-
-      <p class="note"><b>원문은 코드가 아니라 blog post 한 편이다.</b> Cerebras Knowledge는 사내 시스템이라 저장소가 공개되지 않는다. 09장의 코드 추적은 원문이 이름을 댄 외부 의존물 CocoIndex를 대상으로 하며, Cerebras가 그것을 어떤 설정으로 쓰는지는 확인할 수 없다.</p>
-    </div>
-  </section>
-
-  <!-- 02 요약 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">tl-dr</p>
-      <h2>요약. 옮겨 쓸 것은 embedding 이전 단계의 설계다</h2>
-      <p class="dek">원문이 쓴 검색 기법은 전부 알려진 것이다. full-text, embedding, IDF, age decay, RRF, rerank 중 새로 발명된 것은 없다. 실제로 옮길 만한 결정은 raw Slack 스레드를 embedding하지 않고 LLM으로 정규화한 뒤 embedding한다는 write-side 선택이다.</p>
-
-      <div class="stats">
-        <div class="stat hero">
-          <span class="lab">하루 질의</span>
-          <span class="val">15,000<span class="u">건+</span></span>
-          <span class="sub">원문은 "more than". 출시 3개월 시점, 자체 발표</span>
-        </div>
-        <div class="stat">
-          <span class="lab">RRF 평활 상수</span>
-          <span class="val">60</span>
-          <span class="sub">weight 기본 1.0. fig-001 은 리스트 6개</span>
-        </div>
-        <div class="stat">
-          <span class="lab">embedding 차원</span>
-          <span class="val">3,072</span>
-          <span class="sub">pgvector + HNSW. 원문 fig-001 표기</span>
-        </div>
-        <div class="stat bad">
-          <span class="lab">공개된 검색 품질 수치</span>
-          <span class="val">0<span class="u">건</span></span>
-          <span class="sub">accuracy, recall, 사용자 만족도 모두 없음</span>
-        </div>
-      </div>
-
-      <figure class="figure">
-        <p class="fig-title">이 문서가 인용한 수치 셋은 산문이 아니라 이 그림에만 있다</p>
-        <p class="fig-sub">원문 fig-001 을 그대로 가져왔다. 시스템 전체를 여섯 층으로 분해한 원문의 중심 그림이다</p>
-        <div class="plate cbfig">
-<svg viewBox="0 0 900 760" role="img" aria-label="시스템 전체를 여섯 층으로 분해해 세로로 쌓은 원문 그림. 맨 아래 SOURCES 층에 SLACK - WIKI - CODE - INCIDENTS 가 적혀 있고, 그 위 DISTILLATION 층은 LLM EXTRACTORS, 그 위 EMBEDDINGS 층은 PGVECTOR - 3072-DIM - HNSW, 그 위 RETRIEVAL 층은 SIX LISTS IN PARALLEL, 그 위 FUSION + RERANK 층은 RRF (K=60) 다음에 LLM RERANK, 맨 위 SYNTHESIS 층은 ANSWER + CITATIONS 로 표기돼 있다." data-hero-stack>
-    <title id="fig-001-title">Exploded vertical stack of the internal knowledge base</title>
-    <desc id="fig-001-desc">Sources feed distillation, embeddings, retrieval, fusion, and synthesis layers.</desc>
-    <defs>
-      <marker id="arrow-001" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-        <path d="M0 0 10 5 0 10Z" fill="var(--cobalt-600)"/>
-      </marker>
-    </defs>
-    <g class="stroke-muted dash">
-      <path d="M235 104V656"/>
-      <path d="M665 104V656"/>
-      <path d="M450 152V608"/>
-    </g>
-    <g class="hero-layer">
-      <polygon class="fill-50 stroke" points="235,656 450,608 665,656 450,704"/>
-      <polygon class="fill-100 stroke-muted" points="235,656 450,704 450,724 235,676"/>
-      <polygon class="fill-100 stroke-muted" points="450,704 665,656 665,676 450,724"/>
-      <path class="fill-white stroke" d="M414 634H458L476 648V676H414Z"/>
-      <path class="stroke" d="M458 634V648H476"/>
-      <path class="stroke-muted" d="M424 656H466M424 663H466M424 670H450"/>
-      <rect class="fill-white stroke-muted" x="486" y="652" width="24" height="13"/>
-      <rect class="fill-white stroke-muted" x="514" y="652" width="24" height="13"/>
-      <text class="svg-label-muted" font-size="8" x="495" y="662">1</text>
-      <text class="svg-label-muted" font-size="8" x="523" y="662">2</text>
-      <text class="svg-label" x="712" y="646">SYNTHESIS</text>
-      <text class="svg-label-muted" x="712" y="670">ANSWER + CITATIONS</text>
-      <path class="stroke" marker-end="url(#arrow-001)" d="M712 656H674"/>
-    </g>
-    <g class="hero-layer">
-      <polygon class="fill-100 stroke" points="235,550 450,502 665,550 450,598"/>
-      <polygon class="fill-50 stroke-muted" points="235,550 450,598 450,610 235,562"/>
-      <polygon class="fill-50 stroke-muted" points="450,598 665,550 665,562 450,610"/>
-      <text class="svg-label" x="36" y="540">FUSION + RERANK</text>
-      <text class="svg-label-muted" x="36" y="564">RRF (K=60) -&gt; LLM RERANK</text>
-      <path class="stroke" marker-end="url(#arrow-001)" d="M196 550H226"/>
-    </g>
-    <g class="hero-layer">
-      <polygon class="fill-50 stroke" points="235,442 450,394 665,442 450,490"/>
-      <polygon class="fill-100 stroke-muted" points="235,442 450,490 450,510 235,462"/>
-      <polygon class="fill-100 stroke-muted" points="450,490 665,442 665,462 450,510"/>
-      <polygon class="fill-white stroke" points="291.4,441.2 446.2,406.6 458.1,409.2 303.3,443.8"/>
-      <polygon class="fill-50 stroke" points="321.5,447.9 476.3,413.3 488.2,416 333.4,450.5"/>
-      <polygon class="fill-white stroke" points="351.6,454.6 506.4,420 518.3,422.7 363.5,457.2"/>
-      <polygon class="fill-50 stroke" points="381.7,461.3 536.5,426.8 548.4,429.4 393.6,464"/>
-      <polygon class="fill-white stroke" points="411.8,468 566.6,433.5 578.5,436.1 423.7,470.7"/>
-      <polygon class="fill-50 stroke" points="441.9,474.8 596.7,440.2 608.6,442.8 453.8,477.4"/>
-      <text class="svg-label" x="712" y="432">RETRIEVAL</text>
-      <text class="svg-label-muted" x="712" y="456">SIX LISTS IN PARALLEL</text>
-      <path class="stroke" marker-end="url(#arrow-001)" d="M712 442H674"/>
-    </g>
-    <g class="hero-layer">
-      <polygon class="fill-100 stroke" points="235,322 450,274 665,322 450,370"/>
-      <polygon class="fill-100 stroke-muted" points="235,322 450,370 450,390 235,342"/>
-      <polygon class="fill-100 stroke-muted" points="450,370 665,322 665,342 450,390"/>
-      <ellipse class="fill-300 stroke" opacity="0.55" cx="450" cy="322" rx="150" ry="34"/>
-      <ellipse class="stroke-muted" cx="450" cy="322" rx="95" ry="21"/>
-      <ellipse class="fill-white stroke" cx="450" cy="322" rx="20" ry="4.5"/>
-      <path class="stroke-muted" d="M469 320.5 591 310"/>
-      <text class="svg-label" x="36" y="312">EMBEDDINGS</text>
-      <text class="svg-label-muted" x="36" y="336">PGVECTOR - 3072-DIM - HNSW</text>
-      <path class="stroke" marker-end="url(#arrow-001)" d="M196 322H226"/>
-    </g>
-    <g class="hero-layer">
-      <polygon class="fill-50 stroke" points="235,202 450,154 665,202 450,250"/>
-      <polygon class="fill-100 stroke-muted" points="235,202 450,250 450,270 235,222"/>
-      <polygon class="fill-100 stroke-muted" points="450,250 665,202 665,222 450,270"/>
-      <ellipse class="fill-50 stroke" cx="450" cy="190" rx="40" ry="10"/>
-      <path class="stroke" d="M410 190 444 216V232M490 190 456 216V232"/>
-      <path class="stroke-muted" d="M450 238V244"/>
-      <text class="svg-label" x="712" y="192">DISTILLATION</text>
-      <text class="svg-label-muted" x="712" y="216">LLM EXTRACTORS</text>
-      <path class="stroke" marker-end="url(#arrow-001)" d="M712 202H674"/>
-    </g>
-    <g class="hero-layer">
-      <polygon class="fill-50 stroke" points="235,84 450,36 665,84 450,132"/>
-      <polygon class="fill-100 stroke-muted" points="235,84 450,132 450,152 235,104"/>
-      <polygon class="fill-100 stroke-muted" points="450,132 665,84 665,104 450,152"/>
-      <polygon class="fill-white stroke" points="408,62.4 450,52.4 492,62.4 450,72.4"/>
-      <polygon class="fill-100 stroke-muted" points="408,62.4 450,72.4 450,78.4 408,68.4"/>
-      <polygon class="fill-100 stroke-muted" points="450,72.4 492,62.4 492,68.4 450,78.4"/>
-      <polygon class="fill-white stroke" points="504.8,84 546.8,74 588.8,84 546.8,94"/>
-      <polygon class="fill-100 stroke-muted" points="504.8,84 546.8,94 546.8,100 504.8,90"/>
-      <polygon class="fill-100 stroke-muted" points="546.8,94 588.8,84 588.8,90 546.8,100"/>
-      <polygon class="fill-white stroke" points="408,105.6 450,95.6 492,105.6 450,115.6"/>
-      <polygon class="fill-100 stroke-muted" points="408,105.6 450,115.6 450,121.6 408,111.6"/>
-      <polygon class="fill-100 stroke-muted" points="450,115.6 492,105.6 492,111.6 450,121.6"/>
-      <polygon class="fill-white stroke" points="311.2,84 353.2,74 395.2,84 353.2,94"/>
-      <polygon class="fill-100 stroke-muted" points="311.2,84 353.2,94 353.2,100 311.2,90"/>
-      <polygon class="fill-100 stroke-muted" points="353.2,94 395.2,84 395.2,90 353.2,100"/>
-      <text class="svg-label" x="36" y="74">SOURCES</text>
-      <text class="svg-label-muted" x="36" y="98">SLACK - WIKI - CODE - INCIDENTS</text>
-      <path class="stroke" marker-end="url(#arrow-001)" d="M196 84H226"/>
-    </g>
-  </svg>
-        </div>
-        <figcaption>원문 fig-001. <span class="wl">PGVECTOR - 3072-DIM - HNSW</span>, <span class="wl">SIX LISTS IN PARALLEL</span>, <span class="wl">RRF (K=60)</span> 는 원문 본문 어디에도 적혀 있지 않고 이 그림에만 있다. 텍스트로 변환하면 사라지므로 보관본 HTML 에서 직접 읽었다. 층의 순서는 아래에서 위로 읽는다.</figcaption>
-      </figure>
-
-      <p>원문은 자기 시스템이 세 가지를 제공한다고 적는다. 수집과 저장, 질의, 그리고 <span class="wl">authentication and authorization, with auditing and analytics</span> 계층이다. 앞의 둘은 절반 이상의 분량으로 설명되고, <strong>세 번째는 그 한 문장 뒤로 다시 등장하지 않는다.</strong> 권한만이 아니라 감사와 분석까지 한 줄에 묶여 통째로 비어 있다.</p>
-
-      <p>커뮤니티의 반응도 이 비대칭을 그대로 반영한다. Hacker News에 원문이 네 번 제출됐고 최고 3점, 댓글 0개에 그쳤다. 논의가 붙은 것은 원문을 인용한 2차 글 한 편이었고, 그 댓글은 검색이 아니라 Dunbar 수와 Coase의 기업 이론으로 갔다. 검색 파이프라인 자체는 논쟁거리로 취급되지 않았다.</p>
-
-      <p>원문을 가장 깊이 읽은 두 글은 영어권 밖에 있다. 하나는 엔터프라이즈 RAG를 직접 만든 쪽이 자기 시스템과 대조한 분석이고, 다른 하나는 이 문서의 출발점이 된 한국어 Threads 스레드 9편이다. 후자는 원문에 없는 진단을 하나 더 얹는데, <strong>어려운 것은 저장이 아니라 유지</strong>라는 것이다. 12장과 15장에서 다시 다룬다.</p>
-
-      <p class="note"><b>15,000이라는 수치는 외부 검증 수단이 없다.</b> 사내 시스템의 자체 발표이고, 사람 질의와 스크립트 질의와 에이전트 질의가 각각 몇 건인지는 구분되지 않는다. 에이전트가 한 질문에 도구를 여러 번 호출한다는 점을 감안하면 이 수치는 사용자 수가 아니라 호출 수에 가깝다.</p>
-    </div>
-  </section>
-
-  <!-- 03 문제 정의 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">problem</p>
-      <h2>문제 정의. single source of truth는 분기마다 제안되고 매번 실패한다</h2>
-      <p class="dek">원문이 지목한 실패는 검색 품질이 아니다. 데이터가 생기는 곳과 데이터를 모으자고 정한 곳이 다르다는 것이고, 사람은 전자를 따른다는 것이다.</p>
-
-      <p class="q">The dream of a single source of truth, of course, rarely works in practice.<cite>Cerebras, How we built our knowledge base</cite></p>
-
-      <p>Cerebras는 데이터센터 운영, 칩 설계, 하드웨어, 학습, 추론, 클라우드 플랫폼에 팀이 흩어져 있고 매년 수백 명이 들어온다. 그 결과 커뮤니케이션 채널이 같은 질문으로 채워졌다고 원문은 적는다. <span class="wl">"Where can I find X?"</span>, <span class="wl">"Who is the expert in Y?"</span>, <span class="wl">"What is Z?"</span> 세 가지다.</p>
-
-      <p>여기서 나온 설계 원칙이 <strong>기존 행동을 최소로 바꾸는 것</strong>이다. 정보는 편한 곳에서 생긴다. 문서의 제안 수정, Slack 스레드, GitHub의 코드 참조, Jira의 상태 메타데이터가 각각 그 도메인에 맞게 수년간 다듬어진 도구다. 원문의 표현대로 pull request를 Google Docs에서 논의하는 것은 끔찍한 경험이다. 그래서 수집 쪽에서 각 플랫폼을 직접 긁는 방향을 택했다.</p>
-
-      <p>같은 현상을 다른 축으로 읽은 사람도 있다. Falconer의 Dave Nunez는 이 문제가 조직 규모 150명 근처에서 터진다고 본다. 누가 무엇을 하는지 조직이 더 이상 알지 못하게 되는 지점이다. 다만 진단이 같아도 처방은 갈린다. Nunez는 Cerebras가 소스를 code, wiki, incidents, Slack 넷으로 좁힌 것을 칭찬하면서, <strong>문서에 주인이 없다는 문제는 검색으로 풀리지 않는다</strong>고 지적한다. Slack에서 건진 답을 문서로 옮기지 않으면 다음 사람이 같은 스레드를 다시 찾아야 한다는 것이다.</p>
-
-      <p class="note"><b>이 장은 원문의 문제 진술을 그대로 옮긴 것이다.</b> Cerebras 내부에서 실제로 무엇이 얼마나 실패했는지는 원문이 수치로 적지 않았고, 확인할 방법도 없다. Nunez의 150명은 Dunbar 수를 조직에 적용한 해석이며 Cerebras 사례로 검증된 값이 아니다.</p>
-    </div>
-  </section>
-  <!-- 04 단일 테이블 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">anatomy</p>
-      <h2>구조. 이종 소스가 테이블 하나로 수렴하고 거기서 다시 갈라진다</h2>
-      <p class="dek">Slack 스레드부터 netlist까지 전부 같은 embeddings 테이블에 들어가고, 그 테이블에 있는 것은 전부 같은 인터페이스로 질의된다. 쓰기 쪽의 다양성과 읽기 쪽의 다양성이 가운데 한 지점에서만 만난다.</p>
-
-      <figure class="figure">
-        <p class="fig-title">여섯 종류의 소스가 테이블 하나로 들어가고 질의는 한 창구로 나간다</p>
-        <p class="fig-sub">원문 fig-002 를 그대로 가져왔다. 색과 라벨은 원문의 것이다</p>
-        <div class="plate cbfig">
-<svg viewBox="0 0 900 500" role="img" aria-label="이종 소스 여섯 개가 embeddings 테이블 하나로 모이는 원문 그림. 왼쪽에 SLACK, WIKI/CONFLUENCE, CODE REPOS, NETLISTS, PRM DOCS, CUSTOM DATABASES 여섯 상자가 세로로 놓이고, 각각에서 나온 선이 하나로 합쳐져 가운데 EMBEDDINGS 상자로 들어간다. 그 상자 안에 DOCUMENT, EMBEDDING, METADATA, SOURCE + TIMESTAMPS 네 줄이 적혀 있고 아래에 ONE EMBEDDINGS TABLE 이라고 쓰여 있다. 오른쪽으로 화살표가 나가 QUERY 상자에 닿고 그 위에 MCP - WEB UI - AGENTS 가 적혀 있다. 왼쪽 아래에는 ONE CONNECTOR PER SOURCE 라고 쓰여 있다.">
-    <title id="fig-002-title">Many data sources feeding one queryable embeddings table</title>
-    <defs>
-      <marker id="arrow-002" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-        <path d="M0 0 10 5 0 10Z" fill="var(--cobalt-600)"/>
-      </marker>
-    </defs>
-    <g class="stroke">
-      <rect class="fill-white" x="48" y="60" width="200" height="44"/>
-      <rect class="fill-white" x="48" y="126" width="200" height="44"/>
-      <rect class="fill-white" x="48" y="192" width="200" height="44"/>
-      <rect class="fill-white" x="48" y="258" width="200" height="44"/>
-      <rect class="fill-white" x="48" y="324" width="200" height="44"/>
-      <rect class="fill-white" x="48" y="390" width="200" height="44"/>
-      <rect class="fill-100" x="396" y="152" width="228" height="190"/>
-      <rect class="fill-50" x="700" y="210" width="160" height="74"/>
-      <path d="M248 82H322M248 148H322M248 214H322M248 280H322M248 346H322M248 412H322"/>
-      <path d="M322 82V412"/>
-      <path marker-end="url(#arrow-002)" d="M322 247H388"/>
-      <path marker-end="url(#arrow-002)" d="M624 247H692"/>
-      <path d="M396 200H624"/>
-    </g>
-    <g class="svg-label">
-      <text x="68" y="86">SLACK</text>
-      <text x="68" y="152">WIKI / CONFLUENCE</text>
-      <text x="68" y="218">CODE REPOS</text>
-      <text x="68" y="284">NETLISTS</text>
-      <text x="68" y="350">PRM DOCS</text>
-      <text x="68" y="416">CUSTOM DATABASES</text>
-      <text x="420" y="184">EMBEDDINGS</text>
-      <text x="780" y="247" text-anchor="middle" dominant-baseline="middle">QUERY</text>
-    </g>
-    <g class="svg-label-muted">
-      <text x="420" y="234">DOCUMENT</text>
-      <text x="420" y="264">EMBEDDING</text>
-      <text x="420" y="294">METADATA</text>
-      <text x="420" y="324">SOURCE + TIMESTAMPS</text>
-      <text x="700" y="196">MCP - WEB UI - AGENTS</text>
-      <text x="396" y="372">ONE EMBEDDINGS TABLE</text>
-      <text x="48" y="468">ONE CONNECTOR PER SOURCE</text>
-    </g>
-  </svg>
-        </div>
-        <figcaption>원문 fig-002. 원문이 소스로 든 것은 여섯 가지이고 <span class="wl">NETLISTS</span> 와 <span class="wl">PRM DOCS</span> 가 거기 들어 있다. 반도체 회사의 코퍼스가 문서와 코드만으로 이뤄져 있지 않다는 뜻이다. 테이블 칸은 <span class="wl">DOCUMENT · EMBEDDING · METADATA · SOURCE + TIMESTAMPS</span> 네 라벨로 적혀 있다. <strong>원문에 스키마를 적은 코드 블록은 없다.</strong> 페이지 전체에 <span class="wl">&lt;pre&gt;</span> 가 하나도 없고, 산문은 <span class="wl">"embeddings, raw summaries, and metadata"</span> 셋만 든다. DataSci Ocean 이 말한 다섯 칸은 이 그림의 <span class="wl">SOURCE + TIMESTAMPS</span> 를 둘로 나눠 읽은 것이고, 스레드 예시 그림(fig-004)은 또 <span class="wl">source · source_id · embedding · metadata</span> 넷을 보여준다. 칸의 정확한 수를 원문이 확정해 주지 않는다. 이 그림에 <strong>권한 계층은 없다.</strong> 원문이 세 기능 중 하나로 센 계층이 자기 아키텍처 그림에도 나타나지 않는다.</figcaption>
-      </figure>
-
-      <p>이 구조의 값은 정돈돼 보인다는 데 있지 않다. <strong>쓰기 쪽과 읽기 쪽을 따로 바꿀 수 있다</strong>는 데 있다. 그림 왼쪽 아래의 <span class="wl">ONE CONNECTOR PER SOURCE</span> 가 그 규칙이다. 소스를 추가하면 같은 칸을 채우는 커넥터만 쓰면 되고 읽기 쪽 코드는 바뀌지 않는다. 검색 전략을 바꾸면 읽기 쪽만 바뀌고 커넥터는 그대로다.</p>
-
-      <p>커넥터 추가를 조직적으로 푼 방식이 이 설계의 실제 시험대다. 팀이 자기 DB를 옮기고 싶어하지 않을 때, Cerebras는 <strong>플러그인 스크립트</strong>로 받는다. 팀이 pull request를 열어 자기 시스템에서 읽어 embeddings 테이블 모양의 행을 뱉는 작은 Python 모듈과 데이터 소스 항목 하나를 낸다. 같은 스키마로 쓰기만 하면 나머지 스택은 그대로 동작한다.</p>
-
-      <p class="note"><b>이 장은 데이터가 어떻게 들어가는지만 다룬다.</b> 같은 테이블에 회사 전체 지식이 들어간다는 것은 곧 행마다 열람 권한이 다르다는 뜻인데, 그 계층은 원문 산문에도 이 그림에도 없다. 12장이 그것만 다룬다.</p>
-    </div>
-  </section>
-
-  <!-- 05 Slack 정규화 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">distill</p>
-      <h2>Slack은 원문 그대로 embedding하지 않는다</h2>
-      <p class="dek">가장 먼저 시도한 것은 raw 텍스트에 embedding을 걸어보는 것이었고, 곧 부족하다는 결론이 났다. 대신 LLM이 스레드를 읽고 정해진 모양으로 다시 쓴 뒤 그것을 embedding한다.</p>
-
-      <p>Slack 메시지의 문제를 원문은 셋으로 정리한다. 정보 밀도가 극단적으로 다르고(<span class="wl">"hey yeah sure mike"</span>와 커널 설명이 둘 다 메시지다), 짧은 메시지가 cosine similarity에서 길고 자세한 메시지를 자주 이긴다. 그리고 메시지의 의미가 주변 대화에 달려 있다.</p>
-
-      <figure class="figure">
-        <p class="fig-title">스레드 하나가 다섯 항목짜리 JSON으로 압축된 뒤 embedding된다</p>
-        <p class="fig-sub">원문의 예시 스레드를 그대로 옮긴 것. 실제 사내 데이터가 아니라 원문이 만든 설명용 예시다</p>
-<pre><span class="c">#ckpt-support / thread_8f42          입력: 메시지 4개 전체</span>
-  09:14  Maya   Restore stalls after manifest load on the larger
-                cluster. Small runs are fine.
-  09:17  Owen   I can reproduce with 128 shards. The logs stop
-                before cache warmup.
-  09:18  Sam    My laptop also stalls when it sees Monday.   <span class="r">← 잡음</span>
-  09:21  Maya   Setting <b>CKPT_PREFETCH=4</b> makes it complete.
-                The default is too high for the NFS mount.
-
-<span class="c">                     ↓  LLM distillation</span>
-
-{
-  <span class="k">"question"</span>   : "Why does restore stall after manifest load?"
-  <span class="k">"summary"</span>    : "Large restores stop before cache warmup."
-  <span class="k">"resolution"</span> : "Set CKPT_PREFETCH=4 for the NFS mount."
-  <span class="k">"systems"</span>    : ["checkpoint restore", "NFS"]
-  <span class="k">"code_refs"</span>  : ["CKPT_PREFETCH"]
-}
-
-<span class="c">                     ↓  embedding 대상은 위 JSON, 원본 대화가 아니다</span>
-
-  source      <b>slack_thread</b>        embedding  <b>3,072 dims</b>
-  source_id   <b>thread_8f42</b>         metadata   <b>channel + authors + time</b></pre>
-        <figcaption>원문의 표현은 <span class="wl">"The original transcript is not embedded directly"</span>다. 스레드에 답글이 하나 붙으면 부모와 형제 전체를 Slack API에서 다시 받아 스레드 한 행으로 통째로 다시 쓴다. 그래서 저장된 내용과 참여자 목록과 마지막 활동 시각이 항상 대화 전체를 반영한다.</figcaption>
-      </figure>
-
-      <p>정규화만으로는 놓치는 것이 있다. 긴 스레드 안의 중요한 메시지가 스레드 수준 요약에 담기지 않는 경우다. 여기에 <strong>bursting</strong>을 덧댄다. 같은 사람이 연속으로 쓴 메시지 묶음 하나를 burst라 부르고, 스레드 주제를 앞에 붙여 따로 embedding한다. 답이 어휘가 요약까지 올라오지 못한 곁가지 메시지 하나에 들어 있을 때 그 메시지를 단독으로 찾을 수 있게 하는 장치다.</p>
-
-      <p>다만 모든 burst를 넣지는 않는다. 저품질 데이터가 DB에 닿기 전에 가중 신호 조합으로 점수를 매기고 문턱을 넘어야 embedding된다.</p>
-
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>burst 통과 조건</th><th>값</th><th class="wrap">무엇을 거르는가</th></tr></thead>
-          <tbody>
-            <tr><td>코퍼스 기준 희귀 토큰 포함</td><td>IDF ≥ 4.0</td><td class="wrap">흔한 말로만 이뤄진 덩어리</td></tr>
-            <tr><td>묶인 길이</td><td>≥ 200자</td><td class="wrap">한 줄짜리 맞장구</td></tr>
-            <tr><td>반응(reaction) 존재</td><td>1개 이상</td><td class="wrap">아무도 반응하지 않은 혼잣말</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <p class="note"><b>정확도 개선폭은 수치로 공개되지 않았다.</b> 원문은 정규화 후 <span class="wl">"accuracy increased significantly"</span>라고만 쓴다. 세 조건이 AND인지 가중합의 항인지도 명확하지 않다. 원문은 <span class="wl">"a weighted combination of signals"</span>에 대해 문턱을 넘어야 한다고 쓰면서 세 항목을 나열하는데, 가중치 값은 없다.</p>
-    </div>
-  </section>
-
-  <!-- 06 네 신호와 RRF -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">fusion</p>
-      <h2>Slack 안에서는 네 신호가, 시스템 전체에서는 여섯 retriever가 순위를 낸다</h2>
-      <p class="dek">단일 채점자를 믿지 않는다. 다만 원문은 두 층을 따로 말한다. Slack 검색 안에서 네 신호가 서로의 약점을 메우고, 시스템 전체에서는 코퍼스별 retriever 여섯이 각자 순위를 만든다. 융합이 점수가 아니라 순위를 쓰기 때문에 척도가 다른 채점자를 정규화 없이 섞을 수 있다.</p>
-
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>신호</th><th class="wrap">잡아내는 것</th><th class="wrap">혼자 두면 생기는 실패</th></tr></thead>
-          <tbody>
-            <tr><td>full-text</td><td class="wrap">에러 문자열, 플래그명, 호스트명 같은 정확한 토큰</td><td class="wrap">다른 단어로 쓴 답을 못 찾는다</td></tr>
-            <tr><td>embedding</td><td class="wrap">어휘가 겹치지 않는 질문과 답의 연결</td><td class="wrap">짧고 무의미한 메시지가 상위에 온다</td></tr>
-            <tr><td>IDF</td><td class="wrap">희귀 토큰 중심의 짧지만 밀도 높은 메시지</td><td class="wrap">희귀어가 없는 정답을 놓친다</td></tr>
-            <tr><td>age decay</td><td class="wrap">같은 질문에 답하는 두 스레드 중 최신 쪽</td><td class="wrap">오래됐지만 여전히 맞는 답을 밀어낸다</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <p>원문이 든 예가 이 조합이 왜 필요한지 보여준다. 질의 <span class="wl">"restore hangs after manifest load"</span>에 대해, 어휘가 하나도 겹치지 않는 2주 전 스레드(<span class="wl">"checkpoint stalls on the NFS mount"</span>)는 embedding이 잡고, 같은 문자열을 그대로 담은 1일 전 메시지는 full-text가 잡는다. <span class="wl">"sounds good, thanks!"</span>는 embedding 공간에서는 많은 질의와 가깝지만 IDF를 적용하면 0에 수렴한다. 8개월 전 스레드는 같은 질문에 답하지만 age decay로 내려간다.</p>
-
-      <figure class="figure">
-        <p class="fig-title">여섯 개의 순위 리스트가 RRF로 합쳐진 뒤 두 번 더 줄어든다</p>
-        <p class="fig-sub">원문 fig-008 의 리스트 이름과 산문의 수치를 합쳐 그린 것. 원문에 이 형태의 그림은 없다</p>
-        <div class="svgwrap">
-        <svg class="chart" viewBox="0 0 760 232" role="img" aria-label="검색 결과가 좁혀지는 5단계 파이프라인. 왼쪽에서 여섯 개의 순위 리스트가 병렬로 나오는데 VECTOR, FTS, THREAD SUMMARIES, GRAPH, WIKI VECTOR, SLACK FTS이다. RRF 융합 단계에서 문서마다 weight를 60 더하기 rank로 나눈 값을 합산해 하나의 순위로 합치며 weight 기본값은 1.0이다. 다음 단계에서 중복 chunk를 원본 단위로 합치고 파일당 기여 개수에 상한을 걸어 상위 20개를 만든다. 그 다음 작은 reranker 모델이 0에서 10점을 매겨 상위 10개만 남긴다. 마지막 단계에서 남은 결과에 주변 문맥을 다시 붙이는데, wiki 섹션이 걸리면 앞뒤 두 섹션을 함께 가져온다. 마지막 단계에서만 결과의 크기가 다시 커진다.">
-          <rect class="box" x="8" y="40" width="126" height="116" rx="8"/>
-          <text class="txt" x="20" y="64">순위 리스트 6개</text>
-          <text class="txt-s" x="20" y="81">VECTOR · FTS</text>
-          <text class="txt-s" x="20" y="96">THREAD SUMMARIES</text>
-          <text class="txt-s" x="20" y="111">GRAPH · WIKI VECTOR</text>
-          <text class="txt-s" x="20" y="126">SLACK FTS</text>
-          <text class="txt-m" x="20" y="146">병렬 실행</text>
-
-          <path class="arw" d="M134 94 L164 94"/>
-          <path class="arw" d="M157 89 L164 94 L157 99"/>
-
-          <rect class="box-hi" x="168" y="46" width="138" height="96" rx="8"/>
-          <text class="txt" x="180" y="66">RRF 융합</text>
-          <text class="txt-s" x="180" y="86">문서마다</text>
-          <text class="txt-s" x="180" y="103">Σ weight / (60 + rank)</text>
-          <text class="txt-m" x="180" y="123">weight 기본 1.0</text>
-          <text class="txt-m" x="180" y="137">상수 60 고정</text>
-
-          <path class="arw" d="M306 94 L336 94"/>
-          <path class="arw" d="M329 89 L336 94 L329 99"/>
-
-          <rect class="box" x="340" y="52" width="118" height="84" rx="8"/>
-          <text class="txt" x="352" y="72">중복 제거</text>
-          <text class="txt-s" x="352" y="90">chunk를 원본 단위로</text>
-          <text class="txt-s" x="352" y="106">파일당 개수 상한</text>
-          <text class="txt-m" x="352" y="126">→ 상위 20</text>
-
-          <path class="arw" d="M458 94 L488 94"/>
-          <path class="arw" d="M481 89 L488 94 L481 99"/>
-
-          <rect class="box" x="492" y="52" width="112" height="84" rx="8"/>
-          <text class="txt" x="504" y="72">rerank</text>
-          <text class="txt-s" x="504" y="90">작은 모델 1회</text>
-          <text class="txt-s" x="504" y="106">0 ~ 10점 부여</text>
-          <text class="txt-m" x="504" y="126">→ 상위 10</text>
-
-          <path class="arw" d="M604 94 L634 94"/>
-          <path class="arw" d="M627 89 L634 94 L627 99"/>
-
-          <rect class="box-hi" x="638" y="52" width="114" height="84" rx="8"/>
-          <text class="txt" x="650" y="72">문맥 복원</text>
-          <text class="txt-s" x="650" y="90">wiki 섹션이면</text>
-          <text class="txt-s" x="650" y="106">앞뒤 2개 추가</text>
-          <text class="txt-m" x="650" y="126">여기서만 늘어남</text>
-
-          <text class="txt-m" x="8" y="176">좁히는 방향</text>
-          <path class="arw" d="M8 190 L604 190"/>
-          <path class="arw" d="M597 185 L604 190 L597 195"/>
-          <text class="txt-m" x="638" y="176">다시 넓히는 방향</text>
-          <path class="arw-hi" d="M752 190 L638 190"/>
-          <path class="arw-hi" d="M645 185 L638 190 L645 195"/>
-          <text class="txt-s" x="8" y="216">chunking이 잘라낸 heading, 전제조건, 단서를 마지막에 되붙인다</text>
-        </svg>
-        </div>
-        <figcaption>원문 fig-008 이 여섯 리스트의 이름을 그대로 적는다. <span class="wl">VECTOR</span>, <span class="wl">FTS</span>, <span class="wl">THREAD SUMMARIES</span>, <span class="wl">GRAPH</span>, <span class="wl">WIKI VECTOR</span>, <span class="wl">SLACK FTS</span> 다. <strong>신호별이 아니라 코퍼스별로 갈린다.</strong> 위 표의 네 신호는 Slack 절의 서술이고 이 여섯은 Reranking 절의 그림이라 층이 다르다. IDF 와 age decay 는 별도 리스트가 아니라 Slack 검색 안에서 쓰이는 신호다. 융합식과 상수 60, 상위 20 과 상위 10 은 원문 산문에 그대로 적힌 값이다.</figcaption>
-      </figure>
-
-      <p>상수 60이 하는 일은 <strong>한 채점자의 강한 확신보다 여러 채점자의 합의를 무겁게 만드는 것</strong>이다. 분모가 60에서 시작하므로 1위와 5위의 기여 차이가 크지 않고, 여러 리스트에 고르게 등장한 문서가 한 리스트에서만 1위인 문서를 이긴다.</p>
-
-      <p>여섯 중 하나는 원문 산문이 한 번도 설명하지 않는다. <strong><span class="wl">GRAPH</span> retriever</strong>다. 그림에서는 <span class="wl">CLASS: CHECKPOINTLOADER</span> 와 <span class="wl">MANIFEST_PARSER.H</span> 를 상위로 올리므로 코드 심볼 사이의 관계를 타는 검색으로 보이지만, 무엇으로 그래프를 만들고 무엇을 간선으로 삼는지는 원문 어디에도 없다. 이 문서도 그 이상을 말하지 않는다.</p>
-
-      <p class="note"><b>60은 Cerebras가 고른 값이 아니라 물려받은 값이다.</b> 원문이 참조 (3)으로 단 Cormack 외의 SIGIR 2009 논문에서 온 기본값이고, Cerebras 코퍼스에 맞춰 조정했다는 언급은 없다. 나는 이 논문을 열지 않았으므로 60이 그 논문에서 어떤 근거로 나온 값인지에 대해서는 아무것도 주장하지 않는다.</p>
-    </div>
-  </section>
-
-  <!-- 07 planner 구조 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">orchestration</p>
-      <h2>planner는 도구를 고르고, 증거가 충분한지는 판단하지 않는다</h2>
-      <p class="dek">질의마다 LLM이 짧게 계획을 세워 어떤 도구와 소스가 관련 있을지 정한다. 그 뒤 executor가 병렬로 펼치고, 결과를 공통 형식으로 정규화해 마지막 synthesis LLM에 넘긴다. 결정은 한 번뿐이다.</p>
-
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>도구</th><th class="wrap">하는 일</th></tr></thead>
-          <tbody>
-            <tr><td>search</td><td class="wrap">Slack, wiki, code 등을 가로지르는 통합 vector 파이프라인. 내부에서 병합과 rerank까지</td></tr>
-            <tr><td>search_slack</td><td class="wrap">Slack만 직접 검색</td></tr>
-            <tr><td>search_code</td><td class="wrap">소스 저장소에 ripgrep</td></tr>
-            <tr><td>subsystem_index</td><td class="wrap">파일 단위 LLM 요약</td></tr>
-            <tr><td>recent_prs</td><td class="wrap">질문과 관련된 최근 pull request</td></tr>
-            <tr><td>who_knows</td><td class="wrap">해당 주제에 전문성이 입증된 사람</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <p>같은 도구가 두 인터페이스에 다르게 물려 있다. <strong>MCP에서는 검색 원시 요소를 도구 그대로 노출한다.</strong> 하나의 "질문에 답하라" 엔드포인트 뒤에 숨기지 않고, 의도적으로 LLM을 최대한 배제해 클라이언트가 빠르고 싸게 부를 수 있게 한다. 이때 조율 엔진은 Claude Code 같은 MCP 클라이언트 쪽이 된다. 어떤 도구를 어떤 순서로 부르고 결과를 어떻게 조립할지 에이전트가 정하며, 검색 계층 자체는 그 결정에 의존하지 않는다.</p>
-
-      <p><strong>웹 UI에서는 planner와 executor를 시스템이 갖는다.</strong> 사용자에게는 질문을 넣으면 답이 나오는 창구지만 내부는 MCP 클라이언트가 명시적으로 재현할 수 있는 것과 같은 패턴이다.</p>
-
-      <figure class="figure">
-        <p class="fig-title">원문의 그림에도 되돌아오는 화살표가 없다</p>
-        <p class="fig-sub">원문 fig-007 을 그대로 가져왔다. 화살표는 전부 왼쪽에서 오른쪽으로만 간다</p>
-        <div class="plate cbfig">
-<svg viewBox="0 0 900 460" role="img" aria-label="planner 와 병렬 도구 실행과 synthesis 를 그린 원문 그림. 왼쪽 QUESTION 상자에서 화살표가 PLANNER 로 가고, PLANNER 에서 다섯 갈래가 동시에 뻗어 SEARCH, SEARCH_SLACK, SEARCH_CODE, RECENT_PRS, WHO_KNOWS 다섯 상자에 각각 닿는다. 다섯 상자에서 나온 화살표는 모두 오른쪽 EVIDENCE 상자로 모이고, 거기서 아래 SYNTHESIS 상자로 내려간다. 모든 화살표가 왼쪽에서 오른쪽으로만 향하며 뒤로 돌아오는 화살표는 하나도 없다.">
-    <title id="fig-007-title">Planner, parallel tool execution, evidence normalization, and synthesis</title>
-    <defs>
-      <marker id="arrow-007" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-        <path d="M0 0 10 5 0 10Z" fill="var(--cobalt-600)"/>
-      </marker>
-    </defs>
-    <g class="stroke">
-      <rect class="fill-white" x="58" y="188" width="142" height="64"/>
-      <rect class="fill-100" x="274" y="188" width="142" height="64"/>
-      <rect class="fill-white" x="492" y="48" width="150" height="52"/>
-      <rect class="fill-white" x="492" y="122" width="150" height="52"/>
-      <rect class="fill-white" x="492" y="196" width="150" height="52"/>
-      <rect class="fill-white" x="492" y="270" width="150" height="52"/>
-      <rect class="fill-white" x="492" y="344" width="150" height="52"/>
-      <rect class="fill-100" x="704" y="142" width="148" height="64"/>
-      <rect class="fill-100" x="704" y="264" width="148" height="64"/>
-      <path marker-end="url(#arrow-007)" d="M200 220H266"/>
-      <path marker-end="url(#arrow-007)" d="M416 220H458V74H484"/>
-      <path marker-end="url(#arrow-007)" d="M416 220H458V148H484"/>
-      <path marker-end="url(#arrow-007)" d="M416 220H484"/>
-      <path marker-end="url(#arrow-007)" d="M416 220H458V296H484"/>
-      <path marker-end="url(#arrow-007)" d="M416 220H458V370H484"/>
-      <path marker-end="url(#arrow-007)" d="M642 74H674V174H696"/>
-      <path marker-end="url(#arrow-007)" d="M642 148H696"/>
-      <path marker-end="url(#arrow-007)" d="M642 222H674V174H696"/>
-      <path marker-end="url(#arrow-007)" d="M642 296H674V296H696"/>
-      <path marker-end="url(#arrow-007)" d="M642 370H674V296H696"/>
-      <path marker-end="url(#arrow-007)" d="M778 206V256"/>
-    </g>
-    <g class="svg-label" text-anchor="middle" dominant-baseline="middle">
-      <text x="129" y="220">QUESTION</text>
-      <text x="345" y="220">PLANNER</text>
-      <text x="567" y="74">SEARCH</text>
-      <text x="567" y="148">SEARCH_SLACK</text>
-      <text x="567" y="222">SEARCH_CODE</text>
-      <text x="567" y="296">RECENT_PRS</text>
-      <text x="567" y="370">WHO_KNOWS</text>
-      <text x="778" y="166">EVIDENCE</text>
-      <text x="778" y="288">SYNTHESIS</text>
-    </g>
-    <g class="svg-label-muted" text-anchor="middle" dominant-baseline="middle">
-      <text x="778" y="190">NORMALIZED ROWS</text>
-      <text x="778" y="312">ANSWER + CITATIONS</text>
-    </g>
-  </svg>
-        </div>
-        <figcaption>원문 fig-007. 이 그림에서 확인할 수 있는 것이 둘이다. 하나는 뒤로 오는 화살표가 없다는 것이고, 증거가 부족하다는 판단도 앞 결과를 보고 다음 질의를 정하는 순차 의존도 여기에 자리가 없다. 다른 하나는 <strong>도구가 다섯 개만 그려져 있다는 것이다.</strong> 산문은 여섯 개를 나열하는데 그림에는 <span class="wl">subsystem_index</span> 가 빠져 있다. 단일 라운드라는 판단 자체는 원문이 아니라 DataSci Ocean 의 읽기이고, 그쪽 표현으로는 <span class="wl">"a traditional RAG pipeline that uses an LLM for dynamic routing"</span> 이다. 다만 원문이 agentic 이라는 말과 무관한 것은 아니다. planner 에서 synthesis 까지를 서술한 그 문장 끝에 원문은 각주 (4) 로 <span class="wl">Search-o1: Agentic Search-Enhanced Large Reasoning Models</span> 를 단다. <strong>스스로를 agentic 이라 부르지는 않지만 agentic search 문헌을 근거로 끌어온다.</strong> 나는 그 논문을 열지 않았으므로 인용이 타당한지는 판단하지 않는다.</figcaption>
-      </figure>
-
-      <p class="note"><b>단일 라운드가 결함이라는 뜻은 아니다.</b> MCP 경로에서는 루프를 클라이언트 에이전트가 갖는다. 원문이 검색 계층을 <span class="wl">"as LLM-free as possible"</span>로 유지한 것은 그 루프를 바깥에 두겠다는 선택으로 읽는 편이 맞다. 웹 UI에만 루프가 없다.</p>
-    </div>
-  </section>
-  <!-- 08 grep 논쟁 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">compare</p>
-      <h2>코드에 embedding이 필요한가라는 물음에 남의 수치로 답했다</h2>
-      <p class="dek">Cerebras는 코드 저장소를 embedding할 필요가 있는지부터 의심했다. Claude Code 같은 도구가 퍼지면서 grep이면 충분해 보였기 때문이다. 자체 실험 대신 Cursor가 공개한 수치를 근거로 삼아 시도하기로 했다.</p>
-
-      <p class="q">creating code embeddings felt counterintuitive when it seemed like "grep is all you need"<cite>Cerebras, How we built our knowledge base</cite></p>
-
-      <figure class="figure">
-        <p class="fig-title">semantic search를 붙이면 질문 정답률이 오르지만 모델에 따라 폭이 3.6배 차이난다</p>
-        <p class="fig-sub">Cursor, Improving agent with semantic search (2025-11). Cursor Context Bench 기준 자체 평가</p>
-        <div class="bars">
-          <div class="bar-row">
-            <span class="bar-name">모델별 최저</span>
-            <span class="bar-track"><span class="bar" style="--w:26%"></span></span>
-            <span class="bar-val">+6.5%</span>
-          </div>
-          <div class="bar-row is-hero">
-            <span class="bar-name">전체 평균</span>
-            <span class="bar-track"><span class="bar s1" style="--w:50%"></span></span>
-            <span class="bar-val">+12.5%</span>
-          </div>
-          <div class="bar-row">
-            <span class="bar-name">모델별 최고</span>
-            <span class="bar-track"><span class="bar" style="--w:94%"></span></span>
-            <span class="bar-val">+23.5%</span>
-          </div>
-        </div>
-        <div class="bar-axis"><div class="ticks"><span>0</span><span>25%</span></div></div>
-        <figcaption>semantic search가 있는 도구 집합과 없는 집합을 비교한 정답률 차이다. 최저와 최고의 비(23.5 ÷ 6.5 = 3.6)는 <strong>원문에 없는 계산이다.</strong> Cursor는 범위만 적었다. 자체 벤치마크이고 자체 제품을 정당화하는 글에 실린 수치라는 점도 감안해야 한다. Cerebras는 이 수치를 근거로 인용했을 뿐 자기 코퍼스에서 재현하지 않았다.</figcaption>
-      </figure>
-
-      <p>Cursor는 A/B 테스트 수치도 함께 냈고, 여기서 조건이 붙는다. 코드 잔존율은 semantic search가 있을 때 <strong>0.3%</strong> 오르는데, <strong>파일 1,000개 이상의 큰 코드베이스에서는 2.6%</strong>로 커진다. semantic search가 없을 때 불만족 후속 요청은 2.2% 늘었다. 효과 크기가 작은 이유를 Cursor는 A/B가 모든 질의를 포함하고 모든 요청이 검색을 필요로 하지는 않기 때문이라고 적는다.</p>
-
-      <p>Cerebras가 이 근거를 받아들인 맥락은 Cursor와 비슷하다. 사내 저장소 중 일부가 <strong>40 GB를 넘는다</strong>. 큰 코드베이스일수록 효과가 커진다는 조건에 정확히 걸린다.</p>
-
-      <p>반대편 논거는 Hacker News의 Semble 스레드(445점, 댓글 151개)에 모여 있다. 거기서 반복된 지적은 검색 품질이 아니라 <strong>에이전트가 grep이 아닌 도구를 믿는가</strong>였다. 한 사용자는 모델이 grep에 워낙 강하게 RL돼 있어 다른 형태의 결과를 신뢰하지 않고 계속 재시도하거나 다시 읽어서 토큰 절약분이 사라진다고 적는다. Semble 저자도 같은 관찰을 확인하면서 모델에 따라 갈린다고 답한다. 다른 참가자는 검색 출력만이 아니라 에이전트 루프 전체를 재야 한다고 요구했고, 저자는 그 벤치마크가 아직 없다고 인정했다.</p>
-
-      <p><strong>Cerebras가 내린 결론은 둘 중 하나가 아니라 둘 다였다.</strong> 07장의 도구 목록에서 <span class="wl">search_code</span>가 ripgrep인 것이 그 증거다. embedding 검색을 도입하면서 저장소를 직접 뒤지는 경로를 걷어내지 않고 나란히 남겼다. 이 읽기는 Threads 스레드 6번 게시물의 정리와 일치한다.</p>
-
-      <p class="q">결론은 둘 다였습니다. 리포지토리를 뒤지는 ripgrep 검색이 embedding 검색 바로 옆에 그대로 남았습니다.<cite>@choi.openai, Threads 6/9</cite></p>
-
-      <p>같은 게시물이 규모 조건도 덧붙인다. 문서가 100개에서 1,000개 수준이면 여전히 RAG가 더 빠르다는 것이다. Cursor의 1,000 파일 경계와 방향이 같지만 이쪽은 출처가 밝혀지지 않은 저자의 정리이므로 참고 수준으로만 읽어야 한다.</p>
-
-      <p class="note"><b>Cerebras는 두 종류의 수치 중 어느 쪽도 자기 시스템에서 재지 않았다.</b> 검색 품질도, 에이전트 루프 효과도 원문에 없다. 코드를 embedding하기로 한 결정의 근거는 남의 벤치마크 하나와 <span class="wl">"After talking with others in the industry"</span>가 전부다.</p>
-    </div>
-  </section>
-
-  <!-- 09 chunk 경계 추적 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">trace</p>
-      <h2>chunk 경계는 fallback 사다리가 아니라 비용 최소화의 결과다</h2>
-      <p class="dek">원문은 코드 분할을 굵은 단위에서 가는 단위로 내려가는 regex 경계로 설명한다. 원문이 이름을 댄 CocoIndex를 열어보면 순서가 다르다. regex는 fallback이고 기본은 tree-sitter AST이며, 굵은 것부터 시도하는 사다리가 아니라 비용 함수를 최소화하는 계획 문제다.</p>
-
-      <p class="q">we split the code using language-specific regex boundaries ordered from coarse to fine. The splitter tries higher-level boundaries, such as classes, first.<cite>Cerebras, How we built our knowledge base</cite></p>
-
-<pre><span class="c">cocoindex-io/cocoindex @ d7607100e39dfee3919cd1116c10620eb6636104
-전부 rust/ops_text/src/split/recursive.rs 한 파일 안이다</span>
-
-<b>hop 1  경로 선택 (:644, :650, :673)</b>
-  <span class="c">/// Routing: a custom (regex) language configured on this chunker takes</span>
-  <span class="c">} else if let ParseOutcome::Parsed(tree) = source.tree() {</span>
-  → 커스텀 regex 언어가 설정돼 있으면 <span class="r">파싱 자체를 건너뛴다</span>
-  → 없으면 tree-sitter 파스를 쓴다
-  → 언어 미상 · 문법 없음 · 파싱 실패일 때만 기본 regex 분할
-
-<b>hop 2  atom chunk까지 끝까지 내려간다 (:356, :364)</b>
-  <span class="c">if current_chunk.range.len() &lt;= self.min_atom_chunk_size {</span>
-  <span class="c">if !lang_config.terminal_node_kind_ids.contains(&amp;node.kind_id()) {</span>
-  → 노드가 <span class="k">min_atom_chunk_size</span> 이하이거나 terminal 종류면 거기서 멈춘다
-  → 아니면 자식으로 내려간다. <span class="r">클래스에서 멈춰보는 단계가 없다</span>
-  → iter_stack 깊이가 그 atom 의 syntax level 로 기록된다
-
-<b>hop 3  비용을 매겨 다시 묶는다 (:448, :481)</b>
-  <span class="c">gap_cost_cache.push(gap_cost_cache[i - 1] + SYNTAX_LEVEL_GAP_COST / i);</span>
-  <span class="c">syntax_level_gap_cost(start_chunk.boundary_syntax_level, internal_syntax_level);</span>
-  → 연속한 atom 을 묶는 모든 방법에 비용을 매기고 최소를 고른다
-  → syntax level 을 처음 건널 때 512, 그 다음 256, 그 다음 170 <span class="c">(512/i 누적)</span>
-
-<b>hop 4  비용 상수가 굵은 단위 선호를 만든다 (:13, :16)</b>
-  <span class="c">const SYNTAX_LEVEL_GAP_COST: usize = 512;</span>
-  <span class="c">const TOO_SMALL_CHUNK_COST: usize = 1048576;</span>
-  → 너무 작은 chunk 는 syntax level 하나 건너는 것보다 <b>2,048배</b> 비싸다
-  → 그래서 계획기는 경계를 여러 겹 건너서라도 작은 chunk 를 피한다</pre>
-
-      <p>결과 동작은 원문의 서술과 겹친다. 클래스가 먼저 잡히고 너무 크면 메서드로 내려간다. 하지만 <strong>그렇게 되는 이유가 다르다.</strong> 굵은 단위를 먼저 시도하고 실패하면 물러나는 것이 아니라, 끝까지 내려간 뒤 되묶으면서 경계를 적게 건너는 조합이 싸기 때문에 굵은 단위가 살아남는다. 차이는 크기 초과가 아닌 상황에서 드러난다. 사다리 모델이라면 클래스 하나가 <span class="k">chunk_size</span> 안에 들어가면 그대로 한 덩어리다. 비용 모델에서는 <span class="k">min_chunk_size</span> 미만이 되는 조합을 피하려고 인접한 것을 끌어와 묶을 수 있다.</p>
-
-      <p>이 차이를 Cerebras의 잘못으로 단정할 수는 없다. 설명이 되는 경로가 둘 있다. 하나는 설정이다. hop 1이 보여주듯 커스텀 regex 언어를 등록하면 tree-sitter를 아예 건너뛰므로, Cerebras가 그렇게 썼다면 원문의 서술은 자기 설정에 대해 정확하다. 다른 하나는 버전이다. 저장소가 <span class="wl">"CocoIndex v1 is a fundamental redesign from v0"</span>라고 적는다(<span class="wl">docs/src/content/docs/getting_started/ai_coding_agents.mdx:14</span>). 원문이 v0를 썼다면 내가 읽은 코드는 원문이 말한 코드가 아니다.</p>
-
-      <p>원문이 무엇과 견주고 있었는지도 그림에 남아 있다. fig-006 은 chunking 방식을 두 모드로 놓고 비교하는데 대안 쪽 이름이 <span class="wl">NAIVE WINDOWS · CUT EVERY N TOKENS</span> 다. <strong>원문이 이기려던 상대는 AST 가 아니라 고정 길이 윈도우였다.</strong> 그 기준에서는 regex 든 tree-sitter 든 둘 다 "language-aware" 쪽이고, 원문이 두 경로를 구분해 적을 이유가 크지 않았다는 뜻이기도 하다. 밴드 라벨(<span class="wl">1 TRY: CLASS</span>, <span class="wl">2 METHOD</span>, <span class="wl">3 IF STILL LARGE</span>)이 산문의 사다리 서술과 그대로 맞는다.</p>
-
-      <p><strong>어느 쪽인지 이 문서로는 가릴 수 없다.</strong> 원문은 버전을 밝히지 않았고 사내 설정도 공개되지 않았다. 확실한 것은 여기 고정한 커밋에서 기본 경로가 tree-sitter라는 것뿐이다. 14장에서 이 갈래가 도입 판단에 어떻게 걸리는지 다시 다룬다.</p>
-
-      <p class="note"><b>코드를 읽어서 확인한 것이고 실행해서 확인한 것이 아니다.</b> 위 네 홉은 코드가 그렇게 쓰여 있다는 진술이고, 실제로 어떤 chunk가 나오는지는 말하지 않는다. 파일 안에 <span class="k">chunk_size</span> 10에서 80까지를 쓰는 테스트가 여럿 있지만(:728 이후) 실행하지 않았다.</p>
-    </div>
-  </section>
-
-  <!-- 10 읽은 범위 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">setup</p>
-      <h2>읽은 범위. 근거는 원문, 외부 코드, 커뮤니티 세 층이다</h2>
-      <p class="dek">이 문서의 근거는 세 층으로 나뉜다. Cerebras 원문, 원문이 이름을 댄 외부 코드, 그리고 커뮤니티 논의다. 층마다 검증 강도가 다르므로 어디까지가 무엇인지 밝힌다.</p>
-
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th>대상</th><th class="wrap">읽은 정도</th><th class="wrap">이 문서에서 하는 일</th></tr></thead>
-          <tbody>
-            <tr class="hero"><td>Cerebras 원문</td><td class="wrap">산문은 전문. 그림은 10개 중 7개만. 셋은 SVG가 아니라 JS 위젯이라 늦게 발견했다</td><td class="wrap">03 ~ 08장의 사실 진술, 02·04·07장의 그림</td></tr>
-            <tr><td>cocoindex @ d7607100</td><td class="wrap">1,176개 파일 중 9개. rust 3편, docs 4편, README, LICENSE</td><td class="wrap">09장 추적, 14장 도입 판단</td></tr>
-            <tr><td>Cursor semsearch</td><td class="wrap">전문</td><td class="wrap">08장 수치</td></tr>
-            <tr><td>HN 스레드 4건</td><td class="wrap">Semble 445점/151댓글, Contextual Retrieval 309/72, Greptile 253/166, Falconer 14/6</td><td class="wrap">08장, 12장 반론</td></tr>
-            <tr><td>DataSci Ocean</td><td class="wrap">전문</td><td class="wrap">07장 단일 라운드 판단</td></tr>
-            <tr><td>Falconer 노트</td><td class="wrap">요약 수준</td><td class="wrap">03장, 12장 project scoping 비판</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <p><strong>회수 경로가 특이한 것.</strong> Threads 스레드는 어떤 fetch 경로로도 닿지 않았다. 첫 게시물만 서버에서 렌더링되고 1/부터 9/까지는 GraphQL로 오기 때문이다. 렌더된 화면을 이미지로 읽어 9개 게시물을 회수했다. <strong>텍스트를 받은 것이 아니므로 이 문서의 Threads 인용은 화면에서 옮겨 적은 것이다.</strong> X에 올라온 같은 제목의 글은 열지 못했고, 계정과 제목이 같아 원문의 미러로 보았을 뿐이다. Anthropic의 Contextual Retrieval 원글도 직접 열지 못해 HN 논의와 Threads의 전달을 통해서만 다뤘다.</p>
-
-      <p><strong>그림에서 놓친 것.</strong> 원문의 그림은 <strong>10개</strong>인데 처음에 7개로 셌다. 회수 경로를 보관본 HTML 에서 <span class="wl">&lt;svg&gt;</span> 만 긁도록 짰는데 fig-004, fig-006, fig-008 은 HTML 과 JS 로 렌더되는 위젯이라 걸리지 않았다. 그중 <strong>fig-008 이 여섯 retriever 의 이름을 담고 있어</strong> 06장이 한동안 원문에 없는 추정을 실은 채 서 있었다. 지금은 셋을 모두 열었고 06장과 09장에 반영했다. 문서에 embed 한 것은 fig-001, fig-002, fig-007 셋이다.</p>
-
-      <p>나머지 넷(fig-003 Slack 이벤트 흐름, fig-005 burst 분할, fig-009 MCP 대 웹 UI, fig-010 project 참조 관계)은 읽었지만 문서가 그 형태를 필요로 하는 주장을 하지 않아 넣지 않았다. 05장의 스레드 예시(fig-004)는 본문 텍스트가 선택 가능해야 해서 <span class="wl">&lt;pre&gt;</span> 로 재타이핑했다.</p>
-
-      <p><strong>열지 않기로 한 것.</strong> 원문의 참조는 10개이고 그중 어느 것도 열지 않았다. 논문 셋(HNSW, RRF, Lost in the Middle)은 이 문서가 상수 60이나 상위 10의 타당성을 판단하지 않는다는 뜻이고, 나머지 다섯(Search-o1, Code Execution with MCP, Use XML Tags, Slack AI 처리, Best Nested Data Format)은 원문이 자기 설계를 정당화하려고 붙인 것이라 그 정당화가 성립하는지도 판단하지 않는다는 뜻이다. CocoIndex의 <span class="wl">examples/</span> 441개와 <span class="wl">python/</span> 225개는 열지 않았고, <span class="wl">docs/</span> 169개 중에서는 4편만 열었다. 그래서 09장은 chunking 한 축만 다루고, 원문이 강조한 증분 갱신은 문서의 서술을 옮긴 수준에 그친다.</p>
-
-      <p class="note"><b>CocoIndex 저장소에는 에이전트용 지시문이 들어 있다.</b> <span class="wl">.claude/</span> 10개, <span class="wl">skills/</span> 6개, <span class="wl">.agents/</span> 4개다. 열지 않았고, 따라서 이 문서의 어떤 문장도 거기서 나오지 않았다. shallow clone이라 커밋 빈도나 기여자 분포 같은 유지보수 활력 지표는 이 체크아웃에 존재하지 않으며 14장에서 그런 주장을 하지 않는다.</p>
-    </div>
-  </section>
-
-  <!-- 11 공개된 수치 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">result-adoption</p>
-      <h2>공개된 것은 채택 수치뿐이고 품질 수치는 한 건도 없다</h2>
-      <p class="dek">원문이 내놓은 숫자는 사용량이다. 하루 15,000건이 넘는 질의, 3개월 만에 사내에서 가장 널리 쓰이는 도구 중 하나. 검색이 얼마나 맞는지에 대한 숫자는 없다.</p>
-
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th class="wrap">항목</th><th>Cerebras</th><th>Cursor</th></tr></thead>
-          <tbody>
-            <tr><td class="wrap">사용량 지표</td><td class="win">15,000+ / 일</td><td>없음</td></tr>
-            <tr><td class="wrap">오프라인 정답률</td><td class="lose">없음</td><td class="win">+12.5%</td></tr>
-            <tr><td class="wrap">온라인 A/B</td><td class="lose">없음</td><td class="win">잔존율 +0.3%</td></tr>
-            <tr><td class="wrap">평가 데이터셋</td><td class="lose">언급 없음</td><td class="win">Context Bench</td></tr>
-            <tr><td class="wrap">ablation</td><td class="lose">없음</td><td>없음</td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="small">두 시스템을 나란히 둔 비교는 원문에 없다. Cerebras 원문과 Cursor 글에서 각각 읽은 것을 내가 겹쳐 놓은 표다. 둘은 목적이 다르므로(사내 지식베이스 대 코딩 에이전트 제품) 우열 비교가 아니라 <strong>무엇을 공개했는가의 비교</strong>로만 읽어야 한다.</p>
-
-      <p>이 공백이 문서의 성격을 정한다. 원문은 <strong>무엇을 만들었는지에 대한 설계 보고서이고 그것이 잘 작동한다는 증거 보고서가 아니다.</strong> 실제로 원문이 성능 근거로 제시하는 대목은 두 군데뿐인데, 하나는 Slack 정규화 후 <span class="wl">"accuracy increased significantly"</span>라는 무수치 진술이고 다른 하나는 남의 벤치마크(Cursor)다.</p>
-
-      <p>사용량 수치도 해석에 조심할 필요가 있다. 원문 스스로 사용자를 <span class="wl">"humans, automations and agents"</span>로 적는다. 에이전트는 한 질문에 MCP 도구를 여러 번 부르고, 자동화는 사람 없이 반복 호출한다. 15,000은 사람이 물은 횟수가 아니라 <strong>호출 횟수의 합</strong>이며, 셋의 비율은 공개되지 않았다.</p>
-
-      <p class="note"><b>수치가 없다는 것이 시스템이 나쁘다는 뜻은 아니다.</b> 사내 도구는 채택률 자체가 유효한 신호이고, 3개월 만에 가장 널리 쓰이는 축에 들었다면 사람들이 답을 얻고 있다는 뜻이다. 다만 그 신호로는 어떤 설계 결정이 기여했는지 분해할 수 없다. bursting을 빼면 어떻게 되는지, 상수 60이 40보다 나은지는 이 문서로도 원문으로도 답할 수 없다.</p>
-    </div>
-  </section>
-  <!-- 12 프로덕션 쟁점 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">production</p>
-      <h2>어려워지는 것은 검색이 아니라 권한과 무효화와 고착이다</h2>
-      <p class="dek">회사 지식을 테이블 하나로 모으면 검색은 쉬워지고 나머지 셋이 어려워진다. 원문은 셋 중 어느 것도 다루지 않고, 커뮤니티 논의도 검색 기법에 쏠려 있어 여기가 가장 비어 있는 자리다.</p>
-
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th class="wrap">쟁점</th><th class="wrap">원문의 서술</th><th class="wrap">근거 출처</th></tr></thead>
-          <tbody>
-            <tr class="hero"><td class="wrap">행 단위 열람 권한</td><td class="wrap">세 기능 중 하나로 세고 설명 없음</td><td class="wrap">원문 자체의 공백</td></tr>
-            <tr><td class="wrap">재색인 트리거</td><td class="wrap">소스별 주기 조절, 커밋 시 delta</td><td class="wrap">HN Greptile 운영자</td></tr>
-            <tr><td class="wrap">사라진 대상을 가리키는 행</td><td class="wrap">언급 없음</td><td class="wrap">Threads 5/9</td></tr>
-            <tr><td class="wrap">embedding 모델 교체</td><td class="wrap">언급 없음</td><td class="wrap">HN Contextual Retrieval</td></tr>
-            <tr><td class="wrap">LLM 재작성 비용</td><td class="wrap">prompt caching 언급 없음</td><td class="wrap">HN, simonw / lmeyerov</td></tr>
-            <tr><td class="wrap">평가 체계</td><td class="wrap">없음</td><td class="wrap">원문 자체의 공백</td></tr>
-            <tr><td class="wrap">에이전트의 도구 신뢰</td><td class="wrap">없음</td><td class="wrap">HN Semble</td></tr>
-            <tr><td class="wrap">project 기본값 노후화</td><td class="wrap">온보딩 시 1회 선택 후 프로필 저장</td><td class="wrap">Falconer</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <h3 style="margin-top:22px">권한. 필터를 어디에 두든 하나씩 깨진다</h3>
-      <p>같은 테이블에 회사 전체 지식이 있다는 것은 <strong>행마다 볼 수 있는 사람이 다르다</strong>는 뜻이다. 비공개 Slack 채널, 접근 제한 저장소, 인사 문서가 같은 스키마로 섞인다.</p>
-
-      <p>원문에 접근 통제 장치가 전혀 없는 것은 아니다. 코드 저장소 온보딩을 팀이 제출하는 설정 파일로 옮기면서 <span class="wl">"allowlists and denylists at the file-path level"</span> 을 받는다. 다만 이것은 <strong>색인 시점에 무엇을 넣지 않을지</strong>를 정하는 장치이고, 넣은 뒤에 누가 볼 수 있는지를 정하는 장치가 아니다. 아래 셋 중 A안의 일부가 원문에 이미 있는 셈이지만 파일 경로 단위이고 사람 단위가 아니다. 나머지는 원문의 설명이 아니라 원문의 파이프라인에 권한을 얹으려 할 때 생기는 선택지를 내가 정리한 것이다.</p>
-
-      <figure class="figure">
-        <p class="fig-title">필터 위치 셋 중 무엇을 골라도 대가가 있다</p>
-        <p class="fig-sub">원문에 이 그림은 없다. 06장에서 확인한 파이프라인 위에 권한 필터가 들어갈 수 있는 자리를 표시한 것</p>
-        <div class="svgwrap">
-        <svg class="chart" viewBox="0 0 760 250" role="img" aria-label="검색 파이프라인 위에 권한 필터를 놓을 수 있는 세 위치와 각각의 대가. 위쪽에 색인, retriever 여섯 개, RRF 융합으로 상위 20개, rerank로 상위 10개, synthesis 답변으로 이어지는 흐름이 있다. 첫 번째 위치는 색인 단계로 권한 그룹마다 파티션을 따로 두는 방식이며 대가는 저장 중복과 권한 변경 시 재색인이다. 두 번째 위치는 각 retriever가 권한 조건을 건 채로 검색하는 방식이며 대가는 여섯 개 retriever 전부가 권한 인지 인덱스를 가져야 한다는 것이다. 세 번째 위치는 RRF 융합이 끝난 뒤 걸러내는 방식이며 대가는 권한이 좁은 사용자에게 결과가 거의 남지 않고 상위 열 개가 채워지지 않는다는 것이다. 세 번째 위치에는 추가로 distillation 단계에서 만들어진 LLM 요약이 원본의 권한을 물려받지 못하면 비공개 스레드의 내용이 요약을 통해 새어나간다는 경고가 붙어 있다.">
-          <rect class="box" x="8" y="34" width="116" height="46" rx="8"/>
-          <text class="txt" x="20" y="53">색인</text>
-          <text class="txt-s" x="20" y="69">embeddings 테이블</text>
-
-          <path class="arw" d="M124 57 L156 57"/>
-          <path class="arw" d="M149 52 L156 57 L149 62"/>
-
-          <rect class="box" x="160" y="34" width="116" height="46" rx="8"/>
-          <text class="txt" x="172" y="53">retriever ×6</text>
-          <text class="txt-s" x="172" y="69">각자 순위 생성</text>
-
-          <path class="arw" d="M276 57 L308 57"/>
-          <path class="arw" d="M301 52 L308 57 L301 62"/>
-
-          <rect class="box" x="312" y="34" width="116" height="46" rx="8"/>
-          <text class="txt" x="324" y="53">RRF 융합</text>
-          <text class="txt-s" x="324" y="69">상위 20</text>
-
-          <path class="arw" d="M428 57 L460 57"/>
-          <path class="arw" d="M453 52 L460 57 L453 62"/>
-
-          <rect class="box" x="464" y="34" width="116" height="46" rx="8"/>
-          <text class="txt" x="476" y="53">rerank</text>
-          <text class="txt-s" x="476" y="69">상위 10</text>
-
-          <path class="arw" d="M580 57 L612 57"/>
-          <path class="arw" d="M605 52 L612 57 L605 62"/>
-
-          <rect class="box" x="616" y="34" width="136" height="46" rx="8"/>
-          <text class="txt" x="628" y="53">synthesis</text>
-          <text class="txt-s" x="628" y="69">인용 포함 답변</text>
-
-          <path class="arw-hi" d="M66 80 L66 108"/>
-          <path class="arw-hi" d="M61 101 L66 108 L71 101"/>
-          <rect class="box-hi" x="8" y="112" width="200" height="66" rx="8"/>
-          <text class="txt" x="20" y="131">A. 권한 그룹별 파티션</text>
-          <text class="txt-s" x="20" y="148">읽기는 빠르다</text>
-          <text class="txt-s" x="20" y="164">권한이 바뀌면 재색인</text>
-
-          <path class="arw-hi" d="M218 80 L218 108"/>
-          <path class="arw-hi" d="M213 101 L218 108 L223 101"/>
-          <rect class="box-hi" x="216" y="112" width="200" height="66" rx="8"/>
-          <text class="txt" x="228" y="131">B. retriever마다 조건절</text>
-          <text class="txt-s" x="228" y="148">정확하다</text>
-          <text class="txt-s" x="228" y="164">ripgrep 포함 6개 전부 수정</text>
-
-          <path class="arw-hi" d="M370 80 L370 96 L524 96 L524 108"/>
-          <path class="arw-hi" d="M519 101 L524 108 L529 101"/>
-          <rect class="box-hi" x="424" y="112" width="200" height="66" rx="8"/>
-          <text class="txt" x="436" y="131">C. 융합 뒤 걸러내기</text>
-          <text class="txt-s" x="436" y="148">구현이 가장 싸다</text>
-          <text class="txt-s" x="436" y="164">상위 10이 안 채워진다</text>
-
-          <rect class="box-bad" x="8" y="192" width="616" height="46" rx="8"/>
-          <text class="txt" x="20" y="211">세 선택지와 별개로: distillation 요약이 원본의 권한을 물려받지 못하면</text>
-          <text class="txt-s" x="20" y="228">비공개 스레드의 question · summary · resolution 이 요약을 통해 그대로 새어나간다</text>
-        </svg>
-        </div>
-        <figcaption>C가 특히 위험한 이유는 RRF가 순위 기반이기 때문이다. 융합 뒤에 걸러내면 상위 20에서 몇 개가 빠지는 것이 아니라, 권한이 좁은 사용자에게는 20개가 전부 빠질 수 있고 그때 결과가 0건이 되는 것이 아니라 <strong>순위가 낮던 문서가 상위로 올라온다</strong>. 이 분석은 원문에 없으며 06장에서 확인한 파이프라인 구조에서 따라 나오는 것이다.</figcaption>
-      </figure>
-
-      <h3 style="margin-top:22px">무효화. age decay가 재는 것은 언제 쓰였는지다</h3>
-      <p>원문은 두 가지 신선도 장치를 갖는다. Slack 채널마다 데이터 소스를 따로 두어 바쁜 incident 채널을 더 자주 수집할 수 있게 했고, 코드는 CocoIndex가 커밋마다 바뀐 chunk만 다시 embedding한다. 둘 다 <strong>새 것을 빨리 넣는</strong> 장치다. <strong>틀린 것을 빼는</strong> 장치는 age decay 하나인데, 원문 스스로 그것을 동점일 때의 판정 기준으로 설명한다. 최근에 쓰였지만 틀린 답은 여전히 이긴다.</p>
-
-      <p>같은 문제를 제품으로 겪은 쪽의 진술이 HN에 있다. Greptile 공동창업자는 로컬 저장소 지원이 막힌 이유로 <span class="wl">"Haven't figured out what should trigger updates. Every commit sounds crazy, every save would be perfect but too intensive"</span>를 든다. Cerebras가 커밋 트리거를 고른 것은 이 딜레마의 한쪽 끝을 택한 것이고, 원문은 그 비용을 적지 않는다.</p>
-
-      <p>커밋 트리거를 골랐을 때 남는 문제를 가장 날카롭게 적은 것은 Threads 스레드 5번 게시물이다. 원문에는 이 진술이 없다.</p>
-
-      <p class="q">커밋이 수백 번 쌓이면 벡터 상당수가 이미 사라진 코드를 가리키는데 아무도 눈치채지 못하는 순간이 가장 큰 난제입니다.<cite>@choi.openai, Threads 5/9</cite></p>
-
-      <p>유출 경로도 요약 하나가 아니다. 원문은 <span class="wl">"Raw Slack text is keyword-searchable as soon as it lands because we maintain a Postgres full-text (GIN) index over the raw content"</span> 라고 적는다. <strong>정규화 행과 별개로 원본 대화가 같은 DB에 남아 검색된다.</strong> 위 그림의 붉은 상자는 distillation 요약만 지목하지만, 실제로 권한을 걸어야 하는 대상은 요약과 원문 둘 다이고 후자는 full-text 인덱스로 이미 질의 가능한 상태다.</p>
-
-      <p>이 진술을 삭제 전파가 안 된다는 뜻으로 읽으면 틀린다. CocoIndex 문서는 target 단계에서 삽입, 갱신, 삭제를 최소 단위로 반영한다고 적는다(<span class="wl">docs/src/content/docs/getting_started/overview.mdx:54</span>). 걸리는 것은 <strong>메커니즘이 아니라 관측</strong>이다. 벡터가 낡았다는 사실은 검색 결과가 틀려야 드러나고, 검색 품질을 재는 장치가 없으면 틀린 채로 남는다. 11장에서 본 대로 검색 품질을 재는 장치가 없으면 낡은 행을 발견할 경로도 없다.</p>
-
-      <p>age decay도 이 경우를 잡지 못한다. <strong>사라진 코드를 가리키는 행은 오래된 것이 아니라 최근 것일 수 있다.</strong> 리팩터링 직후라면 삭제된 심볼을 설명하는 Slack 스레드가 이번 주에 쓰였을 수 있고, timestamp 기준으로는 최신이다. 신선도 신호는 언제 쓰였는지를 재지 대상이 아직 존재하는지를 재지 않는다.</p>
-
-      <h3 style="margin-top:22px">고착. 다시 만들어야 하는 단위는 distillation이다</h3>
-      <p>embedding 모델을 바꾸면 코퍼스 전체를 다시 embedding해야 한다는 것은 HN Contextual Retrieval 스레드에서도 반복 확인된 제약이다. Cerebras 구조에서는 이 비용이 한 겹 더 붙는다는 것이 내 판단이다. 원문은 재작성 비용을 언급하지 않는다. 테이블에 들어간 Slack 행은 원본이 아니라 <strong>LLM이 다시 쓴 문서</strong>이므로, distillation prompt나 그 모델을 바꾸면 embedding 비용이 아니라 LLM 호출 비용으로 전체를 다시 치러야 한다.</p>
-
-      <p>같은 스레드에서 이 재작성 방식 자체에 대한 반론도 나왔다. 한 참가자는 요약을 chunk 앞에 붙이면 벡터가 오염되고 quantization 단계에서 정밀도를 잃는다며, 대신 embedding을 문서 요약 쪽으로 가중합해 밀어주는 방식을 제안한다. 다른 참가자는 더 직접적으로, 값싼 방법이 놓치는 것이 무엇인지 근거 없이 전체 문서를 LLM에 태우라는 주장이라고 지적하며 <span class="wl">"It is difficult to get a man to understand something when his salary depends on his not understanding it"</span>을 인용한다. 이 반론은 Anthropic의 글을 향한 것이지만 그 기법을 그대로 채택한 Cerebras에도 그대로 적용된다.</p>
-
-      <p class="note"><b>이 장의 쟁점 대부분은 원문에 대한 반박이 아니라 원문이 다루지 않은 영역이다.</b> Cerebras가 이것들을 풀지 않았다는 뜻이 아니라 공개하지 않았다는 뜻이다. 다만 도입을 검토하는 쪽에서는 같은 것이다. 설계도에 없는 계층은 직접 그려야 한다.</p>
-    </div>
-  </section>
-
-  <!-- 13 해석의 한계 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">critique</p>
-      <h2>한계. 1차 자료가 blog post 한 편이면 세울 수 있는 주장이 정해진다</h2>
-      <p class="dek">이 문서의 근거 대부분은 Cerebras가 자기 시스템에 대해 쓴 서술이다. 코드도 로그도 벤치마크도 없으므로, 검증한 것과 옮겨 적은 것을 구분해 둔다.</p>
-
-      <div class="grid g2">
-        <div class="card">
-          <span class="tag">검증한 것</span>
-          <p class="small">CocoIndex의 chunk 경계 알고리즘(09장). 고정 커밋의 파일에서 직접 읽었고 인용과 줄 번호를 남겼다. 원문의 서술과 어긋나는 지점도 여기서 나왔다.</p>
-        </div>
-        <div class="card">
-          <span class="tag">검증한 것</span>
-          <p class="small">원문 그림에만 있는 값(pgvector, 3072차원, HNSW, 리스트 6개). 텍스트 변환에서 누락돼 보관본 HTML에서 따로 확인했다.</p>
-        </div>
-        <div class="card">
-          <span class="tag">옮겨 적은 것</span>
-          <p class="small">Slack 정규화, bursting 문턱, RRF 상수, 상위 20과 10, 도구 6종. 전부 Cerebras의 자기 서술이고 대조할 코드가 없다.</p>
-        </div>
-        <div class="card">
-          <span class="tag">옮겨 적은 것</span>
-          <p class="small">Cursor의 정답률과 A/B 수치. 자체 벤치마크이며 자사 기능을 정당화하는 글에 실렸다. 재현물은 찾지 못했다.</p>
-        </div>
-      </div>
-
-      <p style="margin-top:16px"><strong>세울 수 없었던 주장.</strong> 원문의 어떤 설계 결정이 15,000이라는 사용량에 기여했는지는 이 문서로 알 수 없다. bursting을 빼면, 상수를 60에서 바꾸면, 정규화를 생략하면 어떻게 되는지에 대한 ablation이 원문에 없고 나도 재현할 코퍼스가 없다.</p>
-
-      <p><strong>회수하지 못한 자료.</strong> X의 같은 글과 Reddit 검색은 열지 못했다. 그래서 이 문서의 커뮤니티 층은 사실상 Hacker News 한 곳이다.</p>
-
-      <p><strong>Threads 스레드의 수치는 검증하지 않았다.</strong> 3번 게시물의 하이브리드 검색 도입 의향 10.3%에서 33.3%, 7번 게시물의 Glean 기업가치와 시장 규모는 저자가 출처를 밝히지 않은 채 제시한 값이다. 이 문서는 그 수치를 인용하지 않았고, 스레드에서 가져온 것은 Cerebras 원문과 직접 대조할 수 있는 진술과 저자의 정리뿐이다. 4번 게시물이 전한 Anthropic의 검색 실패율 49% 감소도 원글을 열지 못해 그대로 옮기지 않았다.</p>
-
-      <p><strong>커뮤니티 논의의 편향.</strong> 12장에서 인용한 반론은 Cerebras 원문에 대한 것이 아니라 원문이 채택한 기법에 대한 것이다. Contextual Retrieval 비판은 2024년 Anthropic 글을 향했고, grep 신뢰 논의는 2026년 다른 제품을 향했다. 같은 기법을 쓰므로 적용된다고 본 것은 나의 판단이고, 그 사람들이 Cerebras를 두고 한 말은 아니다.</p>
-
-      <p class="note"><b>한계에도 불구하고 남는 것이 있다.</b> 원문의 값은 검색 알고리즘이 아니라 <strong>embedding 이전 단계를 설계 대상으로 취급했다는 점</strong>이고, 이 부분은 코퍼스가 달라도 옮겨간다. 대화 로그든 티켓이든 회의록이든, 원본을 그대로 벡터로 만들기 전에 무엇을 뽑아 정해진 모양으로 다시 쓸지 정하는 문제는 동일하게 나타난다.</p>
-    </div>
-  </section>
-
-  <!-- 14 도입 판단 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">adopt</p>
-      <h2>도입 판단. 아키텍처는 assess, CocoIndex는 버전을 확인한 뒤 trial이다</h2>
-      <p class="dek">두 가지가 섞여 있어 판단도 둘로 나뉜다. Cerebras Knowledge 자체는 도입할 수 있는 물건이 아니고, 그 설계를 베낄지의 문제다. CocoIndex는 실제로 설치할 수 있는 물건이다.</p>
-
-      <div class="tablewrap">
-        <table>
-          <thead><tr><th class="wrap">상황</th><th class="wrap">판단</th><th class="wrap">근거</th></tr></thead>
-          <tbody>
-            <tr class="hero"><td class="wrap">Slack에 지식이 쌓이고 검색이 안 되는 조직</td><td class="wrap">정규화 설계는 채택</td><td class="wrap">05장. 원본을 그대로 embedding하지 않는 결정은 코퍼스와 무관하게 옮겨간다</td></tr>
-            <tr><td class="wrap">권한 등급이 여러 개인 조직</td><td class="wrap">보류</td><td class="wrap">12장. 원문에 해당 계층이 없고, 필터 위치 셋 모두 대가가 있다</td></tr>
-            <tr><td class="wrap">코드베이스 embedding을 검토 중</td><td class="wrap">규모가 크면 시도</td><td class="wrap">08장. Cursor 제품 안에서 파일 1,000개가 경계였다. 남의 코퍼스로 옮겨지는 상수는 아니다</td></tr>
-            <tr><td class="wrap">이미 에이전트가 grep으로 잘 찾는 경우</td><td class="wrap">보류</td><td class="wrap">08장. 모델이 다른 도구의 결과를 믿지 않으면 절약분이 사라진다</td></tr>
-            <tr><td class="wrap">CocoIndex 도입 검토</td><td class="wrap">버전 확인 후 trial</td><td class="wrap">Apache-2.0에 테스트도 있다. 다만 원문이 어느 버전을 말하는지 모른다</td></tr>
-          </tbody>
-        </table>
-      </div>
-
-      <p style="margin-top:16px"><strong>CocoIndex를 실제로 넣을 때.</strong> 라이선스는 <span class="wl">LICENSE</span> 파일을 열어 Apache License 2.0임을 확인했다. 테스트는 트리에 있다. <span class="wl">python/tests</span> 아래 127개 파일, rust 쪽 39개, <span class="wl">.github/workflows</span> 10개다. 실행하지는 않았다.</p>
-
-      <p><strong>확인해야 할 세 가지가 원문에서 넘어오지 않는다.</strong> 첫째, 내부 상태는 Postgres가 아니라 <strong>LMDB 로컬 파일</strong>이다. 문서가 <span class="wl">COCOINDEX_DB</span> 환경변수로 경로를 잡으라고 적는다(<span class="wl">docs/src/content/docs/advanced_topics/internal_storage.mdx</span>). Postgres는 여러 target connector 중 하나다. 원문은 <span class="wl">"the synchronization state and embedding store live in the same database"</span>를 이득으로 꼽는데, 이 커밋에서는 그 배치가 기본값이 아니다.</p>
-
-      <p>둘째, <strong>설치본이 외부로 호출을 보낸다.</strong> <span class="wl">rust/core/src/telemetry/mod.rs:18</span>이 <span class="wl">https://cocoindex.gateway.scarf.sh</span>를 상수로 갖는다. 같은 파일 49행이 <span class="wl">cfg!(debug_assertions)</span>로 분기해 release 빌드에서만 동작하므로, <strong>소스를 읽어서는 보이고 debug 빌드로 시험해서는 나타나지 않는다.</strong> 끄는 방법은 <span class="wl">COCOINDEX_DISABLE_USAGE_TRACKING</span> 환경변수뿐이다. 사내 지식을 다루는 시스템이면 이 항목이 보안 검토의 첫 줄이 된다.</p>
-
-      <p>셋째, 철수 명령이 산출물을 지운다. <span class="wl">drop</span>은 앱이 만든 target 상태를 되돌리고(테이블 drop, 행 삭제) 내부 상태 DB를 비운다(<span class="wl">docs/src/content/docs/cli_commands.mdx:15</span>). 걷어내도 데이터가 남는 것은 이 명령을 돌리지 않을 때뿐이고, 돌리지 않으면 아무도 갱신하지 않는 인덱스가 남는다. 어느 쪽을 택할지가 롤백 계획이다.</p>
-
-      <p>shallow clone이라 커밋 빈도, 기여자 분포, 릴리스 주기는 이 체크아웃에 없다. 유지보수 활력은 판단하지 않는다.</p>
-
-      <p><strong>하드웨어 기술 언어는 regex 경로를 탄다.</strong> <span class="wl">rust/code_ast/src/prog_langs.rs:514</span>가 verilog와 vhdl을 문법 없이(<span class="wl">None</span>) 등록하므로 tree-sitter가 아니라 기본 regex 분할로 간다. Cerebras가 netlist를 소스로 든 것을 보면 이 경로는 가정이 아니라 실제로 쓰이는 쪽이다.</p>
-
-      <p class="note warn"><b>원문이 쓴 CocoIndex와 이 커밋이 같은 물건이 아닐 수 있다.</b> 저장소가 <span class="wl">"CocoIndex v1 is a fundamental redesign from v0"</span>라고 적는다(<span class="wl">docs/src/content/docs/getting_started/ai_coding_agents.mdx:14</span>). 09장의 분할 방식 불일치도, 위의 Postgres 대 LMDB 불일치도 버전 차이 하나로 설명된다. 원문은 버전을 밝히지 않았다. <strong>도입 전에 원문이 어느 버전을 말하는지부터 정해야 하고, 그전까지 "Cerebras가 쓴다"는 근거로 쓸 수 없다.</strong></p>
-
-    </div>
-  </section>
-
-  <!-- 15 결론 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">conclusion</p>
-      <h2>결론. 회사의 기억을 만드는 일에서 어려운 부분은 아직 공개되지 않았다</h2>
-      <p class="dek">원문은 검색 파이프라인을 성실하게 공개했고, 그 파이프라인에서 새로 발명된 것은 없다. 옮길 만한 것은 기법 목록이 아니라 순서다. embedding 이전을 설계 대상으로 본 것, 그리고 검색 계층에서 LLM을 최대한 걷어낸 것.</p>
-
-      <p>이 문서를 연 질문은 회사 지식을 embedding 테이블 하나로 모으는 설계에서 어디까지 옮겨 쓸 수 있는가였다. 답은 <strong>쓰기 쪽은 거의 그대로 옮겨지고, 읽기 쪽은 조건부이며, 그 사이의 권한 계층은 직접 그려야 한다</strong>는 것이다. 단일 테이블과 플러그인 커넥터는 조직 규모와 무관하게 성립한다. 네 신호와 RRF는 Slack 같은 대화 코퍼스가 있을 때 성립한다. 행 단위 열람 권한은 원문에 없다.</p>
-
-      <p>Threads 스레드는 원문이 다루지 않은 지점을 하나 더 짚는다. 다음 전장이 회사의 기억이라는 첫 게시물은 원문이 뒷받침한다. 하루 15,000건이면 사람들이 실제로 그 창구를 쓴다는 뜻이고, 사람과 스크립트와 에이전트가 같은 곳에 묻는다는 것도 원문이 명시한다. 그리고 아홉 번째 게시물이 닫는 문장은 이 문서가 12장에서 따로 도달한 결론과 같다.</p>
-
-      <p class="q">브레인을 만드는 건 쉽습니다. 살아 있게 유지하는 게 어렵습니다.<cite>@choi.openai, Threads 9/9</cite></p>
-
-      <p>원문을 읽고 나면 이 문장이 왜 맞는지가 구체적으로 보인다. 만드는 쪽은 단일 테이블과 코퍼스별 retriever 여섯으로 끝난다. 유지하는 쪽에는 <strong>세 가지가 남는데 원문에 그 셋이 다 없다.</strong> 권한이 바뀔 때 색인을 어떻게 하는지, 대상이 사라진 행을 언제 눈치채는지, 모델을 갈아탈 때 재작성 비용을 어떻게 치르는지다. 앞의 둘은 평가 장치가 있어야 보이고, 원문은 검색 품질 수치를 한 건도 내놓지 않았다.</p>
-
-      <p>도입을 검토한다면 순서는 이렇게 뒤집는 편이 낫다. 검색 기법을 먼저 고르지 말고, <strong>권한 등급이 몇 개인지부터 세는 것</strong>이다. 등급이 하나면 원문의 구조를 거의 그대로 쓸 수 있다. 여럿이면 12장의 세 선택지 중 하나를 고르는 일이 나머지 전부보다 오래 걸린다. 그 다음이 평가다. 무엇이 틀렸는지 재는 장치 없이 이 구조를 올리면, 낡은 답이 인용과 함께 최상위로 반환되고 그것이 낡았다는 신호는 어디에도 남지 않는다.</p>
-
-      <p class="note"><b>이 결론은 blog post 한 편과 외부 코드 한 저장소에 기반한다.</b> Cerebras가 권한 계층을 어떻게 풀었는지 공개하면 12장의 상당 부분이 바뀔 수 있다. 이 문서는 그것이 공개되지 않았다는 사실에 대한 진술이지, 존재하지 않는다는 진술이 아니다.</p>
-    </div>
-  </section>
-
-  <!-- 16 출처 -->
-  <section class="slide">
-    <div class="slide-inner">
-      <p class="eyebrow">sources</p>
-      <h2>출처. 1차 자료와 커뮤니티 논의를 층별로 구분한다</h2>
-      <p class="dek">회수 경로가 특이한 것이 몇 개 있어 함께 적는다. Cerebras 원문은 크롤러에 HTTP 500을 돌려주면서 본문은 온전히 담고 있고, 보관본도 같은 상태로 저장돼 있다.</p>
-
-      <div class="grid g2">
-        <div class="card">
-          <span class="tag">1차 자료</span>
-          <div class="src">
-            <div><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base">Cerebras, How we built our knowledge base</a></div>
-            <div class="t">산문은 텍스트 변환 경로로, 그림 라벨은 <a href="https://web.archive.org/web/20260727211917id_/https://www.cerebras.ai/blog/how-we-built-our-knowledge-base">2026-07-27 보관본</a>에서 읽었다. 직접 요청은 500을 반환한다.</div>
-            <div><a href="https://x.com/cerebras/article/2077822555159945507">같은 글의 X 게시본</a></div>
-            <div class="t">402로 막혀 직접 읽지 못했다. 계정과 제목이 같아 미러로 취급했다.</div>
-            <div><a href="https://www.threads.com/@choi.openai/post/Da9o6Tsj2yZ">@choi.openai, Threads (2026-07-19, 9개 게시물)</a></div>
-            <div class="t">1/부터 9/까지 GraphQL로 오기 때문에 fetch 경로로는 닿지 않는다. 렌더된 화면을 이미지로 읽었고, 인용은 화면에서 옮겨 적은 것이다.</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <span class="tag">코드</span>
-          <div class="src">
-            <div><a href="https://github.com/cocoindex-io/cocoindex">cocoindex-io/cocoindex</a></div>
-            <div class="t">커밋 <span class="wl">d7607100e39dfee3919cd1116c10620eb6636104</span>. Apache-2.0. shallow clone이라 이력은 없다. 09장의 인용은 전부 <span class="wl">rust/ops_text/src/split/recursive.rs</span> 한 파일이고, 14장은 <span class="wl">prog_langs.rs</span>, <span class="wl">telemetry/mod.rs</span>와 docs 4편을 함께 인용한다.</div>
-          </div>
-          <span class="tag" style="margin-top:14px">인용된 근거</span>
-          <div class="src">
-            <div><a href="https://cursor.com/blog/semsearch">Cursor, Improving agent with semantic search (2025-11)</a></div>
-            <div class="t">원문 참조 (10). 08장 수치의 출처.</div>
-            <div><a href="https://www.anthropic.com/news/contextual-retrieval">Anthropic, Introducing Contextual Retrieval (2024-09)</a></div>
-            <div class="t">원문 참조 (2). 직접 열지 못해 HN 논의로만 다뤘다.</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <span class="tag">커뮤니티 논의</span>
-          <div class="src">
-            <div><a href="https://news.ycombinator.com/item?id=48169874">HN 48169874 · Show HN: Semble (2026-05)</a></div>
-            <div class="t">445점 151댓글. grep 대비 신뢰 문제.</div>
-            <div><a href="https://news.ycombinator.com/item?id=41598119">HN 41598119 · Contextual Retrieval (2024-09)</a></div>
-            <div class="t">309점 72댓글. LLM 재작성에 대한 반론과 embedding 모델 고착.</div>
-            <div><a href="https://news.ycombinator.com/item?id=39604961">HN 39604961 · Launch HN: Greptile (2024-03)</a></div>
-            <div class="t">253점 166댓글. 재색인 트리거 문제.</div>
-            <div><a href="https://news.ycombinator.com/item?id=49185462">HN 49185462 · Why everything breaks at 150 people</a></div>
-            <div class="t">14점 6댓글. 원문에서 파생된 글 중 유일하게 논의가 붙었다.</div>
-          </div>
-        </div>
-
-        <div class="card">
-          <span class="tag">3차 분석</span>
-          <div class="src">
-            <div><a href="https://datasciocean.com/en/paper-intro/cerebras-rag/">DataSci Ocean, Narrow-Waist Design, Decoupled Retrieval (2026-07)</a></div>
-            <div class="t">엔터프라이즈 RAG를 직접 만든 쪽의 대조 읽기. 07장의 단일 라운드 판단이 여기서 나왔다. 다섯 칸이라는 읽기도 여기 것인데, 04장에 적었듯 원문이 확정해 주는 값이 아니다.</div>
-            <div><a href="https://falconer.com/notes/cerebras-knowledge-base/">Falconer, Why everything breaks at 150 people</a></div>
-            <div class="t">문서 소유권과 project scoping 비판.</div>
-          </div>
-          <span class="tag" style="margin-top:14px">열지 않은 참조</span>
-          <div class="src">
-            <div class="t">원문의 참조 10개 전부. (1) HNSW, (3) RRF, (6) Lost in the Middle, (4) Search-o1, (5) Code Execution with MCP, (2) Contextual Retrieval, (7) Use XML Tags, (8) Slack AI 처리, (9) Best Nested Data Format, (10) Cursor semsearch. 이 중 (10)만 전문을 읽었고 (2)는 HN 논의로만 다뤘다. 나머지 여덟의 내용에 대해서는 아무 주장도 하지 않는다.</div>
-          </div>
-        </div>
-      </div>
-
-      <p class="note"><b>렌더링을 확인했다.</b> headless 브라우저로 열어 읽은 장은 01, 02, 04, 05, 07, 08, 09, 10, 12, 14, 16 이다. 화면에서만 드러난 것이 넷이다. 그림 하나의 화살표가 대상 상자를 빗나갔고, 제목 둘이 어절 중간에서 줄바꿈됐고, 한국어 줄바꿈 규칙이 CSS 에 없었고, 원문에서 가져온 fig-001 의 한 도형이 클래스 정의를 빠뜨려 검게 칠해졌다. <strong>03, 06, 11, 13, 15장은 화면으로 보지 않았다.</strong></p>
-      <p class="note">이 문서에는 <span class="wl">.research/</span> 근거 원장이 없다. 1차 자료가 고정된 코퍼스가 아니라 블로그 글과 Threads 게시물이어서 CocoIndex 커밋 하나를 빼면 나중에 같은 바이트로 다시 고정할 수 없고 <span class="wl">check-claims.mjs</span> 도 이 문서에는 돌릴 수 없다.</p>
-    </div>
-  </section>
   </main>
 
   <footer class="hud">
@@ -1361,7 +545,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   document.addEventListener('keydown', function (e) {
     if (e.metaKey || e.ctrlKey || e.altKey) { return; }
     var t = e.target;
-    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (t && (['INPUT','TEXTAREA','BUTTON','SELECT','A'].includes(t.tagName))) { return; }
     if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
     else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
     else if (e.key === 'Home') { e.preventDefault(); show(0); }
@@ -1377,6 +561,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
     x0 = null; y0 = null;
   }, { passive: true });
+  window.addEventListener('hashchange',function(){var h=/^#p(\d+)$/.exec(location.hash);if(h)show(parseInt(h[1],10)-1,false);});
   var m = /^#p(\d+)$/.exec(window.location.hash || '');
   show(m ? parseInt(m[1], 10) - 1 : 0, false);
 })();
