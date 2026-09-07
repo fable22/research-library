@@ -2,7 +2,7 @@
   "title": "AI Agents Push Humans Out of the Loop: 승인 자동화와 사람의 검토",
   "summary": "사람이 매번 승인한다고 검토가 제대로 이뤄지는 것은 아니다. 이 논문의 설계 제안과 Claude Code auto mode를 비교해, 승인 없이 허용할 작업·사람이 먼저 확인할 행동·검토 품질을 점검할 방법을 정리한다.",
   "date": "2026-08-30",
-  "seq": 21,
+  "seq": 22,
   "category": "paper",
   "format": "deck",
   "tags": [

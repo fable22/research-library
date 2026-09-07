@@ -1072,9 +1072,13 @@ SET hnsw.ef_search = 100;</code></pre>
 
   </main>
 
-  <button class="nav-btn prev" id="prev" aria-label="이전 슬라이드">&larr; 이전</button>
-  <button class="nav-btn next" id="next" aria-label="다음 슬라이드">다음 &rarr;</button>
-  <div class="progress" id="progress"></div>
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 22</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
 </div>
 
 <script>
