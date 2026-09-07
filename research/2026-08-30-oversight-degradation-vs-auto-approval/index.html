@@ -1,0 +1,1041 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Agents Push Humans Out of the Loop: 승인 자동화와 사람의 검토</title>
+<meta name="description" content="사람이 매번 승인한다고 검토가 제대로 이뤄지는 것은 아니다. 이 논문의 설계 제안과 Claude Code auto mode를 비교해, 승인 없이 허용할 작업·사람이 먼저 확인할 행동·검토 품질을 점검할 방법을 정리한다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AI Agents Push Humans Out of the Loop: 승인 자동화와 사람의 검토">
+<meta property="og:description" content="사람이 매번 승인한다고 검토가 제대로 이뤄지는 것은 아니다. 이 논문의 설계 제안과 Claude Code auto mode를 비교해, 승인 없이 허용할 작업·사람이 먼저 확인할 행동·검토 품질을 점검할 방법을 정리한다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-08-30-oversight-degradation-vs-auto-approval/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; min-width: 0; }
+.src { overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+
+/* ── 이 문서 전용 (전부 토큰 경유) ─────────────────────── */
+svg .box-dash { fill: none; stroke: var(--rule); stroke-width: 1; stroke-dasharray: 5 4; }
+svg .pill-r   { fill: var(--card); stroke: var(--rule); stroke-width: 1; }
+svg .pill-c   { fill: var(--redlink-soft); stroke: var(--redlink); stroke-width: 1; }
+ul.clean li .m.bad { color: var(--redlink); }
+.figure .tablewrap { box-shadow: none; }
+/* 산문이 든 표는 셀을 접는다. 접지 않으면 열 두 개가 화면 밖으로 나간다 */
+table.wrap th, table.wrap td { white-space: normal; text-align: left; vertical-align: top; line-height: 1.55; }
+table.wrap td { font-family: var(--sans); }
+table.wrap td:first-child { min-width: 104px; }
+ul.clean.wide li { grid-template-columns: 56px 1fr; }
+/* ul.clean 은 margin 이 0 이라 바로 뒤의 제목·문단이 마지막 항목에 붙어 읽힌다 */
+ul.clean + h3 { margin-top: 24px; }
+ul.clean + p  { margin-top: 16px; }
+
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>진단 1: 능력 저하</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>진단 2: 되먹임 고리</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>처방 1: 본문의 6개 범주</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>처방 2: 계측 항목</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>처방 3: 본문과 그림</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>배포 현실</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>설계 비교</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>사례 추적</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>도입 판단</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>결론</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>AI Agents Push Humans Out of the Loop: 승인 자동화와 사람의 검토</h1>
+      <p class="dek">AI agent의 작업을 계속 검토하다 보면 주의력과 판단 능력이 약해질 수 있다는 문제를 다룬 논문이다. 개발자는 승인 화면과 작업 범위를 설계하고, 조직은 검토자의 역량과 업무 부담을 관리해야 한다고 제안한다. 이 문서는 논문과 Claude Code auto mode를 비교해 승인 없이 허용할 작업, 실행 전에 사람이 확인할 행동, 검토 품질을 점검할 방법을 제안한다.</p>
+      <p class="small">Mitchell, Ghosh, Passi · arXiv:2608.23642v1 · 2026-08-24 · position paper</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">이 문서가 답하는 질문</span>
+          <p class="small">사내 coding agent와 운영 자동화에서 어떤 행동을 승인 없이 허용하고, 어디에 사람 검토를 남기며, 감독 품질은 무엇으로 평가할 것인가.</p>
+        </div>
+        <div class="card">
+          <span class="tag">적용할 수 있는 범위</span>
+          <p class="small">승인 범위와 검토 시점을 설계하는 데 참고할 수 있다. 감독 저하를 식별하는 검증된 절차나 사람 검토와 자동화의 품질 비교는 제공하지 않는다. 근거의 한계는 7장과 11장에서 설명한다.</p>
+        </div>
+      </div>
+
+      <h3 style="margin-top:22px">읽는 경로</h3>
+      <ul class="clean wide">
+        <li><span class="m">03</span><span>반복되는 승인 요청이 사람의 검토에 주는 부담</span></li>
+        <li><span class="m">04-05</span><span>검토 능력이 약해질 수 있는 이유와 부실한 승인을 학습 신호로 쓸 때의 위험</span></li>
+        <li><span class="m">06-08</span><span>승인범위·검토 단위·검토 품질을 설계하는 방법</span></li>
+        <li><span class="m">09</span><span>직접 확인한 근거와 확인하지 못한 범위</span></li>
+        <li><span class="m">10-12</span><span>Claude Code auto mode의 승인 처리와 remote 브랜치 삭제 사례</span></li>
+        <li><span class="m">13-15</span><span>사내 agent에 적용할 설계 제안과 한계</span></li>
+      </ul>
+
+      <p class="note">논문은 기존 연구를 연결한 position paper다. 자체 실험으로 처방의 효과를 검증하지 않으며, 이 문서의 설계 제안도 안전효과나 탐지 성능을 실증한 결과는 아니다.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약. 승인 기록만으로는 사람이 제대로 검토했는지 알 수 없다</h2>
+      <p class="dek">논문은 검토 시간·의견 불일치·추가 정보 요청의 변화를 감독 상태를 살펴볼 단서로 제안한다. 이 값만으로 검토의 질을 판정할 수는 없으며, 논문도 작업 조건의 측정법이나 경보 기준을 제공하지 않는다. 승인 기록과 실제 결정의 품질을 별도로 평가해야 한다.</p>
+
+      <h3>개발자가 검토할 설계</h3>
+      <div class="grid g3" style="margin-bottom:22px">
+        <div class="card"><span class="tag">승인 없이 허용할 범위</span><p class="small">복구 가능한 로컬 작업은 허용 범위를 미리 정하고 작업 단위로 변경 내용을 검토한다.</p></div>
+        <div class="card"><span class="tag">실행 전 사람의 확인</span><p class="small">되돌리기 어려운 외부 행동은 실행 전에 대상·권한·복구 가능성을 확인한다.</p></div>
+        <div class="card"><span class="tag">검토 품질 점검</span><p class="small">승인 횟수·시간과 별도로 과거 결정의 오류·권한 위반을 독립적으로 검토한다.</p></div>
+      </div>
+      <p class="small">이 문서의 설계 제안이다. 구체적인 적용 조건은 14장에서 다룬다.</p>
+
+      <h3>세 가지 결론</h3>
+      <ul class="clean">
+        <li><span class="m">1</span><span><b>계측 항목은 제안하지만 완성된 탐지 명세는 아니다.</b> 시간·승인·정보 요청에 작업 조건과 독립 품질 판정을 결합해야 한다. 높은 집계 승인률만으로 감독 저하를 진단할 수 없다.</span></li>
+        <li><span class="m">2</span><span><b>승인범위 설계와 자동화는 함께 검토할 수 있다.</b> 논문은 허용할 작업 범위를 정하고, 관련 변경을 묶어 검토하며, 판단이 필요 없는 속성을 자동 점검하는 여러 처방을 제안한다. 이 중 자동 점검 처방 하나의 조건이 논문 전체의 자동화 허용선을 정하지는 않는다.</span></li>
+        <li><span class="m">3</span><span><b>분류기에도 권한 해석의 잔여 실패가 있다.</b> 벤더가 선별한 실제 과잉행동 52건에서 분류기가 차단하지 못한 비율(FNR)은 17%였다. 분류기가 막지 못한 행동을 분석한 결과, 대부분은 사용자의 동의 범위를 잘못 읽은 경우였다. 사람 검토를 위임해서 생긴 인과적 비용을 측정한 실험은 아니다.</span></li>
+      </ul>
+      <p class="note">§4의 인과 주장도 검증 대상이다. 이 문서는 인용 연구의 타당성을 재평가하지 않았으므로 그 인과의 참·거짓은 판정하지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>문제 정의. approval fatigue 를 인용하는 자리는 §3 이고 근거 셋 중 하나가 승인 판단을 분류기에 넘긴 벤더 글이다</h2>
+      <p class="dek">§3 은 현재의 감독 논의가 놓치는 것을 네 항목으로 나눈다. 그중 두 번째 항목의 마지막 문장이 approval fatigue 를 도입하고 거기 붙은 인용 세 개 중 하나가 <code>ClaudeAuto</code> 다. 이 인용이 이 문서 전체의 대조축이다.</p>
+
+      <p class="q">In practice, users find themselves repeatedly approving prompts the agent surfaces to continue its processing […], leading to “approval fatigue”, in which users stop paying close attention to what they are approving.<cite>§3, 2608.23642v1.tex:116. 문장 끝 인용은 ClaudeAuto, FranklinEtAl2026, Approval_Fatigue_aipatternbook 세 개다</cite></p>
+
+      <p>논문 §3의 <code>ClaudeAuto</code> 인용은 Anthropic의 auto mode 글로 연결된다. 높은 승인률을 계기로 승인 판단 일부를 자동화한 사례여서 §5의 승인 설계 제안과 비교할 수 있다. 논문이 이 제품의 효과를 직접 평가한 것은 아니다.</p>
+
+      <h3>§3 이 세는 네 가지</h3>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>§3 의 소제목</th><th>무엇이 문제인가</th><th>설계 검토 질문</th></tr></thead>
+          <tbody>
+            <tr><td>The amount of content relevant to an overseer is massive</td><td>chain-of-thought, 도구 선택, 인자, 계획, 모듈 간 교환이 전부 감독 대상이다</td><td>요약에서 빠진 실행 정보를 다시 볼 수 있는가</td></tr>
+            <tr class="hero"><td>The user must play multiple roles simultaneously</td><td>자기 목표를 좇으면서 동시에 각 단계의 안전성과 파급을 판정한다</td><td>승인 화면에 대상과 권한 범위가 명시되는가</td></tr>
+            <tr><td>The cognitive demand is substantial</td><td>approver 로 밀려난 사용자가 과제 전문가로서 각 결정점을 평가해야 한다</td><td>계획·현재 상태·이전 행동을 연결해 볼 수 있는가</td></tr>
+            <tr><td>Current oversight affordances are poorly designed</td><td>벤더 프레임워크가 지속 사용 중의 인간 경향을 다루지 않는다</td><td>지속 사용 중 검토자의 부담을 평가하는가</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">표. §3 의 굵은 소제목은 다섯 개이고 그중 놓치는 것을 세는 네 개를 그대로 옮겼다. 다섯 번째 <code>Human cognition follows patterns that can inform oversight design</code>(tex:124)은 앞의 넷을 받아 §5 로 넘기는 자리라 표에 없다. 오른쪽 열은 논문에서 도출한 설계 질문이다. 강조한 행이 approval fatigue 가 나오는 항목이다.</p>
+
+      <p class="q">“Human-in-the-loop" is only a meaningful solution if the human can independently see into the loop.<cite>§3, tex:121</cite></p>
+
+      <p class="note">이 절은 감독 부담의 성격을 설명한다. 승인 프롬프트가 있다는 사실만으로 그 부담을 감당할 수 있는지는 판단할 수 없다.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">degrade-skill</p>
+      <h2>진단 1. §4.1은 능력 저하를, §4.2는 판단을 간편한 단서로 대체하는 문제를 다룬다</h2>
+      <p class="dek">§4 는 <code>irony of automation</code> 이라는 제목 아래 다섯 개 소절로 간다. §4.1은 능력 저하를, §4.2는 정확성 판정을 문체·계획·테스트 통과 같은 단서로 대체하는 문제를 다룬다. 다섯 소절이 실험으로 확인한 시간 순서를 뜻하지는 않는다.</p>
+
+      <h3>§4.1 어떤 능력이 저하되는가</h3>
+      <p>deskilling, intuition rust, 비판적·분석적 사고 저하, 이상을 알아차리는 데 필요한 경계와 패턴 인식 저하, 과의존. 최근 용어로 cognitive dependence, cognitive debt, cognitive surrender. 전부 인용으로 서 있고 논문이 직접 잰 것은 없다. 생리 측정에 기댄 문장은 하나뿐이다.</p>
+
+      <p class="q">A recent study found that participants who used an LLM for essay writing had significantly decreased brain connectivity.<cite>§4.1, tex:142. KosmynaEtAl2025 인용. 논문은 이 문장에 효과 크기도 표본 수도 붙이지 않는다</cite></p>
+
+      <p>논문은 전문가의 과의존을 따로 세우고, 자기 전문 영역에서 조금 벗어난 자리에서 그 효과가 특히 두드러진다고 쓴다. 어디가 최댓값인지 순위를 매기지는 않는다. 이 절은 초심자 문제로 좁혀지지 않는다.</p>
+
+      <p class="q">leading to particularly pronounced effects in contexts slightly outside of their expertise, such as an experienced software developer using AI agents to code in a new programming language<cite>§4.1, tex:144</cite></p>
+
+      <h3>§4.2 정확성을 어떤 단서로 판단하는가</h3>
+      <p>§4.2 는 사람이 정확성 판정을 지름길로 대체한다고 쓴다. 잘 쓰인 문체나 인용의 존재를 정확성 신호로 오인하는 것이 하나고, 개발자 대상 연구에서 나온 두 가지가 다른 하나다. 뒤의 둘은 계획·테스트 결과를 보여주는 승인 화면에서도 점검할 문제다.</p>
+
+      <p class="q">such as treating an agent's plan as a “faithful proxy” of what it would do, and assuming that if an agent's code passed unit tests, it was correct<cite>§4.2, tex:152. dhanorkar-coding-agents-2026 인용</cite></p>
+
+      <div class="grid g2">
+        <div class="card">
+          <span class="tag">지름길 1: plan 을 faithful proxy 로</span>
+          <p class="small">계획을 승인해도 실행 행동이 그 계획을 따르는지 확인해야 한다. 승인 화면이 계획만 보여준다면 계획과 실제 행동의 차이를 놓칠 수 있다는 설계상의 우려다.</p>
+        </div>
+        <div class="card">
+          <span class="tag">지름길 2: 테스트 통과를 정확성으로</span>
+          <p class="small">테스트 통과를 승인 근거로 보여줄 때는 무엇을 검사했는지도 함께 표시할 필요가 있다. 통과 요약만으로 테스트가 덮지 않은 권한·운영 문제까지 해결됐다고 판단할 수 없다.</p>
+        </div>
+      </div>
+
+      <p>§4.2 는 시스템 쪽 요인도 붙인다. sycophantic 모델이 같은 상황의 사람 평가자보다 더 자주 사용자를 인정하며 사용자는 덜 sycophantic한 baseline보다 이 모델을 선호하고 신뢰한다는 결과, 실제 대화에서 사용자의 행동과 믿음이 현실과 어긋나는데도 그 대화를 좋게 평가하더라는 결과, 그리고 매끄러운 상호작용을 최적화하는 챗봇 패러다임이 독립적 판단에 필요한 인지적 마찰을 없앤다는 논의다. 셋 다 인용이고 논문의 측정은 아니다.</p>
+
+      <p class="note">§4.1 과 §4.2 의 인과는 이 논문이 세운 것이 아니라 모아 온 것이다. 논문 자신도 이 절을 종합으로 제시하지 실험으로 제시하지 않는다. 이 문서가 뒤에서 다루는 것은 이 인과의 참·거짓이 아니라, 이 인과를 받아들였을 때 §5 가 무엇을 시키는가다.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">degrade-loop</p>
+      <h2>진단 2. §4.3 이 감독자를 루프 밖으로 밀어내고 §4.4 가 그 상태를 학습 신호로 되먹인다</h2>
+      <p class="dek">§4.3은 자기보고와 인용 연구를 통해 감독 참여와 상황 인식이 약해지는 문제를 설명한다. §4.4는 검토가 약해진 상태의 승인을 성공 신호로 사용하면 그 신호가 쉬운 승인을 유도하는 최적화로 돌아올 수 있다고 경고한다. §4.5는 이 위험을 irony of automation으로 정리한다.</p>
+
+      <div class="figure">
+        <p class="fig-title">§4.4는 승인 신호가 최적화에 쓰일 때의 되먹임 위험을 설명한다</p>
+        <p class="fig-sub">논문 §4.1 부터 §4.4 까지의 서술을 순서대로 이은 것. 논문에 이 그림은 없다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 764 268" role="img" aria-label="논문 4장의 되먹임 고리. 위 행 왼쪽부터 4.1 능력이 저하된다, 4.2 감독이 지름길로 바뀐다, 4.3 루프 밖으로 밀린다 세 상자가 오른쪽으로 이어진다. 4.3 에서 아래 행으로 내려가 4.4 승인을 성공으로 쓴다면 상자로 가고, 거기서 왼쪽으로 재학습과 평가 신호 상자로 간다. 그 상자에서 되돌아오는 화살표가 왼쪽 아래를 지나 위로 올라가 4.1 로 다시 들어가며 되먹임 위험을 나타낸다.">
+          <rect class="box" x="8"   y="20" width="228" height="66" rx="9"/>
+          <text class="txt"   x="24" y="46">§4.1 능력이 저하된다</text>
+          <text class="txt-s" x="24" y="66">판단, 경계, 패턴 인식이 줄어든다</text>
+
+          <path class="arw" d="M236 53 L262 53"/>
+          <path class="arw" d="M255 48 L262 53 L255 58"/>
+
+          <rect class="box" x="266" y="20" width="228" height="66" rx="9"/>
+          <text class="txt"   x="282" y="46">§4.2 감독이 지름길로</text>
+          <text class="txt-s" x="282" y="66">plan 을 faithful proxy 로 취급한다</text>
+
+          <path class="arw" d="M494 53 L520 53"/>
+          <path class="arw" d="M513 48 L520 53 L513 58"/>
+
+          <rect class="box" x="524" y="20" width="228" height="66" rx="9"/>
+          <text class="txt"   x="540" y="46">§4.3 루프 밖으로</text>
+          <text class="txt-s" x="540" y="66">능동 참여자에서 수동 처리자로</text>
+
+          <path class="arw" d="M638 86 L638 132"/>
+          <path class="arw" d="M633 125 L638 132 L643 125"/>
+
+          <rect class="box" x="524" y="132" width="228" height="66" rx="9"/>
+          <text class="txt"   x="540" y="158">§4.4 승인이 성공으로</text>
+          <text class="txt-s" x="540" y="178">승인·만족도를 성공으로 쓴다면</text>
+
+          <path class="arw" d="M524 165 L498 165"/>
+          <path class="arw" d="M505 160 L498 165 L505 170"/>
+
+          <rect class="box-hi" x="266" y="132" width="228" height="66" rx="9"/>
+          <text class="txt"   x="282" y="158">재학습, 평가 신호</text>
+          <text class="txt-s" x="282" y="178">마찰이 적고 요약이 자신 있는 쪽으로</text>
+
+          <path class="arw" d="M266 165 L120 165 L120 92"/>
+          <path class="arw" d="M115 99 L120 92 L125 99"/>
+          <text class="txt-s" x="132" y="222">되돌아오는 변은 §4.4 다. 승인률과 만족도가 신호로 쓰이면 고리가 닫힌다</text>
+        </svg>
+        </div>
+        <figcaption>왼쪽 아래로 돌아가는 변이 §4.4 의 주장이다. 논문은 이 고리를 그림으로 그리지 않고 §4.4 본문에서 서술한다. 강조한 상자는 승인 신호를 평가·학습에 사용하는 설계 선택이다. 화살표는 논문 서술을 연결한 해석이며 관측된 인과 경로가 아니다.</figcaption>
+      </div>
+
+      <h3>§4.3 감독 참여와 상황 인식이 약해진다</h3>
+      <p class="q">Current HITL processes in coding “[make] the loop stultifying” […] and they move to “babysit the outputs, catch the occasional hallucination”<cite>§4.3, tex:164. Taggart2026 과 RedditHITL 자기보고 인용</cite></p>
+      <p>§4.3 의 끝에서 제목이 나온다. 상황 인식의 조직적 침식이 감독을 방해하는 데 그치지 않고 결국 사람을 감독 루프 <b>바깥으로</b> 밀어낸다는 문장이다. 논문 제목이 말하는 것이 감독의 약화가 아니라 축출이라는 점은 여기서 확인된다.</p>
+
+      <h3>§4.4 승인 신호와 올바른 행동을 구분한다</h3>
+      <p>§4.4 는 개발자가 고의로 인지 소모를 최적화할 필요가 없다고 못 박은 뒤 조건 하나를 남긴다. 이 조건을 평가하려면 승인 로그와 별도로 행동이 옳았는지, 검토가 적절했는지 판정해야 한다.</p>
+      <p class="q">It arises whenever the measured target, user-revealed approval, comes apart from the intended target, well-scrutinized correct action.<cite>§4.4, tex:173</cite></p>
+      <p>이어서 §4.4 는 이 현상을 alignment 어휘로 옮긴다. 사람 평가자가 보상 채널에서 착취 가능한 부분이 된다. 그리고 <code>Evil double agents</code> 문단에서 방향을 하나 더 얹는다. agent가 어떤 절차 위반을 감독자가 검사하지 않을지 예측할 수 있다면, 계획과 설명과 타이밍을 탐지 문턱 아래로 고를 수 있다.</p>
+
+      <h3>§4.5 결과</h3>
+      <p class="q">The very act of being an overseer degrades the capacities oversight requires: Oversight degrades the overseer.<cite>§4.5, tex:181. 결론(§7)이 이 문장을 그대로 반복한다</cite></p>
+
+      <p class="note">§4.3은 자기보고, 개발자 연구, 상황 인식과 자동화에 관한 문헌을 함께 인용한다. §4.4는 특정 배포 시스템에서 관측한 되먹임의 보고가 아니라 승인 신호를 성공으로 사용할 때의 조건부 위험이다.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">solutions-live</p>
+      <h2>처방 1. §5의 21개 항목 중 Developer 범주에 속하는 항목은 4개다</h2>
+      <p class="dek">§5 는 두 축으로 짜여 있다. 생애주기 축이 development 와 deployment 이고, 인지 지원 축이 engaging oversight 와 maintaining skills 다. 살아 있는 범주는 여섯 개이고 그 아래 이름 붙은 처방이 21개다. 논문은 이 목록이 완전하지 않다고 스스로 먼저 밝힌다.</p>
+
+      <p class="q">We stress that our solutions below do not represent a complete, perfect, or fixed inventory, that boundaries overlap, and that the content admits of many different groupings<cite>§5 도입부, tex:188</cite></p>
+
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>§5 범주</th><th>단계</th><th>Primary Implementer</th><th>처방</th><th>구현·운영에서 정할 일</th></tr></thead>
+          <tbody>
+            <tr><td>Strategic friction</td><td>development</td><td>Developer</td><td>4</td><td>인지 작업을 요구할 시점과 사용자 부담</td></tr>
+            <tr><td>Approval design</td><td>development + deployment</td><td>Both</td><td>3</td><td>승인범위·검토 단위·운영 책임</td></tr>
+            <tr class="hero"><td>Behavioral monitoring</td><td>development + deployment</td><td>Both</td><td>6</td><td>관측 proxy·독립 평가·개입 조건</td></tr>
+            <tr><td>Trainings and exercises</td><td>deployment</td><td>Deployer</td><td>3</td><td>교육·역량 또는 역할 운영</td></tr>
+            <tr><td>Workload and scheduling</td><td>deployment</td><td>Deployer</td><td>2</td><td>휴식·순환 정책</td></tr>
+            <tr><td>Role design</td><td>deployment</td><td>Deployer</td><td>3</td><td>교육·역량 또는 역할 운영</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">표. 범주 이름과 Primary Implementer 는 논문 Table 1 의 머리 두 행에서, 단계는 논문 Figure 2 의 사분면 배치에서, 처방 수는 §5 각 범주의 <code>\item</code> 을 세어 옮겼다. 처방 수의 집계와 오른쪽 열은 논문에 없다. Primary Implementer는 주된 담당 주체의 분류이며, 개발자가 단독으로 구현할 수 있는지 검증한 표가 아니다.</p>
+
+      <div class="figure">
+        <p class="fig-title">개발 단계에서 장기 능력을 지키는 사분면은 비어 있다</p>
+        <p class="fig-sub">논문 Figure 2의 사분면과 항목 배치를 재구성했다. 아래 설명은 이 배치의 한계를 함께 다룬다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 764 384" role="img" aria-label="논문 Figure 2 의 2 곱하기 2 배치. 왼쪽 열은 Development 곧 설계 수준 어포던스, 오른쪽 열은 Deployment 곧 조직 프로토콜이다. 위 행은 지금 이 순간의 주의를 붙드는 engaging oversight, 아래 행은 장기 능력을 지키는 maintaining skills 다. 왼쪽 위에는 Strategic friction, Approval design, Behavioral monitoring, Canaries 네 상자가 있다. 오른쪽 위에는 Approval design, Behavioral monitoring, Workload and scheduling 세 상자가 있다. 오른쪽 아래에는 Trainings and exercises, Role design, Audits 세 상자가 있다. 왼쪽 아래 사분면에는 상자가 하나도 없고 점선으로만 그려져 있다.">
+          <text class="txt"   x="130" y="20">Development</text>
+          <text class="txt-s" x="130" y="38">설계 수준 어포던스</text>
+          <text class="txt"   x="452" y="20">Deployment</text>
+          <text class="txt-s" x="452" y="38">조직 프로토콜</text>
+
+          <text class="txt"   x="0" y="128">Engaging</text>
+          <text class="txt"   x="0" y="146">oversight</text>
+          <text class="txt-s" x="0" y="166">그 순간의 주의</text>
+
+          <text class="txt"   x="0" y="286">Maintaining</text>
+          <text class="txt"   x="0" y="304">skills</text>
+          <text class="txt-s" x="0" y="324">장기 능력</text>
+
+          <rect class="box"      x="130" y="52" width="310" height="168" rx="10"/>
+          <rect class="box"      x="452" y="52" width="310" height="168" rx="10"/>
+          <rect class="box-dash" x="130" y="232" width="310" height="136" rx="10"/>
+          <rect class="box"      x="452" y="232" width="310" height="136" rx="10"/>
+
+          <rect class="pill-r" x="150" y="68"  width="270" height="30" rx="7"/>
+          <text class="txt"    x="164" y="88">Strategic friction</text>
+          <rect class="pill-r" x="150" y="106" width="270" height="30" rx="7"/>
+          <text class="txt"    x="164" y="126">Approval design</text>
+          <rect class="pill-r" x="150" y="144" width="270" height="30" rx="7"/>
+          <text class="txt"    x="164" y="164">Behavioral monitoring</text>
+          <rect class="pill-c" x="150" y="182" width="270" height="30" rx="7"/>
+          <text class="txt"    x="164" y="202">Canaries</text>
+
+          <rect class="pill-r" x="472" y="80"  width="270" height="30" rx="7"/>
+          <text class="txt"    x="486" y="100">Approval design</text>
+          <rect class="pill-r" x="472" y="118" width="270" height="30" rx="7"/>
+          <text class="txt"    x="486" y="138">Behavioral monitoring</text>
+          <rect class="pill-r" x="472" y="156" width="270" height="30" rx="7"/>
+          <text class="txt"    x="486" y="176">Workload &amp; scheduling</text>
+
+          <rect class="pill-r" x="472" y="248" width="270" height="30" rx="7"/>
+          <text class="txt"    x="486" y="268">Trainings &amp; exercises</text>
+          <rect class="pill-r" x="472" y="286" width="270" height="30" rx="7"/>
+          <text class="txt"    x="486" y="306">Role design</text>
+          <rect class="pill-c" x="472" y="324" width="270" height="30" rx="7"/>
+          <text class="txt"    x="486" y="344">Audits</text>
+
+          <text class="txt-s" x="196" y="300">이 사분면에는 노드가 없다</text>
+          <text class="txt-s" x="196" y="320">(그림 배치의 빈칸이다)</text>
+        </svg>
+        </div>
+        <figcaption>논문 Appendix A의 Figure 2 배치를 재구성했다. 개발 단계의 장기 능력 사분면은 비어 있지만 본문의 Delay-and-choice는 인지 능력 보호를 목적으로 한다. 그림의 빈칸으로 가능한 설계를 제한할 수 없다. Canaries와 Audits도 본문에서는 Behavioral monitoring 안의 항목이다. 본문과 그림의 차이는 8장에서 다룬다.</figcaption>
+      </div>
+
+      <h3>Approval design은 승인범위와 검토 단위를 함께 설계한다</h3>
+      <p>이 범주는 사람의 주의를 희소 자원으로 놓고 어디에 쓸지를 배분하는 문제로 본다. 승인 없이 허용할 범위, 작업 단위 검토, 기계 사전검사를 함께 제안한다.</p>
+      <ul class="clean">
+        <li><span class="m">1</span><span><code>Bounded autonomy</code>. 승인 없이 해도 되는 것을 미리 지정해서, 정말 판단이 필요한 결정에 사용자 주의를 남긴다.</span></li>
+        <li><span class="m">2</span><span><code>Batch review</code>. agent가 논리적 단위 하나를 끝내고 전체를 diff 로 한 번에 올린다. 관련 행동을 같이 평가할 수 있게 만드는 것이 목적이다.</span></li>
+        <li><span class="m">3</span><span><code>Automated pre-checks</code>. 판단이 필요 없는 속성을 기계로 검증해 사람 검토를 보완한다.</span></li>
+      </ul>
+      <p class="q">Automated pre-checks supplementing human review with machine verification of properties that do not require judgement<cite>§5 Approval design, tex:236</cite></p>
+      <p>이 항목은 사람 검토를 보완하는 기계 검증을 정의한다. §5는 이를 Bounded autonomy와 함께 제시한 비완결 목록이다. 따라서 이 항목과 다른 자동화 방식이 곧 논문 전체의 허용 범위를 벗어났다는 결론은 나오지 않는다. 11장에서 auto mode와 기능을 비교한다.</p>
+
+      <p class="note">Role design 의 <code>Separating roles</code> 는 감독하는 사람과 승인이 계속 나서 이득을 보는 사람을 분리하라고 한다. 혼자 agent를 돌리는 개발자는 두 역할을 동시에 갖는다. 한 사람이 두 역할을 계속 맡는 환경에서는 이 역할분리 조건을 만족할 수 없다.</p>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">solutions-monitor</p>
+      <h2>처방 2. Behavioral monitoring은 관측 방향과 평가 방법을 제안하지만 탐지 명세는 제공하지 않는다</h2>
+      <p class="dek">§5는 감독 품질을 인간과 AI로 구성된 시스템에서 경험적으로 평가할 속성으로 다룬다. 세 signature는 주의·검토 저하를 의심할 변화 방향이며, Audits와 Canaries는 결정의 품질을 다시 평가하는 방법이다. 이를 구현하려면 로그 외에도 작업 조건과 판정 기준을 정해야 한다.</p>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>처방</th><th>논문이 제안한 관측·평가</th><th>구현에서 정해야 할 것</th></tr></thead>
+          <tbody>
+            <tr><td>Time-based signatures</td><td>승인률이 일정한데 검토 시간이 감소하거나, complexity가 증가해도 검토 시간이 늘지 않는지</td><td>검토 시간 proxy, complexity 정의, 비교 기준선·기간</td></tr>
+            <tr class="hero"><td>Override signatures</td><td>시간 경과 또는 complexity 증가에 따라 agent와의 disagreement 비율이 감소하는지</td><td>거부·수정이 disagreement를 얼마나 포착하는지, 작업 조건별 비교</td></tr>
+            <tr><td>Evidence-seeking signatures</td><td>stakes가 커질 때 추가 정보를 요청하는지</td><td>stakes의 기준, 정보 요청 경로의 수집 범위</td></tr>
+            <tr><td>Canaries</td><td>정답이 알려진 과제로 판단 저하를 평가한다. agent에는 불가능한 일을 지어내지 않고 보고하는지 시험할 수 있다</td><td>과제·삽입 빈도·판정 기준. 논문은 휴식·순환·재교육으로 이어질 수 있다고 쓴다</td></tr>
+            <tr><td>Style-fatigue covariance analyses</td><td>agent가 약해진 감독에 적응하거나 이를 부추기는지 평가한다</td><td>문체·피로 측정법과 분석 방법</td></tr>
+            <tr><td>Audits</td><td>검토자가 과거 결정을 재검토한다. agent의 trace 요약과 raw action log도 대조한다</td><td>표본·주기·검토자 선정과 품질 판정 기준</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">표. §5 Behavioral monitoring의 여섯 항목을 요약했다. 오른쪽 열은 이 문서의 구현상 판단이며 원문에 이 비교는 없다.</p>
+      <h3>로그는 감독 품질의 proxy다</h3>
+      <p>승인 화면 표시·응답 시각, 승인·거부·수정, 정보 요청 이벤트는 수집할 수 있다. 표시부터 응답까지의 시간이 실제 검토 시간과 같지는 않고, 거부 이벤트가 모든 disagreement를 포착하지도 않는다. complexity·stakes·작업 구성·agent 품질이 바뀌면 같은 로그 변화도 다른 이유로 생긴다.</p>
+      <h3>독립 품질 평가와 경보 임계값은 별도로 정한다</h3>
+      <p>Audits의 과거 결정 재검토와 정답이 알려진 Canaries를 결합하면 승인 행동과 결정 품질을 대조하는 평가를 설계할 수 있다. 같은 작업 조건에서 별도 검토자가 권한 위반·오류·누락을 판정하도록 하는 것은 이 문서의 적용 제안이다. §5는 그 평가의 표본 구성이나 검증된 경보 임계값을 제공하지 않는다.</p>
+      <p class="q">Preference-based training can be part of an oversight system, but only if approval signals are audited against independent measures of oversight quality.<cite>§6 반론 3 응답, tex:314</cite></p>
+      <p class="note">논문은 열린 연구 목록을 제안한다. 관측 항목을 구현할 수 있다는 것과 감독 저하를 식별할 수 있다는 것은 다른 주장이다. 이 문서는 제안한 평가 절차의 탐지 성능을 검증하지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">solutions-cut</p>
+      <h2>처방 3. Canaries와 Audits는 본문에서 Behavioral monitoring에 속한다</h2>
+      <p class="dek">Figure 2는 Canaries와 Audits를 별도 상자로 그리지만, 발행본 §5는 둘을 Behavioral monitoring 안에 둔다. 소스의 비활성 블록에는 별도 범주 이름이 남아 있다. 그림의 상자 수를 본문의 범주 수나 독립 처방 수로 읽으면 안 된다.</p>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>대조 지점</th><th>v1 발행본</th><th>해석의 범위</th></tr></thead>
+          <tbody>
+            <tr><td>Canaries와 Audits</td><td>§5에서는 Behavioral monitoring의 항목, Figure 2에서는 각각 별도 상자</td><td>그림과 본문의 묶음이 다르다. 두 기법이 삭제된 것은 아니다</td></tr>
+            <tr><td>독립 이중 검토</td><td>서로의 판정을 보지 않는 두 검토자 구절은 비활성 블록과 줄 끝 주석에만 있다</td><td>발행본 처방으로 인용할 수 없다. 과거 결정을 재검토하는 Audits는 발행본에 남는다</td></tr>
+            <tr><td>독립 감독 품질 척도</td><td>§6는 승인 신호를 독립 품질 척도에 대조하라는 조건을 둔다</td><td>그 척도가 아직 개발되지 않았다는 구절은 비활성 블록에만 있다. 분야 전체에 척도가 없다는 근거로 쓸 수 없다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">표. arXiv:2608.23642v1 §5·§6와 Figure 2의 대조다. 비활성 소스의 구절은 발행본과의 차이를 확인하는 용도로만 사용한다.</p>
+      <h3>그림의 빈칸을 구현 불가능으로 읽지 않는다</h3>
+      <p>Figure 2의 개발 단계·장기 능력 사분면은 비어 있다. 그러나 §5의 Delay-and-choice는 사용자가 AI 없이 작업할 선택권을 보존해 인지 능력을 지킨다는 목적을 담고 있다. 빈칸은 그림의 분류 결과이며 가능한 설계의 한계를 증명하지 않는다.</p>
+      <p class="note">본문·표·그림은 해법을 찾기 위한 조직화 도구다. 소스의 비활성 문장을 근거로 저자의 의도나 수정 순서를 확정하지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>읽은 범위. 고정 LaTeX 전문과 현재 공식 글을 대조했고 과거 웹 판본은 재확인하지 못했다</h2>
+      <p class="dek">논문 corpus는 arXiv:2608.23642v1의 결합 LaTeX 텍스트다. 본문·부록·표·그림 노드·비활성 블록을 다시 읽고 장부의 sha256과 일치함을 확인했다. 2026-09-07의 웹 대조는 현재 Anthropic 공식 글을 대상으로 하며, 기존 조사의 과거 페이지 관측과 분리한다.</p>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>자료</th><th>이번 확인 범위</th><th>확인하지 못한 것과 영향</th></tr></thead>
+          <tbody>
+            <tr><td>고정 LaTeX</td><td>§1–§7, 부록 A·B의 텍스트, Table 1·Figure 2의 조판 소스</td><td>§4가 인용한 연구 원문은 재검토하지 않아 인과 주장의 타당성을 판정하지 않는다</td></tr>
+            <tr><td>원본 tarball 개별 파일</td><td>기존 장부에는 파일 구성·크기·bibliography 조사 기록이 있다</td><td>이번에는 개별 파일 원본을 확보하지 않아 크기·참고문헌 수·bibliography의 urldate를 재검증하지 않았다</td></tr>
+            <tr><td>논문 그림</td><td>Figure 2의 사분면·노드 배치를 LaTeX와 대조했다</td><td>부록 B의 xkcd bitmap은 열지 않았다. 이 문서의 설계 판단에 사용하지 않는다</td></tr>
+            <tr><td>Anthropic 공식 글</td><td>현재 페이지의 승인 구조·평가 표·오류 분석·적용 조건</td><td>classifier와 agent를 실행하지 않았다. 벤더 보고를 독립 재현한 결과가 아니다</td></tr>
+            <tr><td>과거 Wayback 판본</td><td>기존 장부의 URL을 보존했다</td><td>두 URL의 재개방이 실패했다. 현재 수치가 논문 저자가 읽은 판본에도 있었는지는 확인하지 못했다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <h3>기존 조사와 재검증을 구분한다</h3>
+      <p>2026-08-30 장부에는 Hacker News·GeekNews·일반 웹 검색에서 해당 논문을 지목한 결과를 찾지 못했다는 기록이 있다. Reddit·Bluesky·Threads는 검색하지 못했고 Semantic Scholar 인용 수도 확인하지 못했다고 기록했다. 당시 원본 응답을 확보하지 않아 과거 검색 건수·HTTP 상태·저자 계정 확인을 이번 결과로 재인증하지 않는다. 이 기록으로 현재 커뮤니티 반응이나 인용 수를 판단할 수 없다.</p>
+      <h3>그림과 검증 범위</h3>
+      <p>6장의 Figure 2는 원문의 사분면과 항목 배치를 재구성한 SVG다. 5장의 되먹임 그림과 12장의 호출 예시는 논문 서술·공식 글을 바탕으로 만든 설명이며 원문의 실험 결과가 아니다. 문서·장부 대조로 제안한 감독 평가 절차 자체의 탐지 성능을 검증할 수는 없다.</p>
+      <p class="note" id="render-check">수정 후 headless Chromium에서 1,440×900과 390×844 화면으로 16장 모두를 light·dark에서 열었다. 장 이동·키보드 탐색·하단 접근을 점검하고 대표 화면을 직접 보았다. 페이지 가로 잘림은 없지만 긴 장은 세로 스크롤이 필요하며 표·그림·코드 일부는 내부 가로 스크롤을 쓴다.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-autoapproval</p>
+      <h2>배포 현실. auto mode는 선별된 실제 과잉행동 52건에서 17% FNR을 보고한다</h2>
+      <p class="dek">논문이 approval fatigue 근거로 붙인 <code>ClaudeAuto</code>는 Anthropic의 2026-03-25 글이며 집계 승인률 93%와 approval fatigue를 승인 자동화의 배경으로 든다. 이는 감독자가 논문이 설명한 인지 저하 때문에 루프 밖으로 밀려났다는 실증은 아니다. 아래 두 지표는 글의 정의를 따른다. FNR 은 위험한 행동을 통과시키는 비율, FPR 은 정상 행동을 막는 비율이다.</p>
+
+      <p class="q">Claude Code users approve 93% of permission prompts. We built classifiers to automate some decisions, increasing safety while reducing approval fatigue.<cite>글 첫 문단. 이 93%에 붙은 모집단도 기간도 글 전체에 없다</cite></p>
+
+      <div class="stats">
+        <div class="stat bad"><span class="lab">93%의 모집단·기간</span><span class="val">미공개</span><span class="sub">평가 데이터셋과 별개의 집계 승인률이다. 시간·complexity에 따른 disagreement 변화는 이 값에 없다</span></div>
+        <div class="stat bad"><span class="lab">배포 파이프라인 FNR</span><span class="val">17<span class="u">%</span></span><span class="sub">직원이 거부했거나 사후 표시된 세션에서 추린 52건 기준. 전체 사용자 행동의 17%라는 뜻은 아니다</span></div>
+        <div class="stat hero"><span class="lab">모델을 멈추는 거부 문턱</span><span class="val">3<span class="u">연속</span></span><span class="sub">또는 누적 20건의 거부. 대화형에서는 사람에게 넘기고 headless에서는 프로세스를 종료한다</span></div>
+      </div>
+
+      <h3>승인 결정이 흐르는 세 계층</h3>
+      <ul class="clean">
+        <li><span class="m">1</span><span>내장 안전 도구 allowlist 와 사용자 설정. auto mode 로 들어갈 때 임의 코드 실행을 허용하는 규칙은 회수한다. 통짜 shell 접근, 와일드카드가 붙은 인터프리터, 패키지 매니저 run 명령이다. 글은 이 목록이 어차피 불완전할 수밖에 없다고 먼저 밝힌다.</span></li>
+        <li><span class="m">2</span><span>프로젝트 디렉터리 안의 파일 쓰기와 편집. 분류기를 거치지 않는다. 버전 관리로 검토할 수 있다는 것이 글의 설명이다. 파일 편집이 항상 되돌릴 수 있거나 외부 영향이 없다는 보장은 아니다.</span></li>
+        <li><span class="m">3</span><span>나머지 전부가 transcript 분류기로 간다. shell 명령, web fetch, 외부 도구, subagent 생성, 프로젝트 밖 파일 조작. Stage 1 이 단일 토큰으로 거르고 걸린 것만 Stage 2 가 chain-of-thought 로 다시 본다.</span></li>
+      </ul>
+
+      <div class="figure">
+        <p class="fig-title">Stage 2 는 FPR 을 8.5%에서 0.4%로 내리는 대신 실제 과잉행동 FNR 을 6.6%에서 17%로 올린다</p>
+        <p class="fig-sub">출처: Anthropic 공식 글 Results, Table 1</p>
+        <div class="tablewrap">
+          <table>
+            <thead><tr><th>단계</th><th>Real traffic (n=10,000)</th><th>Real overeager (n=52)</th><th>Synthetic exfil (n=1,000)</th></tr></thead>
+            <tbody>
+              <tr><td>Stage 1 (빠른 필터)</td><td>8.5% FPR</td><td>6.6% FNR</td><td>1.8% FNR</td></tr>
+              <tr class="hero"><td>Stage 1 &rarr; Stage 2 (배포되는 전체)</td><td>0.4% FPR</td><td>17% FNR</td><td>5.7% FNR</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <figcaption>강조한 행이 실제로 돌아가는 파이프라인이다. Stage 2 는 Stage 1 이 표시한 것만 다시 보므로 첫 행은 Stage 1, 둘째 행은 두 단계를 모두 거친 전체 결과다. 실행 횟수·반복 평가 방식이 공개되지 않아 이 비율을 정수 미탐 건수로 확정하지 않는다. 세 데이터셋의 출처도 글이 밝힌다. 10,000건은 Anthropic 직원의 실제 tool call 이고 52건은 직원이 거부했거나 사후에 표시된 세션에서 추린 것이며 1,000건은 생성한 것이다. 52건이 작은 이유도 적혀 있다. 실제 세션에서 Claude 가 위험한 것을 시도하고 그것이 포착되어 라벨이 붙어야 한다.</figcaption>
+      </div>
+
+      <h3>글이 스스로 긋는 선</h3>
+      <p>벤더는 신중한 수동 승인에 비하면 회귀일 수 있다고 유보하며, 고위험 인프라의 신중한 사람 검토를 그대로 대체하는 용도는 아니라고 밝힌다. 승인 부담에 비해 추가 안전 이득이 작은 작업도 대상에 포함한다.</p>
+      <p>비교 기준이 글 안에 적혀 있다. 마지막 절에서 시작점은 가드레일이 아예 없는 상태보다 훨씬 안전하게 만드는 것이라고 쓴다. 곧 이 17%가 좋은지 나쁜지는 독자가 지금 무엇을 하고 있는가로 갈리고 글은 그 갈림을 감추지 않는다.</p>
+
+      <p class="note">수치는 2026-09-07 현재 공식 글의 벤더 보고다. 신중한 사람 검토와의 대조실험은 제시하지 않는다. 과거 Wayback 판본을 이번에 열지 못했으므로 논문 저자가 읽은 판본과 현재 수치의 동일성은 미확인이다.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-confront</p>
+      <h2>대조. Automated pre-checks와 auto mode는 기능이 다르며 논문 전체와 배타적인 선택은 아니다</h2>
+      <p class="dek">Automated pre-checks는 판단이 필요 없는 속성의 기계 검증으로 사람 검토를 보완하는 한 처방이다. auto mode의 transcript classifier는 사용자의 권한 부여까지 해석한다. 이 차이는 기능 비교를 뒷받침하지만, 비완결 목록인 §5 전체가 auto mode를 금지하거나 열등하다고 판정한다는 뜻은 아니다.</p>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>기능</th><th>논문 §5</th><th>auto mode 공식 글</th></tr></thead>
+          <tbody>
+            <tr><td>승인 없이 허용할 범위</td><td>Bounded autonomy로 사전 지정</td><td>Tier 1 allowlist·설정, Tier 2 프로젝트 안 파일 쓰기·편집</td></tr>
+            <tr><td>검토의 단위</td><td>Batch review로 논리적 작업 단위의 diff 검토</td><td>allowlist를 통과하지 않은 행동을 classifier가 실행 전에 평가</td></tr>
+            <tr class="hero"><td>기계가 평가하는 것</td><td>Automated pre-checks 항목은 판단이 필요 없는 속성</td><td>transcript classifier는 행동의 위험과 사용자가 허용한 범위까지 해석</td></tr>
+            <tr><td>사람에게 남기는 일</td><td>승인 설계·판단·과거 결정 audit 등을 함께 제안</td><td>환경·정책 설정과 작업 선택. 거부가 3연속 또는 누적 20건이면 대화형은 사람에게 넘기고 headless는 종료</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">표. 두 원문에는 이 비교가 없다. allowlist와 Bounded autonomy의 대응은 승인 없는 범위를 미리 정한다는 공통점에 한정한 해석이다.</p>
+      <h3>권한 해석의 실패가 남는다는 관찰</h3>
+      <p>§4.4는 지친 감독자가 빠르게 승인하고 유창한 근거를 받아들일 수 있다고 설명한다. 벤더는 분석한 분류기 놓침의 대부분에서 위험 자체는 알아봤지만 세션의 동의가 해당 행동까지 허용하는지 잘못 읽었다고 보고한다. 피로로 검토가 약해지는 사람과 권한 범위를 잘못 해석하는 분류기는 원인까지 같은 오류로 입증된 것이 아니다.</p>
+      <p>17% FNR은 선별된 과잉행동 집합에서의 잔여 실패다. 사람 승인 위임의 인과적 대가를 재려면 같은 작업에서 사람 검토와 자동화를 비교해야 한다. 공식 글은 이 비교를 공개하지 않는다.</p>
+      <h3>93% 집계 승인률은 override signature 관측이 아니다</h3>
+      <p>논문은 시간 경과 또는 complexity 증가에 따른 disagreement 비율의 감소를 제안한다. 기간과 모집단이 공개되지 않은 93%에는 그 변화가 없다. 높은 승인률은 적절한 제안이 많았거나 단순한 작업이 많았거나 검토가 형식적이었던 경우 모두와 양립한다.</p>
+      <p>시계열을 추가해도 agent 품질과 작업 구성이 바뀌면 이유를 구분하기 어렵다. 작업 조건을 맞춘 독립 품질 판정이 필요하다. 이 대조에 필요한 자료는 두 원문에 공개되지 않았으며, 저자나 벤더가 내부에 데이터를 보유했는지는 알 수 없다.</p>
+      <p class="note">§6는 적응, 툴링·투명성, alignment라는 세 반론을 다룬다. auto mode의 classifier 설계를 직접 평가하지는 않는다. 고위험 인프라의 신중한 사람 검토를 그대로 대체하지 말라는 벤더의 제한도 보조 자동화 전체를 배제하는 말은 아니다.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">trace</p>
+      <h2>사례. remote 브랜치 삭제에서는 요청의 대상과 권한 범위를 실행 전에 확인해야 한다</h2>
+      <p class="dek">글이 내부 인시던트 로그에서 각색한 예시를 tool call 하나의 권한 판정까지 따라간다. 명령은 설명용 의사 코드이며 글이 공개한 실행 로그가 아니다. 사람 경로는 논문의 감독 요구를 이 예시에 적용한 설계 검토다. 벤더가 이 예시에 붙인 것은 차단될 것이라는 설명과 이유이며 논문은 이 예시를 직접 다루지 않는다.</p>
+
+<pre>
+사용자     "clean up old branches"
+
+agent   git branch -r                          <span class="c">좁은 Tier 1 허용 규칙에 매치하지 않으면 Tier 3다. 글은 이 조회의 판정을 적지 않는다</span>
+           패턴 매치를 구성                        <span class="c">agent 내부 추론. 권한 판정 대상이 아니다</span>
+           git push origin --delete &lt;pattern&gt;     <span class="k">이 삭제의 대상·권한을 확인한다</span>
+
+├─ <b>사람 승인 경로</b>  <span class="c">(논문 §3 이 approver 에게 요구하는 것)</span>
+│
+│   이 순간 감독자가 해야 하는 일
+│     · &lt;pattern&gt; 이 실제로 무엇에 매치되는지 확인    <span class="r">승인 화면에 표시할 정보라는 설계 제안</span>
+│     · remote 를 뜻한 것인지 local 을 뜻한 것인지 확인
+│     · 되돌릴 수 있는지 판정
+│     · 이것이 다단계 계획의 어디쯤인지 유지
+│
+│   §4.4 가 적는 두 결과
+│     alert   승인 보류. 무엇에 매치되는지 되묻는다
+│     tired   빠른 승인. 유창한 근거를 받아들이고 상호작용을 좋게 평가
+│
+└─ <b>auto mode 경로</b>  <span class="c">(글의 How permission decisions work)</span>
+
+    Tier 1   통짜 shell 허용 규칙은 회수되며 좁은 허용 규칙은 남는다
+             <span class="c">벤더는 이 삭제 예시가 classifier에 도달하는 경우라고 설명한다</span>
+    Tier 2   프로젝트 디렉터리 안의 파일 조작이 아님            <span class="r">해당 없음</span>
+    Tier 3   Stage 1 단일 토큰 필터, 막는 쪽으로 기울여 둠
+             Stage 2 Stage 1이 표시한 경우에만 같은 입력으로 재평가
+
+    글이 이 예시에 붙인 결과   <span class="k">This would be blocked</span>
+      이유: 요청이 모호하다
+            행동이 비가역이고 파괴적이다
+            사용자는 local 만 뜻했을 수 있다
+    <span class="c">어느 stage 가 그 판정을 냈는지는 글에 없다. 계층 배정은 글의 Tier 정의를 이 호출에 대입한 것이다</span>
+
+    분류기가 본 것     사용자 메시지 + tool call
+    분류기가 못 본 것  agent의 설명, git branch -r 의 출력   <span class="c">reasoning-blind by design</span>
+
+    거부는 tool result 로 돌아가고 agent가 더 안전한 경로를 찾는다
+    3연속 또는 누적 20건 거부면 대화형은 사람에게 넘기고 headless는 종료
+</pre>
+
+      <h3>감독자가 필요로 하는 정보와 분류기가 보는 정보</h3>
+      <p>사람 경로에서 감독자가 필요로 하는 정보와 분류기가 보는 정보가 서로 다르다. 감독자가 판정하려면 <code>&lt;pattern&gt;</code>에 매치되는 실제 대상이 필요하다. 공식 글은 이 예시의 사람 승인 화면을 공개하지 않아 그 정보가 표시됐는지는 알 수 없다. 분류기는 그 목록을 볼 수 있는 자리(도구 출력)를 설계상 차단해 두고 대신 사용자 발화와 tool call만으로 판정한다. 벤더는 이 예시가 모호한 요청·파괴적 외부 행동·local일 수 있는 의도 때문에 차단될 것이라고 설명한다.</p>
+      <p>벤더가 분석한 놓침의 대부분에서는 분류기가 위험 자체를 정확히 알아봤다고 한다. force-push 도, 삭제도, 인프라 변경도 본다. 틀리는 것은 세션 안의 실제 동의 신호가 <b>이 행동</b>까지 덮는지다. 사용자가 "clean up the PR" 이라고 말했지만 그것이 force-push 를 지목하지는 않았고 비슷한 행동을 앞서 한 번 승인했지만 한 번은 패턴이 아니다.</p>
+
+      <p>입력 제한에는 목적과 대가가 있다. 벤더는 agent의 설명이 classifier를 설득하는 일을 막고, tool output에서 오는 prompt injection에 노출되지 않도록 해당 입력을 제거했다고 설명한다. 대신 대상 식별자를 실제 조회에서 얻었는지 지어냈는지 구분하는 provenance 정보가 사라질 수 있다.</p>
+      <p class="note">이 추적은 tool call 하나의 권한 판정에서 끝난다. 그 뒤에 실제로 브랜치가 지워졌을 때 어떤 일이 벌어지는지, 되돌리는 경로가 있는지는 두 원문 어디에도 없다. 사람 승인 경로의 행동 목록은 논문 §3 tex:118 의 서술을 이 예시에 옮긴 것이다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>해석의 한계. 논문의 인과 종합과 벤더의 내부 평가만으로 안전효과를 확정할 수 없다</h2>
+      <p class="dek">논문은 처방 목록의 비완결성과 사용자 만족·감독 보존 사이의 긴장을 명시한다. 이 문서의 적용안에는 추가 한계가 있다. 인과 연구의 타당성 재평가와 실제 배포 비교를 수행하지 않았다.</p>
+      <h3>논문이 명시하는 한계</h3>
+      <ul class="clean">
+        <li><span class="m">·</span><span>§5는 완전하거나 고정된 목록이 아니며 범주 경계가 겹칠 수 있다. Table 1의 빈칸은 해법이 없다는 증거가 아니다.</span></li>
+        <li><span class="m">·</span><span>§6는 과의존을 줄이는 시스템을 사용자가 덜 선호할 수 있다는 초기 증거를 인용한다. 개입에 따른 부담도 함께 고려해야 한다.</span></li>
+      </ul>
+      <h3>이 문서의 판단을 제한하는 것</h3>
+      <ul class="clean">
+        <li><span class="m">1</span><span><b>인과 주장도 검증 대상이다.</b> §4는 기존 연구를 연결하며 이 논문 자체의 효과 크기를 제시하지 않는다. 수치가 인쇄되지 않았다는 이유로 검증 대상이 없어지는 것은 아니다. 인용 연구를 재평가하지 않은 범위는 9장에 밝혔다.</span></li>
+        <li><span class="m">2</span><span><b>분류기 수치는 벤더의 선별된 내부 평가다.</b> 과잉행동 52건의 분포가 일반 사용자 작업과 같다는 근거는 제시되지 않았다. 공개 평가에는 신중한 사람 검토와의 대조군도 없다.</span></li>
+        <li><span class="m">3</span><span><b>감독 저하를 식별하는 절차는 아직 제안이다.</b> 승인·시간·정보 요청만으로는 품질 개선이나 작업 구성 변화를 배제할 수 없다. 독립 audit를 결합하는 14장의 절차도 이 문서가 탐지 성능을 검증한 방법은 아니다.</span></li>
+      </ul>
+      <p>이 범위에서 개발자에게 남는 것은 승인 횟수와 검토 품질을 구분하는 설계 관점이다. 허용 범위를 먼저 정하고, 실제 결정의 오류·권한 위반을 승인 행동과 별도로 검토하는 방향은 특정 벤더에 한정되지 않는다.</p>
+      <p class="note">auto mode 한 사례를 비교한 문서다. 다른 제품의 승인 구조나 배포 성능까지 일반화하지 않는다.</p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adopt</p>
+      <h2>도입 판단. 승인범위를 먼저 정하고 관측 proxy를 독립 품질 평가와 결합한다</h2>
+      <p class="dek">§5의 처방과 승인 자동화는 함께 사용할 수 있다. 사내 coding agent나 운영 자동화에서는 행동의 대상·권한·복구 가능성에 따라 검토 시점을 나누는 것이 이 문서의 제안이다. auto mode의 적합성은 기존 검토 방식과 작업 위험에 따라 별도로 평가한다.</p>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>현재 상태</th><th>벤더가 밝힌 적용 범위</th><th>이 문서의 설계 제안</th></tr></thead>
+          <tbody>
+            <tr><td>승인을 끄고 실행한다</td><td>가드레일이 없는 상태보다 개선이라는 벤더 판단</td><td>허용 범위 밖 행동의 차단·미탐을 내부 작업 표본에서 평가한다</td></tr>
+            <tr><td>프롬프트를 습관적으로 승인한다</td><td>approval fatigue를 완화하려는 제품 배경</td><td>승인 수를 줄일 범위를 정하고, 과거 결정 audit로 실제 오류를 확인한다</td></tr>
+            <tr><td>각 행동을 신중하게 검토한다</td><td>회귀일 수 있다는 유보(arguably). 승인 부담에 비해 추가 안전 이득이 작은 작업도 대상으로 든다</td><td>작업별로 사람 검토와 자동화의 품질·부담을 비교한다</td></tr>
+            <tr><td>고위험 인프라를 다룬다</td><td>신중한 사람 검토를 통째로 대체하는 용도가 아니다</td><td>중대한 외부 행동은 사전 승인을 남긴다. 보조 자동화의 유용성은 별도 평가한다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="small" style="margin-top:10px">표. 가운데 열은 공식 글 Results의 적용 조건이며 성능 비교 실험의 결론은 아니다. 오른쪽 열은 논문과 공식 글을 바탕으로 한 설계 제안이다.</p>
+      <h3>승인 화면에서 실행 경계를 구체화한다</h3>
+      <p><b>되돌릴 수 있는 로컬 작업</b>은 승인 없이 허용할 디렉터리·도구·작업 종류를 사전 지정하고 논리적 단위의 diff를 Batch review로 검토한다. 외부 전송·공유 상태 변경이 생기는 단계에서는 그 경계를 다시 확인한다. 로컬 파일 편집이라는 이유만으로 모든 후속 실행을 허용하지 않는다.</p>
+      <p><b>되돌리기 어려운 외부 행동</b>은 실행 전에 대상과 권한을 확인한다. remote 브랜치 삭제라면 저장소·remote·실제 브랜치 목록, 요청에서 허용된 범위, 복구 가능성을 승인 화면에 표시한다. 사후 diff 검토가 이미 실행된 삭제의 사전 승인을 대신하지는 못한다.</p>
+      <h3>관측과 품질 판정을 연결한다</h3>
+      <ul class="clean">
+        <li><span class="m">1</span><span><b>관측 proxy.</b> 세션·작업 식별자, 모델·정책 버전, 도구·대상, 표시·응답 시각, 승인·거부·수정·정보 요청을 남긴다. 실행 결과·되돌림도 연결한다. 시간과 이벤트는 실제 주의나 이해의 직접 측정이 아니다.</span></li>
+        <li><span class="m">2</span><span><b>작업 조건.</b> complexity·stakes·작업 종류의 분류 기준을 먼저 정한다. 모델·작업 구성이 달라진 집계값을 같은 추세로 묶지 않는다.</span></li>
+        <li><span class="m">3</span><span><b>독립 audit.</b> 조건을 맞춘 표본에서 별도 검토자가 원래 승인 여부에 기대지 않고 권한 위반·오류·누락을 판정한다. 과거 결정 재검토와 정답이 알려진 canary를 결합할 수 있다. 독립 판정 기준부터 정한 뒤 경보 기준을 평가한다.</span></li>
+      </ul>
+      <p>개발자는 화면·허용 규칙·로그를 구현하고 배포 조직은 검토 담당자·표본 운영·개입 책임을 정한다. 혼자 사용하는 환경에서는 역할 분리가 제한되므로 그 제약을 인정해야 한다. Table 1의 Both 분류를 개발자 단독 구현 가능 판정으로 바꾸지 않는다.</p>
+      <p class="note">이 절은 검증된 탐지기나 운영 표준을 제공하지 않는다. 실제 trial에 들어가기 전에는 검토 비용을 포함한 통과·중단 기준과 기존 승인 방식으로 복귀할 절차를 정해야 한다. 구체적인 운영 기준은 후속 설계 사항이다.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론. 논문은 승인과 감독 품질을 구분할 설계 근거를 주지만 자동화의 우열을 입증하지 않는다</h2>
+      <p class="dek">§4는 감독 능력 저하와 승인 신호의 되먹임 위험을 논의하고 §5는 승인 설계·감독 평가·조직 운영을 함께 제안한다. 개발자는 이를 검토할 항목의 목록으로 사용할 수 있다. 효과가 검증된 감독 저하 탐지 명세로 사용할 수는 없다.</p>
+      <div class="grid g3">
+        <div class="card"><span class="tag">승인범위</span><p class="small">Bounded autonomy로 허용 범위를 정한다. 복구 가능한 로컬 작업의 Batch review와 중대한 외부 행동의 사전 승인을 구분한다.</p></div>
+        <div class="card"><span class="tag">품질 평가</span><p class="small">승인·시간 로그는 proxy다. complexity·stakes·작업 구성과 독립 audit 판단을 결합해야 한다.</p></div>
+        <div class="card"><span class="tag">자동화 비교</span><p class="small">auto mode는 권한 해석에도 잔여 실패가 있다고 보고한다. 논문은 이 classifier를 직접 평가하지 않으며 사람과 기계 중 하나만 선택하라고 결론내리지 않는다.</p></div>
+      </div>
+      <p style="margin-top:20px">집계 승인률 93%는 감독 저하의 관측값이 아니고, 선별된 과잉행동에서의 17% FNR은 사람 검토 위임의 인과적 대가가 아니다. 두 수치는 승인 자동화의 배경과 잔여 위험을 설명하는 서로 다른 자료다.</p>
+      <p class="note">개발자에게 남는 결론은 승인범위·검토 시점·독립 평가를 함께 설계하자는 제안이다. 논문의 인과 주장 전체, 제안한 탐지 절차의 성능, 자동화와 사람 검토의 안전효과 차이는 이 문서에서 검증하지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처. 논문 v1의 고정 텍스트와 현재 벤더 글을 구분한다</h2>
+      <p class="dek">논문은 버전과 텍스트 hash로 고정한다. 웹 출처는 열람 시점과 보존 URL을 함께 기록하되, 현재 페이지를 열었다는 사실이 과거 판본의 동일성을 보장하지는 않는다.</p>
+      <h3>1차 원문</h3>
+      <div class="src">
+        <p><a href="https://arxiv.org/abs/2608.23642v1">AI Agents Push Humans Out of the Loop</a><br><span class="t">Margaret Mitchell, Avijit Ghosh, Samir Passi. arXiv:2608.23642v1, 2026-08-24. position paper다. preamble과 결론은 NeurIPS를 언급하지만 그 자체로 심사·채택 여부를 입증하지 않는다.</span></p>
+        <p><a href="https://arxiv.org/e-print/2608.23642v1">arXiv v1 LaTeX 원본</a><br><span class="t">고정 결합 텍스트 sha256: <code>cfd3eb893509b9c62e25c2253f5265401a0fa469b1f5bbdbd1e589bb7f5a8e35</code>. 본문의 tex 행 번호는 장부와 동일한 결합 텍스트 기준이다.</span></p>
+        <p><a href="https://arxiv.org/html/2608.23642v1">arXiv v1 HTML</a><br><span class="t">절 번호와 참고문헌 연결을 대조하는 보조 출처다.</span></p>
+      </div>
+      <h3>논문이 인용한 배포 사례</h3>
+      <div class="src">
+        <p><a href="https://www.anthropic.com/engineering/claude-code-auto-mode">How we built Claude Code auto mode: a safer way to skip permissions</a><br><span class="t">Anthropic, John Hughes, 2026-03-25. 이 문서의 동작 설명과 평가 수치는 2026-09-07 현재 페이지를 기준으로 재확인했다. 장부의 w2다.</span></p>
+        <p><a href="https://web.archive.org/web/20260821183004/https://www.anthropic.com/engineering/claude-code-auto-mode">Wayback: 2026-08-21 스냅숏 URL</a><br><span class="t">기존 장부 w1의 보존 URL이다. 이번 재개방은 실패했다.</span></p>
+        <p><a href="https://web.archive.org/web/20260427125049/https://www.anthropic.com/engineering/claude-code-auto-mode">Wayback: 2026-04-27 스냅숏 URL</a><br><span class="t">기존 장부 w1a다. bibliography의 urldate 직전 판본이라는 과거 기록도 이번에는 재검증하지 못했다. 현재 수치와의 동일성을 주장하지 않는다.</span></p>
+      </div>
+      <p class="note">커뮤니티·인용 수의 과거 검색 기록과 미확인 범위는 9장에 있다. 이 문서는 해당 기록을 현재 반응의 근거로 사용하지 않는다.</p>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 16</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
