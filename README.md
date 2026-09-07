@@ -17,14 +17,14 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 | 2026-08-30 | [AI Agents Push Humans Out of the Loop: 승인 자동화와 사람의 검토](https://fable22.github.io/research-library/research/2026-08-30-oversight-degradation-vs-auto-approval/) | 논문 분석 |
 | 2026-08-28 | [OpsHarness: 자가진화 제안을 이중 게이트로만 들여보내는 RCA 외부 하네스](https://fable22.github.io/research-library/research/2026-08-28-opsharness-self-evolving-rca/) | 논문 분석 |
 | 2026-08-28 | [JIT-Agent: 하네스를 태스크마다 모델이 새로 조립하게 만든 27B 메타 모델](https://fable22.github.io/research-library/research/2026-08-28-jit-agent-harness-intelligence/) | 논문 분석 |
-| 2026-08-20 | [Cerebras Knowledge: 수집과 질의를 임베딩 테이블 한 장으로 갈라놓은 사내 지식베이스](https://fable22.github.io/research-library/research/2026-08-20-cerebras-kb-architecture/) | 주제 리서치 |
+| 2026-08-20 | [Cerebras Knowledge 아키텍처: 원천별 수집부터 근거를 돌려주는 검색까지](https://fable22.github.io/research-library/research/2026-08-20-cerebras-kb-architecture/) | 주제 리서치 |
 | 2026-08-19 | [Claude Code 세션 비용 모델: 토큰 하나의 가격과 세션이 보내는 토큰의 개수](https://fable22.github.io/research-library/research/2026-08-19-claude-code-session-cost-model/) | 메모 |
 | 2026-08-18 | [J-Space Cognition Suite V3.6: 프롬프트 계층에서 상태를 다시 주입하는 추론시 통제 프로토콜](https://fable22.github.io/research-library/research/2026-08-18-j-space-cognition-suite/) | 오픈소스 분석 |
 | 2026-08-14 | [deepseek-harness: 에이전트 루프도 모델 어댑터도 설정 한 행인 하네스](https://fable22.github.io/research-library/research/2026-08-14-deepseek-harness-plugin-architecture/) | 오픈소스 분석 |
 | 2026-08-14 | [semantica: vector 검색 옆에 그래프 갈래를 하나 더 두는 컨텍스트 인프라](https://fable22.github.io/research-library/research/2026-08-14-semantica-graph-native-context/) | 오픈소스 분석 |
 | 2026-08-13 | [A2E Agent Auditing Engine: 정답률은 0.11 폭에 몰리고 토큰은 최소 3.5배 벌어진다](https://fable22.github.io/research-library/research/2026-08-13-a2e-agent-auditing-engine/) | 논문 분석 |
 | 2026-08-12 | [omo 5.0 native: opencode 플러그인을 떠나 자기 호스트를 갖는다](https://fable22.github.io/research-library/research/2026-08-12-omo-native-vs-opencode-plugin/) | 주제 리서치 |
-| 2026-08-12 | [Cerebras Knowledge: 사내 지식을 RAG로 중앙집중화할 때 남는 문제](https://fable22.github.io/research-library/research/2026-08-12-cerebras-knowledge-base/) | 주제 리서치 |
+| 2026-08-12 | [Cerebras Knowledge: 여러 업무 도구의 지식을 함께 검색하는 사내 KB](https://fable22.github.io/research-library/research/2026-08-12-cerebras-knowledge-base/) | 주제 리서치 |
 | 2026-08-12 | [Claude 텍스트 워터마크: 마크는 Claude 를 거쳤다는 신호까지만 증명한다](https://fable22.github.io/research-library/research/2026-08-12-claude-text-watermark/) | 주제 리서치 |
 | 2026-08-11 | [addyosmani/agent-skills: 강제는 산문에 맡기고, CI 는 스킬 자체에 건다](https://fable22.github.io/research-library/research/2026-08-11-addyosmani-agent-skills/) | 주제 리서치 |
 | 2026-08-07 | [EviGraph: 리서치 에이전트의 작업 상태를 파이프라인 대신 근거 그래프로 둔다](https://fable22.github.io/research-library/research/2026-08-07-evigraph-evidence-graph-agent/) | 논문 분석 |
