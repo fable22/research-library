@@ -1,0 +1,13 @@
+{
+  "title": "Claude Platform 비용·성능: prompt cache, instructions, effort 세 축을 /claude-api 명령 셋이 돌린다",
+  "date": "2026-09-09",
+  "seq": 24,
+  "summary": "Anthropic 블로그가 말하는 비용·성능 세 축을 문제와 대책으로 갈라 원문 숫자 그대로 옮겼다. prompt-audit 는 비용 −14.6%에 정확도 +5.3pt, cost-optimize 는 네 벤치마크에서 −52~−73%, hillclimb 는 held-out 14건에서 78.6→90.5%. cost-optimize 의 성능 유지는 점수 변화의 신뢰구간이 0 을 포함한다는 뜻이고, audit 와 hillclimb 의 정확도 상승에는 신뢰구간이 없다. hillclimb 는 원문에는 있지만 고정 커밋의 skill 저장소에는 아직 없다.",
+  "category": "note",
+  "format": "deck",
+  "tags": ["claude platform", "prompt caching", "effort", "prompt audit", "cost optimization", "claude code", "skill"],
+  "source": {
+    "label": "claude.com/blog/reducing-cost-and-improving-performance-with-claude-platform",
+    "url": "https://claude.com/blog/reducing-cost-and-improving-performance-with-claude-platform"
+  }
+}
