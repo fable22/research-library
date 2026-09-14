@@ -1,0 +1,7 @@
+{
+  "title": "SkillAdam: 수정 이력과 평가 변동성으로 agent skill을 개선하는 문서 최적화",
+  "date": "2026-09-11",
+  "seq": 25,
+  "summary": "SkillOpt의 배경부터 SkillAdam의 수정·평가 루프를 따라간다. 성능·비용 개선의 근거와 공개 구현의 적용 범위를 분석한다.",
+  "category": "paper"
+}
