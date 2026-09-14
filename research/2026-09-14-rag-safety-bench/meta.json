@@ -1,0 +1,12 @@
+{
+  "title": "RAG-Safety-Bench: 검색 품질과 응답 안전을 따로 평가해야 하는 이유",
+  "date": "2026-09-14",
+  "seq": 26,
+  "summary": "신뢰할 만한 corpus와 응답 안전의 간극을 retriever 우회 실험, 공개 데이터와 scoring 경계, 실제 RAG 평가 설계로 분석한다.",
+  "category": "paper",
+  "source": {
+    "url": "https://arxiv.org/html/2609.11758v1",
+    "arxiv_id": "2609.11758",
+    "version": "v1"
+  }
+}
