@@ -1,0 +1,11 @@
+{
+  "title": "OpenCodeReview: agent의 코드 리뷰를 조직하는 실행 harness",
+  "date": "2026-09-15",
+  "seq": 27,
+  "summary": "파일·규칙·위치·실행 기록을 통제하는 코드와 LLM 판단의 경계를 추적한다. Claude multi-agent command와 AACR-Bench를 대조해 성능 주장의 적용 범위를 좁힌다.",
+  "category": "oss",
+  "source": {
+    "url": "https://github.com/alibaba/open-code-review",
+    "commit": "3d4f364e6a6dda8fec644a56cfc754f80fb432e6"
+  }
+}
