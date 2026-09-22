@@ -12,6 +12,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 
 | 날짜 | 문서 | 분류 |
 |---|---|---|
+| 2026-09-21 | [Jev System One: 문장 대신 판단과 확률을 반환하는 모델](https://fable22.github.io/research-library/research/2026-09-21-jev-system-one/) | 주제 리서치 |
 | 2026-09-15 | [OpenCodeReview: agent의 코드 리뷰를 조직하는 실행 harness](https://fable22.github.io/research-library/research/2026-09-15-open-code-review/) | 오픈소스 분석 |
 | 2026-09-14 | [RAG-Safety-Bench: 검색 품질과 응답 안전을 따로 평가해야 하는 이유](https://fable22.github.io/research-library/research/2026-09-14-rag-safety-bench/) | 논문 분석 |
 | 2026-09-11 | [SkillAdam: 수정 이력과 평가 변동성으로 agent skill을 개선하는 문서 최적화](https://fable22.github.io/research-library/research/2026-09-11-skilladam/) | 논문 분석 |
