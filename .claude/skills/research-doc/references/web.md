@@ -16,6 +16,7 @@ the vendor's order; pick the chapters by the kind and let that order go.
 | `setup` | Each URL with `retrieved_at`, the archive link, the sections read, the linked sub-pages not opened and which chapter is thinner for it | all |
 | `result-*` | The page's own charts and tables, redrawn; values from the chart's `aria-label`, the SVG text or the table, never estimated from bar length | all |
 | `critique` | What the page does not say, separated from what you inferred; a vendor's numbers marked as the vendor's | all |
+| reception | What practitioners contested or confirmed, as who said what when, each re-fetched from its API and pinned; only reactions that change how a claim of the page reads, with the chapter they change | all, for an announcement |
 
 ## Locators and the fixed copy
 
@@ -24,6 +25,17 @@ saved as `notes/web/<id>.txt`, hashed into `sources.jsonl` as `text_sha256`, and
 `check-claims.mjs` matches every quote and every number against it. A quote that is only
 in a chart goes into `notes/figures.md` with the chart's other points, and the gate looks
 there too.
+
+## Reception
+
+An announcement is read against its reception. Take the launch thread on Hacker News
+through the Algolia API (`https://hn.algolia.com/api/v1/items/<id>`), which returns the
+comment's text, author and time, and pin each comment used as its own `web` source with a
+`notes/web/<id>.txt` copy. A post you cannot fetch yourself does not go in; a subagent's
+summary of one is hearsay. A reaction is a statement, not a fact: write who said what and
+when, check it against the page and its linked documents, and attach what you found as the
+condition. Keep only reactions that change how a claim of the page reads, and say which
+chapter they change.
 
 ## Limits specific to a live page
 
