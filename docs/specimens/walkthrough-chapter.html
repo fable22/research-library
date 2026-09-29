@@ -1,0 +1,21 @@
+<section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">thinking</p>
+      <h2>thinking 끄기: disabled → between_tools</h2>
+      <p class="key"><code>thinking: {"type": "disabled"}</code> 는 Sonnet 5.5 에서 400 을 낸다. <code>between_tools</code> 로 바꾸되, effort 는 high 이하로 두고 thinking 에 다른 필드를 붙이지 않는다.</p>
+      <pre>- "thinking": {"type": "disabled"},
++ "thinking": {"type": "between_tools"},
+  "output_config": {"effort": "high"}      // xhigh, max 는 400</pre>
+      <ul class="facts">
+        <li><span class="m">400</span><span>effort 가 <code>xhigh</code> 나 <code>max</code> 인 요청</span></li>
+        <li><span class="m">400</span><span><code>display</code>, <code>budget_tokens</code>, <code>block_binding</code> 을 같이 보낸 요청</span></li>
+        <li><span class="m">400</span><span>대화 중간에 메시지 단위로 effort 를 바꾼 요청. 턴마다 바꾸려면 <code>adaptive</code> 로 돌린다</span></li>
+        <li><span class="m">200</span><span>tool 을 쓰는 요청은 tool call 사이 진행 메모가 thinking 블록으로 온다 (10장)</span></li>
+      </ul>
+      <p>thinking 과 effort 를 서로 다른 설정 파일에서 읽는 코드라면 요청을 보내기 전에 둘을 함께 검사한다. 따로 보면 둘 다 맞는 값인데 합치면 첫 줄의 400 이 난다.</p>
+      <details class="more"><summary>첨언: 원문 문장, fallback, 플랫폼</summary>
+        <p>migration guide 「Turn off up-front thinking」: “<code>between_tools</code> works on every platform that offers Claude Sonnet 5.5, with no beta header. It's accepted at <code>low</code>, <code>medium</code>, and <code>high</code> effort. At <code>xhigh</code> or <code>max</code>, it returns a 400 error.” “<code>between_tools</code> takes no other field: <code>display</code>, <code>budget_tokens</code>, or <code>block_binding</code> sent with it returns a 400 error.” “With <code>between_tools</code>, effort can't change mid-conversation: a per-message <code>output_config.effort</code> that differs from the level in effect returns a 400 error.”</p>
+        <p>guide 는 이 값을 Sonnet 5.5 의 가장 낮은 thinking 설정이라고 부른다. server-side fallback 으로 Sonnet 5 에 넘어간 요청은 거기서 <code>disabled</code> 로 돈다. between_tools 와 adaptive 가 답의 품질에서 얼마나 다른지 잰 수치는 이 corpus 에 없다.</p>
+      </details>
+    </div>
+  </section>
