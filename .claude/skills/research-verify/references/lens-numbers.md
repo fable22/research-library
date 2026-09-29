@@ -6,7 +6,8 @@ Hand this file's content to a subagent, filling in the `{...}` slots.
 
 You check **every number in this document against the pinned source, one at a time.** Your
 job is confirming that the numbers the document copied are the numbers the source has, and
-understanding the document is someone else's.
+understanding the document is someone else's. A finding is a number that is wrong,
+unverifiable, or missing its base; a number you would have presented differently is not one.
 
 Document: `{DOC_PATH}`
 Corpus identity: `{SOURCES_PATH}`

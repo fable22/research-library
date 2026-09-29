@@ -735,3 +735,71 @@ Z is.` contrasts in the instructions as directives with a subject and a verb.
 `check-claims.mjs` to enforce. The review measured a median quote of 297 characters in one
 document and a maximum of 2,604 in another, so a cap was the smallest change that keeps a
 quote pointing at one sentence.
+
+## Why the scaffold takes the kind
+
+Until 2026-09-29 `new-doc.mjs` laid out the same twelve chapters for every document, with
+`adopt` (도입 판단) among them, and left `purpose` as a TODO in `meta.json`. The kind was
+chosen after the chapters were already on the page. The Opus 5.5 introduction, written to
+tell a developer what changes when they move from Opus 5, ended in an eleven-row adoption
+checklist nobody had asked for; `research-doc/SKILL.md` had said since 2026-09-29 that
+adoption is one kind's task and no other's, and the scaffold contradicted it on every run.
+
+The scaffold now takes the kind as its third argument, writes it as `purpose`, and lays out
+the middle chapters that kind needs: `compare`, `cost`, `adopt` for a comparison;
+`mechanism`, `case`, `limits` for an explainer; `map`, `trace`, `change` for a walkthrough.
+There is no default kind. `research-source` picks it from the words of the ask and asks
+when they do not say. Lens A was renamed from `lens-adoption.md` to `lens-reader.md` at the
+same time, since its task had been per-kind since the 2026-09-29 rewrite and the name still
+said otherwise.
+
+## What the 2026-09-29 second pass moved out of the skills
+
+The prompt audit of the same day (`prompt-audit-2026-09-29.md`) found no text written for
+an older model, but four pairs of files that contradicted each other, rationale padding
+around rules, and reviewers with no definition of a finding. This pass rewrote the skill
+set against three specimens, one chapter per kind, now in
+`research-doc/references/specimens/`. What left the skills:
+
+**Rationale for the prose families.** `prose-ko.md` used to explain each family before its
+rules ("this family survives longest because every sentence in it is true"; "these arrive
+assembled and read as decoration"). The rules stayed as fifteen ✗/✓ entries; the
+explanations are this document and `readability-diagnosis-2026-09-29.md`. The file went
+from about 2,000 words to about 800.
+
+**The excuse table.** `research-verify/SKILL.md` carried five rows of "the excuse / why it
+fails" for skipping verification. Each row restated a rule stated elsewhere in the file,
+and a reader asked whether it helps says yes, which is not evidence. Dropped.
+
+**Four limits of the procedure as prose.** The same file asked the reporter to state four
+limits "beside the findings" in four paragraphs. They are now four fixed lines in the report
+template under `검증하지 못한 것`, filled in or marked 해당 없음, because a fixed slot gets
+filled and a paragraph of guidance gets paraphrased away.
+
+**Lens D.** The completeness critic and the reader both asked what the reader's task was
+missing. D's one distinct item was a quote that verifies while the sentence around it
+widens it, plus reading the other reports. Both moved into lens A, which now runs after B
+and C and reads their reports. One agent call fewer per run; `run.json` records it.
+
+**The chapter grammar's claim slot.** `h2` was "a claim sentence, not a noun label" and
+`.key` was "what the reader does with the claim". Documents written under that put the claim
+in the heading, restated it in `.key`, and again in the body, which is where the 53%
+framing-sentence ratio in the Sonnet 5.5 v2 document came from. Now the `h2` is a short
+heading that names the content, the claim is stated once in `.key`, and `.note` is
+optional. The 300–400 visible-character figure was replaced by the specimens, because the
+right amount differs by kind: the walkthrough specimen shows 143 visible Hangul, the
+explainer 633, the comparison 310.
+
+**Code-specific sections of `research-doc/SKILL.md`.** Compression subagents, the trace
+scope rule and "claims that reading cannot establish" moved to `oss.md`, which is loaded
+only when the corpus is a repository. The author's context for a paper no longer pays for
+them.
+
+**Two stale phrasings.** `research-source/SKILL.md` cited "PR #2943" as the sign of a cut
+history (a real repository's number) and gave "three or four spans … fifty" as span counts
+that were "not a target"; both were replaced or removed.
+
+**A quoting rule.** Anthropic's guidance for Fable 5.1 notes the model reproduces retrieved
+passages without marking them. `research-doc/SKILL.md` now has a §Quoting the source with a
+✗/✓ pair: verbatim text goes inside `.q`, `.wl` or `<cite>`, which `check-prose.mjs` already
+skipped without the author being told why.

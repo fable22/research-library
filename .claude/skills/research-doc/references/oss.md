@@ -18,12 +18,43 @@ reader has to do with it, and the adoption checks below belong to the comparison
 | `critique` | Code not read, README-versus-code discrepancies, what reading alone cannot establish | all |
 | adoption call | adopt / trial / assess / hold, with the grounds and the cost of keeping it running | comparison |
 
+## Compression subagents
+
+Some sources do not fit: one request path can cross files of hundreds of KB. Measure before
+opening anything:
+
+```bash
+git -C <checkout> ls-tree -r -l <commit> -- <paths> | awk '{s+=$4} END {print s}'
+```
+
+Loading all of it leaves nothing to write with, and every later citation then comes from
+the weakest part of the window. Hand it to a subagent:
+
+```
+in    the paths to trace, plus the pinned identity
+out   notes/mechanism.md, roughly 4K
+      each hop described, with a verbatim quote of 40+ chars and a file:line locator
+```
+
+**Ask the subagent for extraction and quotes, never for a conclusion.** One that reports
+"the README contradicts the code" hands you a finding you did not verify and will probably
+ship; one that reports quotes and locators hands you material you can check. Write the trace
+chapter from the notes and reopen the file whenever a sentence needs more than they hold.
+
 ## The trace carries the walkthrough
 
 Anyone can restate a README; a traced request path is what a reader cannot get without
 opening the repo. Each hop needs a verbatim quote of 40+ characters and a `file:line`
-locator at the pinned commit, and the gate checks the quote sits at the locator. The scope
-rule is in `../SKILL.md`.
+locator at the pinned commit, and the gate checks the quote sits at the locator.
+
+Pick a path that **ends inside one process boundary**; crossing packages means one subagent
+per hop, stitched together by you. Too narrow is a single-function trace that teaches
+nothing, and too wide is a grand traversal with invented middle steps, which is worse
+because it is confidently wrong. Both pass every gate.
+
+The source is already text, so `<pre>` and tables absorb everything and the document never
+draws its own architecture; a kernel, a state machine, a request path and a retry loop all
+have shapes (`visual.md`).
 
 **Write locators relative to the repository root.** Verification runs
 `git show <commit>:<path>`, so when the interesting code sits several levels down, the path
@@ -63,8 +94,21 @@ Each is a file, and a claim about intent with no file behind it is a guess.
 
 **When a claim leans on what another function does, open that function.** The common failure
 is assuming a callee lacks a behavior it implements because you read only the caller.
-Runtime behavior and absence claims follow `../SKILL.md` (§Claims that reading cannot
-establish).
+
+**Reading code tells you how it is written and nothing about what happens at run time**, so
+asserting runtime behavior from source checks the README against the README. Constrain the
+sentence to what you have:
+
+```
+✗ 릴레이가 끊기면 자동 재접속한다
+✓ 재접속 로직이 relay/src/reconnect.ts:88 에 있다. 백오프는 고정 1s 다.
+  이 경로의 테스트는 찾지 못했다 (grep -rn 'reconnect' **/*.test.ts → 0건)
+```
+
+The second is shorter on confidence and longer on use. An absence claim has no line to
+cite, so its evidence is the search that came back empty, recorded as a command someone can
+re-run. A sentence sourced from the project's own docs claims what the maintainers wrote, so
+phrase it that way or open the implementation and source it there.
 
 ## README against code
 

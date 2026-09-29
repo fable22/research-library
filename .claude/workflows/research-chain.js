@@ -1,10 +1,10 @@
 export const meta = {
   name: 'research-chain',
-  description: 'Pin a corpus, write the document, verify it with four separated lenses, fix until a round comes back clean, and open a draft PR',
+  description: 'Pin a corpus, write the document, verify it with three separated lenses, fix until a round comes back clean, and open a draft PR',
   whenToUse: 'One research target, already resolved to a concrete identity, that should go all the way to a reviewable PR without stopping to ask.',
   phases: [
     { title: 'Source and draft', detail: 'one agent, one context: pin the corpus and write the document' },
-    { title: 'Verify', detail: 'lenses A/B/C in parallel, then D over their reports' },
+    { title: 'Verify', detail: 'lenses B/C in parallel, then A over their reports' },
     { title: 'Fix', detail: 'apply, re-verify what changed, repeat until a round is clean' },
     { title: 'Ship', detail: 'branch, commit, push, draft PR' },
   ],
@@ -54,34 +54,17 @@ Target: ${a.target}
 ${a.question ? `The question the document has to settle: ${a.question}` : ''}
 ${a.angle ? `Required angle: ${a.angle}` : ''}
 
-Steps:
-1. Read .claude/skills/research-source/SKILL.md and follow it.
-2. Before writing prose, enumerate what the corpus contains: a paper's section list, a
-   repository's tree by directory. You cannot report what you did not read without first
-   knowing what there was to read, and the setup chapter is built from this.
-3. Fill ${EVID}/evidence.jsonl as you read, per that skill. Quotes and locators, taken
-   while the file is open. Do not begin a chapter with it still empty.
-4. Staying in the same context, continue with .claude/skills/research-doc/SKILL.md and
-   write ${DOC}/index.html.
-5. Pass node scripts/check-doc.mjs ${DOC} and node scripts/check-prose.mjs ${DOC}, then
-   run node scripts/build-index.mjs.
-
-Steps 2 and 3 are what stops a thin read. Reading and writing share one context window,
-and the first thing to give out under that pressure is the ability to find a passage again
-rather than the memory of having seen it. A span copied out when you found it costs nothing
-later; one you must go back for costs a re-read you will not budget.
-
-Delegation: research-doc describes when to hand reading to a compression subagent and what
-to constrain it to. Follow that, with one exception: extract the evidence spans yourself.
-A subagent returns what it concluded, and the conclusion is what you were meant to reach
-from the words.
+Read .claude/skills/research-source/SKILL.md and follow it, then, in this same context,
+.claude/skills/research-doc/SKILL.md, and write ${DOC}/index.html. Enumerate what the
+corpus contains before writing; the setup chapter and notRead are built from it. Fill
+${EVID}/evidence.jsonl while each source is open, and do not begin a chapter with it empty.
+Extract the evidence spans yourself even where research-doc lets a compression subagent read
+for you. Pass node scripts/check-doc.mjs ${DOC} and node scripts/check-prose.mjs ${DOC},
+run node scripts/build-index.mjs, and stop.
 
 Output: JSON matching the schema.
-Boundaries: do not commit, do not create a branch, do not touch claims.jsonl. Claims are
-extracted later, from the sentences that shipped. Stop when both gates pass: the hand-off to
-research-verify that research-doc describes is for runs outside this workflow. Here phase 2
-runs the lenses in contexts you cannot reach, and starting them yourself would review the
-document twice.`,
+Boundaries: do not commit, do not create a branch, do not touch claims.jsonl. Do not start
+research-verify: phase 2 runs the lenses in contexts you cannot reach.`,
   {
     label: `draft:${a.slug}`,
     schema: {
@@ -112,8 +95,7 @@ log(`draft complete: ${draft.slides} slides, ${draft.evidenceCount} evidence spa
 
 // ─── phase 2 ────────────────────────────────────────────────────────────────
 // A judge marks its own failing output as satisfied far more often than someone else's,
-// and familiarity rather than authorship is what drives it, so a lens must not be the
-// writer and lens D asks for a different model.
+// and familiarity rather than authorship is what drives it, so no lens is the writer.
 const NOT_THE_AUTHOR = `${HOUSE}
 
 Document: ${DOC}/index.html
@@ -124,8 +106,10 @@ Corpus identity: ${EVID}/sources.jsonl
 Evidence the author recorded while reading: ${EVID}/evidence.jsonl
 Checkout: ${draft.checkoutPath || '(none given; fetch it from the pinned identity)'}
 
-You did not write this document. The author's confidence was not passed to you and should
-not be. Do not assume it is right; start from where it would be wrong.
+You did not write this document. A finding is something that makes a claim in it wrong or
+stops the reader from doing what its purpose promises. Things that would be nice to add,
+sources that could also be read, and wording you would have chosen differently are not
+findings; list them in one line each under 메모 or leave them out.
 
 Do not edit the document. You find, the author fixes.
 Do not delegate: a subagent reading for you reports what it concluded, not what it saw,
@@ -143,14 +127,18 @@ Write your report in Korean, plain declarative, following
 
 Do not report what you are unsure of. Do not list what passed; give a count.`
 
+// B and C first, in parallel and blind to each other. A runs last and reads their reports,
+// because part of what it looks for is what the other two could not have seen: a pinned
+// source nothing leans on, a modality never run, a quote that verifies while the sentence
+// built on it widens it.
 const LENSES = [
-  { key: 'A', label: 'lens:adoption', file: 'lens-adoption.md' },
   { key: 'B', label: 'lens:numbers', file: 'lens-numbers.md',
     extra: `Where evidence.jsonl holds a span for a number, check the document against the
 span and the span against the source. A span that no sentence uses is worth reporting too:
 either the reading found something the writing dropped, or the span was never needed.` },
   { key: 'C', label: 'lens:prose', file: 'lens-prose.md' },
 ]
+const READER = { key: 'A', label: 'lens:reader', file: 'lens-reader.md' }
 
 const reports = await parallel(LENSES.map((L) => () =>
   agent(`Read .claude/skills/research-verify/references/${L.file} and review through that lens.
@@ -164,22 +152,15 @@ ${L.extra || ''}`, { label: L.label, phase: 'Verify' })
 const got = reports.filter(Boolean).filter((r) => r.report)
 log(`${got.length}/${LENSES.length} lenses reported`)
 
-// D runs last because what it examines is the shape of the other three, and it owns the
-// one failure the machine check cannot reach: a quote that verifies while the sentence
-// built on it says something the source never said.
-const dReport = await agent(`Read .claude/skills/research-verify/references/lens-completeness.md and review through that lens.
+const aReport = await agent(`Read .claude/skills/research-verify/references/${READER.file} and review through that lens.
 
 ${NOT_THE_AUTHOR}
 ${REPORT_SHAPE}
 
-The three earlier reports:
-${got.map((r) => `### Lens ${r.key} (${r.label})\n${r.report}`).join('\n\n')}
-
-Beyond what that file says, this run assigns you one thing specifically: find a quote that
-is verbatim while the sentence around it widens a narrow fact, or joins two facts the
-source keeps apart. check-claims.mjs confirms the quote sits at its locator and stops
-there, so nothing else in this pipeline can catch it.`,
-  { label: 'lens:completeness', phase: 'Verify', model: 'sonnet' })
+The reports from lenses B and C:
+${got.map((r) => `### Lens ${r.key} (${r.label})\n${r.report}`).join('\n\n') || '(none arrived)'}`,
+  { label: READER.label, phase: 'Verify' })
+if (aReport) got.push({ key: READER.key, label: READER.label, report: aReport })
 
 // ─── phase 3 ────────────────────────────────────────────────────────────────
 // A loop, because research-verify says to stop when a round turns up nothing new rather
@@ -192,8 +173,7 @@ phase('Fix')
 // correct answer (a number, a quote, a direction, a dead reference); a second round spent on
 // wording rewrites the document toward the gate and away from the reader.
 const MAX_ROUNDS = 2
-let findings = got.map((r) => `### Lens ${r.key}\n${r.report}`).join('\n\n') +
-  `\n\n### Lens D\n${dReport || '(none)'}`
+let findings = got.map((r) => `### Lens ${r.key}\n${r.report}`).join('\n\n')
 let fixed = null
 const rounds = []
 let stoppedBecause = 'cap'
@@ -206,8 +186,7 @@ let openFindings = []
 const acc = { fixed: [], rejected: [], needsJudgment: [], unverified: [], wording: [] }
 // A lens that returned nothing is a perspective nobody applied. It goes under unverified,
 // which also forces the PR to open as a draft.
-const deadLenses = LENSES.map((L) => L.key).filter((k) => !got.some((r) => r.key === k))
-if (!dReport) deadLenses.push('D')
+const deadLenses = [...LENSES, READER].map((L) => L.key).filter((k) => !got.some((r) => r.key === k))
 for (const k of deadLenses) acc.unverified.push(`렌즈 ${k} 가 결과를 내지 못했다. 그 관점은 검토되지 않았다.`)
 
 for (let round = 1; round <= MAX_ROUNDS; round++) {
@@ -341,7 +320,7 @@ Output: JSON matching the schema. No prose report this round.`,
 }
 
 if (!fixed || !fixed.gatesPassed) {
-  return { stoppedAt: 'fix', reason: 'gates did not pass', draft, fixed, rounds, reports: got, dReport }
+  return { stoppedAt: 'fix', reason: 'gates did not pass', draft, fixed, rounds, reports: got }
 }
 
 // ─── phase 4 ────────────────────────────────────────────────────────────────
@@ -360,8 +339,7 @@ Open it as a draft when any list below has anything in it, because the document 
 waiting on a decision then; open it ready for review when all of them are empty.
 
 Then open ${DOC}/index.html locally so the person can look at the rendering before deciding
-anything. The document is a deck and most of what is wrong with one is only visible once it
-is on screen. Use whatever opens a browser on this machine; if nothing does, say so and put
+anything. Most of what is wrong with a document is only visible once it is on screen. Use whatever opens a browser on this machine; if nothing does, say so and put
 the path in your result rather than treating it as a failure.
 
 First write ${EVID}/run.json (committed with the ledgers, a few KB) with this run's

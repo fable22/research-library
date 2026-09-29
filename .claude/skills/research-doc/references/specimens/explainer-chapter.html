@@ -1,0 +1,43 @@
+<section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">calibration</p>
+      <h2>calibration: 확률 0.8 이 약속하는 것</h2>
+      <p class="key">송장 확률 0.8 을 받은 페이지를 모으면 그중 약 80% 가 송장이다. 이 약속은 집단의 성질이고 페이지 한 장이 송장인지는 말해 주지 않는다. 자동 처리 문턱은 그 문턱 위 집단의 실제 오류율로 정한다.</p>
+
+      <p>재는 방법은 하나다. 예측을 확률 구간(bin)으로 나누고 구간마다 <em>평균 확률</em>과 <em>실제 정답률</em>을 비교한다. 두 값이 가까우면 그 구간은 맞는다. 멀면 그 차이만큼 과신이거나 과소평가다. 구간별 차이를 표본 수로 가중 평균한 것이 ECE 다.</p>
+      <pre>ECE = Σ_bin (n_bin / N) · | accuracy_bin − mean_p_bin |</pre>
+
+      <figure class="figure">
+        <p class="fig-title">예측 하나와 관측 열 개</p>
+        <p class="fig-sub">왼쪽은 페이지 한 장이 받은 분포, 오른쪽은 같은 확률을 받은 열 장의 실제 label</p>
+        <div class="bars">
+          <div class="bar-row is-hero"><span class="bar-name">송장</span><span class="bar-track g5"><span class="bar s1" style="--w:80%"></span></span><span class="bar-val">0.80</span></div>
+          <div class="bar-row"><span class="bar-name">비송장</span><span class="bar-track g5"><span class="bar" style="--w:20%"></span></span><span class="bar-val">0.20</span></div>
+        </div>
+        <svg viewBox="0 0 520 70" role="img" aria-label="송장 확률 0.8 을 받은 페이지 열 장 중 여덟 장이 송장이고 두 장이 비송장이라 관측 비율 80% 가 예측 확률과 같다" style="display:block;width:100%;max-width:520px;margin:14px 0 0">
+          <g fill="#1f5fc4"><circle cx="26" cy="24" r="14"/><circle cx="66" cy="24" r="14"/><circle cx="106" cy="24" r="14"/><circle cx="146" cy="24" r="14"/><circle cx="186" cy="24" r="14"/><circle cx="226" cy="24" r="14"/><circle cx="266" cy="24" r="14"/><circle cx="306" cy="24" r="14"/></g>
+          <g fill="none" stroke="#b32424" stroke-width="2"><circle cx="346" cy="24" r="13"/><circle cx="386" cy="24" r="13"/></g>
+          <text x="12" y="62" font-size="12" fill="#7c8698">송장 8 / 10 = 0.80 이 예측 0.80 과 같다. 이 구간은 calibrated 다</text>
+        </svg>
+        <figcaption>합성 예시. 전체 송장 비율을 모든 페이지에 똑같이 내도 이 검사는 통과하므로 calibration 은 어떤 페이지가 송장인지 가려내는 능력(정확도)과 따로 잰다.</figcaption>
+      </figure>
+
+      <p>Archer 가 공개한 Jev 1.13 의 MMLU 기록으로 같은 계산을 해 보면 이렇다. 객관식 1,200 문제이고 선택한 답의 확률과 정오만 들어 있다.</p>
+      <ul class="facts">
+        <li><span class="m">1,200</span><span>예측 수. 정답 1,101 개, 열 구간 중 일곱 구간에 표본이 있다</span></li>
+        <li><span class="m">0.031</span><span>ECE. 공개 JSON 이 보고한 0.031325 를 구간별 재집계로 재현했다</span></li>
+        <li><span class="m">0.9–1.0</span><span>990 건. 평균 확률 98.65%, 정답률 96.26%. 2.4 pt 과신</span></li>
+        <li><span class="m">0.5–0.6</span><span>28 건. 평균 확률 52.75%, 정답률 39.29%. 13.5 pt 과신</span></li>
+      </ul>
+      <p>이 기록으로 문턱을 정하면 이렇게 읽힌다. 0.9 위만 자동 처리하면 990 건 중 37 건이 틀린 채 통과한다. 0.5 까지 내리면 0.5–0.6 구간 28 건 중 17 건이 틀린다. 평균 ECE 가 작아도 표본이 적은 구간의 오차는 크다. 문턱은 대개 그런 구간 어딘가에 놓인다.</p>
+
+      <p>원리가 멈추는 곳이 셋 있다. Jev 응답의 <code>confidence</code> 필드는 답 하나의 분포가 얼마나 모였는지를 요약한 값이고 calibration 이 아니다. 이 값이 높은 집단의 정답률은 따로 재야 한다. ECE 는 구간 수와 경계에 따라 달라지므로 구간을 다르게 나눈 두 모델의 ECE 는 비교하지 않는다. 그리고 calibration 은 데이터셋마다 다시 재는 성질이라 영어 객관식에서 맞은 확률이 한국어 송장에서도 맞는다고 볼 근거는 없다.</p>
+
+      <details class="more"><summary>첨언: 원문, 계산, 구간 전체</summary>
+        <p>primer 「RLCD and calibrated decisions」: “These rates describe groups of predictions, not a guarantee about any single answer.” Archer 의 <code>calibration.json</code> 정의: “Confidence = rounded returned probability of chosen answer. Ten equal-width bins [0.0,0.1), ... [0.9,1.0]; floating artifacts rounded to 2 decimals before binning. Empty bins omitted. ECE = sum n_bin/N * abs(accuracy_bin - mean_p_bin).”</p>
+        <p>틀린 건수는 건수 × (1 − 정답률) 을 반올림한 값이다. 990 × 0.0374 = 37.0, 28 × 0.6071 = 17.0. 구간별 표본은 0.3–0.4 6, 0.4–0.5 18, 0.5–0.6 28, 0.6–0.7 39, 0.7–0.8 46, 0.8–0.9 73, 0.9–1.0 990 으로 합계 1,200 이다. 마지막 구간은 1.0 을 포함한다. 두 구간 밖의 정답률은 JSON 에 있으나 본문에 옮기지 않았다.</p>
+        <p>이 기록에는 원 문제와 모든 후보의 확률이 없어, 정오 label 이 어떻게 매겨졌는지는 다시 검사할 수 없다. Wilson 95% 구간이 JSON 에 함께 있다.</p>
+      </details>
+      <p class="note">수치는 Archer 의 MMLU 기록에서 나온 것이고, API 의 <code>confidence</code> 필드나 다른 데이터셋에서 같은 값을 보장하지 않는다.</p>
+    </div>
+  </section>
