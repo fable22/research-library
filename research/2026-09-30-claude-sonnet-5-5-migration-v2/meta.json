@@ -1,0 +1,22 @@
+{
+  "title": "Claude Sonnet 5.5 이전 안내: Sonnet 5 코드에서 고칠 곳을 요청부터 응답까지 따라간다",
+  "date": "2026-09-30",
+  "seq": 31,
+  "summary": "Sonnet 5 에서 Sonnet 5.5 로 옮길 때 thinking 의 disabled, 강제 tool_choice, 고친 대화 기록, computer_20251124, Sonnet 5 advisor 는 400 을 받는다. tool call 사이 메모가 빈 thinking 블록으로 오고 거부 부류가 다섯으로 늘어난 것은 에러 없이 지나간다. 가격은 같지만 low 에서 high 사이 단계가 Sonnet 5 최고점을 1/9~1/24 비용으로 넘고 max 는 더 비싸서 effort 를 다시 재야 한다.",
+  "category": "note",
+  "format": "article",
+  "purpose": "walkthrough",
+  "tags": [
+    "claude sonnet 5.5",
+    "anthropic",
+    "migration",
+    "between_tools",
+    "tool_choice",
+    "preserved thinking",
+    "effort"
+  ],
+  "source": {
+    "label": "platform.claude.com migration guide",
+    "url": "https://platform.claude.com/docs/en/models/sonnet-5-5/migration-guide"
+  }
+}
