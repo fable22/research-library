@@ -25,6 +25,14 @@ the shape, and the prose is then free for the threshold, the reason, the excepti
 
 **Cut.** Inferable background, a second example making the first one's point.
 
+**Fold.** What remains after cutting and is still support rather than claim goes into
+`details.more` (the 첨언 slot in `SKILL.md`'s slide grammar). Measured on the documents that
+prompted the rule, a slide that reads well shows about 300–400 Hangul characters before
+anything is opened; the same slides shipped at 670–1,080 with every sentence at the same
+weight, and a reader could not tell the claim from its support. `check-prose.mjs --counts`
+prints the visible count per slide. The fold is not a place to put a claim the visible
+text does not make.
+
 One failure is specific to code corpora: the source is already text, so `<pre>` and tables
 absorb everything and the document never draws its own architecture. A kernel, a state
 machine, a request path, a retry loop all have shapes.

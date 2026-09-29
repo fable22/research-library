@@ -119,15 +119,27 @@ one, so this section is where it gets decided.
 
 ## Slide grammar
 
-Five elements, in order:
+Six elements, in order. The reader scans a deck; what is visible before any click has to
+carry the claim, and everything that only supports it folds away.
 
 ```
-.eyebrow   short topical label
-h2         a claim sentence, not a noun label
-.dek       2 to 4 sentences setting up what follows
-body       figure, table, chart, trace, code, prose — references/visual.md
-.note      the qualifier that closes the slide
+.eyebrow        short topical label
+h2              a claim sentence, not a noun label
+.key            one or two sentences: what the reader does with the claim, or what it
+                changes. Not a summary of the body
+body            stat cards, a figure, a table, or a short fact list — each item one line.
+                references/visual.md
+details.more    첨언. The calculation, the source's paragraph structure, the quoted
+                original, the condition in full. Folded by default
+.note           a one-sentence qualifier that closes the slide
 ```
+
+What may go into `details.more` is what a checking reader needs and a scanning reader
+does not: how a number was derived, which paragraph of the source says it, the verbatim
+quote, the setting under which it holds. A claim that appears only inside the fold is a
+claim the scanning reader never sees, so the fold takes no claim the visible text does not
+already make. A stat card's `.sub` is one line; the second sentence it wanted goes to the
+fold. `.dek` is the older name for the `.key` slot and stays styled for existing documents.
 
 `h2` reads as a statement: `결과 2. 단계가 많은 질문일수록 차이가 커진다`. Plain labels
 are fine where the content is genuinely a label (`결과 5. ablation`). What does not work

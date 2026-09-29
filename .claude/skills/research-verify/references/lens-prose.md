@@ -39,8 +39,15 @@ ablation"). What to flag is a heading that names nothing: an inflated one ("가�
 or two abstract nouns set in parallel ("가치는 ~에 있고, 질문은 ~에 있다"). Say which slide
 and what the slide actually holds.
 
-**Five elements in order.** `.eyebrow` → `h2` → `.dek` (2–4 sentence lead) → body →
-`.note` (closing qualifier). Find slides that skip one or reorder.
+**Six elements in order.** `.eyebrow` → `h2` → `.key` (one or two sentences; `.dek` in older
+documents) → body → `details.more` (첨언, optional) → `.note`. Find slides that skip one or
+reorder, and a `.key` that summarizes the body instead of saying what the reader does with
+the claim.
+
+**A claim that lives only inside the fold.** Open every `details.more` and check that each
+sentence in it supports a claim the visible text already makes: a derivation, a source
+location, a verbatim quote, a condition. A new finding inside the fold is one the scanning
+reader never sees. Name the slide and the sentence.
 
 **Attribution in the limits chapter.** Are "limits the source admits" and "limits the
 author asserts" distinguished? Without a marker like "논문이 이 점을 명시한다" the

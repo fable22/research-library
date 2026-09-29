@@ -175,11 +175,27 @@ export function commaAfterConnective(prose) {
   return conn ? withComma / conn * 100 : null;
 }
 
+// 슬라이드마다 접힌 첨언(details) 을 빼고 보이는 한글 수. 훑는 독자가 한 화면에서 만나는 양이다.
+export function visiblePerSlide(html) {
+  const slides = html.split(/<section\b[^>]*class="[^"]*\bslide\b/i).slice(1);
+  const ko = (s) => (visibleProse(s).match(/[가-힣]/g) || []).length;
+  const shown = slides.map((s) => ko(s.replace(/<details\b[\s\S]*?<\/details>/gi, ' ')));
+  const all = slides.map(ko);
+  const sorted = [...shown].sort((a, b) => a - b);
+  const total = all.reduce((a, b) => a + b, 0);
+  return {
+    median: sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0,
+    max: sorted.length ? sorted[sorted.length - 1] : 0,
+    folded: total ? (1 - shown.reduce((a, b) => a + b, 0) / total) * 100 : 0,
+  };
+}
+
 export function densityOf(html) {
   const prose = visibleProse(html);
   const ko = (prose.match(/[가-힣]/g) || []).length;
   return {
     ko,
+    slide: visiblePerSlide(html),
     counts: DENSITY.map(([n, rx]) => [n, (prose.match(rx) || []).length]),
     conn: commaAfterConnective(prose),
     comma: ko ? (prose.match(/[,，]/g) || []).length / ko * 100 : 0,
@@ -232,12 +248,12 @@ if (!selected.length) {
 if (argv.includes('--counts')) {
   console.log('한글 10만자당 빈도. 한도가 없는 항목이라 막지 않는다.\n');
   const head = DENSITY.map(([n]) => n.slice(0, 11).padStart(12)).join('');
-  console.log(`${'문서'.padEnd(32)}${'한글자'.padStart(7)}${head}${'연결어미+쉼표%'.padStart(15)}${'쉼표%'.padStart(7)}`);
+  console.log(`${'문서'.padEnd(32)}${'한글자'.padStart(7)}${head}${'연결어미+쉼표%'.padStart(15)}${'쉼표%'.padStart(7)}${'슬라이드중앙'.padStart(9)}${'최대'.padStart(6)}${'첨언%'.padStart(6)}`);
   for (const slug of selected) {
     const d = densityOf(await readFile(join(RESEARCH_DIR, slug, 'index.html'), 'utf8'));
     const row = d.counts.map(([, n]) => (d.ko ? (n / d.ko * 100000).toFixed(0) : '-').padStart(12)).join('');
     const conn = (d.conn === null ? '-' : d.conn.toFixed(1)).padStart(15);
-    console.log(`${slug.slice(0, 31).padEnd(32)}${String(d.ko).padStart(7)}${row}${conn}${d.comma.toFixed(2).padStart(7)}`);
+    console.log(`${slug.slice(0, 31).padEnd(32)}${String(d.ko).padStart(7)}${row}${conn}${d.comma.toFixed(2).padStart(7)}${String(d.slide.median).padStart(9)}${String(d.slide.max).padStart(6)}${d.slide.folded.toFixed(0).padStart(6)}`);
   }
   for (let i = 0; i < 2; i++) {
     const row = DENSITY.map(([n]) => String(HUMAN_BAND.counts[n]?.[i] ?? '-').padStart(12)).join('');
@@ -245,6 +261,7 @@ if (argv.includes('--counts')) {
   }
   console.log('\n아래 두 줄이 사람이 쓴 기술 블로그의 중앙값이다. 같은 방법으로 잰 것이라 위와 나란히 놓을 수 있다.');
   console.log('밴드는 양방향이다. 사람 값보다 한참 낮은 열도 사람 글이 아니다. 어느 열이 밖인지 보고 prose-ko.md 로 간다.');
+  console.log('마지막 세 열은 슬라이드마다 첨언(details)을 접은 채 보이는 한글 수의 중앙값·최대와, 첨언으로 접힌 비율이다. 잘 읽힌 슬라이드는 300~400자 근처였다 (visual.md 「Fold」).');
   process.exit(0);
 }
 

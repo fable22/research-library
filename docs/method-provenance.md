@@ -223,6 +223,20 @@ feedback without a reliable external signal. Numbers and quotes have that signal
 wording does not. The fix loop in `research-chain.js` runs one round by default and opens a
 second only for findings with one correct answer.
 
+## Why a slide folds its support (2026-09-29)
+
+The user read the rewritten Opus 5.5 document and named the remaining problem: every slide
+was a wall of sentences at one weight, so the claim and its support could not be told apart.
+Measured on that document, the tl-dr slide showed 672 Hangul characters and the densest
+slide 1,082, with a three-sentence `.dek`, stat cards carrying two or three sentences each,
+and list items of two to four sentences. Two slides were re-laid without changing a
+sentence: a one-or-two-sentence `.key` under the title, one-line stat subs, a four-line fact
+list, and the rest in `details.more`. Visible text fell to 316 and 382 characters with the
+full text still present; the user judged this the readable shape. That is the basis for the
+`.key` / `details.more` slots in `research-doc/SKILL.md`, the Fold entry in `visual.md`, and
+the per-slide visible count in `check-prose.mjs --counts`. The 300–400 figure is those two
+slides, not a corpus.
+
 ## The comma the documents all share
 
 [KatFishNet (ACL 2025)](https://aclanthology.org/2025.acl-long.1030/) measured what separates

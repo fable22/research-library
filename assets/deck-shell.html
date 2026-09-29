@@ -181,6 +181,17 @@ strong { font-weight: 700; }
 .stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
 .stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
 .stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+/* 핵심 한두 문장. 제목 아래에서 독자가 이 주장으로 무엇을 하는지 말한다. */
+.key { font-size: clamp(15px, 1.5vw, 17px); font-weight: 600; line-height: 1.55; color: var(--ink); margin: 0 0 22px; padding-left: 12px; border-left: 4px solid var(--link); max-width: 70ch; text-wrap: pretty; }
+/* 첨언. 계산 과정, 원문 문단 위치, 인용 원문, 조건의 세부. 기본은 접힘. */
+details.more { margin: 0 0 22px; border: 1px solid var(--rule); border-radius: 10px; padding: 8px 14px; background: var(--card); color: var(--ink-2); font-size: 14px; }
+details.more summary { cursor: pointer; font-weight: 600; color: var(--muted); font-size: 13px; }
+details.more[open] summary { margin-bottom: 6px; }
+details.more p { margin: 8px 0; }
+/* 한 줄짜리 사실 목록. 항목마다 한 줄이 넘으면 첨언으로 보낸다. */
+ul.facts { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 8px; }
+ul.facts li { display: grid; grid-template-columns: 3.2em 1fr; gap: 10px; font-size: 14.5px; color: var(--ink); line-height: 1.5; }
+ul.facts li .m { font-size: 12px; color: var(--muted); padding-top: 3px; }
 .stat.hero .val { color: var(--link); }
 .stat.bad .val { color: var(--redlink); }
 
