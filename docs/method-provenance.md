@@ -850,3 +850,30 @@ data points; `research-doc` lists it among the files to read, the `result-*` row
 body slot say the source's chart is redrawn rather than paraphrased; the specimens README
 says where each kind draws; lens A checks every entry of `notes/figures.md` was redrawn or
 named. v2 and v3 both have one SVG and two figures; that is the gap this closes.
+
+## What the v4 run sent back
+
+v4 (`research/2026-09-30-claude-sonnet-5-5-migration-v4`, same corpus, harness `876d4da`)
+confirmed the figures rule: the four source charts were redrawn as effort-by-cost
+scatter plots and the two tables retyped, with nothing in `notes/figures.md` left unused
+(v3 had one SVG). `check-claims.mjs` matched all 99 claims against the fixed copies with
+no `--allow`. The author reported eight remaining points; each became a change:
+
+- `notes/web/` was gitignored, so the web match worked on one machine only. `.gitignore`
+  now commits `notes/web/` and `run.json` while the rest of `notes/` stays ignored;
+  `AGENTS.md` lists both.
+- Web sources had no number check. `check-claims.mjs` now runs `numeric-match` for web
+  copies as it does for papers and repositories.
+- The scaffold wrote `category: "web"` and no `format`; it writes `note` and `article`.
+- There was no `web.md`; there is one, and the walkthrough definition no longer assumes a
+  repository.
+- `table.prose-table` still used the mono font in body cells, and `ul.facts` labels were
+  clipped at 3.2em; both fixed in the shell.
+- The rail had to be edited by hand whenever chapters changed, and the gate counted it. The
+  shell now builds the rail from the sections (`data-label` names a chapter) when the HTML
+  carries none, and `rail-count` applies only to a hand-written rail.
+- A fix that needed a chapter the document lacked was squeezed into a line and found again
+  next round, in v3 and v4 alike. The verify skill now keeps such a fix a needs-judgment
+  item.
+- Lens A captured a blank page and moved on. Lens C carries the render command and the
+  rule that a blank capture is not a checked rendering.

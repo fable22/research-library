@@ -606,6 +606,17 @@ for (const c of claims || []) {
           `${id}: quote 가 web 출처 ${src.id} 의 고정 사본에도 notes/figures.md 에도 없다. 지어낸 인용이거나 사본이 다른 판이다\n` +
           `      "${e.quote.slice(0, 70)}${e.quote.length > 70 ? '…' : ''}"`);
       }
+      // 수치도 대조한다. 논문·repo 와 같은 규칙이고, 사본 전체와 figures.md 에서 찾는다.
+      if (c.kind === 'numeric') {
+        const hay = wt + '\n' + webFigures();
+        const missing = numsIn(c.text).filter((n) => !hasNum(hay, n));
+        if (missing.length) {
+          add('numeric-match',
+            `${id}: 주장의 수치가 web 출처 ${src.id} 의 고정 사본과 notes/figures.md 에 없다: ${missing.join(', ')}\n` +
+            `      "${c.text.slice(0, 70)}${c.text.length > 70 ? '…' : ''}"\n` +
+            `      원문이 인쇄하지 않은 값을 계산한 것이면 kind 를 "derived" 로 하고 derived_from 에 입력값을 적을 것`);
+        }
+      }
       continue;
     }
     if (src.kind !== 'repo') continue;

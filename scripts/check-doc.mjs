@@ -57,7 +57,7 @@ const RULES = {
   'img-alt': '모든 <img> 에 alt 텍스트가 있는가',
   'tag-balance': '태그가 균형 잡혀 있는가',
   'dup-script': '<script> 블록이 하나뿐인가',
-  'rail-count': '.rail-item 수와 .slide 수가 같은가',
+  'rail-count': '.rail-item 이 손으로 있으면 .slide 수와 같은가 (없으면 셸이 장에서 만든다)',
   'anchor-range': '#pN 앵커가 대상 문서의 슬라이드 수 안인가',
   'lineage-link': '../<slug>/ 링크가 실제로 존재하는 디렉터리인가',
   'series-backlink': '같은 series 문서끼리 서로 링크하는가',
@@ -247,7 +247,7 @@ function checkDoc(doc, byslug) {
   if (scripts.length > 1) {
     add('dup-script', `<script> 블록이 ${scripts.length}개다 (${scripts.map((m) => lineOf(html, m.index) + '행').join(', ')}). 덱 스크립트는 하나여야 한다`);
   }
-  if (doc.slideCount !== doc.railCount) {
+  if (doc.railCount && doc.slideCount !== doc.railCount) {
     add('rail-count', `.slide ${doc.slideCount}개인데 .rail-item 은 ${doc.railCount}개다`);
   }
 

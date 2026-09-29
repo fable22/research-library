@@ -73,6 +73,21 @@ enough, and for a chart with values those values belong in the sentence. `check-
 checks only that the attribute exists, so the content is your job. Do image `alt` texts say
 what the image shows?
 
+## Rendering
+
+Open the page, because a table cut at the viewport edge or a figure that overflows is
+visible only there. With a headless Chromium on the machine:
+
+```bash
+<chrome> --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1400,1000 \
+  --screenshot=/tmp/lens-c.png file://<absolute path to index.html>
+```
+
+Look at the capture. If it is blank, the render did not happen: say so and read the markup
+instead, and never report a blank capture as a checked rendering. `#pN` on the URL reaches
+a chapter only in deck mode; in article mode scroll with a script or read that chapter's
+markup.
+
 ## Report format
 
 Write in Korean, leaving out what passed.

@@ -192,7 +192,7 @@ details.more[open] summary { margin-bottom: 6px; }
 details.more p { margin: 8px 0; }
 /* 한 줄짜리 사실 목록. 항목마다 한 줄이 넘으면 첨언으로 보낸다. */
 ul.facts { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 8px; }
-ul.facts li { display: grid; grid-template-columns: 3.2em 1fr; gap: 10px; font-size: 14.5px; color: var(--ink); line-height: 1.5; }
+ul.facts li { display: grid; grid-template-columns: minmax(3.2em, max-content) 1fr; gap: 10px; font-size: 14.5px; color: var(--ink); line-height: 1.5; }
 ul.facts li .m { font-size: 12px; color: var(--muted); padding-top: 3px; }
 .stat.hero .val { color: var(--link); }
 .stat.bad .val { color: var(--redlink); }
@@ -242,6 +242,7 @@ td.win { color: var(--link); font-weight: 700; }
 td.lose { color: var(--redlink); font-weight: 700; }
 /* 글이 든 표: 독자 상황별 표, 판단 표. 숫자 표의 오른쪽 정렬·줄바꿈 금지를 푼다 */
 table.prose-table th, table.prose-table td { text-align: left; white-space: normal; vertical-align: top; line-height: 1.5; font-size: 13.5px; }
+table.prose-table tbody td { font-family: var(--sans); font-variant-numeric: normal; }
 
 /* ── code / md sample ─────────────────────────────────────── */
 pre {
@@ -400,6 +401,22 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
 <script>
 (function () {
   var slides  = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  // 목차가 비어 있으면 장에서 만든다. 이름은 data-label, 없으면 h2/h1 의 앞 14자.
+  // 장을 더하거나 이름을 바꿀 때 목차를 손으로 맞추지 않아도 되게 하려는 것이다.
+  var rail = document.querySelector(".rail");
+  if (rail && !rail.querySelector(".rail-item")) {
+    slides.forEach(function (s, k) {
+      var eb = (s.querySelector(".eyebrow") || {}).textContent || "";
+      if (k === 2 || /^\s*critique\s*$/.test(eb)) { var sep = document.createElement("div"); sep.className = "rail-sep"; rail.appendChild(sep); }
+      var h = s.querySelector("h2, h1");
+      var label = s.getAttribute("data-label") || (h ? h.textContent.replace(/\s+/g, " ").trim().slice(0, 14) : "");
+      var b = document.createElement("button");
+      b.className = "rail-item"; b.setAttribute("data-go", String(k));
+      var n = document.createElement("span"); n.className = "n"; n.textContent = (k + 1 < 10 ? "0" : "") + (k + 1);
+      var t = document.createElement("span"); t.textContent = label;
+      b.appendChild(n); b.appendChild(t); rail.appendChild(b);
+    });
+  }
   var railBtn = Array.prototype.slice.call(document.querySelectorAll(".rail-item"));
   var prev = document.getElementById("prev"), next = document.getElementById("next");
   var counter = document.getElementById("counter"), progbar = document.getElementById("progbar");
