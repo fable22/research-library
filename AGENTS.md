@@ -16,6 +16,7 @@ Technical terms stay English; `.claude/skills/research-doc/references/prose-ko.m
 | `research/<slug>/` | The publication. `index.html` and `meta.json` only | committed |
 | `.research/<slug>/` | Evidence. `sources.jsonl`, `evidence.jsonl`, `claims.jsonl` | committed |
 | `.research/<slug>/notes/web/` | Fixed copies of web sources, `<id>.txt`; what `check-claims.mjs` matches web quotes against | committed |
+| `.research/<slug>/notes/figures.md` | The source's figures, tables and chart points, one line each; chart quotes are matched here | committed |
 | `.research/<slug>/run.json` | The verification run's record | committed |
 | `.research/<slug>/notes/` | Everything else there: working artifacts, not a publication | ignored |
 
