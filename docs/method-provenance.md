@@ -223,6 +223,18 @@ feedback without a reliable external signal. Numbers and quotes have that signal
 wording does not. The fix loop in `research-chain.js` runs one round by default and opens a
 second only for findings with one correct answer.
 
+## Why the default reading mode is a continuous page (2026-09-29)
+
+`report-harness-survey-2026-09-29.md` looked at what the most-used research agents and
+report harnesses actually emit. None of the research agents emits a deck; decks come from
+presentation frameworks. Single-file HTML is common and stays. The user chose the survey's
+recommendation: the same shell now opens as a continuous page with the rail as a table of
+contents (`body[data-mode="article"]`), and deck mode is a toggle kept in localStorage.
+Documents published before 2026-09-30 embed their own copy of the shell and are unchanged.
+From that date `check-doc.mjs` requires `meta.purpose` (comparison / explainer / walkthrough)
+and an `h2` plus `.key` on every section after the cover, because the survey's second
+finding was that one chapter spine was being applied to three different reader tasks.
+
 ## Why a slide folds its support (2026-09-29)
 
 The user read the rewritten Opus 5.5 document and named the remaining problem: every slide
