@@ -149,6 +149,8 @@ strong { font-weight: 700; }
   padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
 }
 .q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+/* 문장 안의 짧은 인용. 블록 인용 .q 와 같은 class 라 check-prose 가 둘 다 건너뛴다 */
+span.q { display: inline; font: inherit; font-style: normal; color: var(--ink-2); border: 0; padding: 0; margin: 0; max-width: none; }
 .wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
 .wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
 
@@ -226,7 +228,7 @@ ul.facts li .m { font-size: 12px; color: var(--muted); padding-top: 3px; }
 .legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
 
 /* ── tables ───────────────────────────────────────────────── */
-.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); margin: 0 0 18px; }
 table { border-collapse: collapse; width: 100%; font-size: 13px; }
 th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
 th:first-child, td:first-child { text-align: left; }
@@ -238,6 +240,8 @@ tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; 
 tr.hero td:first-child { color: var(--ink); }
 td.win { color: var(--link); font-weight: 700; }
 td.lose { color: var(--redlink); font-weight: 700; }
+/* 글이 든 표: 독자 상황별 표, 판단 표. 숫자 표의 오른쪽 정렬·줄바꿈 금지를 푼다 */
+table.prose-table th, table.prose-table td { text-align: left; white-space: normal; vertical-align: top; line-height: 1.5; font-size: 13.5px; }
 
 /* ── code / md sample ─────────────────────────────────────── */
 pre {

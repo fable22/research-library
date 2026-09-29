@@ -60,7 +60,7 @@ reduced path. Run that path and do not skip verify.
 ## Commands
 
 ```bash
-node scripts/new-doc.mjs <slug> <paper|oss> <comparison|explainer|walkthrough>
+node scripts/new-doc.mjs <slug> <paper|oss|web> <comparison|explainer|walkthrough>
                                                  # scaffold both trees; the kind picks the chapters
 node scripts/new-doc.mjs rename <old> <new>      # move both trees together
 node scripts/check-doc.mjs research/<slug>       # gate on the publication

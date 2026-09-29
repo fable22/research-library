@@ -16,7 +16,7 @@ findings; one line each under 메모, or leave them out.
 
 Document: `{DOC_PATH}`
 Corpus identity: `{SOURCES_PATH}`
-Coverage: the `setup` chapter of the document itself
+Where the document says what it read: its `setup` chapter. The review covers the whole document.
 Checkout: `{CHECKOUT}`
 Reports from lenses B and C: `{LENS_REPORTS}`
 
@@ -67,6 +67,9 @@ Then look for what B and C could not have seen, because it was never in front of
 - A quote that is verbatim while the sentence around it widens a narrow fact or joins two
   facts the source keeps apart. `check-claims.mjs` confirms the quote sits at its locator
   and stops there, so nothing else catches this.
+- An entry in `.research/<slug>/notes/figures.md` (the source's charts, tables, figures) that
+  the document neither redrew nor named. A benchmark the source charted and the document
+  describes in a sentence is this.
 - The `setup` chapter's numbers. 23 of 65 files with four unread directories totalling 34
   leaves eight unaccounted for. A long unread list is disclosure working; one that does not
   add up is the finding.

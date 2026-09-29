@@ -12,7 +12,7 @@ unverifiable, or missing its base; a number you would have presented differently
 Document: `{DOC_PATH}`
 Corpus identity: `{SOURCES_PATH}`
 Checkout: `{CHECKOUT}`
-Coverage: the `setup` chapter of the document itself
+Where the document says what it read: its `setup` chapter. The sweep covers the whole document.
 
 Reopen the source, and never treat the document's own explanation as evidence. For code,
 pull from the pinned commit with `git -C {CHECKOUT} show <commit>:<file>`. For papers, open

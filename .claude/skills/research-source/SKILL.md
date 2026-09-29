@@ -36,7 +36,7 @@ walkthrough that ends in adopt / hold answers a question nobody asked. When the 
 no kind, ask, with the three as options; there is no default.
 
 ```bash
-node scripts/new-doc.mjs <YYYY-MM-DD-slug> <paper|oss> <comparison|explainer|walkthrough>
+node scripts/new-doc.mjs <YYYY-MM-DD-slug> <paper|oss|web> <comparison|explainer|walkthrough>
 ```
 
 The scaffold writes the kind as `purpose` in `meta.json` and lays out the chapters that
@@ -72,7 +72,14 @@ Write `.research/<slug>/sources.jsonl`, one source per line, before opening file
 {"id":"p1","kind":"paper","arxiv_id":"2605.25480","version":"v1",
  "text_sha256":"<64-char sha of the pinned text>",
  "sections_read":["1-7","A","B"],"retrieved_at":"2026-08-07T09:12:00Z"}
+{"id":"w1","kind":"web","url":"https://platform.claude.com/docs/en/…","retrieved_at":"2026-09-29T06:56:48Z",
+ "archive_url":"http://web.archive.org/web/2026…","text_sha256":"<sha256 of notes/web/w1.txt>"}
 ```
+
+**A web source carries `url`, `retrieved_at`, an `archive_url` when the archive has one,
+and `text_sha256` of the text you read, saved as `notes/web/<id>.txt`.** `check-claims.mjs`
+finds that file by name and matches every quote against it; without it, every quote from
+the page stays unverified and the gate says so.
 
 **A paper source carries `arxiv_id`, `version` and `text_sha256`.** The id and version name
 an edition, since a revision changes the numbers; the hash pins the bytes, so a later quote
@@ -167,12 +174,13 @@ any number a summarizer hands back.
 is what the HTML was converted from. Conversion drops cells, merges columns and reflows
 multi-row headers often enough that a table read only through HTML is unconfirmed.
 
-**Take the figures while the corpus is open.** The same `e-print` tarball holds the figure
-files, and going back for them later means re-deriving which figure went with which claim.
-Write `notes/figures.md`, one line each: the identifier the source uses (`Figure 3`,
-`Table 2`), one sentence on what it shows, the retrievable URL, and the byte size. The
-sentence is what lets the writing step decide whether a figure carries a claim without
-reopening all of them.
+**Take the figures while the corpus is open, whatever the corpus.** Write
+`notes/figures.md`, one line each: the identifier the source uses (`Figure 3`, `Table 2`,
+a web page's chart heading), one sentence on what it shows, where it is retrievable, and
+for a chart the data points read from its `aria-label`, `alt` or SVG text. For a paper the
+`e-print` tarball holds the figure files, and going back for them later means re-deriving
+which figure went with which claim. The writing step redraws or names every entry; a chart
+the source drew and the document only paraphrases is a finding for the lenses.
 
 A repository's equivalent lives in `docs/`, the README, and the `*.svg` and `*.png` beside
 them. A diagram a maintainer drew shows what they think the system is, which beats any

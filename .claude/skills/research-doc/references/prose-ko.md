@@ -95,6 +95,7 @@ of technical terms a synonym reads as a second thing.
 scan these documents, so the main clause does not wait for the paragraph's end.
 
 **15. A summary survives deleting the section above it.** Put in it the finding that section
-established, with its numbers and the counterexample the body admits.
+established, with the numbers the body established and the counterexample it admits. Do not
+tally the body's items into a new count; a count drifts the moment the list changes.
 
 Review reports take their form from `../../research-verify/SKILL.md`.

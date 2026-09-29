@@ -34,7 +34,7 @@
       <p>원리가 멈추는 곳이 셋 있다. Jev 응답의 <code>confidence</code> 필드는 답 하나의 분포가 얼마나 모였는지를 요약한 값이고 calibration 이 아니다. 이 값이 높은 집단의 정답률은 따로 재야 한다. ECE 는 구간 수와 경계에 따라 달라지므로 구간을 다르게 나눈 두 모델의 ECE 는 비교하지 않는다. 그리고 calibration 은 데이터셋마다 다시 재는 성질이라 영어 객관식에서 맞은 확률이 한국어 송장에서도 맞는다고 볼 근거는 없다.</p>
 
       <details class="more"><summary>첨언: 원문, 계산, 구간 전체</summary>
-        <p>primer 「RLCD and calibrated decisions」: “These rates describe groups of predictions, not a guarantee about any single answer.” Archer 의 <code>calibration.json</code> 정의: “Confidence = rounded returned probability of chosen answer. Ten equal-width bins [0.0,0.1), ... [0.9,1.0]; floating artifacts rounded to 2 decimals before binning. Empty bins omitted. ECE = sum n_bin/N * abs(accuracy_bin - mean_p_bin).”</p>
+        <p>primer 「RLCD and calibrated decisions」: <span class="q">“These rates describe groups of predictions, not a guarantee about any single answer.”</span> Archer 의 <code>calibration.json</code> 정의: <span class="q">“Confidence = rounded returned probability of chosen answer. Ten equal-width bins [0.0,0.1), ... [0.9,1.0]; floating artifacts rounded to 2 decimals before binning. Empty bins omitted. ECE = sum n_bin/N * abs(accuracy_bin - mean_p_bin).”</span></p>
         <p>틀린 건수는 건수 × (1 − 정답률) 을 반올림한 값이다. 990 × 0.0374 = 37.0, 28 × 0.6071 = 17.0. 구간별 표본은 0.3–0.4 6, 0.4–0.5 18, 0.5–0.6 28, 0.6–0.7 39, 0.7–0.8 46, 0.8–0.9 73, 0.9–1.0 990 으로 합계 1,200 이다. 마지막 구간은 1.0 을 포함한다. 두 구간 밖의 정답률은 JSON 에 있으나 본문에 옮기지 않았다.</p>
         <p>이 기록에는 원 문제와 모든 후보의 확률이 없어, 정오 label 이 어떻게 매겨졌는지는 다시 검사할 수 없다. Wilson 95% 구간이 JSON 에 함께 있다.</p>
       </details>

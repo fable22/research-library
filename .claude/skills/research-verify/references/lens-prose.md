@@ -44,7 +44,9 @@ documents), body, `details.more`, and an optional `.note`. Find chapters that sk
 reorder an element, and compare each against the specimen for the document's kind in
 `../../research-doc/references/specimens/`: an explainer chapter whose mechanism sits only in
 the fold, or a walkthrough chapter whose diff comes after the source's conditions, is a
-finding.
+finding. A fact-list line or a fold paragraph that supports the `.key` is support, not a
+second claim; flag a second claim only when the visible text asserts something the `.key`
+does not cover.
 
 **A claim that lives only inside the fold.** Open every `details.more` and check that each
 sentence supports a claim the visible text already makes: a derivation, a source location, a
