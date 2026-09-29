@@ -1,0 +1,208 @@
+{
+  "slug": "2026-09-30-claude-sonnet-5-5-migration-v3",
+  "compare_with": "2026-09-30-claude-sonnet-5-5-migration-v2",
+  "harness": "7fc7b57 merged into research/claude-opus-5-5-introduction (HEAD d84db3d)",
+  "question": "Sonnet 5 에서 Sonnet 5.5 로 옮기는 개발자가 코드에서 무엇을 바꿔야 하는가",
+  "purpose": "walkthrough",
+  "corpus": {
+    "sources": 5,
+    "new_sources": 0,
+    "evidence_copied": 141,
+    "evidence_added": 0,
+    "note": "v2 의 sources.jsonl, evidence.jsonl 과 notes/ 고정 사본 여섯 개를 복사했다. v2 index.html, claims.jsonl, body-a/b.html 은 열거나 복사하지 않았다. sources.jsonl 의 d2, d3, d4 note 에 v3 가 읽은 절을 덧붙였다. 새 인용은 claims.jsonl 의 evidence 에 직접 적었다"
+  },
+  "chapters": 19,
+  "claims": {
+    "total": 78,
+    "web_only_allowed": 71,
+    "derived": 5,
+    "absence": 2,
+    "note": "check-claims 는 web 인용을 대조하지 않으므로 notes/make_claims.py 가 모든 quote 를 고정 사본과, 모든 text 를 문서 본문과 글자 그대로 대조했다"
+  },
+  "timeline_utc": {
+    "start": "2026-09-29T13:41:58Z",
+    "draft_written": "2026-09-29T13:50:17Z",
+    "draft_gates_pass": "2026-09-29T13:50:40Z",
+    "lenses_BC_launched": "2026-09-29T13:51:20Z",
+    "lens_A_launched": "2026-09-29T13:55:39Z",
+    "round1_fixes_done": "2026-09-29T13:59:40Z",
+    "recheck1_launched": "2026-09-29T14:00:30Z",
+    "round2_fixes_done": "2026-09-29T14:02:12Z",
+    "end": "2026-09-29T14:02:42Z",
+    "note": "end 는 마지막 재검증 보고서(lensC-r2.md)의 mtime 이다. 시각은 date -u 와 보고서 mtime 에서 왔다. 서브에이전트가 보고한 duration_ms 의 합(974초)이 벽시계 구간(11분 22초)보다 길고, 몇몇 호출은 duration 이 벽시계 간격보다 길다(C r2: 134초 보고, 발송부터 mtime 까지 약 30초). 두 계측이 맞지 않으며 원인은 확인하지 못했다"
+  },
+  "subagent_calls": {
+    "spawned": 3,
+    "resumed": 6,
+    "total": 9,
+    "model": "sonnet",
+    "reported_duration_s_sum": 974,
+    "calls": [
+      {
+        "lens": "B",
+        "kind": "spawn",
+        "duration_s": 50,
+        "must_fix": 0,
+        "needs_judgment": 3,
+        "numbers_checked": 26,
+        "note": "lens 파일의 'Coverage: the setup chapter' 를 검사 범위로 읽어 15장만 대조했다"
+      },
+      {
+        "lens": "C",
+        "kind": "spawn",
+        "duration_s": 180,
+        "must_fix": 7,
+        "needs_judgment": 12
+      },
+      {
+        "lens": "B",
+        "kind": "resume",
+        "round": "scope-fix",
+        "duration_s": 212,
+        "must_fix": 0,
+        "needs_judgment": 5,
+        "numbers_checked": 190,
+        "note": "범위를 문서 전체로 바로잡아 다시 돌렸다. 이것이 B 의 본 검사다"
+      },
+      {
+        "lens": "A",
+        "kind": "spawn",
+        "duration_s": 195,
+        "input": "lensB.md, lensC.md 와 B, C 수정이 반영된 문서",
+        "must_fix": 2,
+        "needs_judgment": 5
+      },
+      {
+        "lens": "B",
+        "kind": "resume",
+        "round": "recheck1",
+        "duration_s": 47,
+        "must_fix": 0,
+        "needs_judgment": 1,
+        "numbers_checked": 120
+      },
+      {
+        "lens": "A",
+        "kind": "resume",
+        "round": "recheck1",
+        "duration_s": 58,
+        "must_fix": 0,
+        "needs_judgment": 2
+      },
+      {
+        "lens": "C",
+        "kind": "resume",
+        "round": "recheck1",
+        "duration_s": 78,
+        "must_fix": 1,
+        "must_fix_kinds": [
+          "structure"
+        ],
+        "needs_judgment": 8
+      },
+      {
+        "lens": "C",
+        "kind": "resume",
+        "round": "recheck2",
+        "duration_s": 134,
+        "must_fix": 0,
+        "needs_judgment": 2
+      },
+      {
+        "lens": "A",
+        "kind": "resume",
+        "round": "recheck2",
+        "duration_s": 20,
+        "must_fix": 0,
+        "needs_judgment": 0
+      }
+    ],
+    "note": "렌즈는 B, C 를 같은 메시지에서 병렬로 띄우고 둘의 보고서를 받은 뒤 A 를 띄웠다. 재검증은 새로 띄우지 않고 같은 렌즈를 이어 불렀다"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "fixed_from": [
+        "A",
+        "B",
+        "C"
+      ],
+      "must_fix_fixed": 9,
+      "judgment_items_fixed": 19,
+      "recheck": {
+        "by": [
+          "A",
+          "B",
+          "C"
+        ],
+        "new_must_fix": 1,
+        "kinds": [
+          "structure"
+        ],
+        "detail": "A 의 지적으로 14장에 넣은 캐시 최소 길이 줄이 장에 두 번째 주장을 만들었다(C). 같은 줄의 '새로 캐시된다'가 원문을 넓힌다고 A, B 가 판단 항목으로 적었다"
+      }
+    },
+    {
+      "round": 2,
+      "reason": "재검증 1회차의 structure 결함 1건",
+      "must_fix_fixed": 1,
+      "judgment_items_fixed": 2,
+      "recheck": {
+        "by": [
+          "C",
+          "A"
+        ],
+        "new_must_fix": 0
+      }
+    }
+  ],
+  "stopped_because": "clean",
+  "after_last_recheck": [],
+  "wording_recorded": [
+    "15장 key, 17장 key, 17장 facts 첫 줄에 '재현하지 않았다'가 반복된다 (C)",
+    "발표 글 between_tools 문장이 06장과 17장 첨언에 중복 인용되고, 메시지 단위 effort 400 규칙이 06장과 14장에 반복된다 (C)",
+    "장 참조 표기가 '06장'과 '(06)' 두 가지이고 링크가 아니다 (C)",
+    "09장 key 는 Sonnet 5.5 블록이 읽히지 않는 방향만 말하고 반대 방향은 facts 에만 있다. distillation 설명은 첨언에만 있다 (C)",
+    "17장이 출처가 밝힌 한계와 작성자의 관찰을 구분 없이 섞는다 (C)",
+    "16장 첨언의 'up to 30% less' 가 화면의 52~94% 와 부딪혀 보이는데 첨언에만 있다 (C)",
+    "06장 첨언의 fallback 시 disabled 로 돈다는 문장이 화면에 없다 (C)",
+    "15장 첨언의 Wayback 대조 안 함이 첨언에만 있다 (C)",
+    "13장 문단이 길다. 미확인 사항은 .note 로 뺄 수 있다 (C)",
+    "12장 key 가 세 문장이고 셋째가 facts 의 between 줄과 겹친다 (C r2)",
+    "03장의 캐시 최소 길이 완화가 tl-dr 에 없다 (C r2)",
+    "13장 'Claude API 에서만 되므로 다른 플랫폼에서는 SDK middleware' 는 What's new 의 'also' 를 넘는 해석이다 (A)",
+    "14장 '캐시 길이' 판단 항목은 round 2 에서 고쳤다. 용어 '사이 텍스트'와 '사이 메모', '에이전트'와 'agent', 'Claude API 기본값'과 'Claude Platform(API)', h2 'effort 다시 재기'와 02장 'effort 재측정' 이 섞여 있다 (C)"
+  ],
+  "needs_judgment_open": [
+    "corpus 를 다시 열지: mid-conversation system messages 문서(08장 지시 메시지의 모양), thinking 문서 progress updates 절(12장 메모 블록의 streaming 모양과 '한두 문장' 경계), refusals and fallback(13장 stop_details 경로, 부류별 과금, fallback 뒤 thinking 블록 처리), computer use tool 의 Migrate from computer_20251124(10장 agent loop), advisor tool(11장 advisor 지정 필드)",
+    "08장(기록 편집, 400)과 09장(모델, 계정 이동, 200)을 한 장으로 합칠지. 스킬의 '두 주장이면 나눈다'를 따라 나눴다",
+    "캐시 최소 길이 완화를 tl-dr 에 넣을지"
+  ],
+  "rendered": {
+    "opened": true,
+    "browser": "Chromium 1237 headless via CDP (node, /tmp/v3/shot.mjs)",
+    "mode": "article",
+    "viewport": "1400x1000",
+    "screenshots": [
+      "/tmp/v3/final/first.png",
+      "/tmp/v3/final/ch4.png",
+      "/tmp/v3/final/ch5.png",
+      "/tmp/v3/final/ch8.png",
+      "/tmp/v3/final/ch16.png",
+      "/tmp/v3/final/dark-first.png",
+      "/tmp/v3/final/dark-ch16.png"
+    ],
+    "also_viewed": "초고 때 01, 04, 05, 13, 16장. round 1 뒤 08, 12장. round 2 뒤 03, 14장과 04장 다크",
+    "fixed_from_render": [
+      "16장 비용표의 max 열이 1400px 에서 가로 스크롤 뒤로 숨음 → 셀 안 줄바꿈",
+      "표 아래 여백 없음 → .tablewrap margin",
+      "글이 든 표가 오른쪽 정렬 고정폭으로 나옴 → table.text",
+      "table.text 가 td.lose 색을 덮음",
+      "08장 facts 목록 둘이 이어 붙음 → 하나로"
+    ],
+    "after_fixes": true,
+    "dark_theme": true,
+    "deck_mode": false,
+    "horizontal_overflow": false
+  }
+}

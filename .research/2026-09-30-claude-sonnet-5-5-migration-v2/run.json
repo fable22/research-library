@@ -1,0 +1,79 @@
+{
+  "slug": "2026-09-30-claude-sonnet-5-5-migration-v2",
+  "compare_with": "2026-09-29-claude-sonnet-5-5-migration",
+  "harness": "9eb3f82 merged into research/claude-opus-5-5-introduction",
+  "question": "Sonnet 5 에서 Sonnet 5.5 로 옮기는 개발자가 코드에서 무엇을 바꿔야 하는가",
+  "purpose": "walkthrough",
+  "corpus": {
+    "sources": 5,
+    "new_sources": 0,
+    "evidence_copied": 118,
+    "evidence_added": 23,
+    "note": "옛 문서의 sources.jsonl, evidence.jsonl 을 복사했다. 추가 span 23개는 같은 다섯 출처의 고정 사본(notes/)에서 뽑았다"
+  },
+  "chapters": 17,
+  "claims": { "total": 58, "web_only_allowed": 46, "derived": 4, "absence": 8 },
+  "timeline_utc": {
+    "start_merge": "2026-09-29T11:07:41Z",
+    "draft_gates_pass": "2026-09-29T11:18:32Z",
+    "lenses_ABC_launched": "2026-09-29T11:21:01Z",
+    "round1_fixes_done": "2026-09-29T11:31:38Z",
+    "recheck1_launched": "2026-09-29T11:32:54Z",
+    "end": "2026-09-29T11:35:23Z",
+    "note": "end 는 round 2 재검증 결과를 받은 뒤의 시각이다. 서브에이전트 실행 시간은 각자 보고한 duration_ms 이다"
+  },
+  "subagent_calls": {
+    "spawned": 4,
+    "resumed": 3,
+    "total": 7,
+    "model": "sonnet",
+    "calls": [
+      { "lens": "A", "kind": "spawn", "duration_s": 263, "must_fix": 2, "needs_judgment": 11, "note": "lensB.md 앞 20줄을 열어 봤고 기대지 않았다고 스스로 밝혔다. 분리가 조금 샜다" },
+      { "lens": "B", "kind": "spawn", "duration_s": 140, "must_fix": 1, "needs_judgment": 5, "numbers_checked": 150 },
+      { "lens": "C", "kind": "spawn", "duration_s": 160, "scope": "structure only", "must_fix": 6, "needs_judgment": 10 },
+      { "lens": "D", "kind": "spawn", "duration_s": 292, "input": "lensA/B/C 보고서와 B, C 수정이 반영된 문서", "must_fix": 5, "other": 12 },
+      { "lens": "B", "kind": "resume", "round": "recheck1", "duration_s": 56, "must_fix": 0, "wording": 5 },
+      { "lens": "D", "kind": "resume", "round": "recheck1", "duration_s": 88, "must_fix": 2, "must_fix_kinds": ["quote", "quote"], "wording": 4 },
+      { "lens": "D", "kind": "resume", "round": "recheck2", "duration_s": 133, "must_fix": 0, "wording": 2 }
+    ],
+    "note": "재검증은 새 서브에이전트를 띄우지 않고 이미 돈 렌즈 B, D 를 이어 불렀다"
+  },
+  "rounds": [
+    { "round": 1, "fixed_from": ["A", "B", "C", "D"], "must_fix_fixed": 14, "judgment_items_fixed": 17, "recheck": { "by": ["B", "D"], "new_must_fix": 2, "kinds": ["quote", "quote"] } },
+    { "round": 2, "reason": "재검증에서 quote 종류 결함 2건", "must_fix_fixed": 2, "recheck": { "by": ["D"], "new_must_fix": 0 } }
+  ],
+  "stopped_because": "clean",
+  "after_last_recheck": [
+    "08장: '그래서' 가 beta header 문장 뒤에 붙어 인과로 읽히던 두 문장의 순서를 바꿨다 (recheck2-D 의 문구 메모, 새 주장 없음)",
+    "표 아래 여백 CSS 한 줄 (.tablewrap margin)"
+  ],
+  "wording_recorded": [
+    "08장 이전 계정 행: 원문은 prefix_mismatch_behavior 설정을 opt-in 조건으로 적는데 표는 block_binding 으로 줄였다",
+    "10장 그리기 줄의 범위와 같은 표 첫 행(Sonnet 5)",
+    "14장 key: 13장은 effort, thinking 문서에도 기댄다",
+    "12장 부제 '작업 한 번당' 대 figures.md 의 '시도당'",
+    "11장 key 의 '다른 플랫폼의 거부' 는 추론",
+    "16장 되돌림 조언과 05 행 Bedrock 한정어의 모호함",
+    "account binding 의 organization_binding_mismatch 보고는 문서에 없다"
+  ],
+  "needs_judgment_open": [
+    "12장에 같은 effort 끼리의 비용 비교 열을 넣을지 (TB high $8.20 → $1.94, Briefcase xhigh $7.56 → $9.63 처럼 방향이 갈린다)",
+    "11장 refusal 처리 코드: stop_details 필드 경로와 fallback 판별법은 refusals-and-fallback 문서를 열어야 한다",
+    "08장 기록 층: What's new 의 compaction on demand 와 define tools in a message 를 해법으로 넣을지",
+    "09장 computer use agent loop 변경 절차: computer use 문서를 열지",
+    "16장 표에 SDK 형 이름(ThinkingConfigBetweenTools 등)을 넣을지",
+    "13장 effort 재측정 방법 (usage.output_tokens_details.thinking_tokens 등)"
+  ],
+  "rendered": {
+    "opened": true,
+    "browser": "Chromium 1237 headless via CDP",
+    "mode": "article",
+    "viewport": "1400x1000, 1400x1100",
+    "screenshots": ["/tmp/v2/article-first.png", "/tmp/v2/article-ch08-history.png"],
+    "also_viewed": "04장 지도 SVG (수정 전)",
+    "after_fixes": true,
+    "dark_theme": false,
+    "deck_mode": false,
+    "horizontal_overflow": false
+  }
+}
