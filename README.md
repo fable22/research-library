@@ -12,10 +12,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 
 | 날짜 | 문서 | 분류 |
 |---|---|---|
-| 2026-09-30 | [Claude Sonnet 5.5 이전 안내: Sonnet 5 코드에서 바꿀 곳](https://fable22.github.io/research-library/research/2026-09-30-claude-sonnet-5-5-migration-v4/) | 메모 |
-| 2026-09-30 | [Claude Sonnet 5.5 이전 안내: Sonnet 5 요청 코드에서 바꿀 곳](https://fable22.github.io/research-library/research/2026-09-30-claude-sonnet-5-5-migration-v3/) | 메모 |
-| 2026-09-30 | [Claude Sonnet 5.5 이전 안내: Sonnet 5 코드에서 고칠 곳을 요청부터 응답까지 따라간다](https://fable22.github.io/research-library/research/2026-09-30-claude-sonnet-5-5-migration-v2/) | 메모 |
-| 2026-09-29 | [Claude Sonnet 5.5: Sonnet 5 에서 옮길 때 바꿔야 하는 요청과 effort](https://fable22.github.io/research-library/research/2026-09-29-claude-sonnet-5-5-migration/) | 메모 |
+| 2026-09-30 | [Claude Sonnet 5.5 이전 안내: Sonnet 5 코드에서 바꿀 곳](https://fable22.github.io/research-library/research/2026-09-30-claude-sonnet-5-5-migration/) | 메모 |
 | 2026-09-23 | [Claude Opus 5.5: Opus 5 에서 옮길 때 코드와 비용에서 바뀌는 것](https://fable22.github.io/research-library/research/2026-09-23-claude-opus-5-5-introduction/) | 메모 |
 | 2026-09-21 | [Jev System One: 문장 대신 판단과 확률을 반환하는 모델](https://fable22.github.io/research-library/research/2026-09-21-jev-system-one/) | 주제 리서치 |
 | 2026-09-15 | [OpenCodeReview: agent의 코드 리뷰를 조직하는 실행 harness](https://fable22.github.io/research-library/research/2026-09-15-open-code-review/) | 오픈소스 분석 |

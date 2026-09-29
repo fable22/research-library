@@ -1,9 +1,0 @@
-{
-  "title": "Claude Sonnet 5.5 이전 안내: Sonnet 5 요청 코드에서 바꿀 곳",
-  "date": "2026-09-30",
-  "seq": 32,
-  "summary": "Sonnet 5 코드에서 모델 ID 만 바꾸면 thinking 의 disabled, 강제 tool_choice, 고친 대화 기록, computer_20251124, Sonnet 5 advisor 가 400 을 받는다. tool call 사이 메모는 기본 display 에서 빈 thinking 블록으로 오고, effort 는 같은 이름이어도 비용이 달라서 max 는 발표 글의 네 벤치마크 모두에서 작업당 비용이 오른다.",
-  "category": "note",
-  "format": "article",
-  "purpose": "walkthrough"
-}
