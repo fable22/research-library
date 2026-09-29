@@ -182,7 +182,10 @@ there, so nothing else in this pipeline can catch it.`,
 // so the loop terminates on cost even when the document does not converge.
 phase('Fix')
 
-const MAX_ROUNDS = 3
+// One round by default. A second opens only when re-verification names a defect with one
+// correct answer (a number, a quote, a direction, a dead reference); a second round spent on
+// wording rewrites the document toward the gate and away from the reader.
+const MAX_ROUNDS = 2
 let findings = got.map((r) => `### Lens ${r.key}\n${r.report}`).join('\n\n') +
   `\n\n### Lens D\n${dReport || '(none)'}`
 let fixed = null
@@ -269,7 +272,9 @@ a qualifier dropped while rewriting, a claim whose quote still verifies while th
 around it drifted. Check the rejections too: if one was in fact correct, say so.
 
 Report only new must-fix items; anything already fixed is not new. An empty list ends the
-loop, so return one when the changed slides are sound.
+loop, so return one when the changed slides are sound. Give each item a kind: number, quote,
+direction, or reference when it has one correct answer; wording when it is about how a
+sentence reads. Wording items are recorded and not acted on in a further round.
 
 Output: JSON matching the schema. No prose report this round.`,
     {
@@ -279,7 +284,10 @@ Output: JSON matching the schema. No prose report this round.`,
         type: 'object',
         required: ['newMustFix'],
         properties: {
-          newMustFix: { type: 'array', items: { type: 'string' } },
+          newMustFix: { type: 'array', items: { type: 'object', required: ['text', 'kind'], properties: {
+            text: { type: 'string' },
+            kind: { type: 'string', enum: ['number', 'quote', 'direction', 'reference', 'wording'] },
+          } } },
           badRejections: { type: 'array', items: { type: 'string' } },
         },
       },
@@ -294,7 +302,10 @@ Output: JSON matching the schema. No prose report this round.`,
     break
   }
 
-  const fresh = [...(recheck.newMustFix || []), ...(recheck.badRejections || [])]
+  const hard = (recheck.newMustFix || []).filter((x) => x && x.kind !== 'wording').map((x) => x.text)
+  const wording = (recheck.newMustFix || []).filter((x) => x && x.kind === 'wording').map((x) => x.text)
+  const fresh = [...hard, ...(recheck.badRejections || [])]
+  rounds[rounds.length - 1].recheck = { hard: hard.length, wording: wording.length, badRejections: (recheck.badRejections || []).length }
   if (fresh.length === 0) {
     stoppedBecause = 'dry'
     log(`round ${round}: re-verification found nothing new`)
@@ -335,6 +346,10 @@ Then open ${DOC}/index.html locally so the person can look at the rendering befo
 anything. The document is a deck and most of what is wrong with one is only visible once it
 is on screen. Use whatever opens a browser on this machine; if nothing does, say so and put
 the path in your result rather than treating it as a failure.
+
+First write `${EVID}/notes/run.json` (create `notes/` if needed; it is git-ignored) with
+this run's record, so the next decision about the chain rests on numbers rather than memory:
+${JSON.stringify({ slug: a.slug, slides: draft.slides, evidenceCount: draft.evidenceCount, lensesReported: got.map((r) => r.key), fixRounds: rounds, stoppedBecause, openFindings: openFindings.length, needsJudgment: (fixed.needsJudgment || []).length, unverified: (fixed.unverified || []).length })}
 
 Put these in the PR body, under headings of their own:
 

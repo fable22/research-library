@@ -170,25 +170,63 @@ right there, not because the phrase is foreign.
 another. Korean prose links by content more than by connective. Use them when the
 logical turn is real.
 
-**A comma after a connective ending.** `~하고,` `~지만,` `~는데,` `~어서,`. This is the
-strongest measured difference between Korean a person wrote and Korean a model wrote, and
-it is the one this repo's own documents break worst. The connective already joined the two
-clauses; the comma is a second joint on top of it.
+**A comma after a connective ending is a rate, not a defect.** `~하고,` `~지만,` `~는데,`.
+Models put one after nearly every connective; people put one after some. Measured with
+`check-prose.mjs --counts`, Korean that engineers wrote by hand runs at 30–38% of
+connective endings, with about 1.3–1.6 commas per 100 characters. Stay in that band. A
+document at 0% is as far from human Korean as one at 60%, and it got there by deleting the
+commas that were doing work, then deleting the connectives, then stacking nouns instead.
 
-- ✗ 캐시는 커밋 단위로 잡히고, 같은 버전은 다시 받아도 sha256 이 같다.
 - ✓ 캐시는 커밋 단위로 잡히고 같은 버전은 다시 받아도 sha256 이 같다.
-
-The failure on the other side is a document with no commas at all. Korean written by a
-person carries about one per ninety characters; the repair is to move the comma, not to
-stop using it.
-
-- ✓ 8 토큰을 넘는 질의는 embed 경로로 가고 캐시를 지나지 않는다.
 - ✓ 경계는 토큰 8개다. 그 아래는 keyword, 위는 embed 경로로 간다.
+- ✓ 후보가 채택되면 다음 current skill 이 되고, 거절되면 문서는 그대로지만 시도는 이력에 남는다.
 
-The first joins two clauses with a connective and needs nothing after it. The second's comma
-sits between two parallel items, which is not a connective ending at all — that is the
-position where a Korean comma is doing work.
-`check-prose.mjs --counts` prints both rates.
+The first needs no comma. The second's comma separates parallel items. The third has a
+comma after `되고` because the clause after it turns; a person would put one there. Read the
+rate over the document, not the sentence.
+
+## Do not compress into nouns
+
+This is the failure that replaced translationese once the rules above were followed. Every
+sentence passes the counter, and the reader still stops, because the joints between ideas
+have been taken out and the ideas packed into noun phrases. Instruction-tuned models already
+nominalize at about twice the human rate; cutting connectives leaves that as the only exit.
+
+**Nouns joined by `·` or `의` instead of a clause.** A list like `문제·상태·시도·결과` or a
+chain like `사례별 개선량 분산의 EMA` hands the reader the particles to fill in. Say who does
+what to what, with a verb.
+
+- ✗ Evolving Issue Tracker가 문제·상태·시도·결과를 다음 수정에 전달한다.
+- ✓ Evolving Issue Tracker는 문제마다 지금 상태와 지금까지의 시도, 그 결과를 적어
+  두었다가 다음 수정에 넘긴다.
+
+`·` still belongs between proper names in a table cell and in `§3·Algorithm 1`. Human
+technical prose has close to none of it in running sentences.
+
+**A disclaimer sentence after the claim.** `~라는 뜻은 아니다`, `~을 뜻하지 않는다`, `~을
+보장하지 않는다` tacked onto the end of a paragraph. The limit is real; the shape is not.
+Put it in the clause it limits, and the reader gets claim and limit in one reading.
+
+- ✗ 이 원리가 Jev의 실제 reward라는 뜻은 아니다.
+- ✓ Jev가 실제로 이 reward를 쓰는지는 공개 자료에 없으므로, 아래는 원리 설명이다.
+
+One in five sentences ending on a negation is what this looks like at document scale; human
+technical writing is one in forty.
+
+**Abstract nouns set in parallel.** `가치는 반복 판단의 비용에 있고, 남은 질문은 확률의
+품질에 있다`, `A와 B는 다르다`, `문제는 X가 아니라 Y다` as a heading or a summary sentence.
+It has the shape of a claim and none of the content: no concrete subject, no verb that does
+anything, two nouns the reader has to unpack. Name the thing and say what it does.
+
+- ✗ 가치는 반복 판단의 비용에 있고, 남은 질문은 확률의 품질에 있다
+- ✓ 같은 판단을 반복할 때 비용은 줄어든다. 그 확률을 믿어도 되는지는 아직 확인되지 않았다
+- ✗ 확률이 한곳에 모인 것과 그 확률을 믿어도 되는 것은 다르다
+- ✓ 확률이 0.9로 몰려 있어도, 그 0.9가 실제로 열 번 중 아홉 번 맞는지는 따로 확인해야 한다
+
+**Facts laid side by side.** Three short declaratives in a row with nothing between them
+read as a list the reader has to assemble. When one follows from another, say so
+(`그래서`, `~므로`, `~는데`), and let the sentence get longer. Length is not the cost here;
+the missing joint is.
 
 ## Do not lose the content while trimming
 
