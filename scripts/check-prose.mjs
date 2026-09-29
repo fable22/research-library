@@ -17,6 +17,8 @@
 // 문장 길이 — 은 --counts 로만 나온다. 세는 것과 판단하는 것은 다른 일이고, 뒤쪽은
 // 렌즈 C 의 몫이다.
 //
+// 판단은 저자의 읽기 패스가 한다 (research-doc/SKILL.md 「Hand off」). 렌즈 C 는 구조만 본다.
+//
 // 검사 대상은 문서가 스스로 쓴 산문뿐이다. 코드와 인용은 뺀다. 무엇을 빼는지는
 // visibleProse 에 있다.
 
@@ -79,7 +81,28 @@ const DENSITY = [
   // 원문 직접 인용, 귀속 정정, 그리고 prose-ko.md 가 허용한 "독자가 쥔 틀린 답을 고치는
   // 자리". 장식적 반복과 그 셋을 정규식이 못 가른다. 세되, 판단은 렌즈 C 가 한다.
   ['`~가 아니라 ~다`', /(?<=[가-힣])(?<![만뿐])[이가]\s*아니라/g],
+  // 2026-09-29 진단에서 추가. 게이트가 세는 항목이 0 으로 내려가는 동안 세지 않던 이 셋이
+  // 10~30배 늘었다. 사람이 쓴 기술 산문에는 셋 다 거의 없다. docs/readability-diagnosis-2026-09-29.md
+  ['가운뎃점 명사연결 (A·B·C)', /[가-힣A-Za-z]·[가-힣A-Za-z]/g],
+  ['명사 사슬 (A·B·C, A의 B의 C)', /[가-힣A-Za-z]+(?:·|의\s)[가-힣A-Za-z]+(?:·|의\s)[가-힣A-Za-z]+/g],
+  ['면책 (~뜻은 아니다)', /뜻(은|이|을)?\s*(아니|않)|뜻하지(는)?\s*않|보장(은|이|을)?\s*(아니|않)|않는다는\s*뜻/g],
 ];
+
+// 사람이 쓴 한국어 기술 블로그의 중앙값. 같은 visibleProse 와 같은 정규식으로 잰 값이라
+// 위 표와 나란히 놓을 수 있다. 데브시스터즈 2019~2023 40편(LLM 이전), 토스·당근·D2·
+// 데브시스터즈 2024~2026 46편. 합쇼체·해요체가 82% 라 `것이다` 는 비교하지 않는다.
+// 측정 경위는 docs/readability-diagnosis-2026-09-29.md.
+export const HUMAN_BAND = {
+  label: ['사람 ≤2023 (40편)', '사람 2024–26 (46편)'],
+  counts: {
+    '것이다': ['-', '-'], '~들 (복수 표지)': [338, 96], '지시대명사 (그것은/이것은)': [0, 0],
+    '~에 대한/대해': [117, 27], '~를 통해': [71, 33], '~에 있어서 (동형이의 주의)': ['-', '-'],
+    '문단머리 접속사': [199, 104], '`~가 아니라 ~다`': [0, 38],
+    '가운뎃점 명사연결 (A·B·C)': [0, 0], '명사 사슬 (A·B·C, A의 B의 C)': [0, 0], '면책 (~뜻은 아니다)': [0, 0],
+  },
+  conn: [29.8, 37.7],
+  comma: [1.28, 1.59],
+};
 
 const RULES = Object.fromEntries(PATTERNS.map(([id, desc]) => [id, desc]));
 
@@ -129,9 +152,10 @@ export function checkDoc(slug, html) {
   return problems;
 }
 
-// 연결어미 뒤 쉼표. 사람이 쓴 한국어와 모델이 쓴 한국어를 가르는 가장 강한 측정 신호다.
-// 형태소 분석기 없이 어절 끝 문자열로만 재는 근사치라 절대값을 논문 수치와 나란히 놓을 수
-// 없다. 문서끼리 비교하는 용도이고, 그래서 막지 않는다.
+// 연결어미 뒤 쉼표. 사람이 쓴 한국어와 모델이 쓴 한국어를 가르는 가장 강한 측정 신호다
+// (KatFishNet). 형태소 분석기 없이 어절 끝 문자열로만 재는 근사치라 절대값을 논문 수치와
+// 나란히 놓을 수 없다. 이 근사로 사람이 쓴 기술 블로그를 재면 30~38% 가 나오고(HUMAN_BAND),
+// 비교는 그 값과 한다. 0% 도 사람 글이 아니다. 막지 않는다.
 //
 // 오탐은 `사고, 보고, 광고` 처럼 고로 끝나는 한자어 명사다. 이 코퍼스에서 실측하면 분모의
 // 2.5% 이고, 빼고 다시 재면 비율이 37.1% 에서 37.6% 로 오히려 올라간다. 분자와 분모에
@@ -151,11 +175,27 @@ export function commaAfterConnective(prose) {
   return conn ? withComma / conn * 100 : null;
 }
 
+// 슬라이드마다 접힌 첨언(details) 을 빼고 보이는 한글 수. 훑는 독자가 한 화면에서 만나는 양이다.
+export function visiblePerSlide(html) {
+  const slides = html.split(/<section\b[^>]*class="[^"]*\bslide\b/i).slice(1);
+  const ko = (s) => (visibleProse(s).match(/[가-힣]/g) || []).length;
+  const shown = slides.map((s) => ko(s.replace(/<details\b[\s\S]*?<\/details>/gi, ' ')));
+  const all = slides.map(ko);
+  const sorted = [...shown].sort((a, b) => a - b);
+  const total = all.reduce((a, b) => a + b, 0);
+  return {
+    median: sorted.length ? sorted[Math.floor(sorted.length / 2)] : 0,
+    max: sorted.length ? sorted[sorted.length - 1] : 0,
+    folded: total ? (1 - shown.reduce((a, b) => a + b, 0) / total) * 100 : 0,
+  };
+}
+
 export function densityOf(html) {
   const prose = visibleProse(html);
   const ko = (prose.match(/[가-힣]/g) || []).length;
   return {
     ko,
+    slide: visiblePerSlide(html),
     counts: DENSITY.map(([n, rx]) => [n, (prose.match(rx) || []).length]),
     conn: commaAfterConnective(prose),
     comma: ko ? (prose.match(/[,，]/g) || []).length / ko * 100 : 0,
@@ -177,8 +217,8 @@ if (argv.includes('--help') || argv.includes('-h')) {
   for (const [id, desc] of PATTERNS) {
     console.log(`  ${id.padEnd(w)}  ${desc} — 0건`);
   }
-  console.log('\n--counts 는 숫자가 붙지 않은 항목의 밀도표를 낸다. 막지 않는다.');
-  console.log('세는 것과 판단하는 것은 다른 일이고, 뒤쪽은 렌즈 C 가 한다.');
+  console.log('\n--counts 는 숫자가 붙지 않은 항목의 밀도표를 사람이 쓴 기술 블로그의 중앙값과 나란히 낸다. 막지 않는다.');
+  console.log('세는 것과 판단하는 것은 다른 일이고, 뒤쪽은 저자가 넘기기 전에 읽으면서 한다.');
   process.exit(0);
 }
 
@@ -208,15 +248,20 @@ if (!selected.length) {
 if (argv.includes('--counts')) {
   console.log('한글 10만자당 빈도. 한도가 없는 항목이라 막지 않는다.\n');
   const head = DENSITY.map(([n]) => n.slice(0, 11).padStart(12)).join('');
-  console.log(`${'문서'.padEnd(32)}${'한글자'.padStart(7)}${head}${'연결어미+쉼표%'.padStart(15)}${'쉼표%'.padStart(7)}`);
+  console.log(`${'문서'.padEnd(32)}${'한글자'.padStart(7)}${head}${'연결어미+쉼표%'.padStart(15)}${'쉼표%'.padStart(7)}${'슬라이드중앙'.padStart(9)}${'최대'.padStart(6)}${'첨언%'.padStart(6)}`);
   for (const slug of selected) {
     const d = densityOf(await readFile(join(RESEARCH_DIR, slug, 'index.html'), 'utf8'));
     const row = d.counts.map(([, n]) => (d.ko ? (n / d.ko * 100000).toFixed(0) : '-').padStart(12)).join('');
     const conn = (d.conn === null ? '-' : d.conn.toFixed(1)).padStart(15);
-    console.log(`${slug.slice(0, 31).padEnd(32)}${String(d.ko).padStart(7)}${row}${conn}${d.comma.toFixed(2).padStart(7)}`);
+    console.log(`${slug.slice(0, 31).padEnd(32)}${String(d.ko).padStart(7)}${row}${conn}${d.comma.toFixed(2).padStart(7)}${String(d.slide.median).padStart(9)}${String(d.slide.max).padStart(6)}${d.slide.folded.toFixed(0).padStart(6)}`);
   }
-  console.log('\n연결어미+쉼표: 사람이 쓴 한국어 4~13%, 모델이 쓴 한국어 16~28% (KatFishNet, ACL 2025).');
-  console.log('형태소 분석 없이 어절 끝으로 잰 근사치다. 문서끼리 비교하는 데 쓸 것.');
+  for (let i = 0; i < 2; i++) {
+    const row = DENSITY.map(([n]) => String(HUMAN_BAND.counts[n]?.[i] ?? '-').padStart(12)).join('');
+    console.log(`${HUMAN_BAND.label[i].padEnd(32)}${'-'.padStart(7)}${row}${HUMAN_BAND.conn[i].toFixed(1).padStart(15)}${HUMAN_BAND.comma[i].toFixed(2).padStart(7)}`);
+  }
+  console.log('\n아래 두 줄이 사람이 쓴 기술 블로그의 중앙값이다. 같은 방법으로 잰 것이라 위와 나란히 놓을 수 있다.');
+  console.log('밴드는 양방향이다. 사람 값보다 한참 낮은 열도 사람 글이 아니다. 어느 열이 밖인지 보고 prose-ko.md 로 간다.');
+  console.log('마지막 세 열은 슬라이드마다 첨언(details)을 접은 채 보이는 한글 수의 중앙값·최대와, 첨언으로 접힌 비율이다. 종류별 기준은 .claude/skills/research-doc/references/specimens/ 의 견본이다.');
   process.exit(0);
 }
 
@@ -236,6 +281,6 @@ if (failed) {
   console.log(`\n${failed}개 문서가 막혔다. 고치거나 --allow= 로 명시적으로 넘길 것.`);
   process.exit(1);
 }
-console.log('\n통과. 셀 수 있는 규칙만 본 것이므로 읽히는지는 렌즈 C 가 판단한다.');
+console.log('\n통과. 셀 수 있는 규칙만 본 것이다. 읽히는지는 저자가 --counts 를 열어 놓고 읽어서 판단한다.');
 
 }

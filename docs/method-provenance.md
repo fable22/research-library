@@ -28,7 +28,8 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | Connective tissue stays; the deck's rail is why elaboration is cheap here | `references/prose-ko.md` | expertise reversal, and the cell this reader is in. See the note below |
 | Count the prose rules that carry a number; leave the rest to the lens | `check-prose.mjs` | the rules were enforced in proportion to how greppable they were. See the count below |
 | `~가 아니라 ~다` is reported, not blocked | `check-prose.mjs` | the count that looked like a violation was mostly quotes and attribution. See the note below |
-| `~를 통해` is not translationese; `~들` is not noise; a comma after a connective ending is the tell | `references/prose-ko.md` | corpus measurement, against the prescriptive list the rules were built from. See the audit below |
+| `~를 통해` is not translationese; `~들` is not noise; a comma after a connective ending is a rate to hold in the human band, not a defect | `references/prose-ko.md`, `check-prose.mjs` | corpus measurement, against the prescriptive list the rules were built from. See the audit below, and the 2026-09-29 note |
+| Noun chains, disclaimer sentences and abstract-noun parallelism are the failure that replaced translationese; lens C no longer judges how sentences read | `references/prose-ko.md`, `lens-prose.md`, `research-chain.js` | measured against 86 human tech-blog posts. See the 2026-09-29 note |
 | Quotes leave the prose the gate reads, in every container the documents actually use | `check-prose.mjs`, `check-doc.mjs` | both gates said quotes were excluded and stripped only `blockquote` / `pre`+`code`. See the 2026-08-30 audit |
 | The polite register is blocked at zero | `check-prose.mjs`, `references/prose-ko.md` | the register rule had no counter, and all 13 occurrences in the corpus are quotes. See the 2026-08-30 audit |
 | No rule against ending a sentence on a noun phrase | `references/prose-ko.md`, by omission | an outside guide proposed it; measured here, the 9.8% are captions and labels. See the outside-style-guide note |
@@ -205,6 +206,49 @@ corpus, and 42.090 in translated — Korean written without translation uses it 
 [조의연 (2012)](https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART001644267)
 argues that deleting it produces mistranslation. The rule is now about where the plural is
 already carried, not about the marker.
+## What the 2026-09-29 readability diagnosis changed
+
+Full report: `readability-diagnosis-2026-09-29.md`. The short form: with the prose gate in
+place, the counted items went to zero and three uncounted ones took their place. Against 86
+human-written Korean tech-blog posts measured with the same `visibleProse`, post-gate
+documents carried ~1,300 `·` noun joins and ~380 three-noun chains per 100k Hangul (humans
+0), 19% negative-ending sentences (humans 2–3%), and a connective-comma rate of 17% where
+humans sit at 30–38% *by this counter*. The 4–13% band below is KatFishNet's morphological
+measurement and does not transfer to the eojeol approximation; the rule now holds the
+repo-measured band, in both directions.
+
+Lens C lost its prose judgment for two reasons already on this page: the ICC .091 result
+below, and Kamoi et al. (TACL 2024), who find no successful self-correction from prompted-LLM
+feedback without a reliable external signal. Numbers and quotes have that signal;
+wording does not. The fix loop in `research-chain.js` runs one round by default and opens a
+second only for findings with one correct answer.
+
+## Why the default reading mode is a continuous page (2026-09-29)
+
+`report-harness-survey-2026-09-29.md` looked at what the most-used research agents and
+report harnesses actually emit. None of the research agents emits a deck; decks come from
+presentation frameworks. Single-file HTML is common and stays. The user chose the survey's
+recommendation: the same shell now opens as a continuous page with the rail as a table of
+contents (`body[data-mode="article"]`), and deck mode is a toggle kept in localStorage.
+Documents published before 2026-09-30 embed their own copy of the shell and are unchanged.
+From that date `check-doc.mjs` requires `meta.purpose` (comparison / explainer / walkthrough)
+and an `h2` plus `.key` on every section after the cover, because the survey's second
+finding was that one chapter spine was being applied to three different reader tasks.
+
+## Why a slide folds its support (2026-09-29)
+
+The user read the rewritten Opus 5.5 document and named the remaining problem: every slide
+was a wall of sentences at one weight, so the claim and its support could not be told apart.
+Measured on that document, the tl-dr slide showed 672 Hangul characters and the densest
+slide 1,082, with a three-sentence `.dek`, stat cards carrying two or three sentences each,
+and list items of two to four sentences. Two slides were re-laid without changing a
+sentence: a one-or-two-sentence `.key` under the title, one-line stat subs, a four-line fact
+list, and the rest in `details.more`. Visible text fell to 316 and 382 characters with the
+full text still present; the user judged this the readable shape. That is the basis for the
+`.key` / `details.more` slots in `research-doc/SKILL.md`, the Fold entry in `visual.md`, and
+the per-slide visible count in `check-prose.mjs --counts`. The 300–400 figure is those two
+slides, not a corpus.
+
 ## The comma the documents all share
 
 [KatFishNet (ACL 2025)](https://aclanthology.org/2025.acl-long.1030/) measured what separates
@@ -622,3 +666,237 @@ present — a file, a field, a quote at a locator, a number inside a table — a
 closed by construction. `check-doc.mjs` is structural except for `em-dash`, which is one
 character, and `process-narration`, which is four regexes over an open class and carries the
 same caveat.
+
+
+## What the 2026-09-29 skill cleanup moved out of the skills
+
+The cleanup followed the two reviews of the same day (`harness-review-2026-09-29.md`,
+`report-harness-survey-2026-09-29.md`). Three decisions drove it: the default document is
+continuous text with a deck toggle, the reader's task depends on a document kind chosen at
+the question stage, and the author's context carries fewer simultaneous rules. What the
+skills lost in the process is recorded here, so the rules can still be audited.
+
+**Kinds.** `comparison`, `explainer` and `walkthrough` replace the single "developer deciding
+whether to adopt" reader. The trigger was `oss.md` saying the reader is deciding whether to
+adopt while `research-doc/SKILL.md` said adoption is one angle and not the test; six files
+defined the reader six ways. The survey's proposal 2 (OpenAI's brief/summary/comparison/report
+choice, LangChain's per-question structure) supplied the split: what stays common is the
+summary, the evidence and the limits, and chapter set and length follow the kind. The kind
+names come from the user's decision, and `purpose` in `meta.json` is where the lenses read
+it. The numbered spine ①–⑫ and the "⑩ rows" mentioned above are gone; chapters are named by
+eyebrow, and the coverage chapter is the `setup` chapter everywhere, because "chapter 7" was
+right for one document in 28.
+
+**Chapter, not slide.** The `.key` and `details.more` grammar of the section above now sits in
+`research-doc/SKILL.md` §The chapter grammar as the contract for a continuous document with a
+deck toggle. The class name `slide` stayed because the shell keys on it. The 300–400
+character figure was dropped from `visual.md`; it came from two chapters and the skill now
+says "a few hundred", with `--counts` printing the actual count.
+
+**Specimens that were real documents.** These were illustrations in the skill bodies and are
+recorded here so the skills carry neutral versions instead:
+- A direction reversal: a document called a table's gaps widening when they went
+  7.5/12.8/9.6 → 5.1/10.5/16.9, and built "weaker models benefit more from structure" on it.
+  It appeared in five files (`prose-ko.md`, `lens-numbers.md`, `research-verify/SKILL.md`,
+  `paper.md`, and the worked example). The skills now use invented figures.
+- A unit error: 2.5–3.9 was pages read per query, not tool calls, and a rebuttal rested on the
+  misreading. A range error: 78–84% written 84–87%, and 0.860–0.989 written 0.93–0.99.
+- An ablation that also cut the budget, so a claimed escape from a budget-asymmetry objection
+  failed because two things moved.
+- A coverage chapter claiming 23 of 65 files with four unread directories totalling 34.
+- A reading path meant to reach the ablation whose two stops both linked the conclusion, and a
+  compilation-cost gap repeated six times.
+- A stale pointer: `prose-ko.md` said that file carried a ban on metaphors and
+  inflated headings. No metaphor rule exists anywhere in the repository, and the inflated-
+  heading rule lives in `research-doc/SKILL.md`.
+- "A mature TypeScript monorepo" whose request path ran through four files of 150–250 KB each,
+  the basis for the compression-subagent rule; and a 1M-context remark that a load lands in
+  the middle where recall is worst.
+
+**Prose measurements.** The skills used to state them; the reasons are in the sections above
+and in `readability-diagnosis-2026-09-29.md`. Removed from the skill text: the human comma
+band of 30–38% and 1.3–1.6 per 100 characters (`--counts` prints the band), instruction-tuned
+models nominalizing at about twice the human rate, one sentence in five ending on a negation
+against one in forty for human technical writing, and `~를 통해` appearing about twice as
+often in untranslated Korean as in translated. The `--counts` output is now the reference for
+each figure.
+
+**Rule count.** The diagnosis counted about 99 bold instructions in the author's context
+(and about 110 with `oss.md`), against the 80 at which compliance was reported to fall.
+The cleanup merged entries that had one ✗/✓ each into one entry with several, moved
+gate-enforced rules to a sentence, gave the duplicated rules one owner (the reader in
+`research-doc/SKILL.md`, the trace scope there too, "do not list what passed" in
+`research-verify/SKILL.md`, the four number checks in `lens-numbers.md`), dropped a
+rationalizations table that repeated rules stated elsewhere, and rewrote the `X is not Y.
+Z is.` contrasts in the instructions as directives with a subject and a verb.
+
+**The claims gate.** `research-verify/SKILL.md` now states a 400-character quote cap and a
+`verdict` of `confirmed`, `unverified` or `derived`, which the code side is changing
+`check-claims.mjs` to enforce. The review measured a median quote of 297 characters in one
+document and a maximum of 2,604 in another, so a cap was the smallest change that keeps a
+quote pointing at one sentence.
+
+## Why the scaffold takes the kind
+
+Until 2026-09-29 `new-doc.mjs` laid out the same twelve chapters for every document, with
+`adopt` (도입 판단) among them, and left `purpose` as a TODO in `meta.json`. The kind was
+chosen after the chapters were already on the page. The Opus 5.5 introduction, written to
+tell a developer what changes when they move from Opus 5, ended in an eleven-row adoption
+checklist nobody had asked for; `research-doc/SKILL.md` had said since 2026-09-29 that
+adoption is one kind's task and no other's, and the scaffold contradicted it on every run.
+
+The scaffold now takes the kind as its third argument, writes it as `purpose`, and lays out
+the middle chapters that kind needs: `compare`, `cost`, `adopt` for a comparison;
+`mechanism`, `case`, `limits` for an explainer; `map`, `trace`, `change` for a walkthrough.
+There is no default kind. `research-source` picks it from the words of the ask and asks
+when they do not say. Lens A was renamed from `lens-adoption.md` to `lens-reader.md` at the
+same time, since its task had been per-kind since the 2026-09-29 rewrite and the name still
+said otherwise.
+
+## What the 2026-09-29 second pass moved out of the skills
+
+The prompt audit of the same day (`prompt-audit-2026-09-29.md`) found no text written for
+an older model, but four pairs of files that contradicted each other, rationale padding
+around rules, and reviewers with no definition of a finding. This pass rewrote the skill
+set against three specimens, one chapter per kind, now in
+`research-doc/references/specimens/`. What left the skills:
+
+**Rationale for the prose families.** `prose-ko.md` used to explain each family before its
+rules ("this family survives longest because every sentence in it is true"; "these arrive
+assembled and read as decoration"). The rules stayed as fifteen ✗/✓ entries; the
+explanations are this document and `readability-diagnosis-2026-09-29.md`. The file went
+from about 2,000 words to about 800.
+
+**The excuse table.** `research-verify/SKILL.md` carried five rows of "the excuse / why it
+fails" for skipping verification. Each row restated a rule stated elsewhere in the file,
+and a reader asked whether it helps says yes, which is not evidence. Dropped.
+
+**Four limits of the procedure as prose.** The same file asked the reporter to state four
+limits "beside the findings" in four paragraphs. They are now four fixed lines in the report
+template under `검증하지 못한 것`, filled in or marked 해당 없음, because a fixed slot gets
+filled and a paragraph of guidance gets paraphrased away.
+
+**Lens D.** The completeness critic and the reader both asked what the reader's task was
+missing. D's one distinct item was a quote that verifies while the sentence around it
+widens it, plus reading the other reports. Both moved into lens A, which now runs after B
+and C and reads their reports. One agent call fewer per run; `run.json` records it.
+
+**The chapter grammar's claim slot.** `h2` was "a claim sentence, not a noun label" and
+`.key` was "what the reader does with the claim". Documents written under that put the claim
+in the heading, restated it in `.key`, and again in the body, which is where the 53%
+framing-sentence ratio in the Sonnet 5.5 v2 document came from. Now the `h2` is a short
+heading that names the content, the claim is stated once in `.key`, and `.note` is
+optional. The 300–400 visible-character figure was replaced by the specimens, because the
+right amount differs by kind: the walkthrough specimen shows 143 visible Hangul, the
+explainer 633, the comparison 310.
+
+**Code-specific sections of `research-doc/SKILL.md`.** Compression subagents, the trace
+scope rule and "claims that reading cannot establish" moved to `oss.md`, which is loaded
+only when the corpus is a repository. The author's context for a paper no longer pays for
+them.
+
+**Two stale phrasings.** `research-source/SKILL.md` cited "PR #2943" as the sign of a cut
+history (a real repository's number) and gave "three or four spans … fifty" as span counts
+that were "not a target"; both were replaced or removed.
+
+**A quoting rule.** Anthropic's guidance for Fable 5.1 notes the model reproduces retrieved
+passages without marking them. `research-doc/SKILL.md` now has a §Quoting the source with a
+✗/✓ pair: verbatim text goes inside `.q`, `.wl` or `<cite>`, which `check-prose.mjs` already
+skipped without the author being told why.
+
+## What the first document under the rewritten skills sent back
+
+The Sonnet 5.5 migration document was written a third time on the same corpus, by the same
+model, under the rewritten skills (v3, `research/2026-09-30-claude-sonnet-5-5-migration-v3`
+on the opus worktree branch). Against v2: framing sentences 40% → 30%, negative `.note`
+endings 10/16 → 0/2, `것이다` 76 → 21 per 100k, one lens call fewer per round, 28 → 22
+minutes. The author agent reported twelve points where the skills blocked or contradicted
+it, and each became a change:
+
+- The scaffold still put "TODO 주장문" in `h2` and a `.note` placeholder in every chapter,
+  the opposite of the grammar. Placeholders now match, `.note` is absent, and `sources`
+  has no `.key` (the gate exempts it; a required `.key` on a chapter with no claim
+  produced a filler sentence).
+- `.note` was defined three ways (optional; "gather disclaimers here"; "limits go in the
+  clause"). The specimens README now says the same thing as prose-ko rule 2.
+- No corpus type fit a developer guide, so `oss` hints (file:line, commit SHA) leaked into
+  a web document. `new-doc.mjs` takes `web`, with its own hints.
+- `check-claims.mjs` matched no web quote at all; 71 of 78 claims went through on
+  `--allow=web-unchecked` although the fixed copies were on disk. It now matches quotes
+  against `notes/web/<id>.txt` (or `--web id=<path>`) and reports a hash mismatch against
+  `text_sha256` as a note rather than a block, since the copies are local.
+- Lens B read "Coverage: the setup chapter" as its scope and checked one chapter. The line
+  now says where the document states what it read, and that the review covers the whole
+  document.
+- Lens A's "missing" items and lens C's "one claim per chapter" collided: adding the
+  missing fact drew a second-claim finding, and the whole second round was that. The verify
+  skill now says a supporting fact goes into the chapter whose `.key` it supports and is
+  support, not a claim; a fact no chapter covers is a needs-judgment item.
+- `.q` in the shell was a block quote, so inline quoting needed document-local CSS; the
+  shell now styles `span.q` inline, and the specimens use it in their folds. Text tables
+  rendered right-aligned and unwrapped; `table.prose-table` in the shell fixes that.
+- The round cap ("at most two") and the order of extraction versus lenses (lenses first,
+  extract while they run) were in the workflow but not the skill. Now in the skill.
+- prose-ko rule 15 ("a summary carries its numbers") pushed the author to count items,
+  and the counts drifted after edits; the rule now says not to tally.
+
+**Figures.** The user asked why v3 carried none of the source's four benchmark charts
+(80 data points, already extracted to `notes/figures.md`). The rule existed in `visual.md`
+(redraw the source's charts; name the central figure) and the pin step wrote
+`notes/figures.md` for papers only; nothing in the spine, the specimens or the lenses
+asked for it, and the check "no figure taken from the source" was lost when lens D folded
+into A. Now: `research-source` writes `notes/figures.md` for every corpus with a chart's
+data points; `research-doc` lists it among the files to read, the `result-*` row and the
+body slot say the source's chart is redrawn rather than paraphrased; the specimens README
+says where each kind draws; lens A checks every entry of `notes/figures.md` was redrawn or
+named. v2 and v3 both have one SVG and two figures; that is the gap this closes.
+
+## What the v4 run sent back
+
+v4 (`research/2026-09-30-claude-sonnet-5-5-migration-v4`, same corpus, harness `876d4da`)
+confirmed the figures rule: the four source charts were redrawn as effort-by-cost
+scatter plots and the two tables retyped, with nothing in `notes/figures.md` left unused
+(v3 had one SVG). `check-claims.mjs` matched all 99 claims against the fixed copies with
+no `--allow`. The author reported eight remaining points; each became a change:
+
+- `notes/web/` was gitignored, so the web match worked on one machine only. `.gitignore`
+  now commits `notes/web/` and `run.json` while the rest of `notes/` stays ignored;
+  `AGENTS.md` lists both.
+- Web sources had no number check. `check-claims.mjs` now runs `numeric-match` for web
+  copies as it does for papers and repositories.
+- The scaffold wrote `category: "web"` and no `format`; it writes `note` and `article`.
+- There was no `web.md`; there is one, and the walkthrough definition no longer assumes a
+  repository.
+- `table.prose-table` still used the mono font in body cells, and `ul.facts` labels were
+  clipped at 3.2em; both fixed in the shell.
+- The rail had to be edited by hand whenever chapters changed, and the gate counted it. The
+  shell now builds the rail from the sections (`data-label` names a chapter) when the HTML
+  carries none, and `rail-count` applies only to a hand-written rail.
+- A fix that needed a chapter the document lacked was squeezed into a line and found again
+  next round, in v3 and v4 alike. The verify skill now keeps such a fix a needs-judgment
+  item.
+- Lens A captured a blank page and moved on. Lens C carries the render command and the
+  rule that a blank capture is not a checked rendering.
+
+## What the Opus 5.5 rewrite sent back
+
+The Opus 5.5 introduction was rewritten as an explainer against the user's original
+2026-09-23 request (full coverage in the article's order, per-section developer actions,
+numbers from opened sources), which the 2026-09-29 rewrite had narrowed into a migration
+walkthrough with an adoption checklist. 34 chapters, every chart and table in
+`notes/figures.md` redrawn, 183 claims matched with no `--allow`, a `reception` chapter
+from HN comments fetched through the Algolia API. Three things changed in the harness:
+
+- `notes/figures.md` is committed. Chart quotes are matched there, and an ignored file
+  meant CI could not match them; the author had appended the chart points to `w1.txt`
+  as a workaround.
+- Lens A reads the draft after B and C's must-fix items are applied, with their reports.
+  The skill had said both "fix as reports arrive" and "A reads B and C", without saying
+  which draft A sees.
+- The round cap left two one-line errors in a committed document. An item with one
+  correct answer found by the last re-check is now fixed once more and recorded under
+  `after_last_recheck`; the cap still ends rounds, not corrections.
+
+Not changed: `check-prose.mjs` does not count `그래서` as a paragraph-initial connective.
+Adding it would shift the column away from the human band it was measured against, so the
+regex and the band move together or not at all.

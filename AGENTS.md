@@ -15,7 +15,10 @@ Technical terms stay English; `.claude/skills/research-doc/references/prose-ko.m
 |---|---|---|
 | `research/<slug>/` | The publication. `index.html` and `meta.json` only | committed |
 | `.research/<slug>/` | Evidence. `sources.jsonl`, `evidence.jsonl`, `claims.jsonl` | committed |
-| `.research/<slug>/notes/` | Working artifacts, not a publication | ignored |
+| `.research/<slug>/notes/web/` | Fixed copies of web sources, `<id>.txt`; what `check-claims.mjs` matches web quotes against | committed |
+| `.research/<slug>/notes/figures.md` | The source's figures, tables and chart points, one line each; chart quotes are matched here | committed |
+| `.research/<slug>/run.json` | The verification run's record | committed |
+| `.research/<slug>/notes/` | Everything else there: working artifacts, not a publication | ignored |
 
 The two trees always use the **same directory name**. There is no mapping file, so a
 mismatch means the document and its evidence can no longer be connected. Directory names
@@ -38,9 +41,9 @@ the prose rules all live inside them. Restating any of it here means two copies 
 
 | Skill | When | Context |
 |---|---|---|
-| `research-source` | Starting research. Pinning the corpus to a portable identity | author's |
-| `research-doc` | Writing the document | the **same** author context |
-| `research-verify` | After the draft is finished | **four lenses, deliberately separate contexts** |
+| `research-source` | Starting research. Choosing the document kind, pinning the corpus to a portable identity | author's |
+| `research-doc` | Writing the document | the same author context |
+| `research-verify` | After the draft is finished | two lenses in separate contexts, then the reader lens, which also reads their reports |
 
 Do not break context between `research-source` and `research-doc`. When a claim starts to
 feel shaky mid-sentence you have to be able to reopen the source, and across a context
@@ -54,13 +57,14 @@ for it.
 `research-verify` is the opposite: always break it, for the reason that skill states at its
 top — a context re-reading its own sentences confirms what it already believes.
 
-Not being able to separate them reduces the review; the skill carries the reduced path.
-Skipping verify is not one of the options.
+When the contexts cannot be separated the review shrinks, and the skill carries the
+reduced path. Run that path and do not skip verify.
 
 ## Commands
 
 ```bash
-node scripts/new-doc.mjs <slug> <paper|oss>      # scaffold both trees
+node scripts/new-doc.mjs <slug> <paper|oss|web> <comparison|explainer|walkthrough>
+                                                 # scaffold both trees; the kind picks the chapters
 node scripts/new-doc.mjs rename <old> <new>      # move both trees together
 node scripts/check-doc.mjs research/<slug>       # gate on the publication
 node scripts/check-prose.mjs research/<slug>     # gate on the Korean prose

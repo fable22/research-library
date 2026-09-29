@@ -1,0 +1,30 @@
+<section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adopt</p>
+      <h2>도입 판단: effort 를 적고 옮긴다</h2>
+      <p class="key">Opus 5 에서 옮긴다. 다만 요청마다 effort 를 명시하고, 옮긴 뒤 같은 effort 로 비용을 다시 잰다. 원문의 40% 절감은 Opus 5 high 와 Opus 5.5 medium 을 견준 값이라 effort 가 한 단계 내려간 몫이 섞여 있다.</p>
+      <div class="tablewrap">
+        <table class="prose-table">
+          <thead><tr><th>상황</th><th>판단</th><th>근거</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>effort 를 high 이하로 고정해 돌린다</td><td>adopt</td><td>같은 effort 에서 태스크당 비용이 여섯 벤치마크 모두 32~86% 내리고 점수는 오른다</td></tr>
+            <tr><td>max 로 돌린다</td><td>assess</td><td>CursorBench +12%, GDPval +32%, AutomationBench +8% 로 Opus 5 보다 비싸진다. 자기 워크로드에서 재고 정한다</td></tr>
+            <tr><td>thinking disabled, tool_choice 강제, computer_20251124, 대화 앞부분 수정 중 하나를 쓴다</td><td>고친 뒤 adopt</td><td>넷 다 400 이다. 04~07장의 diff 대로 고치면 된다</td></tr>
+            <tr><td>보안 작업이나 ML 가속기 kernel 을 다룬다</td><td>trial</td><td>분류기가 막으면 stop_reason "refusal" 이 온다. fallback 을 붙이고 거부율을 잰 뒤 정한다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="facts">
+        <li><span class="m">$4 · $20</span><span>입력과 출력, 1M 토큰당. Opus 5 의 $5 · $25 에서 20% 인하</span></li>
+        <li><span class="m">$0.20</span><span>캐시 읽기. $0.50 에서 60% 인하로 가장 큰 항목이다</span></li>
+        <li><span class="m">medium</span><span>effort 를 적지 않은 요청의 기본값. Opus 5 는 high 였다</span></li>
+      </ul>
+      <p>되돌리기는 모델 ID 를 바꾸면 끝난다. Opus 5 는 legacy 로 남고 Opus 5.5 의 thinking 블록만 읽지 못하므로 되돌린 턴의 reasoning 은 잃는다.</p>
+      <details class="more"><summary>첨언: 원문, 계산, 되돌리기 시한</summary>
+        <p>whats-new 「Behavior differences」: <span class="q">“The default effort is <code>medium</code>. A request that omits <code>effort</code> runs at <code>medium</code>; on Claude Opus 5 it ran at <code>high</code>.”</span> 같은 문서: <span class="q">“At the same effort setting the model tends to think more per turn than Claude Opus 5, most of all at <code>xhigh</code> and <code>max</code>.”</span></p>
+        <p>절감률은 원문 차트의 점에서 1 − (Opus 5.5 비용 / Opus 5 비용) 으로 계산했고 원문에는 같은 effort 끼리의 비교가 없다. high: Terminal-Bench 4.0 $3.88 대 $10.64 (−64%), FrontierCode $1.09 대 $7.62 (−86%), CursorBench $3.97 대 $9.00 (−56%), GDPval $1.54 대 $3.03 (−49%), AutomationBench $0.70 대 $1.03 (−32%), WANDR $16.88 대 $43.49 (−61%). max: −29%, −50%, +12%, +32%, +8%, −38% 같은 순서다.</p>
+        <p>model-deprecations 문서의 retirement 하한은 Opus 5 가 2027-07-24, Opus 5.5 가 2027-09-22 다. Claude API, Claude Platform on AWS, Foundry 기준이고 Bedrock 과 Google Cloud 는 자체 일정을 따른다.</p>
+      </details>
+      <p class="note">Fable 5.1 로 갈지는 다루지 않는다. models overview 는 long-horizon agentic 작업이나 Opus 5.5 를 높은 effort 로 돌려도 부족할 때 그쪽을 권한다.</p>
+    </div>
+  </section>

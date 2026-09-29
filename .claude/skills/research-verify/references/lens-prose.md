@@ -1,156 +1,109 @@
-# Lens C — the prose auditor
+# Lens C — the structure auditor
 
-Hand this file's content to a subagent, filling in the `{...}` slots.
+Hand this file's content to a subagent, filling in the `{...}` slots. The file keeps its
+`lens-prose` name for the workflow that loads it; the lens itself audits structure.
 
 ---
 
-You audit whether this document follows the repository's writing rules. Whether the
-content is correct is another lens's job. You look only at **how it is written.**
+You audit the structure of this document: whether its parts are in place, whether its
+references resolve, and whether a reader who cannot see the figures is told what they show.
+Whether the content is correct is another lens's job. Whether the sentences read well is
+nobody's lens: the author reads for that with the counter open before handing off, and a
+context asked whether prose reads well returns its own taste as findings. Do not rewrite
+sentences. A finding is a structural defect the author has to repair; a heading you would
+have phrased differently is not one.
 
 Document: `{DOC_PATH}`
 Repo rules: `{REPO_ROOT}/AGENTS.md`
-Korean prose guide: `{REPO_ROOT}/.claude/skills/research-doc/references/prose-ko.md`
-
-Read both reference files first. The rules live there and they change over time. What
-follows is the set that gets broken most often.
-
-## Run the counter before you read
-
-```bash
-node scripts/check-prose.mjs {DOC_PATH}
-node scripts/check-prose.mjs {DOC_PATH} --counts
-```
-
-The first blocks on the rules `prose-ko.md` already gave a number to. The second prints the
-ones it did not, per 100,000 Hangul characters, and blocks nothing.
-
-Do not repeat what the first one printed; it already found those. Read the second one for
-where to look. A count is not a violation — `것이다` is the ordinary way to end a Korean
-sentence, and a document sitting well above its neighbours is a place to check whether the
-predicate could carry the sentence directly, not a defect on its own. The script has no way
-to tell those apart, which is what you are for.
-
-**No invented metaphors.** "지식베이스가 썩는다", "구조를 걸어다닌다", "어디서 점수를
-벌었는지" — say what actually happens instead. Metaphors get in the way when a reader
-tries to line the document up against the source.
-
-**No inflated headings.** "가장 중요한 표", "그림이 말하지 않는 것" → name the content:
-"ablation", "주의할 점".
-
-**Technical terms stay English.** `prose-ko.md` opens with the list. Look for forced
-Korean coinages, and for a term translated in one slide and left in English in another.
-
-**No em dashes.** Commas or separate sentences. (`check-doc.mjs` misses the `&mdash;`
-entity. An em dash inside a quote belongs to the source: report it, do not edit it.)
-
-**No process narration.** "이 자료는 소개글이 아니라 원문을 직접 읽고 정리했다", "모든
-수치는 표에서 직접 가져왔다" tell the reader nothing. **The exception is flagging a
-calculation the source did not make** — that is not process narration, it is what the
-reader needs to check the original. Do not confuse the two.
-
-**AI slop.** Apply `prose-ko.md`, which has three families.
-
-**Sweep the first family for the move, not the words.** The counter holds a handful of
-recurring forms — 흥미롭게도, 정교한, 업계에서는 — and an author who writes 인상적인 것은 or
-뛰어난 or 현업에서는 passes it untouched. Tested: the listed forms are caught, the same
-sentence in other words is not. So the count is a floor, and this family needs the same slide
-by slide pass as the other two. Do not re-report the exact strings the counter already
-printed; look for the sentence that tells the reader how to feel, or who agrees, or that a
-property is impressive.
-
-The other two families need a sweep, because every sentence in them is true and reads fine
-on its own. Go slide by slide and ask what each sentence buys the reader.
-
-- **Residue of the work** — an incidental finding from the research, sourcing narration
-  outside the coverage chapter, a parenthetical aside, visible self-correction. The coverage
-  chapter is the one place these belong. Everywhere else, name the slide and say where it
-  should move to or that it should go.
-- **Borrowed emphasis** — manufactured significance (중요한 전환점, ~을 시사한다), a
-  challenges-and-prospects close, elegant variation.
-
-Two of these have a legitimate twin and a pattern match cannot tell them apart. A statement
-of what the evidence cannot support belongs beside the claim it weakens, not in the coverage
-chapter. A closing paragraph that names a result which survives the limits is required, not
-slop. Read what the sentence is about before flagging it.
-
-These two are why this lens exists. A person reads these documents, and a true sentence
-that buys them nothing still costs them the attention they were spending on the argument.
-
-**Translated-English syntax.** Also from `prose-ko.md`: `~하는 것은 ~이다` as a default
-frame, stacked passives, pronouns Korean would drop, English-order nested relative
-clauses, `~들` on every plural, `~에 대한` / `~에 있어서` as filler, a connective opening
-every paragraph.
+Writing rules, for what the terms below mean: `{REPO_ROOT}/.claude/skills/research-doc/references/prose-ko.md`
 
 ## Structure
 
-**Is the same claim made repeatedly?** A compilation-cost gap that appears **six times**
-is one argument and five echoes. Consolidate the argument in one place and have the rest point
-there. Repetition is only visible by reading the whole document, which makes it this
-lens's particular job.
+**Is the same claim made repeatedly?** A compilation-cost gap that appears six times is one
+argument and five echoes. Consolidate it in one place and have the rest point there.
+Repetition is visible only by reading the whole document, which makes it this lens's job.
 
-**Do internal references resolve?** Does the "reading path" or an inline "as seen
-earlier" point at a slide that actually holds that content? A reading path
-claimed to point at the ablation slide while both stops linked the conclusion. When
-slide numbers shift, the links have to follow.
+**Do internal references resolve?** Does the reading path, or an inline "as seen earlier",
+point at a chapter that holds that content? When chapter numbers shift, the links have to
+follow.
 
-**Does the title say what the document is on?** Read the title alone and ask what the
-subject is. A sentence is fine when the sentence is what the subject is; what fails is a
-finding *about* the subject standing in for it. `../../research-doc/SKILL.md` states the
-rule and names every place the title is copied to — check those still agree, because no
-gate does.
+**Does the title say what the document is on?** Read the title alone and ask what the subject
+is. A sentence is fine when the sentence is what the subject is; what fails is a finding
+about the subject standing in for it. `../../research-doc/SKILL.md` states the rule and names
+every place the title is copied to. Check that those still agree, because no gate does.
 
-**Are `h2` headings claims?** This repo writes slide titles as statements, not noun
-labels — "결과 2. 단계가 많은 질문일수록 차이가 커진다". Legitimate labels exist too
-("결과 5. ablation"), so don't flag mechanically. Check that the heading names what the
-slide holds.
+**Does each `h2` name its content, and does the claim sit in `.key`?** The heading is short
+and names what the chapter holds (`thinking 끄기: disabled → between_tools`); the claim is
+stated once, in `.key`. Flag a heading that names nothing, an inflated one (`가장 중요한 표`)
+or two abstract nouns set in parallel, a `.key` with no claim in it, and a body that
+restates the `.key` instead of supporting it.
 
-**Five elements in order.** `.eyebrow` → `h2` → `.dek` (2–4 sentence lead) → body →
-`.note` (closing qualifier). Find slides that skip one or reorder.
+**Is the chapter grammar followed?** The elements and their order are in
+`../../research-doc/SKILL.md` §The chapter grammar: `.eyebrow`, `h2`, `.key` (`.dek` in older
+documents), body, `details.more`, and an optional `.note`. Find chapters that skip or
+reorder an element, and compare each against the specimen for the document's kind in
+`../../research-doc/references/specimens/`: an explainer chapter whose mechanism sits only in
+the fold, or a walkthrough chapter whose diff comes after the source's conditions, is a
+finding. A fact-list line or a fold paragraph that supports the `.key` is support, not a
+second claim; flag a second claim only when the visible text asserts something the `.key`
+does not cover.
 
-**Attribution in the limits chapter.** Are "limits the source admits" and "limits the
-author asserts" distinguished? Without a marker like "논문이 이 점을 명시한다" the
-reader cannot tell who is accountable.
+**A claim that lives only inside the fold.** Open every `details.more` and check that each
+sentence supports a claim the visible text already makes: a derivation, a source location, a
+verbatim quote, a condition. A new finding inside the fold never reaches the scanning reader.
+Name the chapter and the sentence.
 
-**Does it end on a negative?** A limits chapter that only lists problems lowers the
-document's value. If something survives the limits and transfers elsewhere, that belongs
-there too.
+**Attribution and the ending of `critique`.** Are limits the source admits distinguished from
+limits the author asserts, with a marker like "논문이 이 점을 명시한다"? Does the chapter end
+on a purely negative note when something survives the limits and transfers elsewhere?
+
+**Technical terms.** `prose-ko.md` opens with the list that stays English. Flag a term
+translated in one chapter and left in English in another; consistency is structural.
 
 ## Accessibility
 
-**Does every symbol resolve inside the document?** `references/visual.md` in `research-doc`
-sets the bar: a symbol has to be used again and to produce a prediction the prose cashes.
-Two failures are checkable without judgment — a symbol that is never defined here, and a
-reference like `식 (10)` when the document numbered no equation. Both send a developer to
-the source to read our own sentence. Name the slide and the symbol.
+**Does every symbol resolve inside the document?** `../../research-doc/references/visual.md`
+sets the bar: a symbol is used again and produces a prediction the prose cashes. Two failures
+are checkable without judgment, a symbol never defined here and a reference like `식 (10)`
+when the document numbered no equation. Both send a developer to the source to read our own
+sentence. Name the chapter and the symbol.
 
 **Does every `<svg>` `aria-label` describe the figure in prose?** A bare "그림 1" is not
-enough. For a chart with values, those values belong in the sentence. (`check-doc.mjs`
-only checks that the attribute exists; the content is your job.)
+enough, and for a chart with values those values belong in the sentence. `check-doc.mjs`
+checks only that the attribute exists, so the content is your job. Do image `alt` texts say
+what the image shows?
 
-**Do image `alt` texts say what the image shows?**
+## Rendering
+
+Open the page, because a table cut at the viewport edge or a figure that overflows is
+visible only there. With a headless Chromium on the machine:
+
+```bash
+<chrome> --headless --no-sandbox --disable-gpu --hide-scrollbars --window-size=1400,1000 \
+  --screenshot=/tmp/lens-c.png file://<absolute path to index.html>
+```
+
+Look at the capture. If it is blank, the render did not happen: say so and read the markup
+instead, and never report a blank capture as a checked rendering. `#pN` on the URL reaches
+a chapter only in deck mode; in article mode scroll with a script or read that chapter's
+markup.
 
 ## Report format
 
-Write in Korean. Do not list what passed. Do not narrate your process.
+Write in Korean, leaving out what passed.
 
 ```
-## 규칙 위반
-- 슬라이드 N: 비유 "지식베이스가 썩는다" → 무슨 일이 일어나는지 그대로 쓸 것
-- 슬라이드 N: h2 "가장 중요한 표" → 내용을 가리키는 이름으로
-
 ## 구조
-- 컴파일 비용 격차가 슬라이드 6, 9, 13, 17, 19, 21 에 반복된다. 한 자리로 모을 것
-- 슬라이드 4 의 읽기 경로가 ablation 을 가리키는데 링크는 #p21(결론)이다
+- 컴파일 비용 격차가 장 6, 9, 13, 17, 19, 21 에 반복된다. 한 자리로 모을 것
+- 장 4 의 읽기 경로가 ablation 을 가리키는데 링크는 #p21(결론)이다
+- 장 2 의 h2 가 추상명사 대구다. 이 장은 비용 감소와 확률 검증 두 가지를 담고 있다
 
 ## 접근성
-- 슬라이드 12 의 aria-label 이 "성능 비교 차트" 뿐이다. 수치를 문장으로 넣을 것
+- 장 12 의 aria-label 이 "성능 비교 차트" 뿐이다. 수치를 문장으로 넣을 것
 ```
 
 ## Do not
 
-- Do not edit the document. Find only.
-- Do not check content or numbers. Other lenses do that.
-- Do not rewrite a sentence that is already clear because you would have phrased it
-  differently. Taste is not a rule.
-- Do not recount what `check-doc.mjs` or `check-prose.mjs` already caught. Look at what
-  neither script can see.
+- Edit the document, check content or numbers, or recount what `check-doc.mjs` or
+  `check-prose.mjs` already caught.
+- Report how a sentence reads, which word it used, or where its commas are.

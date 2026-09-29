@@ -34,41 +34,72 @@ const ROOT = findRoot(dirname(fileURLToPath(import.meta.url)));
 
 // ---- 장 구성 ----
 //
-// 출발용 골격이다. 장 수는 정해져 있지 않고, eyebrow 중
-// index/tl-dr/problem/critique/conclusion/sources 만 check-doc.mjs 가 검사한다.
+// 출발용 골격이다. 장은 두 축으로 정해진다. corpus (paper|oss) 는 setup·result·critique 의
+// 힌트를, purpose (comparison|explainer|walkthrough) 는 가운데 세 장을 정한다. 도입 판단은
+// comparison 에만 있다. 다른 종류에도 넣으면 아무도 묻지 않은 질문에 답하는 장이 생긴다.
+// eyebrow 중 index/tl-dr/problem/critique/conclusion/sources 만 check-doc.mjs 가 검사한다.
 // 나머지는 내용을 가리키는 이름으로 바꿔 쓰고, 필요하면 장을 더 넣는다.
-// paper 와 oss 는 ②~⑩ 아홉 자리가 모두 다르다. 힌트 문구까지 세면 그렇다.
 
-const CHAPTERS = {
-  paper: [
-    ['index', '표지', null],
-    ['tl-dr', '요약', '무엇을 밝혔는지 두 문장 안에'],
-    ['problem', '문제 정의', '기존 방식이 무엇에서 실패하는가'],
-    ['method', '원리와 구조', '읽는 사람이 다른 사례의 동작을 예측할 수 있을 만큼'],
-    ['compare', '기존 방식과의 비교', '논문이 실제로 돌린 baseline 을 이름으로'],
-    ['trace', '사례 추적', '예시 하나가 처리되는 경로를 끝까지'],
-    ['setup', '읽은 범위', '읽은 절과 부록, 맞춘 조건과 맞추지 않은 조건'],
-    ['result', '결과', '표에서 직접'],
-    ['critique', '해석의 한계', '논문이 인정한 것과 내가 주장하는 것을 구분'],
-    ['adopt', '도입 판단', '어떤 조건에서 쓸 만한가'],
-    ['conclusion', '결론', null],
-    ['sources', '출처', null],
-  ],
-  oss: [
-    ['index', '표지', null],
-    ['tl-dr', '요약', '무엇을 하는 프로젝트인지 두 문장 안에'],
-    ['problem', '문제 정의', '이 프로젝트가 없앤 수작업'],
-    ['architecture', '구조', '패키지 경계, 무엇이 무엇과 통신하는가, 상태가 어디 있는가'],
-    ['compare', '대안과의 비교', '이게 없으면 무엇을 쓰게 되는가'],
-    ['trace', '요청 경로 추적', '한 요청의 모든 홉을 quote 와 file:line 으로'],
-    ['setup', '읽은 범위', '커밋 SHA, 읽은 파일 수, 열지 않은 디렉터리, shallow 여부'],
-    ['result', '동작', '코드가 무엇을 하는가. 자체 벤치마크는 그렇게 표시'],
-    ['critique', '해석의 한계', '읽지 않은 코드, README 와 코드의 차이'],
+const CORPORA = ['paper', 'oss', 'web'];
+const PURPOSES = ['comparison', 'explainer', 'walkthrough'];
+
+// corpus 별 힌트. web 은 안내서·소개 글·블로그처럼 커밋도 arXiv 판도 없는 페이지다.
+const H = {
+  paper: {
+    tldr: '무엇을 밝혔는지 두 문장 안에', problem: '기존 방식이 무엇에서 실패하는가',
+    compare: '논문이 실제로 돌린 baseline 을 이름으로', case: '예시 하나가 원리를 끝까지 통과하는 경로',
+    map: '구성 요소와 그 사이의 데이터 흐름', trace: '예시 하나가 처리되는 경로를 끝까지',
+    setup: '읽은 절과 부록, 맞춘 조건과 맞추지 않은 조건', result: '표와 그림에서 직접. 원문 차트는 다시 그린다',
+    critique: '논문이 인정한 것과 내가 주장하는 것을 구분',
+  },
+  oss: {
+    tldr: '무엇을 하는 프로젝트인지 두 문장 안에', problem: '이 프로젝트가 없앤 수작업',
+    compare: '이게 없으면 무엇을 쓰게 되는가', case: '요청 하나가 코드를 끝까지 통과하는 경로',
+    map: '패키지 경계, 무엇이 무엇과 통신하는가, 상태가 어디 있는가', trace: '한 요청의 모든 홉을 quote 와 file:line 으로',
+    setup: '커밋 SHA, 읽은 파일 수, 열지 않은 디렉터리, shallow 여부', result: '코드가 무엇을 하는가. 자체 벤치마크는 그렇게 표시',
+    critique: '읽지 않은 코드, README 와 코드의 차이',
+  },
+  web: {
+    tldr: '이 자료가 개발자에게 무엇을 바꾸라고 하는지 두 문장 안에', problem: '이 자료가 답하는 질문과, 답이 없을 때 개발자가 겪는 것',
+    compare: '원문이 견주는 대안을 이름으로', case: '원문의 예시 하나가 끝까지 가는 경로',
+    map: '요청·응답·기록처럼 바뀌는 층과 그 사이의 관계', trace: '한 경로를 원문의 절 제목과 인용으로 끝까지',
+    setup: '읽은 URL 과 절, retrieved_at, 고정 사본(notes/web/<id>.txt), 열지 않은 하위 문서', result: '원문의 표와 차트를 다시 그린 것. 값은 원문의 aria-label 이나 표에서',
+    critique: '원문이 말하지 않는 것과 내가 추론한 것을 구분',
+  },
+};
+
+const MIDDLE = {
+  comparison: (h) => [
+    ['compare', '대안과의 비교', h.compare],
+    ['cost', '유지 비용', '도입 뒤에도 계속 드는 것: 운영, 의존성, 되돌리기'],
     ['adopt', '도입 판단', 'adopt / trial / assess / hold 와 그 근거'],
-    ['conclusion', '결론', null],
-    ['sources', '출처', null],
+  ],
+  explainer: (h) => [
+    ['mechanism', '원리', '독자가 원 자료에 없는 사례의 동작을 예측할 수 있을 만큼'],
+    ['case', '사례 하나', h.case],
+    ['limits', '원리가 멈추는 곳', '어떤 조건에서 예측이 빗나가는가'],
+  ],
+  walkthrough: (h) => [
+    ['map', '구조', h.map],
+    ['trace', '경로 추적', h.trace],
+    ['change', '바꿀 자리', '확장하거나 고치면 어디가 닿는가'],
   ],
 };
+
+function chaptersFor(corpus, purpose) {
+  const h = H[corpus];
+  return [
+    ['index', '표지', null],
+    ['tl-dr', '요약', h.tldr],
+    ['problem', '문제 정의', h.problem],
+    ...MIDDLE[purpose](h),
+    ['setup', '읽은 범위', h.setup],
+    ['result', '결과', h.result],
+    ['critique', '해석의 한계', h.critique],
+    ['conclusion', '결론', null],
+    ['sources', '출처', null],
+  ];
+}
 
 const pad2 = (n) => String(n).padStart(2, '0');
 const esc = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -77,7 +108,7 @@ function buildRail(chapters) {
   const out = [];
   chapters.forEach(([, label], i) => {
     // 표지+요약, 본문, 마무리 사이에 구분선을 넣는다
-    if (i === 2 || i === chapters.length - 4) out.push('    <div class="rail-sep"></div>');
+    if (i === 2 || chapters[i][0] === 'critique') out.push('    <div class="rail-sep"></div>');
     out.push(`    <button class="rail-item" data-go="${i}"><span class="n">${pad2(i + 1)}</span><span>${esc(label)}</span></button>`);
   });
   return out.join('\n');
@@ -86,17 +117,26 @@ function buildRail(chapters) {
 function buildSlides(chapters, { title, summary }) {
   return chapters.map(([eyebrow, label, hint], i) => {
     const active = i === 0 ? ' data-active="true"' : '';
+    // h2 는 짧은 제목, 주장은 .key 한 곳. .note 는 선택이라 골격에 넣지 않는다.
+    // sources 장은 주장이 없어 .key 도 없다 (check-doc 의 section-grammar 가 예외로 둔다).
     const head = i === 0
       ? `      <h1>${esc(title)}</h1>\n      <p class="dek">${esc(summary)}</p>`
-      : `      <h2>${esc(label)}. TODO 주장문으로 바꿀 것</h2>\n      <p class="dek">TODO 2~4문장. ${esc(hint || '')}</p>`;
+      : eyebrow === 'sources'
+        ? `      <h2>${esc(label)}</h2>`
+        : `      <h2>${esc(label)}: TODO 짧은 제목</h2>\n      <p class="key">TODO 이 장의 주장 한두 문장, 성립 조건과 함께. ${esc(hint || '')}</p>`;
+    const body = eyebrow === 'sources'
+      ? ['      <p>TODO 출처 목록. sources.jsonl 의 id 마다 한 줄</p>']
+      : [
+        '      <p>TODO 본문. 그림, diff, 표, 항목마다 한 줄인 사실 목록, 또는 짧은 문단. 원문에 차트·표가 있으면 그것을 다시 그린다</p>',
+        '      <details class="more"><summary>첨언</summary><p>TODO 원문 인용(.q 안에), 계산 과정, 원문 위치, 조건. 새 주장은 여기 못 들어간다</p></details>',
+      ];
     return [
       `  <!-- ${pad2(i + 1)} -->`,
-      `  <section class="slide"${active}>`,
+      `  <section class="slide"${active} data-label="${esc(label)}">`,
       '    <div class="slide-inner">',
       `      <p class="eyebrow">${eyebrow}</p>`,
       head,
-      '      <p>TODO 본문</p>',
-      '      <p class="note">TODO 이 장이 다루지 않는 것</p>',
+      ...body,
       '    </div>',
       '  </section>',
     ].join('\n');
@@ -129,9 +169,13 @@ async function nextSeq() {
   return max + 1;
 }
 
-async function create(slug, kind, opts) {
-  if (!CHAPTERS[kind]) {
-    console.error(`유형은 paper 또는 oss 다: ${kind}`);
+async function create(slug, corpus, purpose, opts) {
+  if (!CORPORA.includes(corpus)) {
+    console.error(`corpus 는 ${CORPORA.join(' / ')} 중 하나다: ${corpus}`);
+    process.exit(2);
+  }
+  if (!PURPOSES.includes(purpose)) {
+    console.error(`종류는 ${PURPOSES.join(' / ')} 중 하나다: ${purpose}. 조사를 시킨 말에서 고른다. 기본값은 없다`);
     process.exit(2);
   }
   const m = /^(\d{4}-\d{2}-\d{2})-([a-z0-9-]+)$/.exec(slug);
@@ -150,7 +194,7 @@ async function create(slug, kind, opts) {
 
   const title = opts.title || `TODO 제목 (${slug})`;
   const summary = opts.summary || 'TODO 목록에 표시될 한 줄 설명';
-  const chapters = CHAPTERS[kind];
+  const chapters = chaptersFor(corpus, purpose);
 
   const shell = await readFile(join(ROOT, 'assets', 'deck-shell.html'), 'utf8');
   const html = shell
@@ -158,7 +202,7 @@ async function create(slug, kind, opts) {
     .replace(/\{\{SUMMARY\}\}/g, esc(summary))
     .replace(/\{\{SLUG\}\}/g, slug)
     .replace(/\{\{COUNT\}\}/g, pad2(chapters.length))
-    .replace('{{RAIL}}', buildRail(chapters))
+    .replace('{{RAIL}}', '    <!-- 목차는 셸 스크립트가 장에서 만든다. 장의 data-label 이 목차 이름이다 -->')
     .replace('{{SLIDES}}', buildSlides(chapters, { title, summary }));
 
   await mkdir(docDir, { recursive: true });
@@ -170,29 +214,37 @@ async function create(slug, kind, opts) {
     seq,
     summary,
     // 새 값을 쓰면 build-index.mjs 의 CATEGORY_LABEL 에도 넣어야 한다. 없으면 라벨 없이 나간다.
-    category: kind,
+    // web corpus 는 목록 라벨상 note 다. build-index 의 CATEGORY_LABEL 에 있는 값만 라벨이 붙는다.
+    category: corpus === 'web' ? 'note' : corpus,
+    format: 'article',
+    purpose,
   }, null, 2) + '\n');
 
-  await mkdir(join(workDir, 'notes'), { recursive: true });
+  await mkdir(join(workDir, 'notes', corpus === 'web' ? 'web' : ''), { recursive: true });
   await writeFile(join(workDir, 'sources.jsonl'),
     '// 조사 대상을 이식 가능한 신원으로 고정한다. 로컬 경로는 적지 않는다.\n' +
-    (kind === 'paper'
+    (corpus === 'paper'
       // text_sha256 은 필수다. pin-paper.mjs <id> <version> 이 낸다.
       ? '// {"id":"p1","kind":"paper","arxiv_id":"2605.25480","version":"v1","text_sha256":"<pin-paper.mjs 가 낸 64자>","sections_read":["1-7","A"]}\n'
-      : '// {"id":"r1","kind":"repo","repo":"owner/name","commit":"019ee16","shallow":true,"history_available":false}\n'));
+      : corpus === 'web'
+        // 읽은 텍스트를 notes/web/<id>.txt 로 남긴다. check-claims 가 그 사본과 quote 를 대조한다.
+        ? '// {"id":"w1","kind":"web","url":"https://…","retrieved_at":"2026-01-01T00:00:00Z","archive_url":null,"text_sha256":"<notes/web/w1.txt 의 sha256>"}\n'
+        : '// {"id":"r1","kind":"repo","repo":"owner/name","commit":"019ee16","shallow":true,"history_available":false}\n'));
   await writeFile(join(workDir, 'evidence.jsonl'),
     '// 소스를 연 채로 인용을 적는다. 요약이 아니라 원문과 그 위치다.\n' +
     '// 여기가 비어 있으면 산문을 시작하지 않는다.\n' +
-    (kind === 'paper'
+    (corpus === 'paper'
       ? '// {"id":"e1","source":"p1","locator":"§6.1 (sections/experiment.tex:123)","quote":"40자 이상 원문 그대로","why":"이 인용이 무엇을 위한 것인지 한 줄"}\n'
-      : '// {"id":"e1","source":"r1","locator":"src/registry.py:427","quote":"40자 이상 원문 그대로","why":"이 인용이 무엇을 위한 것인지 한 줄"}\n'));
+      : corpus === 'web'
+        ? '// {"id":"e1","source":"w1","locator":"§Behavior differences","quote":"40자 이상 원문 그대로","why":"이 인용이 무엇을 위한 것인지 한 줄"}\n'
+        : '// {"id":"e1","source":"r1","locator":"src/registry.py:427","quote":"40자 이상 원문 그대로","why":"이 인용이 무엇을 위한 것인지 한 줄"}\n'));
   await writeFile(join(workDir, 'claims.jsonl'),
     '// 초고가 나온 뒤 실린 문장에서 추출한다. 조사 단계에서 미리 쓰지 않는다.\n');
 
   console.log(`research/${slug}/          index.html, meta.json (seq ${seq})`);
   console.log(`.research/${slug}/         sources.jsonl, evidence.jsonl, claims.jsonl, notes/`);
-  console.log(`\n출발용 ${chapters.length}장 (${kind}). eyebrow 는 내용을 가리키는 이름으로 바꾸고, 장은 필요한 만큼 늘린다.`);
-  console.log('읽은 범위는 조사를 마친 뒤 ⑦장에 직접 적는다.');
+  console.log(`\n출발용 ${chapters.length}장 (${corpus}, ${purpose}). eyebrow 는 내용을 가리키는 이름으로 바꾸고, 장은 필요한 만큼 늘린다.`);
+  console.log(`읽은 범위는 조사를 마친 뒤 ${chapters.findIndex((c) => c[0] === 'setup') + 1}장에 직접 적는다.`);
 }
 
 // ---- rename ----
@@ -255,11 +307,13 @@ const argv = process.argv.slice(2);
 
 if (!argv.length || argv.includes('--help') || argv.includes('-h')) {
   console.log('사용법:');
-  console.log('  node scripts/new-doc.mjs <YYYY-MM-DD-slug> <paper|oss> [옵션]');
+  console.log('  node scripts/new-doc.mjs <YYYY-MM-DD-slug> <paper|oss|web> <comparison|explainer|walkthrough> [옵션]');
   console.log('  node scripts/new-doc.mjs rename <old-slug> <new-slug>\n');
   console.log('옵션:');
   console.log('  --title <제목>       meta.json 과 표지에 들어간다');
   console.log('  --summary <설명>     목록과 og:description 에 들어간다\n');
+  console.log('종류는 조사를 시킨 말에서 고른다. 쓸지 정하는 조사는 comparison, 원리를 설명하는 조사는 explainer,');
+  console.log('고치거나 옮기는 조사는 walkthrough. 도입 판단 장은 comparison 에만 들어간다.\n');
   console.log('만드는 것:');
   console.log('  research/<slug>/     index.html (출발용 골격), meta.json');
   console.log('  .research/<slug>/    sources.jsonl, evidence.jsonl, claims.jsonl, notes/\n');
@@ -282,9 +336,9 @@ if (argv[0] === 'rename') {
     else if (argv[i] === '--summary' && argv[i + 1]) opts.summary = argv[++i];
     else if (!argv[i].startsWith('-')) positional.push(argv[i]);
   }
-  if (positional.length < 2) {
-    console.error('사용법: node scripts/new-doc.mjs <YYYY-MM-DD-slug> <paper|oss>');
+  if (positional.length < 3) {
+    console.error('사용법: node scripts/new-doc.mjs <YYYY-MM-DD-slug> <paper|oss|web> <comparison|explainer|walkthrough>');
     process.exit(2);
   }
-  await create(positional[0], positional[1], opts);
+  await create(positional[0], positional[1], positional[2], opts);
 }

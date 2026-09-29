@@ -57,7 +57,7 @@ const RULES = {
   'img-alt': '모든 <img> 에 alt 텍스트가 있는가',
   'tag-balance': '태그가 균형 잡혀 있는가',
   'dup-script': '<script> 블록이 하나뿐인가',
-  'rail-count': '.rail-item 수와 .slide 수가 같은가',
+  'rail-count': '.rail-item 이 손으로 있으면 .slide 수와 같은가 (없으면 셸이 장에서 만든다)',
   'anchor-range': '#pN 앵커가 대상 문서의 슬라이드 수 안인가',
   'lineage-link': '../<slug>/ 링크가 실제로 존재하는 디렉터리인가',
   'series-backlink': '같은 series 문서끼리 서로 링크하는가',
@@ -66,7 +66,14 @@ const RULES = {
   'stat-sub': '모든 .stat 에 .sub 가 있는가 (단독 숫자 금지)',
   'em-dash': '본문에 em dash 가 없는가',
   'process-narration': '문서를 어떻게 만들었는지 쓰지 않았는가',
+  'meta-purpose': `meta.json 의 purpose 가 ${'comparison / explainer / walkthrough'} 중 하나인가 (${'2026-09-30'} 이후 문서)`,
+  'section-grammar': '표지 뒤 모든 장에 h2 와 .key 가 있는가 (sources 장은 .key 없이 된다. 2026-09-30 이후 문서. .dek 는 그 전 문서의 이름)',
 };
+
+// 장 문법과 purpose 는 2026-09-30 부터 쓴 문서에만 요구한다. 그 전 28편은 .dek 와 무목적으로
+// 발행됐고, 다시 쓰지 않는 한 그대로 둔다.
+const NEW_GRAMMAR_FROM = '2026-09-30';
+const PURPOSES = ['comparison', 'explainer', 'walkthrough'];
 
 // 제목은 목록에서 한 줄로 읽힌다. 라이브러리나 시스템 이름이 없으면 무엇에 관한
 // 문서인지 열어보기 전에는 알 수 없다. slug 에 이미 대상 이름이 들어 있으므로
@@ -178,6 +185,9 @@ function checkDoc(doc, byslug) {
       }
     }
     if (!meta.summary) add('meta-summary', 'meta.json 에 summary 없음');
+    if (meta.date >= NEW_GRAMMAR_FROM && !PURPOSES.includes(meta.purpose)) {
+      add('meta-purpose', `purpose 가 ${PURPOSES.join(' / ')} 중 하나가 아니다: ${JSON.stringify(meta.purpose)}. 독자가 이 문서로 무엇을 하는지가 장 구성을 정한다`);
+    }
 
     if (meta.title) {
       const want = subjectTokens(doc.slug);
@@ -237,7 +247,7 @@ function checkDoc(doc, byslug) {
   if (scripts.length > 1) {
     add('dup-script', `<script> 블록이 ${scripts.length}개다 (${scripts.map((m) => lineOf(html, m.index) + '행').join(', ')}). 덱 스크립트는 하나여야 한다`);
   }
-  if (doc.slideCount !== doc.railCount) {
+  if (doc.railCount && doc.slideCount !== doc.railCount) {
     add('rail-count', `.slide ${doc.slideCount}개인데 .rail-item 은 ${doc.railCount}개다`);
   }
 
@@ -278,6 +288,17 @@ function checkDoc(doc, byslug) {
   const missing = REQUIRED_EYEBROWS.filter((e) => !eyebrows.has(e));
   if (missing.length) {
     add('eyebrow-set', `필수 eyebrow 누락: ${missing.join(', ')}`);
+  }
+  if (meta?.date >= NEW_GRAMMAR_FROM) {
+    const sections = html.split(/<section\s+class="slide\b/).slice(2);   // 표지는 h1 과 요약이라 뺀다
+    sections.forEach((s, k) => {
+      const lacks = [];
+      if (!/<h2\b/.test(s)) lacks.push('h2');
+      // sources 장은 주장이 없어 .key 를 요구하지 않는다. 요구하면 채우기용 문장이 생긴다.
+      const isSources = /<p class="eyebrow">\s*sources\s*</.test(s);
+      if (!isSources && !/class="key"/.test(s)) lacks.push('.key');
+      if (lacks.length) add('section-grammar', `${k + 2}장에 ${lacks.join(', ')} 가 없다. 제목 아래 핵심 한두 문장이 있어야 훑는 독자가 주장을 만난다`);
+    });
   }
 
   for (const m of html.matchAll(/<svg\b[^>]*>/gi)) {
