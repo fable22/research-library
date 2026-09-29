@@ -1,0 +1,1285 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Sonnet 5.5 이전 안내: Sonnet 5 코드에서 바꿀 곳</title>
+<meta name="description" content="Sonnet 5 요청 코드에서 모델 ID 만 바꾸면 400 을 받는 다섯 곳, 조용히 달라지는 thinking 표시와 effort 비용, 그리고 다시 재야 할 것">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Claude Sonnet 5.5 이전 안내: Sonnet 5 코드에서 바꿀 곳">
+<meta property="og:description" content="Sonnet 5 요청 코드에서 모델 ID 만 바꾸면 400 을 받는 다섯 곳, 조용히 달라지는 thinking 표시와 effort 비용, 그리고 다시 재야 할 것">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-09-30-claude-sonnet-5-5-migration-v4/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+/* 문장 안의 짧은 인용. 블록 인용 .q 와 같은 class 라 check-prose 가 둘 다 건너뛴다 */
+span.q { display: inline; font: inherit; font-style: normal; color: var(--ink-2); border: 0; padding: 0; margin: 0; max-width: none; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+/* 핵심 한두 문장. 제목 아래에서 독자가 이 주장으로 무엇을 하는지 말한다. */
+.key { font-size: clamp(15px, 1.5vw, 17px); font-weight: 600; line-height: 1.55; color: var(--ink); margin: 0 0 22px; padding-left: 12px; border-left: 4px solid var(--link); max-width: 70ch; text-wrap: pretty; }
+/* 첨언. 계산 과정, 원문 문단 위치, 인용 원문, 조건의 세부. 기본은 접힘. */
+details.more { margin: 0 0 22px; border: 1px solid var(--rule); border-radius: 10px; padding: 8px 14px; background: var(--card); color: var(--ink-2); font-size: 14px; }
+details.more summary { cursor: pointer; font-weight: 600; color: var(--muted); font-size: 13px; }
+details.more[open] summary { margin-bottom: 6px; }
+details.more p { margin: 8px 0; }
+/* 한 줄짜리 사실 목록. 항목마다 한 줄이 넘으면 첨언으로 보낸다. */
+ul.facts { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 8px; }
+ul.facts li { display: grid; grid-template-columns: 3.2em 1fr; gap: 10px; font-size: 14.5px; color: var(--ink); line-height: 1.5; }
+ul.facts li .m { font-size: 12px; color: var(--muted); padding-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); margin: 0 0 18px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+/* 글이 든 표: 독자 상황별 표, 판단 표. 숫자 표의 오른쪽 정렬·줄바꿈 금지를 푼다 */
+table.prose-table th, table.prose-table td { text-align: left; white-space: normal; vertical-align: top; line-height: 1.5; font-size: 13.5px; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+/* ── article: 기본 읽기 방식. 장을 이어서 스크롤로 읽고 rail 은 목차가 된다. 덱은 토글. ── */
+body[data-mode="article"] .deck { position: static; inset: auto; min-height: 100vh; }
+body[data-mode="article"] .rail { position: sticky; top: 0; height: 100vh; box-sizing: border-box; }
+body[data-mode="article"] .stage { overflow: visible; }
+body[data-mode="article"] .slide {
+  position: static; inset: auto; opacity: 1; visibility: visible; transform: none; transition: none;
+  overflow: visible; padding-bottom: 40px; border-bottom: 1px solid var(--rule); scroll-margin-top: 8px;
+}
+body[data-mode="article"] .slide:last-child { border-bottom: 0; padding-bottom: 96px; }
+body[data-mode="article"] .hud { position: fixed; }
+body[data-mode="article"] #prev, body[data-mode="article"] #next, body[data-mode="article"] .hint { display: none; }
+
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+/* ── 이 문서: score 대 cost 산점도, 사실 목록 폭 ─────────── */
+ul.facts li { grid-template-columns: 4.4em 1fr; }
+svg.chart.sc { min-width: 360px; }
+svg .ln.dash { stroke-dasharray: 5 4; }
+svg .dot.hollow { fill: var(--card); stroke: var(--neutral-bar); stroke-width: 1.5; }
+svg .pt { font-size: 10px; }
+.legend i.sd { background: none; height: 0; width: 14px; border-top: 2px dashed var(--neutral-bar); border-radius: 0; }
+.figure .g2 .fig-sub { margin: 8px 0 4px; }
+.tablewrap + .tablewrap, details.more .tablewrap { margin-top: 8px; }
+table.prose-table tbody td { font-family: var(--sans); }
+table.prose-table td code { font-family: var(--mono); }
+</style>
+</head>
+<body data-mode="article">
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>지도</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>모델 ID</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>thinking 끄기</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>tool_choice</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>computer use</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>advisor</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>effort</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>캐시</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>사이 메모</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>거절</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>기록 편집</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>모델, 계정 이동</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>결과: 비용</span></button>
+    <button class="rail-item" data-go="17"><span class="n">18</span><span>결과: 점수표</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="18"><span class="n">19</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="19"><span class="n">20</span><span>결론</span></button>
+    <button class="rail-item" data-go="20"><span class="n">21</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>Claude Sonnet 5.5 이전 안내: Sonnet 5 코드에서 바꿀 곳</h1>
+      <p class="dek">Sonnet 5 요청 코드에서 모델 ID 만 바꾸면 400 을 받는 다섯 곳, 조용히 달라지는 thinking 표시와 effort 비용, 그리고 다시 재야 할 것</p>
+      <ul class="clean">
+        <li><span class="m">→</span><span><a class="xref" href="#p2">02 요약</a>에서 바꿀 곳 전체를 보고, <a class="xref" href="#p4">04 지도</a>에서 각 변경이 요청 한 바퀴의 어느 구간에 닿는지 본다.</span></li>
+        <li><span class="m">→</span><span>05~15장은 요청을 조립하는 순서, 응답을 읽는 순서, 기록을 되돌려 보내는 순서로 놓였다. 자기 코드에 해당하는 장만 읽어도 된다.</span></li>
+        <li><span class="m">→</span><span><a class="xref" href="#p17">17</a>, <a class="xref" href="#p18">18장</a>은 발표 글의 차트 넷과 표 둘을 다시 그렸고, effort 를 고를 때 쓴다.</span></li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약: 400 이 나는 곳과 조용히 바뀌는 곳</h2>
+      <p class="key">Sonnet 5 요청에서 모델 ID 만 바꾸면 thinking 의 <code>disabled</code>, 강제 <code>tool_choice</code>, <code>computer_20251124</code>, Sonnet 5 advisor, 앞부분을 고친 대화 기록이 400 을 받는다. 요청이 성공해도 tool call 사이 메모는 빈 thinking 블록으로 오고, effort 는 이름이 같아도 비용이 달라서 발표 글의 네 벤치마크 모두에서 max 의 작업당 비용이 Sonnet 5 max 보다 높다.</p>
+      <ul class="facts">
+        <li><span class="m">400</span><span><code>thinking: {"type": "disabled"}</code> → <code>between_tools</code> (<a class="xref" href="#p6">06</a>)</span></li>
+        <li><span class="m">400</span><span><code>tool_choice</code> 의 <code>any</code>, <code>tool</code> → <code>auto</code> 와 <code>strict: true</code> (<a class="xref" href="#p7">07</a>)</span></li>
+        <li><span class="m">400</span><span>Claude API, Google Cloud 의 <code>computer_20251124</code> → <code>computer_toolset_20260801</code> (<a class="xref" href="#p8">08</a>)</span></li>
+        <li><span class="m">400</span><span>Sonnet 5, Opus 4.8, Opus 4.7 advisor (<a class="xref" href="#p9">09</a>)</span></li>
+        <li><span class="m">400</span><span>2026-08-31 이후 만든 계정에서, thinking 블록 앞의 기록을 고치고 다시 보낸 요청 (<a class="xref" href="#p14">14</a>)</span></li>
+        <li><span class="m">200</span><span>tool call 사이 메모가 기본 <code>display</code> 에서 빈 thinking 블록으로 온다 (<a class="xref" href="#p12">12</a>)</span></li>
+        <li><span class="m">200</span><span>거절 부류가 다섯으로 늘었고, server-side fallback 은 그중 둘만 Sonnet 5 로 다시 보낸다 (<a class="xref" href="#p13">13</a>)</span></li>
+        <li><span class="m">200</span><span>Sonnet 5.5 thinking 블록을 다른 모델이나 다른 계정으로 보내면 API 가 그 블록을 버린다 (<a class="xref" href="#p15">15</a>)</span></li>
+        <li><span class="m">캐시</span><span>effort 를 메시지 단위로 바꾸면 캐시가 남고, 최소 캐시 길이는 512 토큰으로 줄었다 (<a class="xref" href="#p11">11</a>)</span></li>
+        <li><span class="m">비용</span><span>effort 를 다시 재고 max 는 평가에서 이득이 보일 때만 쓴다. AA-Briefcase 는 기본값 high 에서도 Sonnet 5 보다 비싸다 (<a class="xref" href="#p10">10</a>, <a class="xref" href="#p17">17</a>)</span></li>
+      </ul>
+      <p>400 과 200 은 migration guide 와 What's new 의 서술이고, 요청을 보내 재현한 결과는 아니다. between_tools 와 adaptive 가 답의 품질에서 얼마나 다른지 잰 수치는 corpus 에 없다.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>문제: 모델 ID 한 줄의 교체</h2>
+      <p class="key">Messages API 코드는 모델 ID 만 바꿔서는 옮겨지지 않는다. 다섯 곳은 요청이 400 으로 멈추지만, tool call 사이 메모, 거절, 다른 모델로 옮긴 thinking 블록, effort 비용은 요청이 성공한 채로 달라져서 테스트를 통과한 뒤에 발견된다.</p>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>바뀌는 것</th><th>드러나는 방식</th><th>찾는 방법</th></tr></thead>
+        <tbody>
+          <tr><td>thinking, tool_choice, computer use, advisor 설정</td><td>첫 요청에서 400</td><td>한 번 호출해 보면 난다</td></tr>
+          <tr><td>대화 기록의 편집</td><td>편집한 다음 요청에서 400</td><td>기록을 고치는 코드 경로를 찾아야 난다</td></tr>
+          <tr><td>tool call 사이 메모</td><td>200, 화면이 조용해진다</td><td>응답의 블록 type 을 세어야 보인다</td></tr>
+          <tr><td>거절 부류와 fallback</td><td>200, <code>stop_reason: "refusal"</code></td><td>stop_reason 을 세어야 보인다</td></tr>
+          <tr><td>다른 모델, 다른 계정으로 옮긴 thinking 블록</td><td>200, 블록이 버려진다</td><td>beta 헤더의 input_transformations 를 봐야 보인다</td></tr>
+          <tr><td>effort 단계의 비용</td><td>200, 청구액이 달라진다</td><td>같은 평가를 단계별로 다시 돌려야 보인다</td></tr>
+        </tbody>
+      </table></div>
+      <p>Claude Managed Agents 위에서 도는 코드는 모델 이름만 바꾸면 되고, 아래 장들은 Messages API 를 직접 부르는 코드의 이야기다.</p>
+      <details class="more"><summary>첨언: 원문의 분류와 적용 범위</summary>
+        <p>What's new 첫 문단: <span class="q">“Five breaking changes affect code already running on Claude Sonnet 5”</span>, 그리고 <span class="q">“One more change alters the response shape without failing any request: text between tool calls comes back in thinking blocks.”</span> effort 는 같은 문서의 Behavior differences 절에 <span class="q">“Effort levels are recalibrated.”</span> 로 있다.</p>
+        <p>migration guide 는 Messages API 코드가 대상이다. Claude Managed Agents 는 <span class="q">“no changes beyond updating the model name are required.”</span></p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">map</p>
+      <h2>지도: 요청 한 바퀴의 네 구간</h2>
+      <p class="key">바꿀 곳은 요청을 조립하는 구간과 기록을 되돌려 보내는 구간에 있고, 400 은 모두 API 검사 구간에서 난다. 기록 편집(14장)만은 원인이 되돌려 보내는 구간에 있어서 편집한 다음 턴에야 400 이 난다.</p>
+      <figure class="figure">
+        <p class="fig-title">400 의 원인은 ① 과 ④ 에 있고, 드러나는 곳은 ② 다</p>
+        <p class="fig-sub">tool 을 쓰는 클라이언트의 요청 한 바퀴. 원문에 없는 그림이고, 장을 배치하려고 이 문서가 그렸다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 900 240" role="img" aria-label="요청 한 바퀴의 네 구간. ① 요청 조립에서 model, thinking, effort, tools 를 정하고(05~11장), ② API 검사로 간다. 400 은 여기서 난다. 통과하면 ③ 응답 읽기에서 content 블록을 type 으로 나누고 stop_reason 을 본다(12, 13장). ④ 기록 되돌리기에서 assistant 턴을 thinking 블록째 기록에 붙인다(14, 15장). ④ 에서 ① 로 돌아가는 화살표가 아래에 있고, 다음 요청의 기록이 ② 에서 다시 검사된다.">
+          <rect class="box" x="10" y="30" width="196" height="100" rx="8"/>
+          <text class="txt" x="24" y="56">① 요청 조립</text>
+          <text class="txt-s" x="24" y="78">model, thinking, effort,</text>
+          <text class="txt-s" x="24" y="94">tools, tool_choice</text>
+          <text class="txt-s" x="24" y="118">05 06 07 08 09 10 11장</text>
+          <path class="arw" d="M206 80 L238 80"/><path class="arw" d="M231 75 L238 80 L231 85"/>
+          <rect class="box-hi" x="238" y="30" width="196" height="100" rx="8"/>
+          <text class="txt" x="252" y="56">② API 검사</text>
+          <text class="txt-s" x="252" y="78">400 invalid_request_error</text>
+          <text class="txt-s" x="252" y="94">는 모두 여기서 난다</text>
+          <path class="arw" d="M434 80 L466 80"/><path class="arw" d="M459 75 L466 80 L459 85"/>
+          <rect class="box" x="466" y="30" width="196" height="100" rx="8"/>
+          <text class="txt" x="480" y="56">③ 응답 읽기</text>
+          <text class="txt-s" x="480" y="78">content 블록을 type 으로,</text>
+          <text class="txt-s" x="480" y="94">stop_reason 으로 나눈다</text>
+          <text class="txt-s" x="480" y="118">12 13장</text>
+          <path class="arw" d="M662 80 L694 80"/><path class="arw" d="M687 75 L694 80 L687 85"/>
+          <rect class="box" x="694" y="30" width="196" height="100" rx="8"/>
+          <text class="txt" x="708" y="56">④ 기록 되돌리기</text>
+          <text class="txt-s" x="708" y="78">assistant 턴을 thinking</text>
+          <text class="txt-s" x="708" y="94">블록째 기록에 붙인다</text>
+          <text class="txt-s" x="708" y="118">14 15장</text>
+          <path class="arw" d="M792 130 L792 190 L108 190 L108 136"/><path class="arw" d="M103 143 L108 136 L113 143"/>
+          <text class="txt-s" x="450" y="212" text-anchor="middle">다음 요청. 고친 기록은 ② 에서 400 이 된다 (14장)</text>
+        </svg>
+        </div>
+        <figcaption>tool 을 쓰지 않는 요청은 ③ 에서 끝나고 ④ 의 되돌리기가 대화의 다음 턴에만 있다. 13장의 server-side fallback 은 ② 뒤에서 API 가 Sonnet 5 로 다시 보내는 경로라 이 그림에 넣지 않았다.</figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">model-id</p>
+      <h2>모델 ID: claude-sonnet-5 → claude-sonnet-5-5</h2>
+      <p class="key">새 ID 는 날짜 접미사가 없는 <code>claude-sonnet-5-5</code> 다. Amazon Bedrock 만 <code>anthropic.claude-sonnet-5-5</code> 를 쓴다.</p>
+      <pre><span class="r">- model = "claude-sonnet-5"</span>
+<span class="k">+ model = "claude-sonnet-5-5"</span>      <span class="c"># Bedrock: "anthropic.claude-sonnet-5-5"</span></pre>
+      <ul class="facts">
+        <li><span class="m">같음</span><span>Claude API, Claude Platform on AWS, Google Cloud, Microsoft Foundry 는 <code>claude-sonnet-5-5</code></span></li>
+        <li><span class="m">다름</span><span>Claude in Amazon Bedrock 은 <code>anthropic.claude-sonnet-5-5</code></span></li>
+      </ul>
+      <details class="more"><summary>첨언: 원문 문장</summary>
+        <p>migration guide 「Migrating to Claude Sonnet 5.5 from Claude Sonnet 5」: <span class="q">“Replace your model ID with <code>claude-sonnet-5-5</code>, which has no date suffix.”</span> 플랫폼별 ID 는 What's new 의 Availability 절에 있다.</p>
+      </details>
+      <p class="note">Claude Code 에서 <code>/claude-api migrate this project to claude-sonnet-5-5</code> 를 실행하면 이 교체와 아래 장들의 파라미터 변경을 코드 전체에 적용하고, 사람이 확인할 목록을 남긴다.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">thinking</p>
+      <h2>thinking 끄기: disabled → between_tools</h2>
+      <p class="key"><code>thinking: {"type": "disabled"}</code> 는 Sonnet 5.5 에서 400 이다. <code>between_tools</code> 로 바꾸고, effort 는 high 이하로 두며 thinking 에 다른 필드를 붙이지 않는다.</p>
+      <pre>  "model": <span class="r">"claude-sonnet-5"</span> → <span class="k">"claude-sonnet-5-5"</span>,
+<span class="r">- "thinking": {"type": "disabled"},</span>
+<span class="r">- "output_config": {"effort": "xhigh"},</span>
+<span class="k">+ "thinking": {"type": "between_tools"},</span>
+<span class="k">+ "output_config": {"effort": "high"},</span></pre>
+      <ul class="facts">
+        <li><span class="m">400</span><span>effort 가 <code>xhigh</code> 나 <code>max</code> 인 between_tools 요청</span></li>
+        <li><span class="m">400</span><span><code>display</code>, <code>budget_tokens</code>, <code>block_binding</code> 을 같이 보낸 요청</span></li>
+        <li><span class="m">400</span><span>대화 중간에 메시지 단위로 effort 를 바꾼 요청 (<a class="xref" href="#p11">11</a>)</span></li>
+        <li><span class="m">200</span><span>tool 이 없는 요청은 text 만 온다. tool 이 있으면 사이 메모가 thinking 블록으로 온다 (<a class="xref" href="#p12">12</a>)</span></li>
+      </ul>
+      <p>xhigh 나 max 를 계속 써야 한다면 thinking 필드를 빼거나 <code>adaptive</code> 로 보내고, 그러면 up-front thinking 이 다시 켜진다. thinking 과 effort 를 서로 다른 설정에서 읽는 코드는 두 값을 합친 뒤에 검사해야 한다. 따로 보면 둘 다 맞는 값이라도 합치면 첫 줄의 400 이 난다.</p>
+      <details class="more"><summary>첨언: 원문 문장, 오류 메시지, fallback</summary>
+        <p>migration guide 「Turn off up-front thinking」: <span class="q">“<code>between_tools</code> works on every platform that offers Claude Sonnet 5.5, with no beta header. It's accepted at <code>low</code>, <code>medium</code>, and <code>high</code> effort. At <code>xhigh</code> or <code>max</code>, it returns a 400 error.”</span> <span class="q">“<code>between_tools</code> takes no other field: <code>display</code>, <code>budget_tokens</code>, or <code>block_binding</code> sent with it returns a 400 error.”</span></p>
+        <p>오류 메시지: <span class="q">“"thinking.type.disabled" is not supported for this model. Use "thinking.type.between_tools" for the lowest thinking setting, or "thinking.type.adaptive" and "output_config.effort" to control thinking behavior.”</span></p>
+        <p>위 diff 는 guide 의 Before/After 예제에서 모델, thinking, effort 줄만 옮겼다. 13장의 server-side fallback 으로 Sonnet 5 에 넘어간 between_tools 요청은 거기서 <code>disabled</code> 로 돈다.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tool-choice</p>
+      <h2>강제 tool 호출: any, tool → auto 와 strict</h2>
+      <p class="key"><code>tool_choice</code> 의 <code>any</code> 와 <code>tool</code> 은 token counting endpoint 까지 포함해 400 이다. <code>auto</code> 로 바꾸고 tool 에 <code>strict: true</code> 를 붙인 뒤, 언제 그 tool 을 부를지 프롬프트에 쓴다.</p>
+      <pre>  "tools": [{
+    "name": "get_weather",
+    "input_schema": { …, "additionalProperties": false },
+<span class="k">+   "strict": true</span>
+  }],
+<span class="r">- "tool_choice": {"type": "tool", "name": "get_weather"},</span>
+<span class="k">+ "tool_choice": {"type": "auto"},</span>
+  "messages": [{"role": "user",
+    "content": "What's the weather in Paris?<span class="k"> Use the get_weather tool.</span>"}]</pre>
+      <ul class="facts">
+        <li><span class="m">400</span><span><code>{"type": "any"}</code>, <code>{"type": "tool", "name": …}</code></span></li>
+        <li><span class="m">200</span><span><code>auto</code>(기본값)와 <code>none</code></span></li>
+        <li><span class="m">Bedrock</span><span>strict tool use 가 없다. <code>auto</code> 만 보내고, 프롬프트에 호출 조건을 쓰고, tool 입력을 코드에서 검증한다</span></li>
+        <li><span class="m">대안</span><span>tool 대신 스키마를 structured outputs 로 옮겨도 된다 (What's new)</span></li>
+        <li><span class="m">한도</span><span>strict tool 은 요청당 20개까지. MCP, computer use, browser use toolset 항목은 strict 를 받지 않는다</span></li>
+      </ul>
+      <p><code>auto</code> 에서는 모델이 tool 을 부르지 않고 text 로 답할 수 있다. 응답에 <code>tool_use</code> 블록이 있다고 가정하고 그 입력을 꺼내던 코드는, 블록이 없을 때의 분기를 따로 가져야 한다.</p>
+      <details class="more"><summary>첨언: 원문 문장</summary>
+        <p>migration guide 「Forced tool use is not supported」: <span class="q">“Send <code>tool_choice: {"type": "auto"}</code>, and mark the tool <code>strict: true</code> so its input matches the schema. The model can then answer without calling the tool, so say in the prompt when to use it.”</span> strict 는 JSON Schema 의 일부만 지원하고 <span class="q">“needs <code>additionalProperties: false</code> on every object.”</span></p>
+        <p>What's new: <span class="q">“For schema-valid tool input, keep <code>tool_choice: {"type": "auto"}</code> and set <code>strict: true</code> with strict tool use, or move the schema to structured outputs.”</span> 오류 메시지는 <span class="q">“tool_choice: type "tool" and "any" are not supported for this model.”</span></p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">computer-use</p>
+      <h2>computer use: computer_20251124 → toolset</h2>
+      <p class="key">Claude API 와 Google Cloud 에서 <code>computer_20251124</code> 는 400 이다. <code>computer_toolset_20260801</code> 로 바꾸고, <code>fine-grained-tool-streaming-2025-05-14</code> 헤더를 떼고, agent loop 를 toolset 응답에 맞춘다. Amazon Bedrock 은 <code>computer_20251124</code> 를 그대로 받는다.</p>
+      <pre><span class="r">- "tools": [{"type": "computer_20251124", …}]</span>
+<span class="k">+ "tools": [{"type": "computer_toolset_20260801"}]</span>
+<span class="r">- anthropic-beta: fine-grained-tool-streaming-2025-05-14</span>   <span class="c"># 보내고 있었다면</span>
+<span class="k">+ "eager_input_streaming": true</span>                          <span class="c"># 필요한 tool 마다</span></pre>
+      <ul class="facts">
+        <li><span class="m">400</span><span>Claude API, Google Cloud 의 <code>computer_20251124</code></span></li>
+        <li><span class="m">400</span><span>toolset 항목과 함께 보낸 <code>fine-grained-tool-streaming-2025-05-14</code> 헤더</span></li>
+        <li><span class="m">400</span><span>모든 플랫폼의 <code>computer_20250124</code></span></li>
+        <li><span class="m">그대로</span><span>이미 toolset 을 쓰는 코드, browser use tool</span></li>
+        <li><span class="m">그 밖</span><span>Microsoft Foundry, Claude Platform on AWS 는 migration guide 가 computer use tool 문서의 Compatibility 절로 넘기고, 이 문서는 그 절을 열지 않았다</span></li>
+      </ul>
+      <p>agent loop 에서 바뀌는 것은 toolset 의 member <code>tool_use</code> 블록, batch action, 결과의 <code>toolset_name</code> 셋이다. 각각의 모양은 computer use tool 문서의 「Migrate from computer_20251124」 에 있고, 이 문서는 그 절을 열지 않았다.</p>
+      <details class="more"><summary>첨언: 원문 문장</summary>
+        <p>What's new: <span class="q">“Drop the beta header, replace the <code>tools</code> entry with <code>{"type": "computer_toolset_20260801"}</code>, and update your agent loop for member <code>tool_use</code> blocks, batch actions, and <code>toolset_name</code> on results.”</span> Claude API 의 오류 메시지는 <span class="q">“'claude-sonnet-5-5' does not support tool types: computer_20251124.”</span> 로 시작한다.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">advisor</p>
+      <h2>advisor tool: 받는 advisor 가 줄고 조언은 암호화된다</h2>
+      <p class="key">Sonnet 5.5 executor 에 Sonnet 5, Opus 4.8, Opus 4.7 advisor 를 붙이면 400 이다. 받아 주는 advisor 는 모두 조언을 <code>advisor_redacted_result</code> 로 암호화해 돌려주므로, 조언 text 를 읽던 코드는 읽을 것이 없어진다.</p>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>advisor</th><th>Sonnet 5 executor</th><th>Sonnet 5.5 executor</th></tr></thead>
+        <tbody>
+          <tr><td>Opus 5, Opus 5.5, Sonnet 5.5, Fable 5, Fable 5.1, Mythos 5, Mythos 5.1</td><td>이 corpus 에 없음</td><td class="win">200, 조언은 암호화</td></tr>
+          <tr><td>Sonnet 5, Opus 4.8, Opus 4.7</td><td>200</td><td class="lose">400</td></tr>
+          <tr><td>Opus 4.6, Sonnet 4.6</td><td>이 corpus 에 없음</td><td class="lose">400 (migration guide 만 적음)</td></tr>
+        </tbody>
+      </table></div>
+      <p>advisor 를 지정하는 필드의 이름과 모양은 advisor tool 문서에 있고, 이 corpus 에는 없어서 diff 를 싣지 않았다.</p>
+      <details class="more"><summary>첨언: 원문 문장과 두 문서의 목록 차이</summary>
+        <p>What's new: <span class="q">“Claude Opus 4.8, Claude Opus 4.7, and Claude Sonnet 5 advisors work with a Claude Sonnet 5 executor, but with a Claude Sonnet 5.5 executor they return a 400 <code>invalid_request_error</code>.”</span> <span class="q">“Every advisor that Claude Sonnet 5.5 accepts returns its advice encrypted, as an <code>advisor_redacted_result</code> block, so your client can't read the advice text.”</span></p>
+        <p>migration guide 의 400 목록에는 Opus 4.6 과 Sonnet 4.6 이 더 있다: <span class="q">“Claude Opus 4.8, Claude Opus 4.7, Claude Opus 4.6, Claude Sonnet 5, and Claude Sonnet 4.6 advisors return a 400 error.”</span></p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">effort</p>
+      <h2>effort: 옮기지 말고 다시 잰다</h2>
+      <p class="key">effort 단계는 이름이 같아도 다시 보정되어서, 같은 단계가 Sonnet 5 와 같은 양의 thinking 을 내지 않는다. Sonnet 5 의 값을 가져오지 말고 작업 종류별 시작값에서 평가를 다시 돌리며, 단계를 올릴 때는 <code>max_tokens</code> 에 thinking 이 들어갈 자리를 둔다.</p>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>작업</th><th>시작 effort (migration guide)</th></tr></thead>
+        <tbody>
+          <tr><td>일반</td><td><code>high</code>. Claude API 기본값이다</td></tr>
+          <tr><td>agentic coding, 여러 단계 tool use</td><td>명세가 분명하면 <code>medium</code>, 어렵거나 길면 <code>high</code></td></tr>
+          <tr><td>chat, 지연에 민감한 작업</td><td><code>medium</code> 이나 <code>low</code></td></tr>
+          <tr><td><code>xhigh</code>, <code>max</code></td><td>평가에서 품질 이득이 보일 때만</td></tr>
+        </tbody>
+      </table></div>
+      <ul class="facts">
+        <li><span class="m">tokens</span><span><code>max_tokens</code> 는 thinking 과 답을 합친 상한이고 thinking 은 output 으로 청구된다. agentic coding 은 128,000 으로 두고 stream 한다</span></li>
+        <li><span class="m">tokens</span><span>tool-use loop 에서는 요청마다 <code>max_tokens</code> 가 따로라서 턴 전체의 지출을 막지 못한다</span></li>
+      </ul>
+      <p>단계별 점수와 비용이 어디서 갈리는지는 <a class="xref" href="#p17">17장</a>의 차트에 있다.</p>
+      <details class="more"><summary>첨언: 원문 문장</summary>
+        <p>migration guide 「Recommended changes」: <span class="q">“The levels are recalibrated, so a level doesn't produce the same amount of thinking as on Claude Sonnet 5.”</span> Effort 문서의 Sonnet 5.5 권장 절: <span class="q">“Use <code>xhigh</code> or <code>max</code> only where your evals show a quality gain. Set <code>max_tokens</code> with room for thinking and the reply.”</span> <span class="q">“For agentic coding, set <code>max_tokens</code> to 128,000, the model's maximum”</span></p>
+        <p>Steering thinking 「Cost control」: <span class="q">“In a tool-use loop, each request in the turn has its own <code>max_tokens</code>, so it doesn't bound the whole turn's spend.”</span> thinking 에 쓰인 output token 은 응답의 <code>usage.output_tokens_details.thinking_tokens</code> 로 센다.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">cache</p>
+      <h2>캐시: effort 바꾸기와 최소 길이</h2>
+      <p class="key">Sonnet 5.5 에서 prompt cache 의 조건 두 가지가 달라진다. 대화 도중 effort 를 메시지 단위로 바꾸면 캐시가 남고(top-level <code>output_config.effort</code> 를 요청마다 바꾸면 처음부터 다시 쌓인다), 최소 캐시 길이는 1,024 에서 512 토큰으로 준다.</p>
+      <pre><span class="c"># anthropic-beta: mid-conversation-output-config-2026-07-01</span>
+"messages": [
+  …지금까지의 기록…,
+<span class="k">+ {"role": "system", "content": [], "output_config": {"effort": "low"}},</span>
+  {"role": "user", "content": "…"}
+]</pre>
+      <ul class="facts">
+        <li><span class="m">200</span><span>새 단계는 다음 <code>user</code> 턴부터 적용되고, 뒤에서 다시 바꿀 때까지 유지된다</span></li>
+        <li><span class="m">400</span><span><code>between_tools</code> 에서 지금과 다른 단계를 메시지로 보낸 요청 (<a class="xref" href="#p6">06</a>)</span></li>
+        <li><span class="m">캐시</span><span>effort 를 모델 기본값 <code>high</code> 로 적어 보내는 것은 생략과 같아서 캐시를 깨지 않는다</span></li>
+        <li><span class="m">512</span><span>Sonnet 5 에서 1,024 토큰이 안 되어 캐시되지 않던 prompt 도 512 토큰을 넘으면 캐시 대상이다</span></li>
+      </ul>
+      <details class="more"><summary>첨언: 원문 문장</summary>
+        <p>Effort 문서 「Per-message effort (beta)」: <span class="q">“Add a <code>role: "system"</code> message with empty <code>content</code> and the new level in <code>output_config.effort</code>. The new level takes effect from the next <code>user</code> turn and holds until a later message changes it.”</span></p>
+        <p>Steering thinking 「Prompt caching」: <span class="q">“The resolved effort value is rendered into the prompt, so changing it between requests invalidates cache breakpoints”</span>. Steering thinking: <span class="q">“Setting <code>effort</code> explicitly to the model's default is equivalent to omitting it and does not break the cache.”</span> What's new 는 per-message effort 가 Sonnet 5 에는 없다고 적는다.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">between-text</p>
+      <h2>tool call 사이 메모: text → 빈 thinking 블록</h2>
+      <p class="key">Sonnet 5.5 는 tool call 사이에 쓰는 한두 문장보다 긴 메모를 progress-update thinking 블록으로 보내고, 기본 <code>display</code> 인 <code>omitted</code> 에서는 그 블록이 비어 있다. 요청은 200 이므로 이 메모를 사용자에게 흘려 보이던 화면만 조용해진다.</p>
+      <pre><span class="c">// Sonnet 5 응답</span>
+{"type": "text", "text": "…메모…"},  {"type": "tool_use", …}
+<span class="c">// Sonnet 5.5, adaptive, display 기본값</span>
+{"type": "thinking", "thinking": <span class="r">""</span>, "signature": "…"},  {"type": "tool_use", …}
+<span class="c">// 고친 요청: 메모만 받는다</span>
+<span class="k">+ anthropic-beta: thinking-display-updates-2026-08-18</span>
+<span class="k">+ "thinking": {"type": "adaptive", "display": "updates"}</span></pre>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>설정</th><th>tool call 사이에 오는 것</th></tr></thead>
+        <tbody>
+          <tr><td>adaptive, <code>display</code> 기본값 <code>omitted</code></td><td class="lose">빈 thinking 블록</td></tr>
+          <tr><td>adaptive, <code>display: "updates"</code> (beta 헤더)</td><td>메모만 든 thinking 블록</td></tr>
+          <tr><td>adaptive, <code>display: "summarized"</code></td><td>메모와 추론 요약이 섞인 thinking 블록</td></tr>
+          <tr><td><code>between_tools</code> (<a class="xref" href="#p6">06</a>)</td><td><code>display</code> 없이도 메모 text 가 든 thinking 블록</td></tr>
+          <tr><td>어느 설정이든, 한두 문장 이하의 짧은 말</td><td><code>text</code> 블록 그대로</td></tr>
+        </tbody>
+      </table></div>
+      <p>화면 코드는 비어 있지 않은 thinking 블록을 뒤따르는 <code>tool_use</code> 블록보다 먼저 그린다. 기록에는 그 블록을 고치지 않고 되돌려 보낸다. What's new 의 between_tools 절은 되돌아온 progress-update 블록에서 모델이 요약이 아니라 자기가 쓴 메모 전체를 받는다고 적는다. <code>summarized</code> 와 <code>omitted</code> 는 보이는 것만 다르고 청구되는 output token 은 같다. <code>updates</code> 는 이 과금표에 없다.</p>
+      <details class="more"><summary>첨언: 원문 문장과 과금</summary>
+        <p>migration guide 「Text between tool calls is returned in thinking blocks」: <span class="q">“On Claude Sonnet 5 and earlier models, all text between tool calls comes back as <code>text</code> blocks. No request fails, but an interface that shows those notes goes quiet.”</span> <span class="q">“Render each non-empty <code>thinking</code> block before the <code>tool_use</code> block that follows it.”</span></p>
+        <p>What's new 「Turn off up-front thinking with between_tools」: <span class="q">“A progress-update block you send back gives the model the full note it wrote, not the summary.”</span> Steering thinking 「Pricing」: <span class="q">“What you're billed for is the same regardless of the <code>display</code> setting; only what you see changes”</span></p>
+        <p>한두 문장이라는 경계를 어떻게 세는지는 이 corpus 에 없다. thinking 문서의 progress updates 절에 있을 것으로 보이며, 이 문서는 그 절을 열지 않았다.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">refusal</p>
+      <h2>거절: stop_reason refusal 과 fallback</h2>
+      <p class="key">Sonnet 5.5 는 Sonnet 5 보다 많은 부류에서 거절하고, 거절은 HTTP 200 에 <code>stop_reason: "refusal"</code> 로 온다. Claude API 의 server-side fallback 은 <code>cyber</code> 와 <code>frontier_llm</code> 만 Sonnet 5 로 다시 돌리므로 나머지 셋은 코드가 처리한다.</p>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th><code>stop_details</code> 부류</th><th>뜻</th><th>server-side fallback</th></tr></thead>
+        <tbody>
+          <tr><td><code>cyber</code></td><td>malware, exploit 개발 같은 사이버 피해</td><td class="win">Sonnet 5 로 재시도</td></tr>
+          <tr><td><code>frontier_llm</code></td><td>경쟁 AI 모델 개발 지원</td><td class="win">Sonnet 5 로 재시도</td></tr>
+          <tr><td><code>bio</code></td><td>위험한 실험 방법 같은 생물학적 피해</td><td class="lose">재시도 없음</td></tr>
+          <tr><td><code>reasoning_extraction</code></td><td>내부 추론을 답에 그대로 옮기라는 요청</td><td class="lose">재시도 없음</td></tr>
+          <tr><td><code>general_harms</code></td><td>그 밖의 사용 정책 영역. 정상 작업도 걸릴 수 있다</td><td class="lose">재시도 없음</td></tr>
+        </tbody>
+      </table></div>
+      <p>fallback 은 <code>fallbacks: "default"</code> 로 켜는 beta 이고 Claude API 에서만 된다. SDK middleware 나 직접 만든 재시도도 쓸 수 있다. 출력 전에 난 거절이 청구되는지는 부류마다 다르지만 rate limit 에는 어느 부류든 잡힌다.</p>
+      <details class="more"><summary>첨언: 원문 문장</summary>
+        <p>What's new 「Refusals, fallback, and billing」: <span class="q">“A declined request returns HTTP 200 with <code>stop_reason: "refusal"</code> and a <code>stop_details</code> object naming the policy area.”</span> <span class="q">“Whether a refusal that arrives before any output is billed depends on its refusal category, and it counts against your rate limits either way.”</span></p>
+        <p>migration guide: <span class="q">“<code>"general_harms"</code>: The request falls under another usage-policy area. Benign work can also trigger this category.”</span> 발표 글은 사이버 쪽을 이렇게 적는다: <span class="q">“higher-risk cybersecurity tasks will visibly fall back to Sonnet 5.”</span> 부류별 과금표는 Refusals and fallback 문서에 있고 이 문서는 열지 않았다.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">history</p>
+      <h2>대화 기록: append-only 로 둔다</h2>
+      <p class="key">2026-08-31 00:00 UTC 이후 만든 계정에서, Sonnet 5.5 thinking 블록 앞의 <code>system</code>, <code>tools</code>, 이전 메시지를 고친 뒤 그 블록을 다시 보내면 400 이다. 지시나 tool 을 바꿀 때는 기록을 고치지 말고 mid-conversation system message 를 뒤에 붙인다.</p>
+      <pre><span class="c"># 400 대신 블록을 버리게 하는 요청 (adaptive)</span>
+<span class="k">+ anthropic-beta: thinking-binding-controls-2026-08-01</span>
+"thinking": {"type": "adaptive",
+<span class="k">+   "block_binding": {"prefix_mismatch_behavior": "drop_block"}</span>}</pre>
+      <ul class="facts">
+        <li><span class="m">400</span><span>새 계정에서 블록 앞 기록을 고친 요청. Claude API, Amazon Bedrock, Google Cloud. Microsoft Foundry 와 Claude Platform on AWS 에서 검사하는지는 이 corpus 에 없다</span></li>
+        <li><span class="m">200</span><span>beta 헤더와 <code>block_binding</code> 으로 <code>"drop_block"</code> 을 고르면 해당 블록만 버린다. adaptive 에서만 된다</span></li>
+        <li><span class="m">옛 계정</span><span>기본은 검사하지 않고, <code>prefix_mismatch_behavior</code> 를 어느 값으로든 보내면 검사를 켠다</span></li>
+        <li><span class="m">between</span><span><code>block_binding</code> 이 400 이다. append-only 로 두거나, 고친 턴부터 thinking 블록을 지운다</span></li>
+      </ul>
+      <p>이 corpus 에 있는 system message 예시는 <a class="xref" href="#p11">11장</a>의 effort 변경뿐이다. 지시나 tool 을 담는 메시지의 모양은 mid-conversation system messages 문서에 있고, 이 문서는 그 문서를 열지 않았다.</p>
+      <p>요청마다 system prompt 에 시각이나 사용자 상태를 새로 넣는 코드, 긴 대화의 앞부분을 요약문으로 바꿔 끼우는 코드가 여기에 걸린다. 둘 다 thinking 블록 앞의 기록을 바꾸기 때문이다.</p>
+      <details class="more"><summary>첨언: 원문 문장</summary>
+        <p>What's new: <span class="q">“The API also checks whether anything before a Claude Sonnet 5.5 thinking block has changed since the block was produced: the <code>system</code> prompt, the <code>tools</code>, or an earlier message.”</span> <span class="q">“On older accounts, setting that field to either value opts the request in. <code>block_binding</code> works only with <code>thinking: {"type": "adaptive"}</code>.”</span></p>
+        <p>system prompt 에 시각을 넣는 코드가 걸린다는 것은 이 규칙에서 이 문서가 끌어낸 예이고, 원문이 든 예는 아니다.</p>
+      </details>
+      <p class="note">긴 대화를 줄여야 한다면 앞부분을 직접 요약하지 말고 <code>compact-2026-09-04</code> beta 의 compaction 블록을 쓴다. What's new 는 이 블록을 쓰면 남긴 턴의 thinking 블록이 조건에 따라 유효하다고 적는다.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">model-switch</p>
+      <h2>모델과 계정 이동: 400 없이 블록이 빠진다</h2>
+      <p class="key">Sonnet 5 에서 넘어온 대화의 thinking 블록은 Sonnet 5.5 가 읽는다. 반대로 Sonnet 5.5 의 블록은 다른 모델도, 연결되지 않은 다른 계정도 읽지 못하고, API 는 200 을 내면서 그 블록을 버린다.</p>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>기록에 든 블록</th><th>보내는 곳</th><th>결과</th></tr></thead>
+        <tbody>
+          <tr><td>Sonnet 5, Opus 4.8, Haiku 4.5 와 그 이전</td><td>Sonnet 5.5</td><td class="win">읽는다</td></tr>
+          <tr><td>Opus 5, Opus 5.5, Fable, Mythos</td><td>Sonnet 5.5</td><td>200, 버려지고 청구되지 않는다</td></tr>
+          <tr><td>Sonnet 5.5</td><td>다른 모델</td><td>200, 전환 뒤 턴은 그 추론 없이 돈다</td></tr>
+          <tr><td>Sonnet 5.5</td><td>연결되지 않은 다른 계정</td><td>200, 모델이 보기 전에 버려진다</td></tr>
+        </tbody>
+      </table></div>
+      <p>여러 모델을 오가며 한 대화를 잇는 라우터나 계정을 나눠 쓰는 배포라면, <code>thinking-binding-controls-2026-08-01</code> 헤더를 붙여 응답의 <code>input_transformations</code> 로 버려진 블록을 센다. 계정 불일치는 Claude API 와 Google Cloud 에서 <code>reason: "organization_binding_mismatch"</code> 로 적힌다.</p>
+      <details class="more"><summary>첨언: 원문 문장</summary>
+        <p>What's new: <span class="q">“So a conversation that moves from Claude Sonnet 5 onto Claude Sonnet 5.5 keeps its reasoning, and one that moves from Claude Sonnet 5.5 to any other model runs the turns after the switch without it.”</span> <span class="q">“When another account sends one of these blocks, the API drops the block before the model sees it, and the request succeeds.”</span></p>
+        <p>발표 글은 이 계정 결속을 distillation 방어로 설명한다: <span class="q">“Sonnet 5.5 also expands preserved thinking, so Claude’s thinking cannot be decoupled from the account that created it.”</span></p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>읽은 범위: 공개 문서 다섯 개의 고정 사본</h2>
+      <p class="key">Anthropic 이 공개한 문서 다섯 개를 2026-09-29 에 받은 사본으로 읽었다. 요청을 보내 400 과 200 을 재현하지는 않았으므로 이 문서의 오류 목록은 문서의 서술이다.</p>
+      <ul class="facts">
+        <li><span class="m">w1</span><span>발표 글 Introducing Claude Sonnet 5.5. 본문 텍스트와 차트 넷의 SVG aria-label</span></li>
+        <li><span class="m">d1</span><span>Migrating to Claude Sonnet 5.5. Sonnet 5 절, 공통 절, 체크리스트</span></li>
+        <li><span class="m">d2</span><span>Steering thinking. 단계표, Prompt caching, Cost control, Pricing</span></li>
+        <li><span class="m">d3</span><span>Effort. 단계표, Sonnet 5.5 와 Sonnet 5 권장 절, 대화 중 effort 변경</span></li>
+        <li><span class="m">d4</span><span>What's new in Claude Sonnet 5.5. 전문</span></li>
+      </ul>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>발표 글의 그림과 표</th><th>이 문서에서</th></tr></thead>
+        <tbody>
+          <tr><td>score 대 cost 차트 넷 (Terminal-Bench, FrontierCode, CursorBench, AA-Briefcase), 점 80개</td><td>17장에 다시 그렸다. 값은 첨언의 표</td></tr>
+          <tr><td>Price per 1M tokens 표</td><td>17장에 다시 적었다</td></tr>
+          <tr><td>Performance 표 (벤치마크 8개, 모델 4개)</td><td>18장에 다시 적었다</td></tr>
+          <tr><td>데모 셋 (murmurations, sand dunes, clock of clocks)</td><td>싣지 않았다. 사본이 텍스트만 담아 화면을 보지 못했다</td></tr>
+        </tbody>
+      </table></div>
+      <details class="more"><summary>첨언: 열지 않은 문서와 고정 방법</summary>
+        <p>열지 않은 하위 문서: mid-conversation system messages, thinking 문서의 progress updates 절, Refusals and fallback, computer use tool 의 Migrate from computer_20251124, advisor tool, Prompting Claude Sonnet 5.5, Pricing, Sonnet 5.5 System Card. 각 장에서 이 문서들에 기대는 부분은 그 자리에 적었다.</p>
+        <p>발표 글의 신원은 라이브 HTML 에서 뽑은 본문 텍스트의 sha256 이고, docs 넷은 text/markdown 으로 받은 바이트의 sha256 이다. 발표 글과 migration guide 는 Wayback 스냅샷 주소를 적었지만 본문을 대조하지 않았고, 나머지 셋은 아카이브하지 않았다. 원문 차트 축의 눈금과 스케일은 옮기지 않았다.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-cost</p>
+      <h2>결과: effort 단계별 점수와 작업당 비용</h2>
+      <p class="key">같은 effort 단계에서 Sonnet 5.5 의 점수는 네 벤치마크의 20칸 모두 Sonnet 5 보다 높다. 작업당 비용은 코딩 벤치마크 셋에서 low 부터 xhigh 까지 Sonnet 5 보다 낮고 max 에서 높으며, AA-Briefcase 에서는 medium 만 낮다.</p>
+      <figure class="figure">
+        <p class="fig-title">같은 effort 단계끼리 보면 Sonnet 5.5(파란 선)는 점수가 모두 높고, max 의 비용은 네 벤치마크 모두 Sonnet 5(빨간 선)보다 높다</p>
+        <p class="fig-sub">발표 글 Performance 절의 accuracy vs. cost 차트 넷. 값은 원문 SVG 의 aria-label</p>
+        <div class="legend"><span><i class="s1"></i>Sonnet 5.5</span><span><i class="s2"></i>Sonnet 5</span><span><i class="sn"></i>Opus 5.5</span><span><i class="sd"></i>GPT (벤치마크마다 다름)</span><span>L M H XH Max = effort</span></div>
+        <div class="grid g2">
+          <div><p class="fig-sub">Terminal-Bench 4.0 (시도당 비용). GPT 선은 GPT-5.6 Sol</p><div class="svgwrap"><svg class="chart sc" viewBox="0 0 460 300" role="img" aria-label="Terminal-Bench 4.0 의 점수와 작업당 비용. 가로축은 비용(로그), 세로축은 점수다. Sonnet 5.5 파란 실선: L 20.0% $0.76, M 28.8% $0.83, H 43.0% $1.94, XH 61.5% $5.30, Max 70.6% $12.54. Sonnet 5 빨간 실선: L 3.2% $3.78, M 4.4% $4.83, H 4.5% $8.20, XH 7.0% $9.95, Max 10.3% $11.62. Opus 5.5 회색 실선: L 38.5% $1.29, M 57.6% $2.94, H 64.2% $3.88, XH 66.4% $7.35, Max 64.8% $11.24. GPT-5.6 Sol 회색 점선: L 7.9% $1.46, M 20.9% $2.69, H 26.1% $4.12, XH 28.5% $5.39, Max 37.3% $7.89. max 점의 비용은 Sonnet 5.5 $12.54, Sonnet 5 $11.62 로 Sonnet 5.5 가 더 오른쪽이다.">
+<line class="grid-l" x1="52" y1="256.0" x2="440" y2="256.0"/>
+<text class="tick" x="46" y="260.0" text-anchor="end">0%</text>
+<line class="grid-l" x1="52" y1="196.5" x2="440" y2="196.5"/>
+<text class="tick" x="46" y="200.5" text-anchor="end">20%</text>
+<line class="grid-l" x1="52" y1="137.0" x2="440" y2="137.0"/>
+<text class="tick" x="46" y="141.0" text-anchor="end">40%</text>
+<line class="grid-l" x1="52" y1="77.5" x2="440" y2="77.5"/>
+<text class="tick" x="46" y="81.5" text-anchor="end">60%</text>
+<line class="grid-l" x1="52" y1="18.0" x2="440" y2="18.0"/>
+<text class="tick" x="46" y="22.0" text-anchor="end">80%</text>
+<line class="grid-l" x1="52.0" y1="18" x2="52.0" y2="256"/>
+<text class="tick" x="52.0" y="272" text-anchor="middle">$0.1</text>
+<line class="grid-l" x1="201.1" y1="18" x2="201.1" y2="256"/>
+<text class="tick" x="201.1" y="272" text-anchor="middle">$1</text>
+<line class="grid-l" x1="350.2" y1="18" x2="350.2" y2="256"/>
+<text class="tick" x="350.2" y="272" text-anchor="middle">$10</text>
+<text class="tick" x="440" y="286" text-anchor="end">작업당 비용 (로그)</text>
+<path class="ln dim dash" d="M225.6 232.5 L265.2 193.8 L292.8 178.4 L310.2 171.2 L334.9 145.0"/>
+<circle class="dot dim hollow" cx="225.6" cy="232.5" r="3.4"/>
+<circle class="dot dim hollow" cx="265.2" cy="193.8" r="3.4"/>
+<circle class="dot dim hollow" cx="292.8" cy="178.4" r="3.4"/>
+<circle class="dot dim hollow" cx="310.2" cy="171.2" r="3.4"/>
+<circle class="dot dim hollow" cx="334.9" cy="145.0" r="3.4"/>
+<path class="ln dim" d="M217.6 141.5 L270.9 84.6 L288.9 65.0 L330.3 58.5 L357.8 63.2"/>
+<circle class="dot dim" cx="217.6" cy="141.5" r="3.4"/>
+<circle class="dot dim" cx="270.9" cy="84.6" r="3.4"/>
+<circle class="dot dim" cx="288.9" cy="65.0" r="3.4"/>
+<circle class="dot dim" cx="330.3" cy="58.5" r="3.4"/>
+<circle class="dot dim" cx="357.8" cy="63.2" r="3.4"/>
+<path class="ln s2" d="M287.2 246.5 L303.1 242.9 L337.4 242.6 L349.9 235.2 L359.9 225.4"/>
+<circle class="dot s2" cx="287.2" cy="246.5" r="4.2"/>
+<circle class="dot s2" cx="303.1" cy="242.9" r="4.2"/>
+<circle class="dot s2" cx="337.4" cy="242.6" r="4.2"/>
+<circle class="dot s2" cx="349.9" cy="235.2" r="4.2"/>
+<circle class="dot s2" cx="359.9" cy="225.4" r="4.2"/>
+<path class="ln s1" d="M183.3 196.5 L189.0 170.3 L244.0 128.1 L309.1 73.0 L364.9 46.0"/>
+<circle class="dot s1" cx="183.3" cy="196.5" r="4.2"/>
+<circle class="dot s1" cx="189.0" cy="170.3" r="4.2"/>
+<circle class="dot s1" cx="244.0" cy="128.1" r="4.2"/>
+<circle class="dot s1" cx="309.1" cy="73.0" r="4.2"/>
+<circle class="dot s1" cx="364.9" cy="46.0" r="4.2"/>
+<text class="lbl-hi pt" x="183.3" y="188.5" text-anchor="middle">L</text>
+<text class="lbl pt" x="287.2" y="260.5" text-anchor="middle">L</text>
+<text class="lbl-hi pt" x="189.0" y="162.3" text-anchor="middle">M</text>
+<text class="lbl pt" x="303.1" y="256.9" text-anchor="middle">M</text>
+<text class="lbl-hi pt" x="244.0" y="120.1" text-anchor="middle">H</text>
+<text class="lbl pt" x="337.4" y="256.6" text-anchor="middle">H</text>
+<text class="lbl-hi pt" x="309.1" y="65.0" text-anchor="middle">XH</text>
+<text class="lbl pt" x="349.9" y="249.2" text-anchor="middle">XH</text>
+<text class="lbl-hi pt" x="364.9" y="38.0" text-anchor="middle">Max</text>
+<text class="lbl pt" x="359.9" y="239.4" text-anchor="middle">Max</text>
+</svg></div></div>
+          <div><p class="fig-sub">FrontierCode v1.1 (Main). GPT 선은 GPT-6 Sol</p><div class="svgwrap"><svg class="chart sc" viewBox="0 0 460 300" role="img" aria-label="FrontierCode v1.1 (Main) 의 점수와 작업당 비용. 가로축은 비용(로그), 세로축은 점수다. Sonnet 5.5 파란 실선: L 29.3% $0.19, M 36.5% $0.24, H 49.4% $0.42, XH 52.1% $1.59, Max 46.2% $20.78. Sonnet 5 빨간 실선: L 28.7% $2.39, M 35.2% $3.81, H 39.4% $6.10, XH 42.7% $10.07, Max 42.4% $17.12. Opus 5.5 회색 실선: L 47.3% $0.40, M 54.6% $0.80, H 54.0% $1.09, XH 51.4% $2.25, Max 54.4% $6.19. GPT-6 Sol 회색 점선: L 37.3% $0.43, M 45.9% $0.77, H 47.7% $1.04, XH 48.4% $1.32, Max 49.3% $2.07. Sonnet 5.5 선은 xhigh 에서 max 로 가며 오른쪽으로 멀리 가고 점수는 내려간다. max 점의 비용은 Sonnet 5.5 $20.78, Sonnet 5 $17.12 로 Sonnet 5.5 가 더 오른쪽이다.">
+<line class="grid-l" x1="52" y1="256.0" x2="440" y2="256.0"/>
+<text class="tick" x="46" y="260.0" text-anchor="end">20%</text>
+<line class="grid-l" x1="52" y1="196.5" x2="440" y2="196.5"/>
+<text class="tick" x="46" y="200.5" text-anchor="end">30%</text>
+<line class="grid-l" x1="52" y1="137.0" x2="440" y2="137.0"/>
+<text class="tick" x="46" y="141.0" text-anchor="end">40%</text>
+<line class="grid-l" x1="52" y1="77.5" x2="440" y2="77.5"/>
+<text class="tick" x="46" y="81.5" text-anchor="end">50%</text>
+<line class="grid-l" x1="52" y1="18.0" x2="440" y2="18.0"/>
+<text class="tick" x="46" y="22.0" text-anchor="end">60%</text>
+<line class="grid-l" x1="52.0" y1="18" x2="52.0" y2="256"/>
+<text class="tick" x="52.0" y="272" text-anchor="middle">$0.1</text>
+<line class="grid-l" x1="201.1" y1="18" x2="201.1" y2="256"/>
+<text class="tick" x="201.1" y="272" text-anchor="middle">$1</text>
+<line class="grid-l" x1="350.2" y1="18" x2="350.2" y2="256"/>
+<text class="tick" x="350.2" y="272" text-anchor="middle">$10</text>
+<text class="tick" x="440" y="286" text-anchor="end">작업당 비용 (로그)</text>
+<path class="ln dim dash" d="M146.5 153.1 L184.2 101.9 L203.7 91.2 L219.1 87.0 L248.2 81.7"/>
+<circle class="dot dim hollow" cx="146.5" cy="153.1" r="3.4"/>
+<circle class="dot dim hollow" cx="184.2" cy="101.9" r="3.4"/>
+<circle class="dot dim hollow" cx="203.7" cy="91.2" r="3.4"/>
+<circle class="dot dim hollow" cx="219.1" cy="87.0" r="3.4"/>
+<circle class="dot dim hollow" cx="248.2" cy="81.7" r="3.4"/>
+<path class="ln dim" d="M141.8 93.6 L186.7 50.1 L206.7 53.7 L253.6 69.2 L319.2 51.3"/>
+<circle class="dot dim" cx="141.8" cy="93.6" r="3.4"/>
+<circle class="dot dim" cx="186.7" cy="50.1" r="3.4"/>
+<circle class="dot dim" cx="206.7" cy="53.7" r="3.4"/>
+<circle class="dot dim" cx="253.6" cy="69.2" r="3.4"/>
+<circle class="dot dim" cx="319.2" cy="51.3" r="3.4"/>
+<path class="ln s2" d="M257.5 204.2 L287.7 165.6 L318.2 140.6 L350.7 120.9 L385.0 122.7"/>
+<circle class="dot s2" cx="257.5" cy="204.2" r="4.2"/>
+<circle class="dot s2" cx="287.7" cy="165.6" r="4.2"/>
+<circle class="dot s2" cx="318.2" cy="140.6" r="4.2"/>
+<circle class="dot s2" cx="350.7" cy="120.9" r="4.2"/>
+<circle class="dot s2" cx="385.0" cy="122.7" r="4.2"/>
+<path class="ln s1" d="M93.6 200.7 L108.7 157.8 L144.9 81.1 L231.1 65.0 L397.6 100.1"/>
+<circle class="dot s1" cx="93.6" cy="200.7" r="4.2"/>
+<circle class="dot s1" cx="108.7" cy="157.8" r="4.2"/>
+<circle class="dot s1" cx="144.9" cy="81.1" r="4.2"/>
+<circle class="dot s1" cx="231.1" cy="65.0" r="4.2"/>
+<circle class="dot s1" cx="397.6" cy="100.1" r="4.2"/>
+<text class="lbl-hi pt" x="93.6" y="192.7" text-anchor="middle">L</text>
+<text class="lbl pt" x="257.5" y="218.2" text-anchor="middle">L</text>
+<text class="lbl-hi pt" x="108.7" y="149.8" text-anchor="middle">M</text>
+<text class="lbl pt" x="287.7" y="179.6" text-anchor="middle">M</text>
+<text class="lbl-hi pt" x="144.9" y="73.1" text-anchor="middle">H</text>
+<text class="lbl pt" x="318.2" y="154.6" text-anchor="middle">H</text>
+<text class="lbl-hi pt" x="231.1" y="57.0" text-anchor="middle">XH</text>
+<text class="lbl pt" x="350.7" y="134.9" text-anchor="middle">XH</text>
+<text class="lbl-hi pt" x="397.6" y="92.1" text-anchor="middle">Max</text>
+<text class="lbl pt" x="385.0" y="136.7" text-anchor="middle">Max</text>
+</svg></div></div>
+          <div><p class="fig-sub">CursorBench 4.0. GPT 선은 GPT-5.6 Sol</p><div class="svgwrap"><svg class="chart sc" viewBox="0 0 460 300" role="img" aria-label="CursorBench 4.0 의 점수와 작업당 비용. 가로축은 비용(로그), 세로축은 점수다. Sonnet 5.5 파란 실선: L 35.8% $0.50, M 39.2% $0.70, H 47.8% $1.67, XH 53.1% $3.88, Max 55.5% $9.67. Sonnet 5 빨간 실선: L 24.1% $1.39, M 28.0% $2.31, H 30.8% $3.48, XH 32.0% $4.55, Max 34.1% $7.17. Opus 5.5 회색 실선: L 43.7% $1.17, M 52.5% $2.91, H 56.0% $3.97, XH 56.0% $6.98, Max 57.8% $13.43. GPT-5.6 Sol 회색 점선: L 24.6% $0.87, M 31.1% $1.77, H 35.7% $2.85, XH 37.7% $4.40, Max 41.7% $8.23. max 점의 비용은 Sonnet 5.5 $9.67, Sonnet 5 $7.17 로 Sonnet 5.5 가 더 오른쪽이다.">
+<line class="grid-l" x1="52" y1="256.0" x2="440" y2="256.0"/>
+<text class="tick" x="46" y="260.0" text-anchor="end">20%</text>
+<line class="grid-l" x1="52" y1="196.5" x2="440" y2="196.5"/>
+<text class="tick" x="46" y="200.5" text-anchor="end">30%</text>
+<line class="grid-l" x1="52" y1="137.0" x2="440" y2="137.0"/>
+<text class="tick" x="46" y="141.0" text-anchor="end">40%</text>
+<line class="grid-l" x1="52" y1="77.5" x2="440" y2="77.5"/>
+<text class="tick" x="46" y="81.5" text-anchor="end">50%</text>
+<line class="grid-l" x1="52" y1="18.0" x2="440" y2="18.0"/>
+<text class="tick" x="46" y="22.0" text-anchor="end">60%</text>
+<line class="grid-l" x1="52.0" y1="18" x2="52.0" y2="256"/>
+<text class="tick" x="52.0" y="272" text-anchor="middle">$0.1</text>
+<line class="grid-l" x1="201.1" y1="18" x2="201.1" y2="256"/>
+<text class="tick" x="201.1" y="272" text-anchor="middle">$1</text>
+<line class="grid-l" x1="350.2" y1="18" x2="350.2" y2="256"/>
+<text class="tick" x="350.2" y="272" text-anchor="middle">$10</text>
+<text class="tick" x="440" y="286" text-anchor="end">작업당 비용 (로그)</text>
+<path class="ln dim dash" d="M192.1 228.6 L238.1 190.0 L268.9 162.6 L297.1 150.7 L337.6 126.9"/>
+<circle class="dot dim hollow" cx="192.1" cy="228.6" r="3.4"/>
+<circle class="dot dim hollow" cx="238.1" cy="190.0" r="3.4"/>
+<circle class="dot dim hollow" cx="268.9" cy="162.6" r="3.4"/>
+<circle class="dot dim hollow" cx="297.1" cy="150.7" r="3.4"/>
+<circle class="dot dim hollow" cx="337.6" cy="126.9" r="3.4"/>
+<path class="ln dim" d="M211.3 115.0 L270.3 62.6 L290.4 41.8 L326.9 41.8 L369.3 31.1"/>
+<circle class="dot dim" cx="211.3" cy="115.0" r="3.4"/>
+<circle class="dot dim" cx="270.3" cy="62.6" r="3.4"/>
+<circle class="dot dim" cx="290.4" cy="41.8" r="3.4"/>
+<circle class="dot dim" cx="326.9" cy="41.8" r="3.4"/>
+<circle class="dot dim" cx="369.3" cy="31.1" r="3.4"/>
+<path class="ln s2" d="M222.4 231.6 L255.3 208.4 L281.9 191.7 L299.2 184.6 L328.7 172.1"/>
+<circle class="dot s2" cx="222.4" cy="231.6" r="4.2"/>
+<circle class="dot s2" cx="255.3" cy="208.4" r="4.2"/>
+<circle class="dot s2" cx="281.9" cy="191.7" r="4.2"/>
+<circle class="dot s2" cx="299.2" cy="184.6" r="4.2"/>
+<circle class="dot s2" cx="328.7" cy="172.1" r="4.2"/>
+<path class="ln s1" d="M156.2 162.0 L178.0 141.8 L234.3 90.6 L288.9 59.1 L348.1 44.8"/>
+<circle class="dot s1" cx="156.2" cy="162.0" r="4.2"/>
+<circle class="dot s1" cx="178.0" cy="141.8" r="4.2"/>
+<circle class="dot s1" cx="234.3" cy="90.6" r="4.2"/>
+<circle class="dot s1" cx="288.9" cy="59.1" r="4.2"/>
+<circle class="dot s1" cx="348.1" cy="44.8" r="4.2"/>
+<text class="lbl-hi pt" x="156.2" y="154.0" text-anchor="middle">L</text>
+<text class="lbl pt" x="222.4" y="245.6" text-anchor="middle">L</text>
+<text class="lbl-hi pt" x="178.0" y="133.8" text-anchor="middle">M</text>
+<text class="lbl pt" x="255.3" y="222.4" text-anchor="middle">M</text>
+<text class="lbl-hi pt" x="234.3" y="82.6" text-anchor="middle">H</text>
+<text class="lbl pt" x="281.9" y="205.7" text-anchor="middle">H</text>
+<text class="lbl-hi pt" x="288.9" y="51.1" text-anchor="middle">XH</text>
+<text class="lbl pt" x="299.2" y="198.6" text-anchor="middle">XH</text>
+<text class="lbl-hi pt" x="348.1" y="36.8" text-anchor="middle">Max</text>
+<text class="lbl pt" x="328.7" y="186.1" text-anchor="middle">Max</text>
+</svg></div></div>
+          <div><p class="fig-sub">AA-Briefcase v1.1 (점수 단위 없음). GPT 선은 GPT-6 Sol</p><div class="svgwrap"><svg class="chart sc" viewBox="0 0 460 300" role="img" aria-label="AA-Briefcase v1.1 의 점수와 작업당 비용. 가로축은 비용(로그), 세로축은 점수다. Sonnet 5.5 파란 실선: L 1264 $0.87, M 1461 $1.64, H 1634 $3.95, XH 1746 $9.63, Max 1811 $29.19. Sonnet 5 빨간 실선: L 923 $0.82, M 1056 $1.73, H 1177 $3.76, XH 1274 $7.56, Max 1359 $14.43. Opus 5.5 회색 실선: L 1285 $1.15, M 1642 $4.40, H 1705 $6.27, XH 1780 $12.27, Max 1822 $21.05. GPT-6 Sol 회색 점선: L 905 $0.12, M 1142 $0.34, H 1289 $0.63, XH 1364 $1.19, Max 1483 $2.67. max 점의 비용은 Sonnet 5.5 $29.19, Sonnet 5 $14.43 로 Sonnet 5.5 가 더 오른쪽이다.">
+<line class="grid-l" x1="52" y1="256.0" x2="440" y2="256.0"/>
+<text class="tick" x="46" y="260.0" text-anchor="end">800</text>
+<line class="grid-l" x1="52" y1="212.7" x2="440" y2="212.7"/>
+<text class="tick" x="46" y="216.7" text-anchor="end">1000</text>
+<line class="grid-l" x1="52" y1="169.5" x2="440" y2="169.5"/>
+<text class="tick" x="46" y="173.5" text-anchor="end">1200</text>
+<line class="grid-l" x1="52" y1="126.2" x2="440" y2="126.2"/>
+<text class="tick" x="46" y="130.2" text-anchor="end">1400</text>
+<line class="grid-l" x1="52" y1="82.9" x2="440" y2="82.9"/>
+<text class="tick" x="46" y="86.9" text-anchor="end">1600</text>
+<line class="grid-l" x1="52" y1="39.6" x2="440" y2="39.6"/>
+<text class="tick" x="46" y="43.6" text-anchor="end">1800</text>
+<line class="grid-l" x1="52.0" y1="18" x2="52.0" y2="256"/>
+<text class="tick" x="52.0" y="272" text-anchor="middle">$0.1</text>
+<line class="grid-l" x1="201.1" y1="18" x2="201.1" y2="256"/>
+<text class="tick" x="201.1" y="272" text-anchor="middle">$1</text>
+<line class="grid-l" x1="350.2" y1="18" x2="350.2" y2="256"/>
+<text class="tick" x="350.2" y="272" text-anchor="middle">$10</text>
+<text class="tick" x="440" y="286" text-anchor="end">작업당 비용 (로그)</text>
+<path class="ln dim dash" d="M63.8 233.3 L131.3 182.0 L171.2 150.2 L212.4 134.0 L264.7 108.2"/>
+<circle class="dot dim hollow" cx="63.8" cy="233.3" r="3.4"/>
+<circle class="dot dim hollow" cx="131.3" cy="182.0" r="3.4"/>
+<circle class="dot dim hollow" cx="171.2" cy="150.2" r="3.4"/>
+<circle class="dot dim hollow" cx="212.4" cy="134.0" r="3.4"/>
+<circle class="dot dim hollow" cx="264.7" cy="108.2" r="3.4"/>
+<path class="ln dim" d="M210.2 151.1 L297.1 73.8 L320.0 60.2 L363.5 44.0 L398.4 34.9"/>
+<circle class="dot dim" cx="210.2" cy="151.1" r="3.4"/>
+<circle class="dot dim" cx="297.1" cy="73.8" r="3.4"/>
+<circle class="dot dim" cx="320.0" cy="60.2" r="3.4"/>
+<circle class="dot dim" cx="363.5" cy="44.0" r="3.4"/>
+<circle class="dot dim" cx="398.4" cy="34.9" r="3.4"/>
+<path class="ln s2" d="M188.3 229.4 L236.6 200.6 L286.9 174.4 L332.1 153.4 L374.0 135.1"/>
+<circle class="dot s2" cx="188.3" cy="229.4" r="4.2"/>
+<circle class="dot s2" cx="236.6" cy="200.6" r="4.2"/>
+<circle class="dot s2" cx="286.9" cy="174.4" r="4.2"/>
+<circle class="dot s2" cx="332.1" cy="153.4" r="4.2"/>
+<circle class="dot s2" cx="374.0" cy="135.1" r="4.2"/>
+<path class="ln s1" d="M192.1 155.6 L233.1 113.0 L290.1 75.6 L347.8 51.3 L419.6 37.3"/>
+<circle class="dot s1" cx="192.1" cy="155.6" r="4.2"/>
+<circle class="dot s1" cx="233.1" cy="113.0" r="4.2"/>
+<circle class="dot s1" cx="290.1" cy="75.6" r="4.2"/>
+<circle class="dot s1" cx="347.8" cy="51.3" r="4.2"/>
+<circle class="dot s1" cx="419.6" cy="37.3" r="4.2"/>
+<text class="lbl-hi pt" x="192.1" y="147.6" text-anchor="middle">L</text>
+<text class="lbl pt" x="188.3" y="243.4" text-anchor="middle">L</text>
+<text class="lbl-hi pt" x="233.1" y="105.0" text-anchor="middle">M</text>
+<text class="lbl pt" x="236.6" y="214.6" text-anchor="middle">M</text>
+<text class="lbl-hi pt" x="290.1" y="67.6" text-anchor="middle">H</text>
+<text class="lbl pt" x="286.9" y="188.4" text-anchor="middle">H</text>
+<text class="lbl-hi pt" x="347.8" y="43.3" text-anchor="middle">XH</text>
+<text class="lbl pt" x="332.1" y="167.4" text-anchor="middle">XH</text>
+<text class="lbl-hi pt" x="419.6" y="29.3" text-anchor="middle">Max</text>
+<text class="lbl pt" x="374.0" y="149.1" text-anchor="middle">Max</text>
+</svg></div></div>
+        </div>
+        <figcaption>가로축을 로그로 그려 원문 차트와 모양이 다를 수 있다. 같은 단계끼리 비용을 견주는 비교는 원문에 없고, 원문 캡션은 Sonnet 5.5 의 낮은 단계를 Sonnet 5 의 최고점과 견준다. FrontierCode 에서 Sonnet 5.5 max 는 xhigh 보다 점수가 낮다(46.2% 대 52.1%). 발표 글 각주 2 는 범위 밖 수정에 감점하는 채점과 max 에서의 timeout 을 이유로 든다.</figcaption>
+      </figure>
+      <ul class="facts">
+        <li><span class="m">max</span><span>Sonnet 5.5 대 Sonnet 5 작업당 비용: Terminal-Bench $12.54 대 $11.62, FrontierCode $20.78 대 $17.12, CursorBench $9.67 대 $7.17, AA-Briefcase $29.19 대 $14.43</span></li>
+        <li><span class="m">high</span><span>Claude API 기본값에서는 $1.94 대 $8.20, $0.42 대 $6.10, $1.67 대 $3.48, $3.95 대 $3.76</span></li>
+      </ul>
+      <div class="tablewrap"><table>
+        <thead><tr><th>Price per 1M tokens</th><th>Sonnet 5.5</th><th>Opus 5.5</th></tr></thead>
+        <tbody>
+          <tr><td>Input tokens</td><td>$2</td><td>$4</td></tr>
+          <tr><td>Output tokens</td><td>$10</td><td>$20</td></tr>
+          <tr><td>Cache writes</td><td>$2.50</td><td>$5</td></tr>
+          <tr><td>Cache reads</td><td>$0.20</td><td>$0.20</td></tr>
+        </tbody>
+      </table></div>
+      <p>토큰 단가는 Sonnet 5 와 같으므로 위의 비용 차이는 작업당 쓴 input, output, 캐시 토큰의 차이다. 옮긴 뒤의 청구액을 예측하려면 자기 작업에서 단계별로 토큰을 다시 센다.</p>
+      <details class="more"><summary>첨언: 차트의 80개 값과 원문 캡션</summary>
+        <p class="fig-sub">Terminal-Bench 4.0. 칸마다 점수 / 작업당 비용</p>
+<div class="tablewrap"><table><thead><tr><th>모델</th><th>low</th><th>med</th><th>high</th><th>xhigh</th><th>max</th></tr></thead><tbody>
+<tr class="hero"><td>Sonnet 5.5</td><td>20.0% / $0.76</td><td>28.8% / $0.83</td><td>43.0% / $1.94</td><td>61.5% / $5.30</td><td>70.6% / $12.54</td></tr>
+<tr><td>Sonnet 5</td><td>3.2% / $3.78</td><td>4.4% / $4.83</td><td>4.5% / $8.20</td><td>7.0% / $9.95</td><td>10.3% / $11.62</td></tr>
+<tr><td>Opus 5.5</td><td>38.5% / $1.29</td><td>57.6% / $2.94</td><td>64.2% / $3.88</td><td>66.4% / $7.35</td><td>64.8% / $11.24</td></tr>
+<tr><td>GPT-5.6 Sol</td><td>7.9% / $1.46</td><td>20.9% / $2.69</td><td>26.1% / $4.12</td><td>28.5% / $5.39</td><td>37.3% / $7.89</td></tr>
+</tbody></table></div>
+        <p class="fig-sub">FrontierCode v1.1 (Main). 칸마다 점수 / 작업당 비용</p>
+<div class="tablewrap"><table><thead><tr><th>모델</th><th>low</th><th>med</th><th>high</th><th>xhigh</th><th>max</th></tr></thead><tbody>
+<tr class="hero"><td>Sonnet 5.5</td><td>29.3% / $0.19</td><td>36.5% / $0.24</td><td>49.4% / $0.42</td><td>52.1% / $1.59</td><td>46.2% / $20.78</td></tr>
+<tr><td>Sonnet 5</td><td>28.7% / $2.39</td><td>35.2% / $3.81</td><td>39.4% / $6.10</td><td>42.7% / $10.07</td><td>42.4% / $17.12</td></tr>
+<tr><td>Opus 5.5</td><td>47.3% / $0.40</td><td>54.6% / $0.80</td><td>54.0% / $1.09</td><td>51.4% / $2.25</td><td>54.4% / $6.19</td></tr>
+<tr><td>GPT-6 Sol</td><td>37.3% / $0.43</td><td>45.9% / $0.77</td><td>47.7% / $1.04</td><td>48.4% / $1.32</td><td>49.3% / $2.07</td></tr>
+</tbody></table></div>
+        <p class="fig-sub">CursorBench 4.0. 칸마다 점수 / 작업당 비용</p>
+<div class="tablewrap"><table><thead><tr><th>모델</th><th>low</th><th>med</th><th>high</th><th>xhigh</th><th>max</th></tr></thead><tbody>
+<tr class="hero"><td>Sonnet 5.5</td><td>35.8% / $0.50</td><td>39.2% / $0.70</td><td>47.8% / $1.67</td><td>53.1% / $3.88</td><td>55.5% / $9.67</td></tr>
+<tr><td>Sonnet 5</td><td>24.1% / $1.39</td><td>28.0% / $2.31</td><td>30.8% / $3.48</td><td>32.0% / $4.55</td><td>34.1% / $7.17</td></tr>
+<tr><td>Opus 5.5</td><td>43.7% / $1.17</td><td>52.5% / $2.91</td><td>56.0% / $3.97</td><td>56.0% / $6.98</td><td>57.8% / $13.43</td></tr>
+<tr><td>GPT-5.6 Sol</td><td>24.6% / $0.87</td><td>31.1% / $1.77</td><td>35.7% / $2.85</td><td>37.7% / $4.40</td><td>41.7% / $8.23</td></tr>
+</tbody></table></div>
+        <p class="fig-sub">AA-Briefcase v1.1. 칸마다 점수 / 작업당 비용</p>
+<div class="tablewrap"><table><thead><tr><th>모델</th><th>low</th><th>med</th><th>high</th><th>xhigh</th><th>max</th></tr></thead><tbody>
+<tr class="hero"><td>Sonnet 5.5</td><td>1264 / $0.87</td><td>1461 / $1.64</td><td>1634 / $3.95</td><td>1746 / $9.63</td><td>1811 / $29.19</td></tr>
+<tr><td>Sonnet 5</td><td>923 / $0.82</td><td>1056 / $1.73</td><td>1177 / $3.76</td><td>1274 / $7.56</td><td>1359 / $14.43</td></tr>
+<tr><td>Opus 5.5</td><td>1285 / $1.15</td><td>1642 / $4.40</td><td>1705 / $6.27</td><td>1780 / $12.27</td><td>1822 / $21.05</td></tr>
+<tr><td>GPT-6 Sol</td><td>905 / $0.12</td><td>1142 / $0.34</td><td>1289 / $0.63</td><td>1364 / $1.19</td><td>1483 / $2.67</td></tr>
+</tbody></table></div>
+        <p>원문 캡션: <span class="q">“At High effort, the default on the Claude Platform, Sonnet 5.5 matches GPT-6 Sol’s best score for about a fifth of the cost per task.”</span> <span class="q">“On AA-Briefcase, a new benchmark of long-horizon knowledge work, Sonnet 5.5 at Medium effort bests Sonnet 5’s best score for about one ninth of the cost per task.”</span> 가격: <span class="q">“Sonnet 5.5 is priced the same as Sonnet 5 at $2 per million input tokens, $10 per million output tokens, and $0.20 per million tokens for cache reads”</span> What's new 는 cache write 까지 포함해 <span class="q">“Claude Sonnet 5.5 has the same prices as Claude Sonnet 5, including prompt caching and batch processing rates.”</span></p>
+        <p>Terminal-Bench 와 CursorBench 는 GPT-6 Sol 값이 공개되지 않아 GPT-5.6 Sol 을 실었다고 발표 글이 적는다.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 18 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">result-scores</p>
+      <h2>결과: 발표 글의 벤치마크 표</h2>
+      <p class="key">발표 글 표의 벤치마크 8개에서 Sonnet 5.5 는 모두 Sonnet 5 보다 높다. Opus 5.5 보다 높은 것은 Terminal-Bench 하나이고, 이 칸의 Opus 5.5 는 xhigh 값이다.</p>
+      <div class="tablewrap"><table>
+        <thead><tr><th>벤치마크</th><th>Sonnet 5.5</th><th>Sonnet 5</th><th>Opus 5.5</th><th>GPT-6 Sol</th></tr></thead>
+        <tbody>
+          <tr><td>Terminal-Bench 4.0</td><td class="win">70.6%</td><td>10.3%</td><td>66.4% (xhigh)</td><td>없음</td></tr>
+          <tr><td>FrontierCode 1.1 (Main)</td><td>46.2% max · 52.1% xhigh</td><td>42.4%</td><td>54.4%</td><td>49.3%</td></tr>
+          <tr><td>CursorBench 4.0</td><td>55.5%</td><td>34.1%</td><td>57.8%</td><td>없음</td></tr>
+          <tr><td>GDPval-AA v2.1</td><td>1844</td><td>1449</td><td>1846</td><td>1487</td></tr>
+          <tr><td>AA-Briefcase v1.1</td><td>1811</td><td>1359</td><td>1822</td><td>1483</td></tr>
+          <tr><td>Humanity's Last Exam (with tools)</td><td>64.5%</td><td>54.9%</td><td>67.7%</td><td>없음</td></tr>
+          <tr><td>OSWorld 2.1 (partial)</td><td>80.1%</td><td>57.0%</td><td>81.8%</td><td>없음</td></tr>
+          <tr><td>Chartography (no tools)</td><td>61.6%</td><td>15.6%</td><td>64.4%</td><td>53.6%</td></tr>
+        </tbody>
+      </table></div>
+      <p>옮기는 쪽에서 볼 칸은 자기 작업과 닮은 행이다. 코딩 agent 라면 위 세 행, 문서 작업이라면 GDPval-AA 와 AA-Briefcase 행이고, 두 행의 Artificial Analysis 측정은 출시 전 배포에서 한 것이다(<a class="xref" href="#p19">19장</a>).</p>
+      <details class="more"><summary>첨언: 원문의 각주</summary>
+        <p>각주 1: <span class="q">“Terminal-Bench 4.0 results are reported for Claude Opus 5.5 at Xhigh effort which represents the model’s highest score.”</span> 각주 4 는 GPT-6 Sol 의 이미지 이해 버그가 고쳐졌지만 AA-Briefcase, GDPval-AA, Chartography 공식 값에 반영되지 않았을 수 있다고 적는다. 표의 "없음" 은 원문이 비워 둔 칸이다.</p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 19 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>해석의 한계: 400 목록은 문서끼리 대조되고, 비용은 Anthropic 의 측정이다</h2>
+      <p class="key">400 과 200 의 목록은 migration guide 와 What's new 가 같은 항목을 함께 적어 서로 대조되지만, advisor 목록은 두 문서가 다르다. 벤치마크 비용은 Anthropic 이 자기 설정으로 잰 값이라 사용자의 작업에서 같은 비율이 나온다는 근거가 corpus 에 없다.</p>
+      <ul class="facts">
+        <li><span class="m">문서</span><span>advisor 400 목록이 migration guide 는 다섯 모델, What's new 는 세 모델이다 (<a class="xref" href="#p9">09</a>)</span></li>
+        <li><span class="m">발표</span><span>발표 글 첫 문단의 "up to 30% less" 는 대부분의 작업에 대한 말이고, max 에서는 차트가 반대를 보인다 (<a class="xref" href="#p17">17</a>)</span></li>
+        <li><span class="m">측정</span><span>AA-Briefcase 와 GDPval-AA 는 structured outputs 버그가 있던 출시 전 배포에서 쟀다. Anthropic 은 영향이 작고 점수를 낮추는 쪽이라고 적는다</span></li>
+        <li><span class="m">비교</span><span>Terminal-Bench 와 CursorBench 의 GPT 선은 GPT-6 Sol 이 아니라 GPT-5.6 Sol 이다</span></li>
+        <li><span class="m">고객</span><span>발표 글의 고객 인용 13개는 측정 방법을 밝히지 않아 이 문서가 근거로 쓰지 않았다</span></li>
+      </ul>
+      <p>발표 글 안에서 남는 결과는 medium 이다. Sonnet 5.5 medium 은 네 벤치마크 모두에서 Sonnet 5 medium 보다 점수가 높고 작업당 비용이 낮다. 다만 AA-Briefcase 의 비용 차이는 $1.64 대 $1.73 으로 작고, 이 결과도 Anthropic 의 측정이라 자기 작업에서는 다시 재야 한다.</p>
+      <details class="more"><summary>첨언: 원문 문장과 medium 의 값</summary>
+        <p>medium 의 점수와 비용 (Sonnet 5.5 대 Sonnet 5): Terminal-Bench 28.8% $0.83 대 4.4% $4.83, FrontierCode 36.5% $0.24 대 35.2% $3.81, CursorBench 39.2% $0.70 대 28.0% $2.31, AA-Briefcase 1461 $1.64 대 1056 $1.73.</p>
+        <p>발표 글 각주 3: <span class="q">“We expect the effect on Sonnet 5.5’s scores, if any, to be small and to understate its performance.”</span> 발표 글 첫 문단: <span class="q">“It’s a clear upgrade over Claude Sonnet 5, runs 30%+ faster, and costs up to 30% less for most work.”</span></p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 20 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론: 옮기는 순서</h2>
+      <p class="key">한 번 호출하면 드러나는 400 부터 고치고, 호출로는 드러나지 않는 기록 편집과 사이 메모를 코드에서 찾은 뒤, 마지막에 effort 를 다시 잰다. 순서를 바꾸면 비용 측정이 고치기 전의 설정 위에서 이루어진다.</p>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>순서</th><th>할 일</th><th>확인</th></tr></thead>
+        <tbody>
+          <tr><td>1</td><td>모델 ID, thinking, tool_choice, computer use, advisor (<a class="xref" href="#p5">05</a>~<a class="xref" href="#p9">09</a>)</td><td>쓰는 설정마다 한 번씩 호출해 400 이 없는지 본다</td></tr>
+          <tr><td>2</td><td>기록을 고치는 코드 경로 (<a class="xref" href="#p14">14</a>, <a class="xref" href="#p15">15</a>)</td><td>system prompt, tools, 앞 메시지를 바꾸는 곳을 검색한다</td></tr>
+          <tr><td>3</td><td>tool call 사이 메모와 거절 (<a class="xref" href="#p12">12</a>, <a class="xref" href="#p13">13</a>)</td><td>응답의 블록 type 과 <code>stop_reason</code> 을 센다</td></tr>
+          <tr><td>4</td><td>effort 와 캐시 (<a class="xref" href="#p10">10</a>, <a class="xref" href="#p11">11</a>, <a class="xref" href="#p17">17</a>)</td><td>자기 평가를 단계별로 돌려 점수와 토큰을 다시 잰다</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <!-- 21 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처</h2>
+      <div class="src">
+        <div><span class="t">w1.</span> <a href="https://www.anthropic.com/claude-sonnet-5-5">Introducing Claude Sonnet 5.5</a> <span class="t">Anthropic, 2026-09-28. 2026-09-29 에 받음</span></div>
+        <div><span class="t">d1.</span> <a href="https://platform.claude.com/docs/en/models/sonnet-5-5/migration-guide">Migrating to Claude Sonnet 5.5</a> <span class="t">Claude Platform docs. 2026-09-29 에 받음</span></div>
+        <div><span class="t">d2.</span> <a href="https://platform.claude.com/docs/en/build-with-claude/thinking-steering-and-cost">Steering thinking</a> <span class="t">Claude Platform docs. 2026-09-29 에 받음</span></div>
+        <div><span class="t">d3.</span> <a href="https://platform.claude.com/docs/en/build-with-claude/effort">Effort</a> <span class="t">Claude Platform docs. 2026-09-29 에 받음</span></div>
+        <div><span class="t">d4.</span> <a href="https://platform.claude.com/docs/en/models/sonnet-5-5/whats-new-sonnet-5-5">What's new in Claude Sonnet 5.5</a> <span class="t">Claude Platform docs. 2026-09-29 에 받음</span></div>
+      </div>
+    </div>
+  </section>
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 21</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+    <button class="nav-btn" id="mode" aria-label="읽기 방식 전환">덱으로 보기</button>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll(".rail-item"));
+  var prev = document.getElementById("prev"), next = document.getElementById("next");
+  var counter = document.getElementById("counter"), progbar = document.getElementById("progbar");
+  var stage = document.getElementById("stage"), modeBtn = document.getElementById("mode");
+  var i = 0;
+  slides.forEach(function (s, k) { if (!s.id) { s.id = "p" + (k + 1); } });
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function isArticle() { return document.body.getAttribute("data-mode") !== "deck"; }
+  function mark(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    railBtn.forEach(function (b, k) { b.setAttribute("aria-current", k === i ? "true" : "false"); });
+    counter.textContent = pad(i + 1) + " / " + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + "%";
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+  }
+  function show(n, updateHash) {
+    mark(n);
+    slides.forEach(function (s, k) {
+      s.setAttribute("data-active", k === i ? "true" : "false");
+      s.setAttribute("aria-hidden", k === i ? "false" : "true");
+      if (k === i) { s.scrollTop = 0; }
+    });
+    if (updateHash !== false) { try { history.replaceState(null, "", "#p" + (i + 1)); } catch (e) {} }
+  }
+  // article 에서는 장을 숨기지 않는다. 목차 클릭과 #pN 은 그 장으로 스크롤한다.
+  function go(n, updateHash) {
+    if (!isArticle()) { show(n, updateHash); return; }
+    mark(n);
+    slides.forEach(function (s) { s.setAttribute("data-active", "true"); s.setAttribute("aria-hidden", "false"); });
+    slides[i].scrollIntoView({ block: "start" });
+    if (updateHash !== false) { try { history.replaceState(null, "", "#p" + (i + 1)); } catch (e) {} }
+  }
+  function setMode(m) {
+    document.body.setAttribute("data-mode", m);
+    try { localStorage.setItem("rl-mode", m); } catch (e) {}
+    modeBtn.textContent = m === "deck" ? "이어 읽기" : "덱으로 보기";
+    go(i, false);
+  }
+  modeBtn.addEventListener("click", function () { setMode(isArticle() ? "deck" : "article"); });
+  prev.addEventListener("click", function () { go(i - 1); });
+  next.addEventListener("click", function () { go(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener("click", function () { go(parseInt(b.getAttribute("data-go"), 10)); });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (isArticle() || e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) { return; }
+    if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); show(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); show(i - 1); }
+    else if (e.key === "Home") { e.preventDefault(); show(0); }
+    else if (e.key === "End") { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener("touchstart", function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener("touchend", function (e) {
+    if (x0 === null || isArticle()) { x0 = null; return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  // article 에서 스크롤 위치를 목차에 반영한다.
+  var ticking = false;
+  window.addEventListener("scroll", function () {
+    if (!isArticle() || ticking) { return; }
+    ticking = true;
+    window.requestAnimationFrame(function () {
+      ticking = false;
+      var line = window.innerHeight * 0.35, best = 0;
+      for (var k = 0; k < slides.length; k++) { if (slides[k].getBoundingClientRect().top <= line) { best = k; } }
+      if (best !== i) { mark(best); try { history.replaceState(null, "", "#p" + (best + 1)); } catch (e) {} }
+    });
+  }, { passive: true });
+  var saved = null;
+  try { saved = localStorage.getItem("rl-mode"); } catch (e) {}
+  document.body.setAttribute("data-mode", saved === "deck" ? "deck" : "article");
+  modeBtn.textContent = isArticle() ? "덱으로 보기" : "이어 읽기";
+  var m = /^#p(\d+)$/.exec(window.location.hash || "");
+  go(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
