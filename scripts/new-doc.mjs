@@ -132,7 +132,7 @@ function buildSlides(chapters, { title, summary }) {
       ];
     return [
       `  <!-- ${pad2(i + 1)} -->`,
-      `  <section class="slide"${active}>`,
+      `  <section class="slide"${active} data-label="${esc(label)}">`,
       '    <div class="slide-inner">',
       `      <p class="eyebrow">${eyebrow}</p>`,
       head,
@@ -202,7 +202,7 @@ async function create(slug, corpus, purpose, opts) {
     .replace(/\{\{SUMMARY\}\}/g, esc(summary))
     .replace(/\{\{SLUG\}\}/g, slug)
     .replace(/\{\{COUNT\}\}/g, pad2(chapters.length))
-    .replace('{{RAIL}}', buildRail(chapters))
+    .replace('{{RAIL}}', '    <!-- 목차는 셸 스크립트가 장에서 만든다. 장의 data-label 이 목차 이름이다 -->')
     .replace('{{SLIDES}}', buildSlides(chapters, { title, summary }));
 
   await mkdir(docDir, { recursive: true });
@@ -214,7 +214,9 @@ async function create(slug, corpus, purpose, opts) {
     seq,
     summary,
     // 새 값을 쓰면 build-index.mjs 의 CATEGORY_LABEL 에도 넣어야 한다. 없으면 라벨 없이 나간다.
-    category: corpus,
+    // web corpus 는 목록 라벨상 note 다. build-index 의 CATEGORY_LABEL 에 있는 값만 라벨이 붙는다.
+    category: corpus === 'web' ? 'note' : corpus,
+    format: 'article',
     purpose,
   }, null, 2) + '\n');
 

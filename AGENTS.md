@@ -15,7 +15,9 @@ Technical terms stay English; `.claude/skills/research-doc/references/prose-ko.m
 |---|---|---|
 | `research/<slug>/` | The publication. `index.html` and `meta.json` only | committed |
 | `.research/<slug>/` | Evidence. `sources.jsonl`, `evidence.jsonl`, `claims.jsonl` | committed |
-| `.research/<slug>/notes/` | Working artifacts, not a publication | ignored |
+| `.research/<slug>/notes/web/` | Fixed copies of web sources, `<id>.txt`; what `check-claims.mjs` matches web quotes against | committed |
+| `.research/<slug>/run.json` | The verification run's record | committed |
+| `.research/<slug>/notes/` | Everything else there: working artifacts, not a publication | ignored |
 
 The two trees always use the **same directory name**. There is no mapping file, so a
 mismatch means the document and its evidence can no longer be connected. Directory names

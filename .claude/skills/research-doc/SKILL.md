@@ -22,7 +22,7 @@ Read before writing:
   says what each kind keeps visible.
 - `references/visual.md`, whenever the document has a mechanism, an architecture, a loop
   or a comparison. A shape drawn wrong is read as fact.
-- `references/paper.md` or `references/oss.md`, by what the corpus is.
+- `references/paper.md`, `references/oss.md` or `references/web.md`, by what the corpus is.
 - `.research/<slug>/notes/figures.md`, what the source drew or tabulated. Every entry is
   redrawn in the document or named in `setup` with the reason it is absent.
 
@@ -38,7 +38,7 @@ written for. What the document has to do for them depends on its kind, which
 |---|---|---|
 | `comparison` | decide adopt, trial, assess or hold, and defend the call | the alternative, what it costs to keep running, the adoption call with its grounds |
 | `explainer` | predict the behavior on a case the source never shows | the mechanism at full depth, one case traced through it, where the principle stops holding |
-| `walkthrough` | find the code and follow it to change or extend it | the map of what talks to what, one path traced hop by hop, where a change would land |
+| `walkthrough` | find the code, or the request field, and follow the path to change it | the map of what talks to what, one path traced hop by hop, where a change would land |
 
 Every kind has a summary (`tl-dr`), the evidence for it, and its limits (`critique`). The
 adoption call belongs to the comparison and to no other kind. A comparison stops where the
@@ -66,7 +66,7 @@ chapters for the kind; rename them after their content (`nav-reward`, `result-co
 | `index` | Cover, reading path, a lineage bar when one is earned |
 | `tl-dr` | The finding in the first two sentences, then its conditions and what is unconfirmed |
 | `problem` | What was failing before this existed |
-| the kind's middle | `references/paper.md` and `references/oss.md` say how each fills |
+| the kind's middle | `references/paper.md`, `references/oss.md` and `references/web.md` say how each fills |
 | `setup` | What was read, and what was not |
 | `result-*` | Results, redrawn from the source's own charts and tables (`visual.md` §The source's own figures) |
 | `critique` | Limits, with attribution; end with a named result that survives them, where one exists |
@@ -147,8 +147,9 @@ so a reader who looks for it in the original does not come up empty.
 ## Producing the file
 
 `new-doc.mjs` stamps the shell from `assets/deck-shell.html`; assembling one by hand,
-confirm the shell script appears once, since a duplicate breaks navigation silently. Write
-chapter by chapter. Define colors as CSS custom properties that components reference, or
+confirm the shell script appears once, since a duplicate breaks navigation silently. The
+contents rail is built by the shell from the chapters (`data-label` on a section names
+it), so adding or renaming a chapter needs no rail edit. Write chapter by chapter. Define colors as CSS custom properties that components reference, or
 dark mode becomes a second copy of every component, and give anything wide
 `overflow-x: auto`. Draw rather than embed, except where redrawing would invent what the
 source shows; `check-doc.mjs --help` lists the rest, including the ban on external

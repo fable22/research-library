@@ -79,7 +79,8 @@ Write `.research/<slug>/sources.jsonl`, one source per line, before opening file
 **A web source carries `url`, `retrieved_at`, an `archive_url` when the archive has one,
 and `text_sha256` of the text you read, saved as `notes/web/<id>.txt`.** `check-claims.mjs`
 finds that file by name and matches every quote against it; without it, every quote from
-the page stays unverified and the gate says so.
+the page stays unverified and the gate says so. `notes/web/` is the one part of `notes/`
+that is committed, so the match works on another machine and in CI.
 
 **A paper source carries `arxiv_id`, `version` and `text_sha256`.** The id and version name
 an edition, since a revision changes the numbers; the hash pins the bytes, so a later quote

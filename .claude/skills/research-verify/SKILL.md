@@ -181,7 +181,9 @@ direction, a truncated quote and a dead cross-reference each have one correct an
 
 **Needs-judgment items are the author's too, except where the fix changes what the document
 concludes or how much of it exists.** Retitling, cutting a chapter, adding one and reopening
-the corpus are the user's; collect them and ask once. Do not wait for every lens before
+the corpus are the user's; collect them and ask once. A fix that needs a chapter that is
+not there stays a needs-judgment item even when it would fit in one line, because a line
+with no chapter behind it is what the next round finds. Do not wait for every lens before
 fixing, since a lens that returns first has must-fix items that are already actionable.
 
 Re-run the machine checks after fixing, and re-run a lens over the chapters it touched. Stop
