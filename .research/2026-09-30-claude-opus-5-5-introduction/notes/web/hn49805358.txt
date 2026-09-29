@@ -1,0 +1,8 @@
+id: 49805358
+author: bleonard
+created_at: 2026-09-22T17:50:50.000Z
+parent_id: 49804028
+
+The effect of this is that it is encouraging longer agent threads. All of the previous models across major providers had a 10% cache read cost (vs normal cost) and not this is 5%
+
+So longer threads get cheaper and one-shots stay the same price.

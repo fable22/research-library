@@ -1,0 +1,8 @@
+id: 49805157
+author: Retr0id
+created_at: 2026-09-22T17:38:40.000Z
+parent_id: 49803892
+
+> Opus 5.5 (1M context)'s safeguards flagged this session. You may be seeing this for the first time on an Opus model: Opus 5.5 (1M context) is more capable and has stronger safeguards as a result, which can sometimes flag non-cybersecurity work. We're improving these safeguards to reduce the amount of incorrectly flagged messages. Opus 4.8 is answering instead, or you can edit and retry with Opus 5.5 (1M context).
+
+Yay, yet another model I can't use for anything interesting, even with CVP.

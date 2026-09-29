@@ -1,0 +1,9 @@
+{
+  "title": "Claude Sonnet 5.5 이전 안내: Sonnet 5 코드에서 바꿀 곳",
+  "date": "2026-09-30",
+  "seq": 33,
+  "summary": "Sonnet 5 요청 코드에서 모델 ID 만 바꾸면 400 을 받는 다섯 곳, 조용히 달라지는 thinking 표시와 effort 비용, 그리고 다시 재야 할 것",
+  "category": "note",
+  "purpose": "walkthrough",
+  "format": "article"
+}

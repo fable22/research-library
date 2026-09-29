@@ -1,0 +1,24 @@
+{
+  "title": "Claude Opus 5.5 소개 글: 절마다 내 코드와 비용에서 달라지는 것",
+  "date": "2026-09-30",
+  "seq": 29,
+  "summary": "Anthropic 의 Claude Opus 5.5 소개 글을 절 순서대로 빠짐없이 읽고, 링크된 시스템 카드와 플랫폼 문서로 각 주장의 조건을 붙였다. 원문의 40% 절감은 단가 인하(요청 구성에 따라 20~60%)와 기본 effort 가 high 에서 medium 으로 내려간 효과가 겹친 값이라, 같은 effort 끼리 비교하면 max 에서 여섯 벤치마크 중 셋이 Opus 5 보다 비싸다. 안전장치에 걸린 요청은 Opus 4.8 이나 Opus 5 로 넘어가며, 시스템 카드의 coding 공격 평가에서 뚫린 요청은 거의 전부 그 fallback 쪽이었다. 원문 차트 여섯 개의 점 130개를 다시 그렸고 HN, X, Reddit 반응을 원문 주장과 대조했다.",
+  "category": "note",
+  "format": "article",
+  "tags": [
+    "claude opus 5.5",
+    "anthropic",
+    "pricing",
+    "effort",
+    "fallback",
+    "preserved thinking",
+    "prompt injection",
+    "benchmark",
+    "explainer"
+  ],
+  "source": {
+    "label": "anthropic.com/claude-opus-5-5",
+    "url": "https://www.anthropic.com/claude-opus-5-5"
+  },
+  "purpose": "explainer"
+}

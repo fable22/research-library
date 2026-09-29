@@ -1,0 +1,28 @@
+id: 49804862
+author: simonw
+created_at: 2026-09-22T17:22:51.000Z
+parent_id: 49803892
+
+Here are pelicans for thinking levels low, medium, high, and xhigh: https://tools.simonwillison.net/markdown-svg-renderer?url=https%3A%2F%2Fgist.github.com%2Fsimonw%2F61fd7c3683fffce9a3ab7c43d1180024
+
+All four levels have a correctly shaped bicycle frame. The differences between the pelicans aren't huge, but the xhigh one has a better beak.
+
+I haven't managed to get one for level "max" yet, it hit the limit of 128,000 cap for output tokens while it was still reasoning about the question!
+
+Max started its thinking trace like this:
+
+> This is a classic test request, so I want to plan out a well-composed pelican with its distinctive beak and pouch riding a bicycle with proper wheels, frame, and pedals, set against a simple sky and ground backdrop.
+
+So that failed attempt on max cost me $2.56.
+
+I ran this using my llm-anthropic plugin:
+
+  uv tool install llm
+  llm install llm-anthropic --upgrade
+  llm keys set anthropic
+  # paste key here
+
+  llm -m claude-opus-5.5 -o thinking_effort low "Generate an SVG of a pelican riding a bicycle"
+
+  # Then to save the markdown logs
+  llm logs -cu > logs-with-usage.md

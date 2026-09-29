@@ -1,0 +1,24 @@
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) is amongst the leading models in intelligence, but somewhat expensive when comparing to other models of similar price. It's also faster than average, however very verbose. The model supports text and image input, outputs text, and has a 1M tokens context window.
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) scores 58 on the Artificial Analysis Intelligence Index, placing it well above average among comparable models (median: 26). When evaluating the Intelligence Index, it generated 260M tokens, which is very verbose in comparison to the median of 88M.
+Pricing for Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) is $4.00 per 1M input tokens (somewhat expensive, median: $2.00) and $20.00 per 1M output tokens (expensive, median: $10.00). On average, it costs $5.98 per task to evaluate Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) on the Intelligence Index.
+At 93 tokens per second, Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) is faster than average (78).
+Common questions about Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback)
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) was released on September 22, 2026.
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) was created by Anthropic.
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) scores 58 on the Artificial Analysis Intelligence Index, placing it well above average among other reasoning models in a similar price tier (median: 26).
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) generates output at 92.8 tokens per second (based on Anthropic's API), which is above average compared to other reasoning models in a similar price tier (median: 78.1 t/s).
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) has a time to first token (TTFT) of 682.71s (based on Anthropic's API), which is at the higher end compared to other reasoning models in a similar price tier (median: 4.07s).
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) costs $4.00 per 1M input tokens (somewhat higher than average, median: $2.00) and $20.00 per 1M output tokens (somewhat higher than average, median: $10.00), based on Anthropic's API.
+When evaluated on the Intelligence Index, Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) generated 260M output tokens, which is at the higher end compared to other reasoning models in a similar price tier (median: 88M).
+Yes, Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) is a reasoning model. It uses extended thinking or chain-of-thought reasoning to work through complex problems before providing an answer.
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) supports text and image input.
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) supports text output.
+Yes, Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) supports image input and can analyze, describe, and answer questions about images.
+Yes, Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) is multimodal. It can process text and image input and generate text output.
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) has a context window of 1.0M tokens. This determines how much text and conversation history the model can process in a single request.
+No, Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) is proprietary. The model weights are not publicly available.
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) is a proprietary model and Anthropic has not disclosed the model size or parameter count.
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) achieves a score of 58 on the Artificial Analysis Intelligence Index. This composite benchmark evaluates models across reasoning, knowledge, mathematics, and coding.
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) costs $4.00 per 1M input tokens and $20.00 per 1M output tokens (based on Anthropic's API). For a blended rate (7:2:1 cache hit/input/output ratio), this is $2.94 per 1M tokens. Pricing may vary by provider.
+Yes, Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) is available via API through 6 providers.
+Claude Opus 5.5 (Adaptive Reasoning, Max Effort, Default Fallback) is available through 6 API providers.

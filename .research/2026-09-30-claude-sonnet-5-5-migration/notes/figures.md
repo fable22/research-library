@@ -1,0 +1,85 @@
+- Terminal-Bench 4.0 (시도당 비용) | Sonnet 5.5 · Low: 20.0% $0.76
+- Terminal-Bench 4.0 (시도당 비용) | Sonnet 5.5 · Med: 28.8% $0.83
+- Terminal-Bench 4.0 (시도당 비용) | Sonnet 5.5 · High: 43.0% $1.94
+- Terminal-Bench 4.0 (시도당 비용) | Sonnet 5.5 · Xhigh: 61.5% $5.30
+- Terminal-Bench 4.0 (시도당 비용) | Sonnet 5.5 · Max: 70.6% $12.54
+- Terminal-Bench 4.0 (시도당 비용) | Opus 5.5 · Low: 38.5% $1.29
+- Terminal-Bench 4.0 (시도당 비용) | Opus 5.5 · Med: 57.6% $2.94
+- Terminal-Bench 4.0 (시도당 비용) | Opus 5.5 · High: 64.2% $3.88
+- Terminal-Bench 4.0 (시도당 비용) | Opus 5.5 · Xhigh: 66.4% $7.35
+- Terminal-Bench 4.0 (시도당 비용) | Opus 5.5 · Max: 64.8% $11.24
+- Terminal-Bench 4.0 (시도당 비용) | Sonnet 5 · Low: 3.2% $3.78
+- Terminal-Bench 4.0 (시도당 비용) | Sonnet 5 · Med: 4.4% $4.83
+- Terminal-Bench 4.0 (시도당 비용) | Sonnet 5 · High: 4.5% $8.20
+- Terminal-Bench 4.0 (시도당 비용) | Sonnet 5 · Xhigh: 7.0% $9.95
+- Terminal-Bench 4.0 (시도당 비용) | Sonnet 5 · Max: 10.3% $11.62
+- Terminal-Bench 4.0 (시도당 비용) | GPT-5.6 Sol · Low: 7.9% $1.46
+- Terminal-Bench 4.0 (시도당 비용) | GPT-5.6 Sol · Med: 20.9% $2.69
+- Terminal-Bench 4.0 (시도당 비용) | GPT-5.6 Sol · High: 26.1% $4.12
+- Terminal-Bench 4.0 (시도당 비용) | GPT-5.6 Sol · Xhigh: 28.5% $5.39
+- Terminal-Bench 4.0 (시도당 비용) | GPT-5.6 Sol · Max: 37.3% $7.89
+- FrontierCode v1.1 main | Sonnet 5.5 · Low: 29.3% $0.19
+- FrontierCode v1.1 main | Sonnet 5.5 · Med: 36.5% $0.24
+- FrontierCode v1.1 main | Sonnet 5.5 · High: 49.4% $0.42
+- FrontierCode v1.1 main | Sonnet 5.5 · Xhigh: 52.1% $1.59
+- FrontierCode v1.1 main | Sonnet 5.5 · Max: 46.2% $20.78
+- FrontierCode v1.1 main | Opus 5.5 · Low: 47.3% $0.40
+- FrontierCode v1.1 main | Opus 5.5 · Med: 54.6% $0.80
+- FrontierCode v1.1 main | Opus 5.5 · High: 54.0% $1.09
+- FrontierCode v1.1 main | Opus 5.5 · Xhigh: 51.4% $2.25
+- FrontierCode v1.1 main | Opus 5.5 · Max: 54.4% $6.19
+- FrontierCode v1.1 main | Sonnet 5 · Low: 28.7% $2.39
+- FrontierCode v1.1 main | Sonnet 5 · Med: 35.2% $3.81
+- FrontierCode v1.1 main | Sonnet 5 · High: 39.4% $6.10
+- FrontierCode v1.1 main | Sonnet 5 · Xhigh: 42.7% $10.07
+- FrontierCode v1.1 main | Sonnet 5 · Max: 42.4% $17.12
+- FrontierCode v1.1 main | GPT-6 Sol · Low: 37.3% $0.43
+- FrontierCode v1.1 main | GPT-6 Sol · Med: 45.9% $0.77
+- FrontierCode v1.1 main | GPT-6 Sol · High: 47.7% $1.04
+- FrontierCode v1.1 main | GPT-6 Sol · Xhigh: 48.4% $1.32
+- FrontierCode v1.1 main | GPT-6 Sol · Max: 49.3% $2.07
+- CursorBench 4.0 | Sonnet 5.5 · Low: 35.8% $0.50
+- CursorBench 4.0 | Sonnet 5.5 · Med: 39.2% $0.70
+- CursorBench 4.0 | Sonnet 5.5 · High: 47.8% $1.67
+- CursorBench 4.0 | Sonnet 5.5 · Xhigh: 53.1% $3.88
+- CursorBench 4.0 | Sonnet 5.5 · Max: 55.5% $9.67
+- CursorBench 4.0 | Opus 5.5 · Low: 43.7% $1.17
+- CursorBench 4.0 | Opus 5.5 · Med: 52.5% $2.91
+- CursorBench 4.0 | Opus 5.5 · High: 56.0% $3.97
+- CursorBench 4.0 | Opus 5.5 · Xhigh: 56.0% $6.98
+- CursorBench 4.0 | Opus 5.5 · Max: 57.8% $13.43
+- CursorBench 4.0 | Sonnet 5 · Low: 24.1% $1.39
+- CursorBench 4.0 | Sonnet 5 · Med: 28.0% $2.31
+- CursorBench 4.0 | Sonnet 5 · High: 30.8% $3.48
+- CursorBench 4.0 | Sonnet 5 · Xhigh: 32.0% $4.55
+- CursorBench 4.0 | Sonnet 5 · Max: 34.1% $7.17
+- CursorBench 4.0 | GPT-5.6 Sol · Low: 24.6% $0.87
+- CursorBench 4.0 | GPT-5.6 Sol · Med: 31.1% $1.77
+- CursorBench 4.0 | GPT-5.6 Sol · High: 35.7% $2.85
+- CursorBench 4.0 | GPT-5.6 Sol · Xhigh: 37.7% $4.40
+- CursorBench 4.0 | GPT-5.6 Sol · Max: 41.7% $8.23
+- AA-Briefcase v1.1 | Sonnet 5.5 · Low: 1264.0 $0.87
+- AA-Briefcase v1.1 | Sonnet 5.5 · Med: 1461.0 $1.64
+- AA-Briefcase v1.1 | Sonnet 5.5 · High: 1634.0 $3.95
+- AA-Briefcase v1.1 | Sonnet 5.5 · Xhigh: 1746.0 $9.63
+- AA-Briefcase v1.1 | Sonnet 5.5 · Max: 1811.0 $29.19
+- AA-Briefcase v1.1 | Opus 5.5 · Low: 1285.0 $1.15
+- AA-Briefcase v1.1 | Opus 5.5 · Med: 1642.0 $4.40
+- AA-Briefcase v1.1 | Opus 5.5 · High: 1705.0 $6.27
+- AA-Briefcase v1.1 | Opus 5.5 · Xhigh: 1780.0 $12.27
+- AA-Briefcase v1.1 | Opus 5.5 · Max: 1822.0 $21.05
+- AA-Briefcase v1.1 | Sonnet 5 · Low: 923.0 $0.82
+- AA-Briefcase v1.1 | Sonnet 5 · Med: 1056.0 $1.73
+- AA-Briefcase v1.1 | Sonnet 5 · High: 1177.0 $3.76
+- AA-Briefcase v1.1 | Sonnet 5 · Xhigh: 1274.0 $7.56
+- AA-Briefcase v1.1 | Sonnet 5 · Max: 1359.0 $14.43
+- AA-Briefcase v1.1 | GPT-6 Sol · Low: 905.0 $0.12
+- AA-Briefcase v1.1 | GPT-6 Sol · Med: 1142.0 $0.34
+- AA-Briefcase v1.1 | GPT-6 Sol · High: 1289.0 $0.63
+- AA-Briefcase v1.1 | GPT-6 Sol · Xhigh: 1364.0 $1.19
+- AA-Briefcase v1.1 | GPT-6 Sol · Max: 1483.0 $2.67
+
+# v4 에서 덧붙임 (고정 사본 notes/web/w1.txt 에서 옮김. 새로 받은 것 없음)
+- Performance 표 (w1.txt 18~71행) | 열: Sonnet 5.5, Sonnet 5, Opus 5.5, GPT-6 Sol | Terminal-Bench 4.0: 70.6% 10.3% 66.4%¹ — | FrontierCode 1.1 (Main): 46.2% Max² (52.1% Xhigh) 42.4% 54.4% 49.3% | CursorBench 4.0: 55.5% 34.1% 57.8% — | GDPval-AA v2.1³: 1844 1449 1846 1487⁴ | AA-Briefcase v1.1³: 1811 1359 1822 1483⁴ | Humanity's Last Exam (with tools): 64.5% 54.9% 67.7% — | OSWorld 2.1 (partial): 80.1% 57.0% 81.8% — | Chartography (no tools): 61.6% 15.6% 64.4% 53.6%⁴
+- Pricing 표 "Price per 1M tokens" (w1.txt 152~167행) | 열: Claude Sonnet 5.5, Claude Opus 5.5 | Cache reads $0.20 $0.20 | Cache writes $2.50 $5 | Input tokens $2 $4 | Output tokens $10 $20
+- 데모 셋 "Creating murmurations / Shaping sand dunes / Building a clock of clocks" (w1.txt 169행~) | Sonnet 5 와 Sonnet 5.5 가 같은 프롬프트("A murmuration of 400 starlings in one HTML file" 등)로 만든 결과를 나란히 보이는 렌더 출력. 고정 사본은 텍스트만 담아 화면은 없다

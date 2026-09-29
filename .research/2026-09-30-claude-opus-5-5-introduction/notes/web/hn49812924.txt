@@ -1,0 +1,6 @@
+id: 49812924
+author: gwd
+created_at: 2026-09-23T07:50:34.000Z
+parent_id: 49808623
+
+UPDATE: Sorry, just noticed I typed in the Opus 5 total cost wrong -- it should be $58.19.  Main point "best and cheapest" was from the actual numbers, not my typo.

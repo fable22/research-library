@@ -1,0 +1,213 @@
+{
+  "slug": "2026-09-30-claude-sonnet-5-5-migration-v4",
+  "compare_with": "2026-09-30-claude-sonnet-5-5-migration-v3",
+  "harness": "876d4da merged into research/claude-opus-5-5-introduction (HEAD e032ff6)",
+  "question": "Sonnet 5 에서 Sonnet 5.5 로 옮기는 개발자가 코드에서 무엇을 바꿔야 하는가",
+  "purpose": "walkthrough",
+  "corpus": {
+    "sources": 5,
+    "new_sources": 0,
+    "evidence_copied": 141,
+    "evidence_added": 0,
+    "web_copies": {
+      "w1": "v3 notes/body.txt",
+      "d1": "v3 notes/migration-guide.md",
+      "d2": "v3 notes/thinking-steering.md",
+      "d3": "v3 notes/effort.md",
+      "d4": "v3 notes/whats-new-sonnet-5-5.md"
+    },
+    "figures_md": "v3 에서 복사한 차트 4개(점 80개)에 v4 가 고정 사본 w1.txt 에서 Performance 표, Pricing 표, 데모 셋 항목을 옮겨 덧붙였다. research-source 가 요구하는 '표로 적은 것' 이 v3 figures.md 에 빠져 있었다",
+    "note": "v3 의 sources.jsonl, evidence.jsonl, notes/figures.md 와 고정 사본 다섯 개를 복사했다. v3·v2 index.html 과 claims.jsonl 은 열거나 복사하지 않았다. 새로 받은 바이트는 없다"
+  },
+  "chapters": 21,
+  "claims": {
+    "total": 99,
+    "web": 88,
+    "derived": 7,
+    "absence": 4,
+    "web_only_allowed": 0,
+    "check_claims": "--web 과 --allow 없이 notes/web/<id>.txt 와 notes/figures.md 로 대조해 통과 (근거 253개)",
+    "negative_test": "c3 의 인용 한 단어를 바꾼 사본을 --evidence 로 돌려 quote-match 로 막히는 것을 확인했다",
+    "note": "check-claims 는 web 출처의 수치(numeric-match)와 derived_from 을 대조하지 않으므로 notes/make_claims.py 가 모든 text 를 문서 본문과, 수치와 derived_from 을 인용과 대조했다"
+  },
+  "timeline_utc": {
+    "start": "2026-09-29T14:39:20Z",
+    "draft_written": "2026-09-29T14:46:30Z",
+    "draft_gates_pass": "2026-09-29T14:46:39Z",
+    "lenses_BC_launched": "2026-09-29T14:47:40Z",
+    "lens_A_launched": "2026-09-29T14:52:00Z",
+    "round1_fixes_done": "2026-09-29T14:58:16Z",
+    "recheck1_launched": "2026-09-29T14:58:25Z",
+    "round2_fixes_done": "2026-09-29T14:59:56Z",
+    "recheck2_launched": "2026-09-29T15:00:10Z",
+    "end": "2026-09-29T15:00:33Z",
+    "note": "end 는 마지막 재검증 보고서(lensA-r2.md)의 mtime 이다. 발송 시각은 앞뒤 date -u 사이에서 어림했다. v3 와 같이 보고된 duration 이 벽시계보다 긴 호출이 있다(C r2: 124초 보고, 발송부터 mtime 까지 약 17초)"
+  },
+  "subagent_calls": {
+    "spawned": 3,
+    "resumed": 5,
+    "total": 8,
+    "model": "sonnet",
+    "reported_duration_s_sum": 1062,
+    "calls": [
+      {
+        "lens": "B",
+        "kind": "spawn",
+        "duration_s": 187,
+        "must_fix": 0,
+        "needs_judgment": 4,
+        "numbers_checked": 210,
+        "note": "v3 와 달리 처음부터 문서 전체를 대조했다. lens 파일이 'The sweep covers the whole document' 로 바뀌었다"
+      },
+      {
+        "lens": "C",
+        "kind": "spawn",
+        "duration_s": 162,
+        "must_fix": 6,
+        "must_fix_kinds": [
+          "structure",
+          "fold-only",
+          "repetition",
+          "structure",
+          "structure",
+          "accessibility"
+        ],
+        "needs_judgment": 11
+      },
+      {
+        "lens": "A",
+        "kind": "spawn",
+        "duration_s": 334,
+        "input": "lensB.md, lensC.md 와 B, C 수정이 반영된 문서",
+        "must_fix": 2,
+        "needs_judgment": 9
+      },
+      {
+        "lens": "A",
+        "kind": "resume",
+        "round": "recheck1",
+        "duration_s": 50,
+        "must_fix": 0,
+        "needs_judgment": 3
+      },
+      {
+        "lens": "C",
+        "kind": "resume",
+        "round": "recheck1",
+        "duration_s": 76,
+        "must_fix": 2,
+        "must_fix_kinds": [
+          "consistency",
+          "structure"
+        ],
+        "needs_judgment": 6
+      },
+      {
+        "lens": "B",
+        "kind": "resume",
+        "round": "recheck1",
+        "duration_s": 106,
+        "must_fix": 0,
+        "needs_judgment": 1,
+        "numbers_checked": 300
+      },
+      {
+        "lens": "C",
+        "kind": "resume",
+        "round": "recheck2",
+        "duration_s": 124,
+        "must_fix": 0,
+        "needs_judgment": 1
+      },
+      {
+        "lens": "A",
+        "kind": "resume",
+        "round": "recheck2",
+        "duration_s": 23,
+        "must_fix": 0,
+        "needs_judgment": 0
+      }
+    ],
+    "note": "B, C 를 같은 메시지에서 병렬로 띄우고, 둘의 보고서를 받아 고친 뒤 A 를 띄웠다. 재검증은 같은 렌즈를 이어 불렀다. B 는 r1 에서 판단 1건(17장 그림 제목)만 냈고 그 줄은 round 2 에서 고쳐 A, C 가 확인했으므로 r2 에 부르지 않았다"
+  },
+  "rounds": [
+    {
+      "round": 1,
+      "fixed_from": [
+        "A",
+        "B",
+        "C"
+      ],
+      "must_fix_fixed": 8,
+      "judgment_items_fixed": 18,
+      "recheck": {
+        "by": [
+          "A",
+          "B",
+          "C"
+        ],
+        "new_must_fix": 2,
+        "kinds": [
+          "consistency",
+          "structure"
+        ],
+        "detail": "C 의 지적으로 바꾼 17장 그림 제목이 AA-Briefcase 에서 점 단위로 틀렸다(B 도 판단으로 적었다). A 의 판단으로 20장에 넣은 prompt 재점검 행을 받치는 장이 없었다(C)"
+      }
+    },
+    {
+      "round": 2,
+      "reason": "재검증 1회차의 must-fix 2건",
+      "must_fix_fixed": 2,
+      "judgment_items_fixed": 0,
+      "recheck": {
+        "by": [
+          "C",
+          "A"
+        ],
+        "new_must_fix": 0
+      }
+    }
+  ],
+  "stopped_because": "clean",
+  "after_last_recheck": [],
+  "wording_recorded": [
+    "17장 그림 제목이 key 두 문장을 거의 되풀이한다 (C r2)",
+    "11장 key 가 두 조건을 한 문장에 묶는다 (C r1)",
+    "13장 과금과 rate limit 문장, 7장 '대안' 줄, 6장 'up-front thinking 이 다시 켜진다' 가 key 밖에 있다 (C r1)",
+    "14장 보이는 문단이 둘이고, '열지 않았다' 표시가 여러 장 본문에 흩어졌다 (C r1)",
+    "19장 h2 가 긴 문장이고 12장 문단이 다섯 문장이다 (C r1)",
+    "2장과 3장이 비슷한 말을 한다, 9장 key 가 두 주장, 15장 fold 의 distillation 설명, 17장 주장이 셋 (C)",
+    "6장 'up-front thinking 이 다시 켜진다' 는 adaptive 가 모델 판단이라는 점에서 단정적이다 (A r1)",
+    "14장 drop_block 이 버려진 블록의 추론을 잃는다는 비용을 적지 않았다 (A, A r1)"
+  ],
+  "needs_judgment_open": [
+    "20장 순서표에 prompt 재점검(d1 Recommended changes 의 'Then re-evaluate model-specific prompt instructions against Prompting Claude Sonnet 5.5')을 넣을지. 받치는 장이 없어 round 2 에서 뺐다. 넣으려면 장을 하나 더하거나 Prompting 문서를 열어야 한다 (A, C)",
+    "corpus 를 다시 열지: mid-conversation system messages(14장 처방의 메시지 모양), progress updates 절(12장 streaming 모양과 '한두 문장' 경계), refusals and fallback(13장 부류별 과금, Cyber Verification Program), computer use tool 의 Migrate from computer_20251124 와 Compatibility(8장 agent loop, Foundry·Claude Platform on AWS), advisor tool(9장 필드)",
+    "SDK 나 프레임워크가 안에서 보내는 강제 tool_choice 를 3장 '한 번 호출해 보면 난다' 에 단서로 달지 (A 메모)"
+  ],
+  "rendered": {
+    "opened": true,
+    "browser": "Chromium 1237 headless via CDP (node, /tmp/v4/shot.mjs, /tmp/v3/shot.mjs 에서 경로만 바꿈)",
+    "mode": "article",
+    "viewport": "1400x1000",
+    "screenshots": [
+      "/tmp/v4/final/first.png",
+      "/tmp/v4/final/ch4.png",
+      "/tmp/v4/final/ch6.png",
+      "/tmp/v4/final/ch12.png",
+      "/tmp/v4/final/ch17.png",
+      "/tmp/v4/final/ch18.png",
+      "/tmp/v4/final/dark-first.png",
+      "/tmp/v4/final/dark-ch17.png"
+    ],
+    "also_viewed": "초고 때 01, 04, 12, 17, 18장(/tmp/v4/draft). round 1 수정 뒤 02, 03, 11, 14장(/tmp/v4/r1), 08, 12, 19장(/tmp/v4/r2)",
+    "fixed_from_render": [
+      "table.prose-table 의 둘째 열부터 mono 글꼴로 나옴 (셸의 tbody td 규칙을 prose-table 이 덮지 않음) → 문서 CSS 로 sans"
+    ],
+    "after_fixes": true,
+    "dark_theme": true,
+    "deck_mode": false,
+    "horizontal_overflow": false,
+    "lens_render": "렌즈 A 는 자기 헤드리스 캡처가 빈 화면이라 렌더를 보지 못했다고 적었다. B, C 는 마크업만 읽었다"
+  }
+}

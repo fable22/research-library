@@ -1,0 +1,14 @@
+id: 49809918
+author: nl
+created_at: 2026-09-23T00:04:15.000Z
+parent_id: 49804733
+
+5.5 is higher for max effort, slightly higher for xhigh and lower for high, medium and low effort.
+
+The biggest proportional difference seems to be at max (5.5 is 38% more) and at high (5.5 is 21% less).
+
+I think most people run at high and xhigh. At xhigh it is close enough to be task dependent and I don't think most people will notice. At high effort I think it looks like it will be an improvement for most people.
+
+5.5 Max should probably be compared to Fable - it performs a lot better than 5 Max.
+
+https://artificialanalysis.ai/models/claude-opus-5-5?models=claude-opus-5-5%2Cclaude-opus-5-5-xhigh%2Cclaude-opus-5-5-high%2Cclaude-opus-5%2Cclaude-opus-5-xhigh%2Cclaude-opus-5-high%2Cclaude-opus-5-5-medium%2Cclaude-opus-5-5-low%2Cclaude-opus-5-medium%2Cclaude-opus-5-low#intelligence-index-token-use-tabs

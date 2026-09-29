@@ -1,0 +1,12 @@
+id: 49810898
+author: rmunn
+created_at: 2026-09-23T02:26:19.000Z
+parent_id: 49808623
+
+I just told Opus 5.5 "Perform a code review on the current branch" to see what it would come up with. The results were not inspiring. It told me there were five issues, one of which was a test-coverage gap on line 848 of ProjectTemplateTests.cs. But ProjectTemplateTests.cs is only 160 lines long.
+
+I told it that it had made a mistake in the line number, and to double-check all the line numbers. It responded "You were right to push on this: four of the five line numbers were wrong, and while checking them I found two findings that were overstated."
+
+Then I noticed in the corner of the Claude CLI UI that it was showing "Effort: medium". I'm pretty sure I had set it to high effort before; I don't know when it reverted to medium, but that's another thing that doesn't exactly fill me with confidence.
+
+I'll try again on high effort to see if it does better, but so far I am not impressed with Opus 5.5 on my first day of using it.

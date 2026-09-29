@@ -1,0 +1,6 @@
+id: 49805086
+author: hedgehog
+created_at: 2026-09-22T17:34:11.000Z
+parent_id: 49804490
+
+In my mix it's usually 98% or 99% at which point Fable 5.1 was pretty close to the same cost as Opus 5 due to the cheaper cached read. I've seen similar numbers for other people with long-running tasks running experiment loops and than sort of thing.

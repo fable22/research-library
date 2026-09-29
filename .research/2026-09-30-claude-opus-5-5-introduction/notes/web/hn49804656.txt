@@ -1,0 +1,6 @@
+id: 49804656
+author: cbg0
+created_at: 2026-09-22T17:11:32.000Z
+parent_id: 49804092
+
+How about cheaper? Astra is $10 in $50 out, Opus is $4 in $20 out. Even on a subscription you'll get considerably more usage out of Opus.
