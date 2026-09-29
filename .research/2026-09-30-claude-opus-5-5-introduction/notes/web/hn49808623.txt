@@ -1,0 +1,18 @@
+id: 49808623
+author: gwd
+created_at: 2026-09-22T21:47:02.000Z
+parent_id: 49804520
+
+Happened to be testing a "review patches on a mailing list" harness I was developing; here are a sample of the latest results, testing 12 patches containing a total of 14 issues:
+
+Opus 5.5: Found 8/14 issues.  Total cost: $15.40
+
+Fable 5.1: Found 7/14 issues. Total cost: $66.34
+
+Opus 5: Found 6/14 issues.  Total cost: $15.19
+
+Sonnet 5: Found 2/14 issues.  Total cost: $19.15
+
+This is a relatively small sample size, but it was both the best and the cheapest.
+
+ETA: NB this is "Equivalent API" cost as reported by claude's CLI; I was using my subscription.

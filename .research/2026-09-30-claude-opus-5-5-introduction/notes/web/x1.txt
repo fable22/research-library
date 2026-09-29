@@ -1,0 +1,8 @@
+id: 2102440897317064916
+author: @synthwavedd
+created_at: 2026-09-22T16:52:26.000Z
+favorite_count_at_retrieval: 2051
+
+As expected, unfortunately the only bad thing about the new Opus is it's a token-gobbling monster. Uses the most tokens per Intelligence Index task of any model benchmarked.
+
+The price cut makes more sense here! https://t.co/igvjTkG0CP

@@ -1,0 +1,8 @@
+id: 49811009
+author: artdigital
+created_at: 2026-09-23T02:43:02.000Z
+parent_id: 49808591
+
+I got approved for the cyber program without problems and I’m not even a cybersecurity specialist
+
+But even before that, when it flagged me, it just downgraded me from Opus 5 to 4.8 and went ahead with whatever I asked

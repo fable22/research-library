@@ -1,0 +1,13 @@
+id: 49804224
+author: glub
+created_at: 2026-09-22T16:46:53.000Z
+parent_id: 49803892
+
+> For users with cybersecurity use cases that may be blocked by our cyber safeguards, we
+recommend accessing our models with reduced cyber blocking classifiers via our Cyber
+Verification Program. Claude Opus 5.5 will be available through this program in the near
+future.
+
+Anthropic has used "in the near future" for Mythos-class models too, but CVP is still Opus 5 only.
+
+Why even have the program designed for trusted access to cyber capabilities if you're not providing access to cyber capable models via the program?

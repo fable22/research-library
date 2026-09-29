@@ -1,0 +1,190 @@
+{
+  "slug": "2026-09-30-claude-opus-5-5-introduction",
+  "date": "2026-09-30",
+  "renamedFrom": "2026-09-23-claude-opus-5-5-introduction",
+  "question": "Claude Opus 5.5 소개 글의 각 절이 API·코딩 에이전트 개발자의 코드와 비용에서 무엇을 바꾸는가. 원문이 보여 주지 않은 설정(effort 고정, fallback, 대화 편집)에서의 동작을 예측할 수 있게 한다",
+  "purpose": "explainer",
+  "rewrite": {
+    "slidesBefore": 20,
+    "slidesAfter": 34,
+    "note": "옛 본문을 고치지 않고 새로 썼다. 셸은 new-doc.mjs 의 임시 explainer 골격에서 가져왔다. 가운데 장은 원문 절 순서(사용자 조건), reception 장은 사용자 추가 지시"
+  },
+  "slides": 34,
+  "corpus": {
+    "sources": 43,
+    "retrievedAt": "2026-09-29T15:50:58Z~15:59:51Z",
+    "w1": "원문 재수신. 2026-09-23 고정본과 비교해 성능 표 행 이름 OSWorld 2.0 → 2.1 만 바뀜, 차트 점 130개 동일. 새 고정본으로 교체, Wayback 20260929155704",
+    "unchanged": [
+      "s1 PDF sha256",
+      "d1(=옛 d12)",
+      "d6(=옛 d11)",
+      "d7(=옛 d7)"
+    ],
+    "changedBytes": [
+      "d2 pricing",
+      "d3 overview",
+      "d4 preserved thinking",
+      "d5 effort"
+    ],
+    "newlyOpened": [
+      "d8 refusals and fallback",
+      "a1 Artificial Analysis",
+      "hn* 25개(Algolia)",
+      "x1(syndication)",
+      "r1(Reddit RSS)"
+    ],
+    "notInNotes": "사용자가 notes/ 에 있다고 한 부속 문서 중 시스템 카드 텍스트, pricing, overview, preserved thinking, effort, 도움말 셋, LSVP, 에세이는 notes/ 에 사본이 없어 다시 받았다",
+    "portability": "차트 aria-label 을 w1.txt 끝에, 시스템 카드 그림 렌더링 값을 s1.txt 끝에 붙였다. notes/figures.md 는 커밋되지 않아 다른 기계에서 대조할 수 없기 때문"
+  },
+  "evidenceCount": 264,
+  "claimsCount": 183,
+  "claimKinds": {
+    "web": 151,
+    "derived": 23,
+    "absence": 9
+  },
+  "figures": {
+    "articleRedrawn": "성능 표, 가격 표, 차트 6개(점 130개) 전부. Communication 비교 셋 중 하나만 나란히, 둘은 한 줄 요약",
+    "systemCardRedrawn": [
+      "Table 5.2.2.1.A",
+      "Table 8.14.5.A",
+      "Figure 3.4.2.A",
+      "Figure 6.4.8.A",
+      "Figure 6.5.1.B"
+    ],
+    "named": "Table 8.1.A(06장에 다른 행만), 나머지 system card 곡선은 setup 에 이름"
+  },
+  "checkClaims": {
+    "result": "OK 주장 183, 근거 295, 출처 43, --allow 없음",
+    "negativeTest": "c7 인용의 2,872 를 2,873 으로 바꾼 사본을 --evidence 로 돌려 quote-match 로 막힘 확인"
+  },
+  "lensModel": "sonnet",
+  "lensesReported": [
+    "B",
+    "C",
+    "A",
+    "recheck",
+    "final"
+  ],
+  "reports": [
+    "notes/verify/2026-09-30-round1-lensB.md",
+    "notes/verify/2026-09-30-round1-lensC.md",
+    "notes/verify/2026-09-30-round1-lensA.md",
+    "notes/verify/2026-09-30-round2-recheck.md",
+    "notes/verify/2026-09-30-round2-final.md"
+  ],
+  "timeline_utc": {
+    "corpusFetched": "2026-09-29T15:50:58Z",
+    "draftGatesPass": "2026-09-29T16:14Z",
+    "lensesBC": "2026-09-29T16:20:49Z",
+    "lensC": "2026-09-29T16:26:53Z",
+    "lensB": "2026-09-29T16:28:26Z",
+    "lensA": "2026-09-29T16:39:06Z",
+    "recheck": "2026-09-29T16:51:10Z"
+  },
+  "fixRounds": [
+    {
+      "round": 1,
+      "inputs": {
+        "B": {
+          "numbersChecked": "약 500",
+          "mustFix": 6,
+          "needsJudgment": 8
+        },
+        "C": {
+          "mustFix": 19,
+          "needsJudgment": 13
+        },
+        "A": {
+          "mustFix": 10,
+          "needsJudgment": 9
+        }
+      },
+      "applied": "B·C·A must-fix 35건 전부와 답이 하나인 판단 항목(16장 제목, 12장 굴곡, 09장 TTFT 모순과 429 cache 손실, 22장 표현, 24장 96.8%, 폐기 일정, Toolathlon 계산, 단위 표기 등)",
+      "authorFoundWhileExtractingClaims": [
+        "11장 key 「다섯 effort 모두 싸고 높다」 는 CursorBench max 에서 틀림",
+        "19장 Walleye 는 Opus 5 high 와 직접 비교하지 않음"
+      ],
+      "recheck": {
+        "fixed": 32,
+        "fixedIncorrectly": 3,
+        "notFixed": 0,
+        "newMustFix": 5
+      }
+    },
+    {
+      "round": 2,
+      "applied": "recheck 의 잘못 고친 3건과 새 must-fix 5건 전부, 판단 2건(02장 effort 인용 수, 33장 40% 표현)",
+      "finalRecheck": {
+        "ok": 7,
+        "problems": 2
+      }
+    }
+  ],
+  "stoppedBecause": "round cap 2",
+  "foundAndUnfixed": [
+    "30장 setup d1~d8 행의 장 목록에 05장(가격 문서 부재 판정)과 32장(d1, d2, d5 근거)이 빠짐",
+    "13장 key 「일곱은 Opus 5 보다 … 줄었다」: Opus 5 와 견준 것은 GitHub, Clio, Optiver, Kiro 넷뿐"
+  ],
+  "wordingRecorded": [
+    "15장 캡션 「classifier 가 없어」 전제가 약함(Sonnet 5 도 flag 비율이 있음)",
+    "33장 0.54배에 medium~max 조건이 빠짐(low 포함 30칸이면 0.51)",
+    "07장 key 의 단정과 본문의 「어느 비교인지 적혀 있지 않다」 사이의 긴장"
+  ],
+  "needsJudgment": [
+    "h2 17개가 key 의 주장을 되풀이함(견본은 대상을 부르는 이름)",
+    "06, 24, 27장 key 에 주장이 둘 이상",
+    "비용 기준 단서, OSWorld 행 이름, effort 기본값이 여러 장에 반복",
+    "reception 장 보이는 한글 약 900자로 견본의 1.5배",
+    "Communication 비교 셋 중 둘은 한 줄 요약만",
+    "fallback 목적지 Opus 4.8 과 Opus 5 의 폐기 일정(model-deprecations 페이지를 원천으로 등록하지 않음)",
+    "15장 두 집단 비교의 선택 효과를 본문에 한 문장으로만 둠",
+    "--counts: ~들 19(사람 96~338), 쉼표율 3.37%(사람 1.3~1.6%), 문단머리 접속사 0 이 밴드 밖"
+  ],
+  "unverified": [
+    "시스템 카드 그림 3개의 막대값은 렌더링 이미지에서 읽은 것이라 PDF 텍스트로 대조되지 않음",
+    "Artificial Analysis 의 effort 별 수치(HN nl, qlte, persedes)는 사본에 없음",
+    "Claude Code 안에서 effort 기본값이 어떻게 정해지는지(Claude Code 문서 미개봉)",
+    "2026-09-23 원문 사본은 커밋되지 않아 OSWorld 행 이름 변경은 이 기계의 옛 장부로만 확인",
+    "d2~d5 의 9월 23일 판과의 차이 내용",
+    "시스템 카드 §5.2.2.2~5.2.2.3, §2, §7 등 181쪽 미개봉"
+  ],
+  "rendered": {
+    "opened": true,
+    "browser": "Chrome for Testing 152.0.7977.8 headless shell (CDP)",
+    "viewport": "1400x2200",
+    "slidesChecked": [
+      1,
+      2,
+      6,
+      7,
+      8,
+      11,
+      12,
+      15,
+      16,
+      18,
+      22,
+      23,
+      24,
+      26,
+      28,
+      31,
+      32
+    ],
+    "darkTheme": true,
+    "darkChecked": [
+      7,
+      11,
+      23
+    ],
+    "afterFixes": true,
+    "overflowAll34": "없음(최종)",
+    "fixedFromRender": [
+      "23장 fallback 그림의 갈 곳 없는 화살촉",
+      "26장 앞부분 검사 상자 글자 넘침"
+    ],
+    "deckMode": false,
+    "narrowWidth": false
+  }
+}

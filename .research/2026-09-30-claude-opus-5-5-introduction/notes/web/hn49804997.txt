@@ -1,0 +1,6 @@
+id: 49804997
+author: arw0n
+created_at: 2026-09-22T17:29:17.000Z
+parent_id: 49804568
+
+It has far less false positives now, and generally accepts defensive requests. When it comes to offense, you can actually ask about certain types of vulnerabilities if you phrase things carefully, but it will block hard if it is about exploits.

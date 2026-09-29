@@ -1,0 +1,10 @@
+id: 49807453
+author: user43928
+created_at: 2026-09-22T20:15:10.000Z
+parent_id: 49804166
+
+kernel development is now also banned:
+
+>Opus 5.5 has classifiers similar to Fable models for a small set of capabilities related to the development of frontier LLMs, such as kernel development for certain ML accelerators. They shouldn't impact the vast majority of traditional AI or ML development, research, or general coding. These classifiers cause Claude to fall back from Opus 5.5 to Opus 5.
+
+But hey, they 'should not impact the vast majority' of ML development. Great.

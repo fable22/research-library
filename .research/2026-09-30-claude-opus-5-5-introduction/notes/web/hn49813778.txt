@@ -1,0 +1,14 @@
+id: 49813778
+author: narmiouh
+created_at: 2026-09-23T10:05:10.000Z
+parent_id: 49804862
+
+It is interesting that Fable 5.1 max [1] which also produced a decent pelican with 65k output tokens compared to 5.5 running out of 128k output tokens tells us something about the new models token usage propensity despite this being a sample of 1.
+
+Fable 5.1
+27 input, 65,927 output
+
+Opus 5.5
+27 input, 128,000 output (128k thinking tokens) - incomplete
+
+[1] https://tools.simonwillison.net/markdown-svg-renderer?url=https%3A%2F%2Fgist.github.com%2Fsimonw%2Facf6ab2516527d97f04b9f07d61a7cad

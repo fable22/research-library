@@ -1,0 +1,6 @@
+id: 49821786
+author: jdw64
+created_at: 2026-09-23T20:08:31.000Z
+parent_id: 49803892
+
+Opus 5.5 fills up the limit way too fast, even though they increased it. I'm subscribed to Max 5x, and with the previous Opus 5, I didn't usually hit the 5-hour limit even when doing the same tasks (I mainly work function by function and then stitch them together). Now, with the same tasks, I hit the 5-hour limit in under an hour. It seems like Thinking has been built into the default model, but the 5-hour limit fills up so fast that it's hard to use it properly.

@@ -1,0 +1,14 @@
+id: 49818118
+author: persedes
+created_at: 2026-09-23T16:01:58.000Z
+parent_id: 49812737
+
+how are they exaggerating the results? Comparing the cost from that chart for 5 and 5.5 for medium-max effort paints a pretty clear picture:
+
+         mean  median
+ model
+ 5      4.135   4.245
+ 5.5    3.150   2.640
+
+
+Again seeing how max is a clear outlier, the median cost saving is ~38%, not that far off from the proclaimed 40%.

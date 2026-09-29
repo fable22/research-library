@@ -1,0 +1,188 @@
+[t3_1wnejyx /u/TigerConsistent 2026-09-22T16:38:34+00:00]
+https://preview.redd.it/rmsgatzzm3rh1.png?width=737&format=png&auto=webp&s=9666afb4371d440730ab75d40a2e605d8c78b574 Opus 5.5 now has a Max effort mode that uses 6x usage. So if Anthropic benchmarks Opus on Max, but subscribers mostly run Medium/High because Max nukes their limits... are we even getting the model they benchmarked? 6x or more usage is insane btw. What the hell is Max doin? submitted by /u/TigerConsistent [link] [comments]
+
+[t1_pbevhd1 /u/ClaudeAI-mod-bot 2026-09-22T18:12:35+00:00]
+TL;DR of the discussion generated automatically after 50 comments. The consensus here is a big 'nope' to your theory, OP. That scary "6x usage" isn't some new insane cost. It's just because "Medium" is the new default baseline. The cost of Max mode itself hasn't actually changed; they just changed what they're comparing it to. Also, the community is pointing out that Anthropic's own blog post shows benchmarks for all the effort levels, not just Max. It's not a bait-and-switch. The real tea is that most users think 'Max' mode is kinda useless anyway. It tends to "overthink" and "second-guess itself" into giving worse answers, like when you change your correct answer on a test three times. The sweet spot for quality is "High" or "X-High." As one user put it, Max is really only for niche, "ultra-machine-autism" tasks like complex debugging or grad-level math. For most people, it's just a way to burn through your usage limit for worse results.
+
+[t1_pbecs9b /u/rlemmie 2026-09-22T16:54:34+00:00]
+Notwithstanding anything else, the "6x or more" is just a consequence of making "medium" default, rather than "high". So you're looking at 6x more than medium, rather than 1.5x (or whatever it was) more than high.
+
+[t1_pbeolxt /u/LogMonkey0 2026-09-22T17:43:43+00:00]
+Why dont they pick a default and show multipliers for all settings … Edit: yeah well default being medium, other settings should all show a multiplier
+
+[t1_pbed2x0 /u/TigerConsistent 2026-09-22T16:55:47+00:00]
+good point
+
+[t1_pbewt7z /u/Valuable_Guide5808 2026-09-22T18:18:10+00:00]
+Fair ask though. I am sure there is a good bit of gaming going on to make the numbers match the marketing.
+
+[t1_pbemhpn /u/KrayeBaby 2026-09-22T17:34:53+00:00]
+Medium gives you the same or even better performance than fable 5.1 on xhigh on certian tasks if I read that correctly. So if legit then its truly much more efficient to say the least
+
+[t1_pbiinq8 /u/Glum-Nature-1579 2026-09-23T05:56:21+00:00]
+This is very untrue in my case. Opus 5.5 on medium made embarrassing blunders on a fairly straightforward contract review where Fable 5.1 wouldn’t have. It was a shock.
+
+[t1_pc3rtx1 /u/rookierror 2026-09-26T03:28:30+00:00]
+In my experience, opus is really bad with contracts or large written complex structured English language documents. Fable is much much much better. I previously did a huge very complex tender and fable was a dream, whenever I tried to edit it with opus, it just butchered it.
+
+[t1_pc69yu5 /u/Glum-Nature-1579 2026-09-26T14:10:20+00:00]
+Good to know. I’m sticking with Fable yeah
+
+[t1_pbenv8h /u/iamthe0ther0ne 2026-09-22T17:40:39+00:00]
+They say that, but I wasn't really happy with the quality of answers I was getting on medium. Granted, I can't compare them to Fable (biology), and it's an improvement over Opus 5, but--for my data analysis and interpetation--5.5 medium feels about equivalent to 4.6 high.
+
+[t1_pbept47 /u/LogMonkey0 2026-09-22T17:48:50+00:00]
+Depending on your usage, it might still be possible to use fable partially. I use fable on code and have tasks that falls in the security aspect, ive identified things that clearly triggers it and i ask to delegate to opus. Get a fallback trigger, rewind, reprompt with delegation of the “sensitive” part. Idk if that would work for you, but i think its worth looking into, although the model wont tell us what trips it or the classifier, we can encode those specifics we encounter in out own harnesses
+
+[t1_pbf023i /u/iamthe0ther0ne 2026-09-22T18:31:52+00:00]
+It's really hard to eliminate the "security" from biology research without eliminating the entire meaning. The problem is that the guardrails prevent you from doing any life science research, so it's not a matter of just picking out the most offensive bits.
+
+[t1_pbg1kje /u/LogMonkey0 2026-09-22T21:14:25+00:00]
+I really don’t have any biology use case but it may be possible that a workspace orchestrator taking care of harness and organization could wrap around whatever it is you guys do, given opus 5.5 now has the guardrails, it may be appropriate to experiment around this.
+
+[t1_pbg2p4q /u/iamthe0ther0ne 2026-09-22T21:19:37+00:00]
+Do you have any recommendations about how to set that up? I'm basically using GPT for most stuff, but I would prefer to use Claude if the error rate is down in the new model.
+
+[t1_pbgdm7r /u/LogMonkey0 2026-09-22T22:13:30+00:00]
+Encode rules based on your experiences that trips the guardrails. As for the “lab assistant” type agent, id ask claude directly, naming your work trips the guardrails but you’d it to assist you while delegating the work that is “sensitive”. This is how id start if i worked on something that triggered guardrails every time.. that said, my earlier reply made me think about how the fallback mechanism actually works and made me wondered if it could be caught with a hook or something (if not that would be an amazing feature), so we could catch the fallback and give instructions such as “replay last prompt, but delegate to subagent” that way the fallback doesnt affect the whole session on long running tasks.
+
+[t1_pbgjdjz /u/iamthe0ther0ne 2026-09-22T22:43:24+00:00]
+If it were only about coding, that might work. However, what I want frontier models for is thinking about biological questions, and there's really no getting around that. For example, there's a ORA pathway that could potentially be interesting in the RNAseq dataset, but at least 2 of the genes in that set may represent some contamination from choroid plexus cells. Is there some method of disambiguation that can be applied to this dataset based on the experimental design and brain region that looking at? Or, given this dataset, these analyses I've done, and the results I have, am I overlooking additional analyses that should be done? Have I missed anything or made unsupported assumptions? I don't know how to disguise the biological nature of those questions.
+
+[t1_pbgze1h /u/LogMonkey0 2026-09-23T00:10:24+00:00]
+Fair, and thanks for sharing an example. That said, i wasnt suggesting disguise and i don't push it through like that for my stuff either. I thought more about the example cases ive hit for my stuff and there was two shapes, one was from fable reading through a project's files and the other one was during a project review, it suggested the audit angles (including security aspects) and a few turns in, something came back from a subagent and triggered the guardrail. So what im doing now for orchestrating longer tasks while keeping fable at the wheel is giving instructions that make the subagents report status and write report to files, which works well for me with my code use cases. What i suggested earlier was along those lines, but i now get that you dont need fable managing the workspace or project itself or other data around it, but answering the questions and doing research, which clearly defeats the point of my approach. But if you had a pile of questions and wanted long running sessions crunching through them, potentially getting review loops done, you could always have the content live in files and have strict rules that the main session doesnt read them and manages the dispatches, get status reports from the dispatches so it can either move to next dispatch or rerun a failed or followup agent. But using fable on this is kind of moot, my orchestrated runs are given to sonnet in general, except for specific fleet wide audits i run when im on the night before reset with usage left where i need sharp fable on the subject. Since i was just back at the computer, i did float the idea of working with guarded models in a sensitive subject workspace in claude chat just now, the question triggered fallback to opus 4.8 lol.
+
+[t1_pbg6475 /u/KrayeBaby 2026-09-22T21:36:21+00:00]
+I do economic work and it’s amazing. Language and speed is heavily upgraded from what I notice
+
+[t1_pblz49k /u/Chib 2026-09-23T17:52:24+00:00]
+What's that delegation process look like? I am a research engineer at a university and for one particular study, I'm developing a transcription pipeline for donated viewing histories for a video platform. I thought in the beginning I'd get flagged because there's a scraping aspect to the whole thing, but I got through months of the project with no issues. Then suddenly I hit one aspect I can't get it to think through no matter what, and it doesn't seem problematic to me at all. So now I've had this session open for like 5 weeks trying to figure out how to get to the next step. Every time I'd rewind it and phrase the request differently, it would still get picked up. Maybe I just don't understand why it's such a devious ask.
+
+[t1_pbohf7z /u/LogMonkey0 2026-09-24T01:02:31+00:00]
+Does it make any tool calls when you resubmit the prompt? Could also be triggering from context “history” although it didnt before.
+
+[t1_pbepenq /u/KrayeBaby 2026-09-22T17:47:08+00:00]
+hmm, give it a try on extra effort for heavy workload or anything that would have you stuck mostly. I am as of now updating my claude setup to be compatible with the new model using the official documents. My philosophy is that every new frontier model deserves to rearrange my setup to leave out old instructions that may cause friction. So try that maybe
+
+[t1_pbjxkud /u/newMoneyStyle 2026-09-23T12:28:08+00:00]
+Honestly that's a fair point, the 6x number sounds huge but it's really just the baseline shift making the marketing look better.
+
+[t1_pbec8us /u/Pantheon3D 2026-09-22T16:52:22+00:00]
+Idk but you can see xhigh vs max here https://preview.redd.it/v157z9oaq3rh1.png?width=1092&format=png&auto=webp&s=3398ba0bb4d3774bf6c10835eb6270e1f2de4978
+
+[t1_pbeowa5 /u/KCPs1234 2026-09-22T17:44:57+00:00]
+I’ll change my default back to medium. Thank you.
+
+[t1_pbeczqg /u/ZurrgabDaVinci758 2026-09-22T16:55:25+00:00]
+Huh. Max is actually worse?
+
+[t1_pbelhhx /u/acutelychronicpanic 2026-09-22T17:30:39+00:00]
+Overthinking and second guessing. You ever answer a question on a test, change your answer three times, then find out that the first answer was right?
+
+[t1_pbem5j7 /u/TySocal 2026-09-22T17:33:28+00:00]
+This
+
+[t1_pbedqki /u/WiseNugg 2026-09-22T16:58:29+00:00]
+According to this chart Astra High is better than Xtra and Max too. It’s probably a task specific result, not what everyone should expect.
+
+[t1_pc2sjkz /u/davvblack 2026-09-26T00:02:17+00:00]
+max is probably better for super long instructions or lots of intermediate reasoning
+
+[t1_pbedbdj /u/Pantheon3D 2026-09-22T16:56:45+00:00]
+On this task, but i'm sure it varies a lot
+
+[t1_pbetk0f /u/A_Novelty-Account 2026-09-22T18:04:32+00:00]
+Not on every benchmark. On this specific one, yes. Go read the actual post
+
+[t1_pbevoe1 /u/Valdaraak 2026-09-22T18:13:24+00:00]
+Typically is. You could probably count the valid use cases for Max on one hand.
+
+[t1_pbem286 /u/gray146 2026-09-22T17:33:04+00:00]
+just read the official info, buddy: https://www.anthropic.com/claude-opus-5-5
+
+[t1_pbiby06 /u/Melodic_Reality_646 2026-09-23T05:04:02+00:00]
+Frontier code shows this better, it gets low scores on higher efforts because it does more than what’s asked.
+
+[t1_pbeeksk /u/Routine-Bank5758 2026-09-22T17:01:59+00:00]
+They would have benchmarked the other models on max though too right?
+
+[t1_pbeanr9 /u/versaceblues 2026-09-22T16:45:50+00:00]
+Tbh there is very little reason for you to ever use max thinking. High/xhigh is the sweet spot for getting intelligence per token. Max I find tends to overthink and cost you more. I rarely turn it on.
+
+[t1_pbeb3cy /u/Cautious_Assistant_4 2026-09-22T16:47:39+00:00]
+That's not his point
+
+[t1_pbem7li /u/gray146 2026-09-22T17:33:42+00:00]
+his point is based on anything but the real data and infos, which are easily to read for everyone themselves. it's just ragebait. https://www.anthropic.com/claude-opus-5-5
+
+[t1_pbedyth /u/chips_and_hummus 2026-09-22T16:59:26+00:00]
+if the benchmarks are all based on max comparisons, does it not stand that the benchmarks for those models all on medium would follow the same trend it’s not like they are comparing max to medium across models
+
+[t1_pbg477m /u/AirconGuyUK 2026-09-22T21:26:50+00:00]
+I just cruise at medium for Opus/Sonnet.
+
+[t1_pbifcmg /u/versaceblues 2026-09-23T05:30:11+00:00]
+Tbh more than enough. Sonnet is honestly worse than useless at max. It hits a sweet spot on medium/high for many tasks
+
+[t1_pbethbh /u/A_Novelty-Account 2026-09-22T18:04:12+00:00]
+You can easily see that they have benchmarked it across multiple effort level levels if you just read the post on their website…
+
+[t1_pbely9t /u/gray146 2026-09-22T17:32:36+00:00]
+maybe just read the infos before judging? https://www.anthropic.com/claude-opus-5-5
+
+[t1_pbeip9u /u/larowin 2026-09-22T17:19:08+00:00]
+it just released lmao and max has always consumed that much usage - it’s really for a pretty narrow set of tasks
+
+[t1_pbemlgr /u/burgerbruce 2026-09-22T17:35:19+00:00]
+so when should we use Max then? what narrow set of tasks? i genuinely dont know
+
+[t1_pbeny7a /u/mambotomato 2026-09-22T17:40:59+00:00]
+I have not yet had a problem difficult enough for a Max model yet unimportant enough to trust to an AI.
+
+[t1_pbep3vr /u/PilgrimofHaqq2 2026-09-22T17:45:52+00:00]
+Thats brilliant and a real problem lol. Maybe give it a real problem but dont deploy it/follow it but study what it did?
+
+[t1_pbf0y3z /u/Infinite_Waves1 2026-09-22T18:35:39+00:00]
+I have only used it for extremely broad tasks like pen testing a database. This is a situation where running 100s of agents from different angles is genuinely useful and you are looking for volume. High is much more streamlined and capable of trying one specific way to its length and then reporting back
+
+[t1_pbepls2 /u/larowin 2026-09-22T17:47:59+00:00]
+gnarly debugging in distributed systems, crunching on graduate school math problems, anything where you need ultra-machine-autism. if you turn on max but give it a typical task it will second guess itself until it goes crazy and delivers bloated crap - you want to find problems where constant second guessing is necessary.
+
+[t1_pbezul1 /u/leftymeowz 2026-09-22T18:30:59+00:00]
+ultra machine autism made me giggle
+
+[t1_pbf7rvc /u/leftymeowz 2026-09-22T19:04:29+00:00]
+ok then
+
+[t1_pbghh1t /u/Zapador 2026-09-22T22:33:28+00:00]
+My take is to never go above High. There's really nothing to gain other than burning more tokens. What I'd much rather do is throw for example Fable Medium and Opus High on the same task, like one reviewing the other, or both chiming in on the same task or question. I feel like that gets you A LOT more value than putting any model at Xhigh or Max.
+
+[t1_pbehjme /u/DataGOGO 2026-09-22T17:14:21+00:00]
+everyone benches the model on whatever the max reasoning effort is
+
+[t1_pbfdnb9 /u/Eyelbee 2026-09-22T19:29:31+00:00]
+Mine says 4x
+
+[t1_pbfg367 /u/Technical-Context839 2026-09-22T19:40:05+00:00]
+You guys need to stop just putting everything on max and actually use the right reasoning levels for your task at hand and you’ll find your quota will last longer with the same if not better results.
+
+[t1_pc5bo9p /u/nocsupport 2026-09-26T10:48:45+00:00]
+Oh so I was doing it wrong using fable max to change a color in CSS ? I was wondering why it spun up dev and staging envs and created 1217 unit tests. 😂
+
+[t1_pcegifj /u/DimmKirr 2026-09-27T17:08:46+00:00]
+What’s your recommendation breakdown of which reading is needed for which tasks?
+
+[t1_pbg7c2g /u/BombasticReindeer 2026-09-22T21:42:24+00:00]
+Definitely not. I got access early and I was way more productive yesterday. And it talks normally. You don’t feel like you’re having a stroke.
+
+[t1_pbkdyh3 /u/fanatic26 2026-09-23T13:49:37+00:00]
+heres a crazy thought...just use the damn thing its killing it right now
+
+[t1_pbfeml5 /u/Was_Like 2026-09-22T19:33:45+00:00]
+How does usage/performance on Opus 5.5 low compare to, say, 4.6 medium? Or Sonnet 5 medium?
+
+[t1_pbgk5w0 /u/No_Profit8379 2026-09-22T22:47:33+00:00]
+Mine says 5.5 x more usage?! Are they giving us all different multipliers?! Aka different token counts?!
+
+[t1_pbhwyss /u/ReneDickart 2026-09-23T03:20:20+00:00]
+Completely brain dead post

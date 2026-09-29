@@ -1,0 +1,18 @@
+id: 49805459
+author: qlte
+created_at: 2026-09-22T17:57:08.000Z
+parent_id: 49804656
+
+Per the link someone else posted, the actual difference in $/task is not nearly so stark:
+
+https://artificialanalysis.ai/models/releases/claude-opus-5-5
+
+  Opus 5.5 Medium = $1.34
+  GPT-6-Astra High = $1.76
+And that assumes Opus 5.5 Medium is actually equivalent to Astra High in all real-world usage/personal work loads, which isn't guaranteed as benchmarks saturate. The High vs. High comparison (probably not equivalent, but for reference):
+
+  Opus 5.5 High = $1.82
+  GPT-6-Astra High = $1.76
+If Opus 5.5 Medium isn't equal/better for what you're working on vs. Astra High across the board, the price difference would narrow a bit more each time you had to switch to High.
+
+So, if you're happy with Codex already it's not like Opus is now 1/2 the price and you'd be leaving a crazy amount of money/tokens on the table. Plus you have way more flexibility on the low end of the intelligence curve with GPT 5.6 Luna: Haiku (and Sonnet) can't touch that price/value ratio.
