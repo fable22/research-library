@@ -12,7 +12,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 
 | 날짜 | 문서 | 분류 |
 |---|---|---|
-| 2026-09-23 | [Claude Opus 5.5 소개 글: 성능과 안전장치는 Fable 5.1 급, 비용은 Opus 5 보다 40% 낮다는 주장](https://fable22.github.io/research-library/research/2026-09-23-claude-opus-5-5-introduction/) | 메모 |
+| 2026-09-23 | [Claude Opus 5.5: Opus 5 에서 옮길 때 코드와 비용에서 바뀌는 것](https://fable22.github.io/research-library/research/2026-09-23-claude-opus-5-5-introduction/) | 메모 |
 | 2026-09-21 | [Jev System One: 문장 대신 판단과 확률을 반환하는 모델](https://fable22.github.io/research-library/research/2026-09-21-jev-system-one/) | 주제 리서치 |
 | 2026-09-15 | [OpenCodeReview: agent의 코드 리뷰를 조직하는 실행 harness](https://fable22.github.io/research-library/research/2026-09-15-open-code-review/) | 오픈소스 분석 |
 | 2026-09-14 | [RAG-Safety-Bench: 검색 품질과 응답 안전을 따로 평가해야 하는 이유](https://fable22.github.io/research-library/research/2026-09-14-rag-safety-bench/) | 논문 분석 |

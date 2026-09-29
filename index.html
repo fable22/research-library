@@ -21,8 +21,8 @@
       <li class="item">
         <a class="title-link" href="research/2026-09-23-claude-opus-5-5-introduction/">
           <p class="meta"><span class="cat">메모</span><span>2026-09-23</span><span>deck</span></p>
-          <h2>Claude Opus 5.5 소개 글: 성능과 안전장치는 Fable 5.1 급, 비용은 Opus 5 보다 40% 낮다는 주장</h2>
-          <p class="summary">Anthropic 의 &quot;Introducing Claude Opus 5.5&quot; 전문을 원문 순서대로 정독했다. 가격은 입력 $4·출력 $20·캐시 읽기 $0.20 으로 Opus 5 대비 20%·20%·60% 인하이고 &quot;40% 절감&quot; 은 기본 effort 가 high 에서 medium 으로 내려간 기본 설정 기준이다. 벤치마크 표는 max effort 값인데 FrontierCode 는 medium 54.6% 이 max 54.4% 보다 높고 각 모델 최고 effort 로 놓으면 Opus 5 와의 격차가 6.4pt 에서 1.2pt 로 준다. thinking 끄기·forced tool use·computer_20251124 는 400 을 내고 cyber 작업은 Opus 4.8 로 fallback 한다.</p>
+          <h2>Claude Opus 5.5: Opus 5 에서 옮길 때 코드와 비용에서 바뀌는 것</h2>
+          <p class="summary">Anthropic 의 Claude Opus 5.5 소개 글과 그 글이 링크한 플랫폼 문서를, Opus 5 에서 옮기는 개발자의 질문으로 다시 읽었다. 코드에서는 thinking 을 끄는 요청, tool_choice 를 강제하는 요청, computer_20251124 도구, 2026-08-31 이후 계정에서 대화 앞부분을 고친 요청이 400 을 받고, effort 를 적지 않은 요청은 high 대신 medium 으로 돈다. 비용에서는 입력 $4, 출력 $20, 캐시 읽기 $0.20 으로 Opus 5 보다 20%, 20%, 60% 내렸다. 원문의 40% 절감은 기본 설정 기준이고, effort 를 max 로 고정하면 세 벤치마크에서 Opus 5 보다 비싸진다.</p>
         </a>
         <p class="tags"><span>claude opus 5.5</span><span>anthropic</span><span>pricing</span><span>effort</span><span>preserved thinking</span><span>safeguards</span><span>benchmark</span><span>claude code</span></p>
         <p class="src">원문 <a href="https://www.anthropic.com/claude-opus-5-5">anthropic.com/claude-opus-5-5</a></p>
