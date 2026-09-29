@@ -1,0 +1,1199 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Claude Opus 5.5 소개 글: 성능과 안전장치는 Fable 5.1 급, 비용은 Opus 5 보다 40% 낮다는 주장</title>
+<meta name="description" content="Anthropic 의 &quot;Introducing Claude Opus 5.5&quot; 전문을 원문 순서대로 정독했다. 가격은 입력 $4·출력 $20·캐시 읽기 $0.20 으로 Opus 5 대비 20%·20%·60% 인하이고 &quot;40% 절감&quot; 은 기본 effort 가 high 에서 medium 으로 내려간 기본 설정 기준이다. 벤치마크 표는 max effort 값인데 FrontierCode 는 medium 54.6% 이 max 54.4% 보다 높고 각 모델 최고 effort 로 놓으면 Opus 5 와의 격차가 6.4pt 에서 1.2pt 로 준다. thinking 끄기·forced tool use·computer_20251124 는 400 을 내고 cyber 작업은 Opus 4.8 로 fallback 한다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Claude Opus 5.5 소개 글: 성능과 안전장치는 Fable 5.1 급, 비용은 Opus 5 보다 40% 낮다는 주장">
+<meta property="og:description" content="Anthropic 의 &quot;Introducing Claude Opus 5.5&quot; 전문을 원문 순서대로 정독했다. 가격은 입력 $4·출력 $20·캐시 읽기 $0.20 으로 Opus 5 대비 20%·20%·60% 인하이고 &quot;40% 절감&quot; 은 기본 effort 가 high 에서 medium 으로 내려간 기본 설정 기준이다. 벤치마크 표는 max effort 값인데 FrontierCode 는 medium 54.6% 이 max 54.4% 보다 높고 각 모델 최고 effort 로 놓으면 Opus 5 와의 격차가 6.4pt 에서 1.2pt 로 준다. thinking 끄기·forced tool use·computer_20251124 는 400 을 내고 cyber 작업은 Opus 4.8 로 fallback 한다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-09-23-claude-opus-5-5-introduction/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+
+/* ── 이 문서의 추가 토큰: 차트 계열 5개 ─────────────────── */
+:root { --s-o55: var(--link); --s-ast: var(--redlink); --s-fab: #6d4fc2; --s-o5: #0e8a7a; --s-sol: #b0781c; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --s-fab: #a78bfa; --s-o5: #2dd4bf; --s-sol: #e3b04b; } }
+:root[data-theme="dark"] { --s-fab: #a78bfa; --s-o5: #2dd4bf; --s-sol: #e3b04b; }
+svg .ln.s-o55 { stroke: var(--s-o55); stroke-width: 2.5; } svg .dot.s-o55 { fill: var(--s-o55); }
+svg .ln.s-ast { stroke: var(--s-ast); } svg .dot.s-ast { fill: var(--s-ast); }
+svg .ln.s-fab { stroke: var(--s-fab); } svg .dot.s-fab { fill: var(--s-fab); }
+svg .ln.s-o5  { stroke: var(--s-o5); }  svg .dot.s-o5  { fill: var(--s-o5); }
+svg .ln.s-sol { stroke: var(--s-sol); } svg .dot.s-sol { fill: var(--s-sol); }
+table.wrap th, table.wrap td { white-space: normal; }
+code { font-family: var(--mono); font-size: .9em; background: var(--card-2); border: 1px solid var(--rule); border-radius: 4px; padding: 1px 5px; color: var(--ink); }
+.card ul.clean li { font-size: 13.5px; }
+</style>
+</head>
+<body>
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <button class="rail-item" data-go="0"><span class="n">01</span><span>표지</span></button>
+    <button class="rail-item" data-go="1"><span class="n">02</span><span>요약</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="2"><span class="n">03</span><span>문제 정의</span></button>
+    <button class="rail-item" data-go="3"><span class="n">04</span><span>Introduction 정독</span></button>
+    <button class="rail-item" data-go="4"><span class="n">05</span><span>벤치마크 표</span></button>
+    <button class="rail-item" data-go="5"><span class="n">06</span><span>벤치마크 조건</span></button>
+    <button class="rail-item" data-go="6"><span class="n">07</span><span>가격</span></button>
+    <button class="rail-item" data-go="7"><span class="n">08</span><span>Coding · effort 곡선</span></button>
+    <button class="rail-item" data-go="8"><span class="n">09</span><span>Coding · 일화와 인용</span></button>
+    <button class="rail-item" data-go="9"><span class="n">10</span><span>Secure coding agent</span></button>
+    <button class="rail-item" data-go="10"><span class="n">11</span><span>Knowledge work · 측정</span></button>
+    <button class="rail-item" data-go="11"><span class="n">12</span><span>Knowledge work · 인용</span></button>
+    <button class="rail-item" data-go="12"><span class="n">13</span><span>Communication</span></button>
+    <button class="rail-item" data-go="13"><span class="n">14</span><span>Safety · pacing</span></button>
+    <button class="rail-item" data-go="14"><span class="n">15</span><span>Safety · alignment</span></button>
+    <button class="rail-item" data-go="15"><span class="n">16</span><span>Safety · safeguards</span></button>
+    <button class="rail-item" data-go="16"><span class="n">17</span><span>Safety · distillation</span></button>
+    <button class="rail-item" data-go="17"><span class="n">18</span><span>Availability · breaking changes</span></button>
+    <button class="rail-item" data-go="18"><span class="n">19</span><span>이전 체크리스트</span></button>
+    <div class="rail-sep"></div>
+    <button class="rail-item" data-go="19"><span class="n">20</span><span>읽은 범위</span></button>
+    <button class="rail-item" data-go="20"><span class="n">21</span><span>해석의 한계</span></button>
+    <button class="rail-item" data-go="21"><span class="n">22</span><span>바깥 목소리</span></button>
+    <button class="rail-item" data-go="22"><span class="n">23</span><span>결론</span></button>
+    <button class="rail-item" data-go="23"><span class="n">24</span><span>출처</span></button>
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>Claude Opus 5.5 소개 글: 성능과 안전장치는 Fable 5.1 급, 비용은 Opus 5 보다 40% 낮다는 주장</h1>
+      <p class="dek">Anthropic 이 2026-09-22 에 낸 "Introducing Claude Opus 5.5" 전문을 원문 순서대로 따라가며 읽는다. 원문이 재서 적은 숫자와 고객이 말한 숫자, 그리고 원문이 한 문장으로 넘긴 API 변경을 갈라 놓는다. 읽는 사람은 Claude 를 코딩 에이전트나 API 로 쓰는 개발자다.</p>
+      <div class="tablewrap" style="margin-bottom:18px">
+        <table class="wrap">
+          <thead><tr><th>원문 절</th><th style="text-align:left">이 문서의 장</th><th style="text-align:left">실무자에게 바뀌는 것</th></tr></thead>
+          <tbody>
+            <tr><td>Introduction</td><td style="text-align:left">03 · 04</td><td style="text-align:left">가격, 구독 한도, Sonnet 5.5·Haiku 5.5 예고</td></tr>
+            <tr><td>Performance and cost-effectiveness</td><td style="text-align:left">05 · 06 · 07</td><td style="text-align:left">표의 조건, 표준오차, 가격표와 fast mode</td></tr>
+            <tr><td>Coding</td><td style="text-align:left">08 · 09</td><td style="text-align:left">effort 곡선, 기본값 medium 이 최적점인 벤치마크</td></tr>
+            <tr><td>The most secure coding agent</td><td style="text-align:left">10</td><td style="text-align:left">prompt injection 수치와 시스템 카드의 단서</td></tr>
+            <tr><td>Knowledge work</td><td style="text-align:left">11 · 12</td><td style="text-align:left">GDPval, AutomationBench, WANDR 의 비교 조건</td></tr>
+            <tr><td>Communication</td><td style="text-align:left">13</td><td style="text-align:left">출력 토큰 감소로 잰 글쓰기 개선</td></tr>
+            <tr><td>Safety (Pacing · Alignment · Safeguards · Distillation · Data retention)</td><td style="text-align:left">14 · 15 · 16 · 17 · 18</td><td style="text-align:left">cyber 작업의 Opus 4.8 fallback, preserved thinking, thinking 끄기 불가</td></tr>
+            <tr><td>Availability</td><td style="text-align:left">18 · 19</td><td style="text-align:left">모델 ID, breaking change 네 개, 이전 체크리스트</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">장 순서는 원문 절 순서다. 옮길 때 할 일만 필요하면 19장, 벤치마크 수치의 조건만 보려면 05·06장, 출시 첫날 커뮤니티 반응은 22장으로 간다.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>원문의 주장은 셋이다. 대부분의 일에서 Fable 5.1 수준이고 Opus 5 보다 40% 싸며 행동 감사 점수가 역대 최고다. 개발자에게 바뀌는 것은 가격보다 기본값이다</h2>
+      <p class="dek">가격은 입력 $4, 출력 $20, 캐시 읽기 $0.20 으로 Opus 5 대비 20%, 20%, 60% 내렸다. 그러나 원문이 "thinking 을 끈 채로는 더 이상 제공하지 않는다" 는 한 문장으로 넘긴 자리에 breaking change 가 네 개 있고 기본 effort 는 high 에서 medium 으로 한 단계 내려갔다.</p>
+      <div class="stats">
+        <div class="stat hero"><span class="lab">일반 워크로드 비용, Opus 5 대비</span><span class="val">−40<span class="u">%</span></span><span class="sub">기본 설정. 토큰당 가격 인하와 태스크당 토큰 감소의 합 (원문 Cost and speed)</span></div>
+        <div class="stat"><span class="lab">캐시 읽기, 1M 토큰당</span><span class="val">$0.20</span><span class="sub">Opus 5 는 $0.50. 원문은 캐시 읽기가 agentic·코딩 비용의 대부분이라고 쓴다</span></div>
+        <div class="stat"><span class="lab">기본 effort</span><span class="val">medium</span><span class="sub">Opus 5 는 high. effort 를 안 적은 요청은 한 단계 낮게 돈다 (whats-new 문서)</span></div>
+        <div class="stat bad"><span class="lab">API 에서 400 을 내는 요청</span><span class="val">4<span class="u">종</span></span><span class="sub">thinking disabled·budget, tool_choice any·tool, computer_20251124 (Claude API·Google Cloud), thinking 블록 앞을 고친 요청 (2026-08-31 이후 계정)</span></div>
+      </div>
+      <ul class="clean">
+        <li><span class="m">성능</span><span>표 9개 벤치마크 중 7개에서 Opus 5.5 가 1위다. AutomationBench 와 Terminal-Bench-Science 는 GPT-6 Astra 가 앞선다. Anthropic 자신이 "실제 사용에서 Fable 5.1 과의 격차는 점수가 시사하는 것보다 좁다" 고 적었다.</span></li>
+        <li><span class="m">비용</span><span>코딩 벤치마크 세 개 모두에서 medium 이 max 보다 비용 대비 낫고 FrontierCode 는 medium 54.6% 가 max 54.4% 보다 높다. 같은 effort 끼리 놓으면 high 에서는 Opus 5 대비 32~86% 절감이지만 max 에서는 세 벤치마크에서 역전된다 (07장).</span></li>
+        <li><span class="m">안전</span><span>cyber 작업 대부분은 분류기가 막고 제품에서는 Opus 4.8 이 대신 답하지만 API 는 fallback 이 opt-in 이다 (16장). preserved thinking 이 2026-08-31 이후 생성된 API 계정에 적용되어 대화 앞부분을 고치는 통합은 400 을 받는다.</span></li>
+        <li><span class="m">문장</span><span>고객 인용에서 공통으로 나오는 수치는 토큰 감소다. Box 는 토큰이 Opus 5 의 1/3, Rogo 는 출력 토큰 60% 감소, Factory 는 20~25% 감소. 원문은 읽기 쉬워진 것을 안전 이점으로도 친다.</span></li>
+      </ul>
+      <p class="note">원문 수치는 전부 Anthropic 이 자기 벤치마크와 자기 하네스로 잰 값이거나 고객이 조건을 공개하지 않고 보고한 값이다. 어느 것도 이 문서가 재현하지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>원문이 고쳤다고 말하는 이전 세대의 문제는 셋이다. 비싸고 장황하고 되돌리기 어려운 행동을 했다</h2>
+      <p class="dek">소개 글은 새 모델의 장점을 나열하는 형식이지만 문단마다 Opus 5 의 어떤 점을 겨냥했는지 적혀 있다. 그 문장들을 모으면 Anthropic 이 지난 세대에서 무엇을 문제로 봤는지가 나온다.</p>
+      <div class="grid g3">
+        <div class="card"><span class="tag">비용</span><p><b>Opus 5 는 같은 일에 토큰을 더 썼다.</b> Coding 절의 일화(09장)에서 Opus 5 는 같은 코드베이스 감사에 시간은 몇 배, 토큰은 2.5배 더 썼다. 캐시 읽기 가격 $0.50 은 agentic 작업 비용의 대부분을 차지했다.</p></div>
+        <div class="card"><span class="tag">글쓰기</span><p><b>Opus 5 의 글은 읽기 어려웠다.</b> 원문은 Communication 절에서 글쓰기가 "Opus 5 에 대해 가장 많이 들은 피드백 영역 중 하나" 라고 쓴다. 비교 예시의 Opus 5 답은 발견한 것을 먼저 쓰고 금액은 쓰지 않는다.</p></div>
+        <div class="card"><span class="tag">행동</span><p><b>최근 cyber 사고에 기여한 행동이 있었다.</b> Alignment 절은 "biased or motivated reasoning, sandbox 탈출 시도, 시뮬레이션이라고 결론 낸 뒤 유해한 행동" 을 지난 사고에 기여한 행동으로 들고 Opus 5.5 가 여기서 나아졌다고 쓴다. 그 사고의 모델이 Opus 5 였는지는 원문에 없고 시스템 카드는 "우리 모델과 다른 개발사 모델의 최근 cyber 사고" 라고 쓴다.</p></div>
+      </div>
+      <p class="note">이 세 문제는 원문이 스스로 고른 것이다. 반대로 Opus 5.5 에서 나빠진 항목, 즉 사용자가 붙여넣은 텍스트 속 악의적 지시를 이전 모델보다 더 잘 따르는 경향은 시스템 카드에만 있다. 10장에서 다룬다.</p>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">intro · 정독</p>
+      <h2>Introduction 은 열 문단이다. 외부 평가자 두 곳, 개선 항목 네 개, 안전장치 등급, 구독 한도, 그리고 Sonnet 5.5·Haiku 5.5 예고</h2>
+      <p class="dek">첫 문단이 글 전체를 요약한다. "Claude 5.5 family 의 첫 모델이고, 대부분의 일에서 Fable 5.1 수준이며, Opus 5 보다 40% 싸다." 나머지 문단은 이 세 주장에 살을 붙인다.</p>
+      <ul class="clean">
+        <li><span class="m">¶2·3</span><span><b>외부 평가.</b> "pacing the frontier" 를 요청한 뒤 첫 출시다. Frontier Design 과 METR 이 출시 전에 평가했고 자동 행동 감사(automated behavioral audit)에서 역대 최고 성적이라고 쓴다. ¶3 은 개선 항목 넷을 여는 한 줄이다.</span></li>
+        <li><span class="m">¶4</span><span><b>Performance.</b> 일화 세 개. 한 테스터가 680,000줄 마이그레이션을 하루 안에 끝냈다. 웹앱 모든 페이지의 로드 시간을 줄이는 과제에서 40회 중 39회 성공했고 Opus 5 는 개선폭이 작고 앱 동작을 바꿨다. 한 프롬프트로 게임을 만드는 시험에서 그래픽과 완성도 점수가 가장 높았다.</span></li>
+        <li><span class="m">¶5</span><span><b>Safety.</b> 되돌리기 어려운 행동과 경계 밖 행동이 최근 모델보다 훨씬 적고 prompt injection 저항이 Opus 5 보다 높다. 긴 과제, 불가능한 과제, 실제 사고를 본뜬 시나리오로 감사 범위를 넓혔지만 "still has limits" 라고 쓴다.</span></li>
+        <li><span class="m">¶6</span><span><b>안전장치 등급.</b> 생물학과 cyber 능력이 Mythos 5.1 에 견줄 만해서 Fable 5.1 과 비슷한 안전장치를 붙였다. 생물학은 Life Sciences Verification Program, cyber 는 몇 주 안에 Cyber Verification Program 확대.</span></li>
+        <li><span class="m">¶7·8</span><span><b>Cost and speed.</b> 서빙 compute 가 Opus 5 보다 적게 든다. 기본 설정에서 일반 워크로드 40% 절감, 입력 $4 출력 $20 (20% 인하), 캐시 읽기 $0.20 (60% 인하), 출력 속도 30% 이상 향상. Pro·Max·Team·좌석형 Enterprise 의 5시간 한도 상향, 구독자에게 저장해 뒀다 쓰는 rate limit reset 제공.</span></li>
+        <li><span class="m">¶9</span><span><b>Communication.</b> 중요한 정보를 앞에 두고 긴 세션에서 따라가기 쉽다. 한 테스터의 말 "it writes the way I do". Anthropic 은 검토가 쉬워진 것을 안전 이점으로도 친다.</span></li>
+        <li><span class="m">¶10</span><span><b>후속.</b> Sonnet 5.5 와 Haiku 5.5 가 몇 주 안에 같은 개선을 갖고 나온다.</span></li>
+      </ul>
+      <p class="note">일화 세 개는 테스터 이름도 코드베이스도 없다. 39/40 은 Anthropic 내부 시험이고 과제 정의와 판정 기준은 원문에 없다. rate limit reset 은 도움말 문서에 따르면 5시간 세션 한도나 주간 한도를 즉시 가득 채우는 1회용 버튼이고 Claude Code 터미널에서는 누를 수 없다.</p>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">benchmark · 표</p>
+      <h2>표는 9개 벤치마크에 모델 5개다. Opus 5.5 가 7개에서 1위이고 AutomationBench 와 Terminal-Bench-Science 는 GPT-6 Astra 가 앞선다</h2>
+      <p class="dek">원문 Performance and cost-effectiveness 절의 표를 그대로 옮겼다. 각주 세 개와 표 아래 설명문이 표의 조건을 정한다. 다음 장에서 다룬다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>분류 · 벤치마크</th><th>Opus 5.5</th><th>Fable 5.1</th><th>Opus 5</th><th>GPT-6 Astra</th><th>GPT-5.6 Sol</th></tr></thead>
+          <tbody>
+            <tr><td>Agentic coding · Terminal-Bench 4.0 ¹</td><td class="win">66.4%</td><td>55.8%</td><td>52.3%</td><td>57.9%</td><td>37.3%</td></tr>
+            <tr><td>Agentic coding · FrontierCode v1.1 (Main)</td><td class="win">54.4%</td><td>50.3%</td><td>48.0%</td><td>53.3%</td><td>47.5%</td></tr>
+            <tr><td>Agentic coding · CursorBench 4.0</td><td class="win">57.8%</td><td>51.8%</td><td>46.6%</td><td>n/a</td><td>41.7%</td></tr>
+            <tr><td>Knowledge work · GDPval-AA v2.1 (Elo)</td><td class="win">1846</td><td>1735</td><td>1708</td><td>1542</td><td>1588</td></tr>
+            <tr><td>Business workflows · AutomationBench ²</td><td class="lose">40.0% (2위)</td><td>31.4%</td><td>26.9%</td><td class="win">41.4%</td><td>28.8%</td></tr>
+            <tr><td>Multidisciplinary reasoning · Humanity's Last Exam (with tools)</td><td class="win">67.7%</td><td>65.6%</td><td>63.6%</td><td>57.2%</td><td>n/a</td></tr>
+            <tr><td>Agentic scientific research · Terminal-Bench-Science 0.1 ³</td><td class="lose">58.7% (2위)</td><td>52.6%</td><td>29.0%</td><td class="win">64.6%</td><td>22.4%</td></tr>
+            <tr><td>Computer use · OSWorld 2.0 (partial)</td><td class="win">81.8%</td><td>80.7%</td><td>74.0%</td><td>n/a</td><td>n/a</td></tr>
+            <tr><td>Visual chart recognition · Chartography (with tools)</td><td class="win">89.0%</td><td>88.4%</td><td>83.4%</td><td>n/a</td><td>n/a</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <ul class="clean" style="margin-top:14px">
+        <li><span class="m">¹</span><span>Terminal-Bench 4.0 표준오차는 Opus 5.5 ±2.6pt, 다른 Claude 모델 ±1.6~2pt. 공개 리더보드(5회/과제, Claude Code 하네스)의 Opus 5 는 51.8% 이고 Anthropic 설정은 52.3% 로 재현했다. GPT 두 모델 수치는 OpenAI 보고값.</span></li>
+        <li><span class="m">²</span><span>AutomationBench 는 Zapier 가 돌리고 보고했다. fallback 모델 없이 돌려 안전장치 개입을 실패로 쳤고 그래서 실제보다 낮다고 원문이 쓴다. Opus 5.5 값은 early access 중 Zapier 평가, 나머지는 Zapier 공개 리더보드.</span></li>
+        <li><span class="m">³</span><span>Terminal-Bench-Science 표준오차는 모델당 ±3.5~5pt. 리더보드(3회/과제)의 Opus 5 는 30.0%, Anthropic 설정은 29.0%.</span></li>
+      </ul>
+      <p class="note">굵은 글씨가 행의 1위이고 "(2위)" 를 붙인 두 행이 Opus 5.5 가 1위가 아닌 행이다. OSWorld 2.0 과 Chartography 는 Fable 5.1 과의 차이가 각각 1.1pt, 0.6pt 로 표준오차가 적혀 있지 않아 유의한지 알 수 없다. Terminal-Bench-Science 의 Astra 64.6% 대 Opus 5.5 58.7% 는 5.9pt 차이인데 표준오차가 ±3.5~5pt 라 두 값의 구간이 겹칠 수 있다.</p>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">benchmark · 조건</p>
+      <h2>표의 Claude 값은 max effort 의 5회 평균이고 Terminal-Bench 의 타사 값은 각자 최고점이다. 같은 기준으로 다시 놓으면 FrontierCode 에서 Opus 5 와의 격차는 6.4pt 에서 1.2pt 로 줄어든다</h2>
+      <p class="dek">표 아래 설명문의 조건은 max effort, Terminal-Bench 4.0 만 xhigh, 안전장치를 켠 채 평가했다는 것이다. 시스템 카드 Table 8.1.A 는 여기에 5회 평균을 더하고 타사 값을 "개발사가 발표한 system card 나 리더보드" 라고 적는다. 타사 값이 최고점이라는 말은 원문의 Terminal-Bench 한 줄과 FrontierCode·CursorBench 캡션에만 있다. 개입이 일어난 cyber 과제는 Opus 4.8 이, 생물학과 frontier LLM 개발 과제는 Opus 5 가 풀었다. 그리고 Anthropic 스스로 "실제 사용에서 Fable 5.1 과의 격차는 점수가 시사하는 것보다 좁다" 고 적었다.</p>
+      <figure class="figure">
+        <p class="fig-title">FrontierCode v1.1 Main. 어느 effort 를 기준으로 삼느냐에 따라 Opus 5 와의 격차가 다르다</p>
+        <p class="fig-sub">위 묶음은 원문 표(모두 max effort). 아래 묶음은 시스템 카드 §8.4 가 적은 "각 모델의 최고 effort" 값. 시스템 카드에 두 값이 다 있고 이 대조는 이 문서가 한 것이다</p>
+        <div class="legend"><span><i class="s1"></i>Opus 5.5</span><span><i class="sn"></i>다른 모델</span></div>
+        <div class="bars">
+          <div class="bar-row is-hero"><span class="bar-name">표 · Opus 5.5 (max)</span><span class="bar-track g5"><span class="bar s1" style="--w:90.7%"></span></span><span class="bar-val">54.4%</span></div>
+          <div class="bar-row"><span class="bar-name">표 · GPT-6 Astra</span><span class="bar-track g5"><span class="bar" style="--w:88.8%"></span></span><span class="bar-val">53.3%</span></div>
+          <div class="bar-row"><span class="bar-name">표 · Fable 5.1 (max)</span><span class="bar-track g5"><span class="bar" style="--w:83.8%"></span></span><span class="bar-val">50.3%</span></div>
+          <div class="bar-row"><span class="bar-name">표 · Opus 5 (max)</span><span class="bar-track g5"><span class="bar" style="--w:80.0%"></span></span><span class="bar-val">48.0%</span></div>
+        </div>
+        <div class="bars" style="margin-top:14px">
+          <div class="bar-row is-hero"><span class="bar-name">최고 effort · Opus 5.5 (medium)</span><span class="bar-track g5"><span class="bar s1" style="--w:91.0%"></span></span><span class="bar-val">54.6%</span></div>
+          <div class="bar-row"><span class="bar-name">최고 effort · Opus 5 (medium)</span><span class="bar-track g5"><span class="bar" style="--w:89.0%"></span></span><span class="bar-val">53.4%</span></div>
+          <div class="bar-row"><span class="bar-name">최고 effort · GPT-6 Astra (max)</span><span class="bar-track g5"><span class="bar" style="--w:88.8%"></span></span><span class="bar-val">53.3%</span></div>
+          <div class="bar-row"><span class="bar-name">최고 effort · Fable 5.1 (low)</span><span class="bar-track g5"><span class="bar" style="--w:88.0%"></span></span><span class="bar-val">52.8%</span></div>
+        </div>
+        <div class="bar-axis"><div class="ticks"><span>0</span><span>12</span><span>24</span><span>36</span><span>48</span><span>60%</span></div></div>
+        <figcaption>막대 길이는 60% 를 가득으로 잡았다. 표 기준으로는 Opus 5.5 가 Opus 5 를 6.4pt 앞서지만 각 모델이 가장 잘하는 effort 끼리 놓으면 1.2pt 다. 시스템 카드는 FrontierCode 가 "medium 위에서 점수가 내려간다" 고 쓰고 그 이유를 범위 밖 변경을 감점하는 채점 방식에서 찾는다. 원문의 차트 데이터로 확인하면 Opus 5 는 medium 53.4%, Fable 5.1 은 low 52.8% 가 각자의 최고점이다. 비용까지 놓으면 Opus 5.5 medium $0.80 대 Opus 5 medium $4.61 이라 같은 점수대를 1/5.8 비용에 내는 셈이고 이 비교도 이 문서의 계산이다.</figcaption>
+      </figure>
+      <p class="note">표의 조건이 Opus 5.5 에 불리한 쪽도 있다. 안전장치 개입 시 더 약한 모델이 푼 과제가 점수에 들어가서 원문은 "이것이 아마 Opus 5.5 의 점수를 낮췄을 것" 이라고 쓴다. 능력 벤치마크에서 몇 건이 fallback 으로 갔는지는 소개 글에도 이 문서가 읽은 시스템 카드 절에도 없다. Gray Swan 평가에는 있다 (10장).</p>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">pricing</p>
+      <h2>가격은 네 항목 모두 내렸고 캐시 읽기가 가장 크게 내렸다. 40% 절감은 이 가격표에 태스크당 토큰 감소를 더한 값이다</h2>
+      <p class="dek">원문의 Pricing 표는 항목 넷이다. 인하율은 원문이 본문에 20% 와 60% 만 적었고 나머지는 이 문서가 나눈 값이다. fast mode 는 표준 가격의 두 배이고 1시간 캐시 쓰기와 batch 가격은 소개 글에 없어 플랫폼 문서에서 가져왔다.</p>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>1M 토큰당 (USD)</th><th>Opus 5.5</th><th>Opus 5</th><th>인하율</th><th>출처</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>Cache reads</td><td>$0.20</td><td>$0.50</td><td>−60%</td><td>원문 표 · 본문</td></tr>
+            <tr><td>Input tokens</td><td>$4</td><td>$5</td><td>−20%</td><td>원문 표 · 본문</td></tr>
+            <tr><td>Output tokens</td><td>$20</td><td>$25</td><td>−20%</td><td>원문 표 · 본문</td></tr>
+            <tr><td>Cache writes (5분)</td><td>$5</td><td>$6.25</td><td>−20% (계산)</td><td>원문 표</td></tr>
+            <tr><td>Cache writes (1시간)</td><td>$8</td><td>$10</td><td>−20% (계산)</td><td>whats-new · pricing 문서</td></tr>
+            <tr><td>Batch (input / output)</td><td>$2 / $10</td><td>$2.50 / $12.50</td><td>−20% (계산)</td><td>pricing 문서</td></tr>
+            <tr><td>Fast mode (input / output)</td><td>$8 / $40</td><td>$10 / $50</td><td>−20% (계산)</td><td>원문 본문 · pricing 문서</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="grid g2" style="margin-top:16px">
+        <div class="card"><span class="tag">40% 의 구성</span><p>원문은 "토큰당 가격이 낮고 태스크당 토큰을 덜 쓰는 것이 합쳐져 40% 절감" 이라고 쓴다. 가격표만으로는 20~60% 인하이므로 나머지는 토큰 수 감소에서 온다. "typical workloads" 가 무엇인지는 "기본 설정" 이라는 말 외에 없고 기본 effort 는 medium 이다. 아래 표는 effort 를 고정했을 때의 비용이다.</p></div>
+        <div class="card"><span class="tag">fast mode 의 조건</span><p>원문은 Claude Code 와 Claude Platform 에서 최대 2.5배 속도라고 쓴다. fast-mode 문서는 그 2.5배가 초당 출력 토큰(OTPS) 기준이고 첫 토큰 지연(TTFT)이 아니라고 적으며 Claude API 전용이라 Bedrock, Claude Platform on AWS, Vertex, Foundry 에서는 쓸 수 없다. 요청에 <code>speed: "fast"</code> 와 beta header <code>fast-mode-2026-02-01</code> 이 필요하다.</p></div>
+      </div>
+      <div class="tablewrap" style="margin-top:16px">
+        <table>
+          <thead><tr><th>같은 effort 에서 태스크당 비용 (USD)</th><th>high · Opus 5.5</th><th>high · Opus 5</th><th>절감</th><th>max · Opus 5.5</th><th>max · Opus 5</th><th>절감</th></tr></thead>
+          <tbody>
+            <tr><td>Terminal-Bench 4.0 (시도당)</td><td>$3.88</td><td>$10.64</td><td class="win">−64%</td><td>$11.24</td><td>$15.83</td><td class="win">−29%</td></tr>
+            <tr><td>FrontierCode Main</td><td>$1.09</td><td>$7.62</td><td class="win">−86%</td><td>$6.19</td><td>$12.28</td><td class="win">−50%</td></tr>
+            <tr><td>CursorBench 4.0</td><td>$3.97</td><td>$9.00</td><td class="win">−56%</td><td>$13.43</td><td>$11.95</td><td class="lose">+12%</td></tr>
+            <tr><td>GDPval-AA v2.1 (추정)</td><td>$1.54</td><td>$3.03</td><td class="win">−49%</td><td>$8.92</td><td>$6.76</td><td class="lose">+32%</td></tr>
+            <tr><td>AutomationBench</td><td>$0.70</td><td>$1.03</td><td class="win">−32%</td><td>$1.37</td><td>$1.27</td><td class="lose">+8%</td></tr>
+            <tr><td>WANDR (시도당)</td><td>$16.88</td><td>$43.49</td><td class="win">−61%</td><td>$37.92</td><td>$61.62</td><td class="win">−38%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">비용은 원문 차트의 점이고 절감률은 이 문서의 계산이다. 원문은 같은 effort 끼리의 비교를 적지 않는다. high 를 고정하면 여섯 벤치마크 모두 절감이고 Terminal-Bench, FrontierCode, CursorBench, GDPval 넷은 49~86% 다. max 를 고정하면 CursorBench, GDPval, AutomationBench 에서 Opus 5 보다 비싸진다. whats-new 문서가 적은 "같은 effort 에서 turn 당 thinking 이 더 많다" 가 이 역전과 방향이 같다. 캐시 읽기 $0.20 은 입력 가격의 0.05배다. Fable 5.1 과 Mythos 5.1 은 0.025배, 그 밖의 모델은 0.1배다.</p>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">coding · effort 곡선</p>
+      <h2>코딩 벤치마크 세 개 모두에서 medium 이 max 보다 비용 대비 낫다. Terminal-Bench 4.0 은 max 가 xhigh 보다 낮고 FrontierCode 는 medium 이 최고점이다</h2>
+      <p class="dek">원문 Coding 절은 비용 대 점수 차트 세 개를 싣는다. 점 하나가 모델 하나의 effort 한 단계다. 원문 본문의 "Astra 와 같은 점수를 약 40% 비용에", "Sol 을 11pt 차이로 약 1/3 비용에" 는 이 차트에서 medium 점과 상대의 최고점을 비교한 문장이다. 차트 값으로 그 차이는 10.8pt 다.</p>
+      <figure class="figure">
+        <p class="fig-title">Terminal-Bench 4.0. Opus 5.5 의 medium 점($2.94, 57.6%)이 GPT-6 Astra 의 high 점($7.21, 57.9%)과 같은 높이에 있다</p>
+        <p class="fig-sub">원문 차트의 점 25개를 그대로 옮겼다. 가로축은 시도당 비용의 로그 눈금. 원문 차트는 신뢰구간을 그리지 않는다</p>
+        <div class="svgwrap"><svg class="chart" viewBox="0 0 760 360" role="img" aria-label="Terminal-Bench 4.0 의 비용 대 점수 선 그래프. 가로축은 시도당 비용을 로그 눈금으로, 세로축은 점수다. 모델 다섯 개가 각각 effort 다섯 단계(low, med, high, xhigh, max)로 선 하나씩 그려진다. Opus 5.5 선은 $1.29 에서 38.5% 로 시작해 $2.94 에서 57.6%, $3.88 에서 64.2%, $7.35 에서 66.4% 로 오르고 $11.24 인 max 에서 64.8% 로 조금 내려간다. Opus 5 선은 $4.25 의 28.5% 에서 $15.83 의 52.3% 까지 오른쪽 아래에 있고 Fable 5.1 선은 $5.70 의 40.2% 에서 $19.50 의 55.8% 까지다. GPT-6 Astra 선은 $4.95 의 49.7% 에서 $7.21 의 57.9% 까지 오른 뒤 $10.35 에서 56.7% 로 내려간다. GPT-5.6 Sol 선은 $1.46 의 7.9% 에서 $7.89 의 37.3% 까지 맨 아래에 있다.">
+<line class="grid-l" x1="62" y1="296.0" x2="735" y2="296.0"/><text class="tick" x="54" y="300.0" text-anchor="end">0%</text>
+<line class="grid-l" x1="62" y1="256.3" x2="735" y2="256.3"/><text class="tick" x="54" y="260.3" text-anchor="end">10%</text>
+<line class="grid-l" x1="62" y1="216.6" x2="735" y2="216.6"/><text class="tick" x="54" y="220.6" text-anchor="end">20%</text>
+<line class="grid-l" x1="62" y1="176.9" x2="735" y2="176.9"/><text class="tick" x="54" y="180.9" text-anchor="end">30%</text>
+<line class="grid-l" x1="62" y1="137.1" x2="735" y2="137.1"/><text class="tick" x="54" y="141.1" text-anchor="end">40%</text>
+<line class="grid-l" x1="62" y1="97.4" x2="735" y2="97.4"/><text class="tick" x="54" y="101.4" text-anchor="end">50%</text>
+<line class="grid-l" x1="62" y1="57.7" x2="735" y2="57.7"/><text class="tick" x="54" y="61.7" text-anchor="end">60%</text>
+<line class="grid-l" x1="62" y1="18.0" x2="735" y2="18.0"/><text class="tick" x="54" y="22.0" text-anchor="end">70%</text>
+<line class="grid-l" x1="62.0" y1="18" x2="62.0" y2="296"/><text class="tick" x="62.0" y="312" text-anchor="middle">$1</text>
+<line class="grid-l" x1="206.9" y1="18" x2="206.9" y2="296"/><text class="tick" x="206.9" y="312" text-anchor="middle">$2</text>
+<line class="grid-l" x1="398.5" y1="18" x2="398.5" y2="296"/><text class="tick" x="398.5" y="312" text-anchor="middle">$5</text>
+<line class="grid-l" x1="543.4" y1="18" x2="543.4" y2="296"/><text class="tick" x="543.4" y="312" text-anchor="middle">$10</text>
+<line class="grid-l" x1="688.3" y1="18" x2="688.3" y2="296"/><text class="tick" x="688.3" y="312" text-anchor="middle">$20</text>
+<line class="axis-l" x1="62" y1="296" x2="735" y2="296"/><line class="axis-l" x1="62" y1="18" x2="62" y2="296"/>
+<text class="tick" x="398" y="352" text-anchor="middle">시도당 비용 (USD, 로그 눈금)</text>
+<text class="tick" transform="translate(14 157) rotate(-90)" text-anchor="middle">점수 (%)</text>
+<path class="ln s-sol" d="M141.1 264.6 L268.9 213.0 L358.0 192.3 L414.2 182.8 L493.9 147.9"/>
+<circle class="dot s-sol" cx="141.1" cy="264.6" r="3.5"><title>GPT-5.6 Sol · low: 7.9% $1.46</title></circle>
+<circle class="dot s-sol" cx="268.9" cy="213.0" r="3.5"><title>GPT-5.6 Sol · med: 20.9% $2.69</title></circle>
+<circle class="dot s-sol" cx="358.0" cy="192.3" r="3.5"><title>GPT-5.6 Sol · high: 26.1% $4.12</title></circle>
+<circle class="dot s-sol" cx="414.2" cy="182.8" r="3.5"><title>GPT-5.6 Sol · xhigh: 28.5% $5.39</title></circle>
+<circle class="dot s-sol" cx="493.9" cy="147.9" r="3.5"><title>GPT-5.6 Sol · max: 37.3% $7.89</title></circle>
+<text class="lbl" x="501.9" y="151.9">GPT-5.6 Sol</text>
+<path class="ln s-ast" d="M396.4 98.6 L441.8 81.9 L475.0 66.1 L482.7 67.2 L550.6 70.8"/>
+<circle class="dot s-ast" cx="396.4" cy="98.6" r="3.5"><title>GPT-6 Astra · low: 49.7% $4.95</title></circle>
+<circle class="dot s-ast" cx="441.8" cy="81.9" r="3.5"><title>GPT-6 Astra · med: 53.9% $6.15</title></circle>
+<circle class="dot s-ast" cx="475.0" cy="66.1" r="3.5"><title>GPT-6 Astra · high: 57.9% $7.21</title></circle>
+<circle class="dot s-ast" cx="482.7" cy="67.2" r="3.5"><title>GPT-6 Astra · xhigh: 57.6% $7.48</title></circle>
+<circle class="dot s-ast" cx="550.6" cy="70.8" r="3.5"><title>GPT-6 Astra · max: 56.7% $10.35</title></circle>
+<text class="lbl" x="558.6" y="84.8">GPT-6 Astra</text>
+<path class="ln s-o5" d="M364.5 182.8 L468.8 132.4 L556.4 109.3 L605.9 95.0 L639.5 88.3"/>
+<circle class="dot s-o5" cx="364.5" cy="182.8" r="3.5"><title>Opus 5 · low: 28.5% $4.25</title></circle>
+<circle class="dot s-o5" cx="468.8" cy="132.4" r="3.5"><title>Opus 5 · med: 41.2% $7</title></circle>
+<circle class="dot s-o5" cx="556.4" cy="109.3" r="3.5"><title>Opus 5 · high: 47% $10.64</title></circle>
+<circle class="dot s-o5" cx="605.9" cy="95.0" r="3.5"><title>Opus 5 · xhigh: 50.6% $13.48</title></circle>
+<circle class="dot s-o5" cx="639.5" cy="88.3" r="3.5"><title>Opus 5 · max: 52.3% $15.83</title></circle>
+<text class="lbl" x="647.5" y="102.3">Opus 5</text>
+<path class="ln s-fab" d="M425.9 136.3 L491.5 123.6 L553.6 99.8 L639.1 92.3 L683.1 74.4"/>
+<circle class="dot s-fab" cx="425.9" cy="136.3" r="3.5"><title>Fable 5.1 · low: 40.2% $5.7</title></circle>
+<circle class="dot s-fab" cx="491.5" cy="123.6" r="3.5"><title>Fable 5.1 · med: 43.4% $7.8</title></circle>
+<circle class="dot s-fab" cx="553.6" cy="99.8" r="3.5"><title>Fable 5.1 · high: 49.4% $10.5</title></circle>
+<circle class="dot s-fab" cx="639.1" cy="92.3" r="3.5"><title>Fable 5.1 · xhigh: 51.3% $15.8</title></circle>
+<circle class="dot s-fab" cx="683.1" cy="74.4" r="3.5"><title>Fable 5.1 · max: 55.8% $19.5</title></circle>
+<text class="lbl" x="691.1" y="68.4">Fable 5.1</text>
+<path class="ln s-o55" d="M115.2 143.1 L287.5 67.2 L345.5 41.0 L479.1 32.3 L567.9 38.7"/>
+<circle class="dot s-o55" cx="115.2" cy="143.1" r="5"><title>Opus 5.5 · low: 38.5% $1.29</title></circle>
+<text class="tick" x="115.2" y="134.1" text-anchor="middle">low</text>
+<circle class="dot s-o55" cx="287.5" cy="67.2" r="5"><title>Opus 5.5 · med: 57.6% $2.94</title></circle>
+<text class="tick" x="287.5" y="58.2" text-anchor="middle">med</text>
+<circle class="dot s-o55" cx="345.5" cy="41.0" r="5"><title>Opus 5.5 · high: 64.2% $3.88</title></circle>
+<text class="tick" x="345.5" y="32.0" text-anchor="middle">high</text>
+<circle class="dot s-o55" cx="479.1" cy="32.3" r="5"><title>Opus 5.5 · xhigh: 66.4% $7.35</title></circle>
+<text class="tick" x="479.1" y="23.3" text-anchor="middle">xhigh</text>
+<circle class="dot s-o55" cx="567.9" cy="38.7" r="5"><title>Opus 5.5 · max: 64.8% $11.24</title></circle>
+<text class="tick" x="567.9" y="29.7" text-anchor="middle">max</text>
+<text class="lbl-hi" x="575.9" y="42.7">Opus 5.5</text>
+</svg></div>
+        <figcaption>Opus 5.5 는 xhigh 에서 66.4% 로 최고이고 max 에서 64.8% 로 내려간다. 표의 66.4% 가 xhigh 값인 이유다. Opus 5 max 는 $15.83 에 52.3% 라 Opus 5.5 medium 이 비용 1/5.4 로 5.3pt 앞선다. 5.3pt 는 표의 두 표준오차(Opus 5.5 ±2.6pt, Opus 5 ±2pt)의 합 4.6pt 보다 크지만 95% 구간으로 넓히면 겹친다. 게다가 그 표준오차는 표의 xhigh·max 값에 대한 것이고 medium 점의 오차는 원문에 없다. Astra high 와의 0.3pt 는 노이즈 안이다.</figcaption>
+      </figure>
+      <div class="tablewrap">
+        <table>
+          <thead><tr><th>Opus 5.5 effort</th><th>Terminal-Bench 4.0</th><th>FrontierCode Main</th><th>CursorBench 4.0</th></tr></thead>
+          <tbody>
+            <tr><td>low</td><td>38.5% · $1.29</td><td>47.3% · $0.40</td><td>43.7% · $1.18</td></tr>
+            <tr class="hero"><td>medium (기본값)</td><td>57.6% · $2.94</td><td>54.6% · $0.80</td><td>52.5% · $2.90</td></tr>
+            <tr><td>high</td><td>64.2% · $3.88</td><td>54.0% · $1.09</td><td>56.0% · $3.97</td></tr>
+            <tr><td>xhigh</td><td>66.4% · $7.35</td><td>51.4% · $2.25</td><td>56.0% · $6.99</td></tr>
+            <tr><td>max</td><td>64.8% · $11.24</td><td>54.4% · $6.19</td><td>57.8% · $13.43</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">비용 열은 원문 차트의 값이고 Terminal-Bench 는 "시도당", 나머지 둘은 "태스크당" 이다. medium 에서 high 로 올리면 비용이 Terminal-Bench 1.3배, FrontierCode 1.4배, CursorBench 1.4배에 점수는 +6.6pt, −0.6pt, +3.5pt 다. max 까지 올리면 비용이 3.8배, 7.7배, 4.6배가 되고 점수는 medium 대비 +7.2pt, −0.2pt, +5.3pt 다 (이 배수는 이 문서의 계산). 터미널 에이전트 워크로드라면 high 는 비용이 1.3배만 드는 한 단계 상향이다. FrontierCode 의 medium 최고점은 06장이 적은 채점 방식의 영향이다.</p>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">coding · 일화와 인용</p>
+      <h2>코딩 절의 일화 둘과 고객 인용 여덟 개 중 여섯이 말하는 수치는 스텝과 토큰의 감소이고 넷이 절반 근처를 든다. 품질 향상을 숫자로 적은 곳은 없다</h2>
+      <p class="dek">Anthropic 의 일화는 둘이다. 한 early tester 가 200,000줄 코드베이스를 3시간 안에 감사·수정했고 Opus 5 는 20시간 넘게 걸리며 토큰을 2.5배 썼다. 내부 시험에서 HAProxy 를 C 에서 Rust 로 옮기는 과제를 Opus 5.5 와 Fable 5.1 에 주었더니 둘 다 HAProxy 자체 회귀 테스트를 거의 다 통과했고 Opus 5.5 가 9.5시간 대 12시간으로 빨랐으며 비용은 51% 적었다.</p>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>회사 · 화자</th><th style="text-align:left">인용에 적힌 수치</th><th style="text-align:left">무엇을 잰 것인가</th></tr></thead>
+          <tbody>
+            <tr><td>GitHub · Mario Rodriguez (CPO)</td><td style="text-align:left">VS Code 에서 터미널 과제를 Opus 5 보다 많이 풀고 스텝은 절반 미만</td><td style="text-align:left">Copilot CLI 와 VS Code 내부 테스트</td></tr>
+            <tr><td>Clio · Sean Heintz</td><td style="text-align:left">저장소 6개에 걸친 과제를 18시간 넘게 무인 실행</td><td style="text-align:left">한 사람의 하룻밤 실행</td></tr>
+            <tr><td>Lovable · Fabian Hedin (CTO)</td><td style="text-align:left">스텝 1/3~1/2 감소</td><td style="text-align:left">Lovable 빌더 워크로드</td></tr>
+            <tr><td>Quantium · Harley Barnes</td><td style="text-align:left">38 프롬프트·4일 → 11 프롬프트·3시간</td><td style="text-align:left">복잡한 코딩 과제 하나</td></tr>
+            <tr><td>Spotify · Aleksandar Mitic</td><td style="text-align:left">수치 없음. 같은 과제를 더 싸고 빠르게</td><td style="text-align:left">내부 평가</td></tr>
+            <tr class="hero"><td>Optiver · Noyan Tokgozoglu</td><td style="text-align:left">턴·시간·출력 토큰 약 절반, 비용 40~50% 절감, 8개 모델 중 분석 과제 1위</td><td style="text-align:left">엔지니어링·트레이딩 데스크 과제</td></tr>
+            <tr><td>Column · Mitch Fierro</td><td style="text-align:left">수치 없음. 서브에이전트 위임, 외부 문서 대조로 버그 발견</td><td style="text-align:left">코드 리뷰와 클라우드 비용 분석</td></tr>
+            <tr><td>Kiro · Deepak Singh</td><td style="text-align:left">공개 CLI 벤치마크에서 호출 약 40% 감소, 토큰 절반</td><td style="text-align:left">벤치마크 이름 없음</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">여덟 인용 중 여섯이 스텝·턴·호출·토큰이 줄었다고 말하고 그중 넷이 "절반" 근처의 수치를 든다. 품질은 "Opus 5 와 같은 품질" (Optiver) 이거나 "더 production-ready" (Quantium) 같은 서술이다. 인용의 비교 조건, 시행 횟수, effort 설정은 어느 것에도 없다. HAProxy 시험에서 "거의 다 통과" 의 실제 통과율도 원문에 없다.</p>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">secure coding agent</p>
+      <h2>원문은 prompt injection 저항이 시험한 모든 설정에서 Opus 5 이상이라고 쓴다. 시스템 카드는 전용 벤치마크에서는 그렇고 행동 감사에서는 소폭 퇴보했으며 코딩 시나리오의 46% 는 Opus 4.8 이 답했다고 쓴다</h2>
+      <p class="dek">"The most secure coding agent" 절은 두 문단이다. 첫 문단은 모델 밖의 장치 셋을 든다. 모든 행동을 실행 전에 거르는 분류기, 보안팀이 감사할 수 있는 오픈소스 sandbox, 병합 전에 취약점을 잡는 코드 리뷰. 둘째 문단이 모델 자체의 방어를 말한다.</p>
+      <div class="grid g2">
+        <div class="card"><span class="tag">소개 글이 말하는 것</span><p>코딩, tool use, computer use, 웹 브라우징 등 시험한 모든 설정에서 Opus 5 와 같거나 낫다. Gray Swan 벤치마크에서 Fable 5.1 과 함께 시험 대상 중 가장 낮은 prompt injection 성공률이다.</p><p class="small">시스템 카드 §5.2.1 의 수치: 공격 성공률 k=1 에서 0.1%, k=10 에서 0.7%, k=15 에서 1.0%. Opus 5 는 0.4%, 3.6%, 4.8%. 같은 절은 Opus 5.5 시행(rollout)의 18% 가 cyber 분류기 fallback 으로 Opus 4.8 이 답했고 코딩 시나리오에서는 46% 라고 쓴다. fallback 이 답한 1,310회 중 성공한 공격은 0 이다.</p></div>
+        <div class="card"><span class="tag">시스템 카드가 덧붙이는 것</span><p>행동 감사 §6.4.1 은 "prompt injection 에서 진짜지만 작은 퇴보" 와 "검증되지 않은 권한 주장을 받아들이는 현상" 을 예외로 든다. Executive Summary 는 "사용자가 자기 프롬프트에 붙여넣은 텍스트 안의 악의적 지시를 이전 모델보다 더 잘 따른다" 고 쓴다.</p><p class="small">Executive Summary 의 Agentic safety 문단은 Claude Code 와 computer use 설정에서 안전장치 없이 시험했을 때 dual-use·양성 보안 과제를 가장 높은 비율로 도왔지만 악의적 요청 거부율은 시험한 모델 중 가장 낮았다고 쓴다. §5.2.2.1 의 adaptive 공격은 prompt injection probe 를 끈 조건에서 유효 응답을 받은 Opus 5.5 요청의 64% 를 Opus 4.8 이 답했고 그 fallback 응답의 공격 성공률이 85.73%, Opus 5.5 가 직접 답한 2,872건은 0 이다. prompt injection probe 를 켠 조건에서는 전체 성공률 11.13% 로 Fable 5.1 의 8.70% 다음이고 Opus 5 의 19.53% 보다 낮으며 성공한 공격은 모두 fallback 응답에서 나왔다. Gray Swan 비교의 조건 차이도 적혀 있다. Claude 모델은 prompt injection 전용 안전장치 없이 표준 차단 분류기와 fallback 만 켜고 평가했고 타사 모델은 공개 엔드포인트라 추가 안전장치가 있을 수도 없을 수도 있다.</p></div>
+      </div>
+      <p class="note">소개 글의 "모든 설정" 은 전용 prompt injection 평가의 말이고 "시험 대상 중 최저" 는 시스템 카드가 red-teaming 경쟁의 표적이었던 모델을 뺀 집합이다. 코딩 에이전트의 방어는 모델 자체보다 분류기 경로에 달려 있다. 오픈소스 sandbox 가 어느 저장소인지는 원문에 링크가 없어 이 문서도 확인하지 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">knowledge work · 측정</p>
+      <h2>지식 노동 절의 내부 시험 둘은 Opus 5.5 가 이긴다. 벤치마크 셋 중 둘에는 비교를 제한하는 각주가 있다. AutomationBench 는 fallback 이 없고 WANDR 는 공개 설정과 다르다</h2>
+      <p class="dek">내부 시험 첫째는 분기 실적 보고서 작성이다. 실적 발표를 찾기 어렵게 만든 웹 사본만 주고 자동 채점기가 모든 수치와 인용을 출처와 대조했다. Opus 5.5 는 effort 설정을 바꿔 가며 18회 중 16회 품질 기준을 넘었고 Fable 5.1 과 Opus 5 는 한 번도 넘지 못했다. 그 사이에 Walleye Capital 의 고객 보고가 있고 둘째 내부 시험은 가상 HR 회사 합병 분석으로 Excel 모델과 발표 자료를 만드는 과제다. Opus 5.5 는 63분, Opus 5 는 93분이 걸렸고 비용은 50% 적었다.</p>
+      <figure class="figure">
+        <p class="fig-title">GDPval-AA v2.1. Opus 5.5 medium(1576, $0.86)이 GPT-6 Astra max(1542, $4.53) 위에 있다</p>
+        <p class="fig-sub">원문 차트의 점 25개. Artificial Analysis 가 44개 직업의 실제 업무로 평가하는 Elo 다. 비용은 "추정" 이라고 원문 축에 적혀 있다</p>
+        <div class="svgwrap"><svg class="chart" viewBox="0 0 760 360" role="img" aria-label="GDPval-AA v2.1 의 비용 대 Elo 선 그래프. Opus 5.5 선은 $0.21 의 1224 에서 $0.86 의 1576, $1.54 의 1692, $4.21 의 1820, $8.92 의 1846 까지 오른다. Fable 5.1 선은 $1.41 의 1450 에서 $9.59 의 1735 까지, Opus 5 선은 $0.58 의 1294 에서 $6.76 의 1708 까지다. GPT-6 Astra 선은 $0.85 의 1366 에서 $4.53 의 1542 까지, GPT-5.6 Sol 선은 $0.27 의 1289 에서 $2.81 의 1588 까지다. Opus 5.5 의 med 점(1576, $0.86)이 GPT-6 Astra 의 max 점(1542, $4.53)보다 위에 있고 왼쪽에 있다.">
+<line class="grid-l" x1="62" y1="296.0" x2="735" y2="296.0"/><text class="tick" x="54" y="300.0" text-anchor="end">1200</text>
+<line class="grid-l" x1="62" y1="256.3" x2="735" y2="256.3"/><text class="tick" x="54" y="260.3" text-anchor="end">1300</text>
+<line class="grid-l" x1="62" y1="216.6" x2="735" y2="216.6"/><text class="tick" x="54" y="220.6" text-anchor="end">1400</text>
+<line class="grid-l" x1="62" y1="176.9" x2="735" y2="176.9"/><text class="tick" x="54" y="180.9" text-anchor="end">1500</text>
+<line class="grid-l" x1="62" y1="137.1" x2="735" y2="137.1"/><text class="tick" x="54" y="141.1" text-anchor="end">1600</text>
+<line class="grid-l" x1="62" y1="97.4" x2="735" y2="97.4"/><text class="tick" x="54" y="101.4" text-anchor="end">1700</text>
+<line class="grid-l" x1="62" y1="57.7" x2="735" y2="57.7"/><text class="tick" x="54" y="61.7" text-anchor="end">1800</text>
+<line class="grid-l" x1="62" y1="18.0" x2="735" y2="18.0"/><text class="tick" x="54" y="22.0" text-anchor="end">1900</text>
+<line class="grid-l" x1="62.0" y1="18" x2="62.0" y2="296"/><text class="tick" x="62.0" y="312" text-anchor="middle">$0.2</text>
+<line class="grid-l" x1="212.6" y1="18" x2="212.6" y2="296"/><text class="tick" x="212.6" y="312" text-anchor="middle">$0.5</text>
+<line class="grid-l" x1="326.5" y1="18" x2="326.5" y2="296"/><text class="tick" x="326.5" y="312" text-anchor="middle">$1</text>
+<line class="grid-l" x1="440.5" y1="18" x2="440.5" y2="296"/><text class="tick" x="440.5" y="312" text-anchor="middle">$2</text>
+<line class="grid-l" x1="591.1" y1="18" x2="591.1" y2="296"/><text class="tick" x="591.1" y="312" text-anchor="middle">$5</text>
+<line class="grid-l" x1="705.0" y1="18" x2="705.0" y2="296"/><text class="tick" x="705.0" y="312" text-anchor="middle">$10</text>
+<line class="axis-l" x1="62" y1="296" x2="735" y2="296"/><line class="axis-l" x1="62" y1="18" x2="62" y2="296"/>
+<text class="tick" x="398" y="352" text-anchor="middle">태스크당 추정 비용 (USD, 로그 눈금)</text>
+<text class="tick" transform="translate(14 157) rotate(-90)" text-anchor="middle">Elo</text>
+<path class="ln s-sol" d="M111.3 260.7 L242.6 215.4 L343.7 184.8 L413.8 157.8 L496.4 141.9"/>
+<circle class="dot s-sol" cx="111.3" cy="260.7" r="3.5"><title>GPT-5.6 Sol · low: 1289 $0.27</title></circle>
+<circle class="dot s-sol" cx="242.6" cy="215.4" r="3.5"><title>GPT-5.6 Sol · med: 1403 $0.6</title></circle>
+<circle class="dot s-sol" cx="343.7" cy="184.8" r="3.5"><title>GPT-5.6 Sol · high: 1480 $1.11</title></circle>
+<circle class="dot s-sol" cx="413.8" cy="157.8" r="3.5"><title>GPT-5.6 Sol · xhigh: 1548 $1.7</title></circle>
+<circle class="dot s-sol" cx="496.4" cy="141.9" r="3.5"><title>GPT-5.6 Sol · max: 1588 $2.81</title></circle>
+<text class="lbl" x="418.4" y="131.9">GPT-5.6 Sol</text>
+<path class="ln s-ast" d="M299.8 230.1 L425.0 189.6 L472.5 182.8 L509.3 170.5 L574.9 160.2"/>
+<circle class="dot s-ast" cx="299.8" cy="230.1" r="3.5"><title>GPT-6 Astra · low: 1366 $0.85</title></circle>
+<circle class="dot s-ast" cx="425.0" cy="189.6" r="3.5"><title>GPT-6 Astra · med: 1468 $1.82</title></circle>
+<circle class="dot s-ast" cx="472.5" cy="182.8" r="3.5"><title>GPT-6 Astra · high: 1485 $2.43</title></circle>
+<circle class="dot s-ast" cx="509.3" cy="170.5" r="3.5"><title>GPT-6 Astra · xhigh: 1516 $3.04</title></circle>
+<circle class="dot s-ast" cx="574.9" cy="160.2" r="3.5"><title>GPT-6 Astra · max: 1542 $4.53</title></circle>
+<text class="lbl" x="582.9" y="174.2">GPT-6 Astra</text>
+<path class="ln s-o5" d="M237.0 258.7 L377.1 186.4 L508.8 144.7 L589.8 107.0 L640.7 94.3"/>
+<circle class="dot s-o5" cx="237.0" cy="258.7" r="3.5"><title>Opus 5 · low: 1294 $0.58</title></circle>
+<circle class="dot s-o5" cx="377.1" cy="186.4" r="3.5"><title>Opus 5 · med: 1476 $1.36</title></circle>
+<circle class="dot s-o5" cx="508.8" cy="144.7" r="3.5"><title>Opus 5 · high: 1581 $3.03</title></circle>
+<circle class="dot s-o5" cx="589.8" cy="107.0" r="3.5"><title>Opus 5 · xhigh: 1676 $4.96</title></circle>
+<circle class="dot s-o5" cx="640.7" cy="94.3" r="3.5"><title>Opus 5 · max: 1708 $6.76</title></circle>
+<text class="lbl" x="648.7" y="108.3">Opus 5</text>
+<path class="ln s-fab" d="M383.0 196.7 L453.9 162.6 L529.1 130.4 L648.5 89.1 L698.1 83.5"/>
+<circle class="dot s-fab" cx="383.0" cy="196.7" r="3.5"><title>Fable 5.1 · low: 1450 $1.41</title></circle>
+<circle class="dot s-fab" cx="453.9" cy="162.6" r="3.5"><title>Fable 5.1 · med: 1536 $2.17</title></circle>
+<circle class="dot s-fab" cx="529.1" cy="130.4" r="3.5"><title>Fable 5.1 · high: 1617 $3.43</title></circle>
+<circle class="dot s-fab" cx="648.5" cy="89.1" r="3.5"><title>Fable 5.1 · xhigh: 1721 $7.09</title></circle>
+<circle class="dot s-fab" cx="698.1" cy="83.5" r="3.5"><title>Fable 5.1 · max: 1735 $9.59</title></circle>
+<text class="lbl" x="706.1" y="77.5">Fable 5.1</text>
+<path class="ln s-o55" d="M70.0 286.5 L301.8 146.7 L397.5 100.6 L562.8 49.8 L686.2 39.4"/>
+<circle class="dot s-o55" cx="70.0" cy="286.5" r="5"><title>Opus 5.5 · low: 1224 $0.21</title></circle>
+<text class="tick" x="70.0" y="277.5" text-anchor="middle">low</text>
+<circle class="dot s-o55" cx="301.8" cy="146.7" r="5"><title>Opus 5.5 · med: 1576 $0.86</title></circle>
+<text class="tick" x="301.8" y="137.7" text-anchor="middle">med</text>
+<circle class="dot s-o55" cx="397.5" cy="100.6" r="5"><title>Opus 5.5 · high: 1692 $1.54</title></circle>
+<text class="tick" x="397.5" y="91.6" text-anchor="middle">high</text>
+<circle class="dot s-o55" cx="562.8" cy="49.8" r="5"><title>Opus 5.5 · xhigh: 1820 $4.21</title></circle>
+<text class="tick" x="562.8" y="40.8" text-anchor="middle">xhigh</text>
+<circle class="dot s-o55" cx="686.2" cy="39.4" r="5"><title>Opus 5.5 · max: 1846 $8.92</title></circle>
+<text class="tick" x="686.2" y="30.4" text-anchor="middle">max</text>
+<text class="lbl-hi" x="694.2" y="43.4">Opus 5.5</text>
+</svg></div>
+        <figcaption>max 에서 Opus 5.5 1846, Fable 5.1 1735, Opus 5 1708. Opus 5.5 의 low 점(1224, $0.21)은 다섯 모델의 low 점 중 가장 낮아서 이 벤치마크에서 low 는 비용을 아끼는 대신 순위를 잃는 설정이다. 원문 캡션은 이 low 점을 언급하지 않는다.</figcaption>
+      </figure>
+      <div class="grid g2">
+        <div class="card"><span class="tag">AutomationBench (Zapier)</span><p>모든 effort 에서 Opus 5 와 GPT-5.6 Sol 을 앞선다. 최고점은 max 40.0% ($1.37). GPT-6 Astra 는 41.4% ($1.77) 로 위에 있고 원문 캡션은 Astra 를 비교 대상에서 뺀다. 각주 2 대로 fallback 없이 돌려 안전장치 개입이 실패로 잡혔다.</p></div>
+        <div class="card"><span class="tag">WANDR (Perplexity)</span><p>대규모 데이터 수집. max 에서 Opus 5.5 72.3% ($37.92), Fable 5.1 68.7% ($49.02), Opus 5 67.2% ($61.62). 각주 4 는 오프라인 web search·fetch, programmatic tool calling, 코드 실행, 980k 토큰 예산으로 돌려 Perplexity 공개 점수와 직접 비교할 수 없다고 쓴다. Opus 5.5 low 는 31.2% 로 급락한다.</p></div>
+      </div>
+      <p class="note">보고서 시험의 "품질 기준" 이 무엇인지, 18회가 어떤 effort 조합인지는 원문에 없다. Walleye 는 Anthropic 시험이 아니라 고객 보고이고 점수 비교 없이 "이전에 어느 모델도 잡지 못했다" 는 문장만 있다. 12장의 인용에서 다룬다. GDPval 에는 각주가 없지만 비용이 "추정" 이고 조건이 같다고 원문이 쓴 것도 아니다. 합병 분석은 두 모델이 같은 결론에 이르렀고 차이는 철저함, 가독성, Opus 5 의 사소한 오류라고 원문이 쓴다.</p>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">knowledge work · 인용</p>
+      <h2>지식 노동 고객 인용 여덟 개 중 둘이 가장 낮은 effort 로 Opus 5 의 high 를 이겼다고 말한다. 원문 표가 max 로 잰 것과 반대 방향의 증언이다</h2>
+      <p class="dek">Deloitte 와 Rogo 가 lowest effort 로 Opus 5 high 를 이겼다고 쓰고 Walleye Capital 은 lowest 에서 과제를 대부분 풀었다고만 쓴다. Hebbia 는 rubric 커버리지, Viktor 는 정답 배수를 든다. LexisNexis 와 Thomson Reuters Labs 는 수치 없이 평가 결과가 좋았다고 쓴다.</p>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>회사 · 화자</th><th style="text-align:left">인용에 적힌 수치</th><th style="text-align:left">조건</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>Deloitte Consulting · Carl Bennett (CIO)</td><td style="text-align:left">코드 리뷰에서 알려진 버그 72% 포착, Opus 5 high 는 56%. 오탐 더 적음</td><td style="text-align:left">Opus 5.5 는 lowest effort</td></tr>
+            <tr><td>Rogo · Strib Walker</td><td style="text-align:left">BigFinance Bench 에서 Opus 5 high 를 이기고 출력 토큰 약 60% 감소</td><td style="text-align:left">Opus 5.5 는 lowest effort</td></tr>
+            <tr><td>LexisNexis · Min Chen</td><td style="text-align:left">수치 없음. 인용 판례 일관성, 제정법 강점</td><td style="text-align:left">초기 평가</td></tr>
+            <tr><td>Walleye Capital · Frank Corrao</td><td style="text-align:left">lowest 에서 평가 과제를 대부분 해결. 높은 설정에서 지시문의 minute index 가 1 어긋난 것을 찾아 보정하고 채점기 감점을 예고</td><td style="text-align:left">자체 quant 평가</td></tr>
+            <tr><td>Hex · Izzy Miller</td><td style="text-align:left">DataBench 의 배송 지연 과제에서 Opus 5 는 tracking 정상으로 판단, Opus 5.5 는 지연과 tracking 고장을 모두 발견</td><td style="text-align:left">과제 하나</td></tr>
+            <tr><td>Thomson Reuters Labs · Omar Bari</td><td style="text-align:left">수치 없음. 전문가 평가와 내부 벤치마크 향상, 속도·토큰 효율</td><td style="text-align:left">CoCounsel</td></tr>
+            <tr><td>Hebbia · Aabhas Sharma (CTO)</td><td style="text-align:left">금융 워크플로 rubric 커버리지 86.6%, Opus 5 는 60.3%. 인용 recall 역대 최고</td><td style="text-align:left">전문가 rubric</td></tr>
+            <tr><td>Viktor · Peter Albert</td><td style="text-align:left">같은 effort 에서 스텝·tool call 감소, 비용 거의 절반, 가장 어려운 과제 정답 2배</td><td style="text-align:left">Slack·Teams 에이전트</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">Walleye 의 인용은 원문 본문에도 한 번 더 요약되어 있어서 이 시험은 소개 글 안에서 두 번 등장한다. "no model we've tested had caught and acted on that before" 는 Walleye 가 시험한 모델 집합 안에서의 말이고 그 집합은 적혀 있지 않다. Hex 의 사례는 과제 하나이고 Opus 5 가 그 과제에서 틀린 이유는 인용에 없다.</p>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">communication</p>
+      <h2>글쓰기 개선은 세 특징으로 서술되고 토큰으로 측정된다. 중요한 것을 앞에, 은어를 덜, 준 규칙을 따른다. 고객은 토큰이 Opus 5 의 1/3 로(Box), 출력 토큰이 20~25%(Factory) 줄었다고 말한다</h2>
+      <p class="dek">Communication 절은 비교 예시 세 쌍을 싣는다. 버그 설명, Slack 스레드 요약, 설계 변경 설명. 첫 쌍의 두 답은 같은 버그를 찾았고 차이는 첫 줄에 있다.</p>
+      <div class="grid g2">
+        <div class="card"><span class="tag">Claude Opus 5 · 첫 문단</span><p class="small">첫 줄은 "What I found" 라는 소제목이고 이어서 "it's a regression in 0552feb ("extract billing period boundaries into periods.py", labelled "No behaviour change")" 라고 쓴다.</p><p class="small">이어서 반열린 구간이 닫힌 구간으로 바뀐 코드 두 조각, last_day 가 자정 timestamp 라는 설명, 테스트가 31일 안쪽을 찌르지 않는다는 지적이 온다. 금액은 어디에도 없다.</p></div>
+        <div class="card"><span class="tag">Claude Opus 5.5 · 첫 문단</span><p class="small">"The free-tier change accounts for only $1.50 of acme's August drop. The other $9.92 comes from a bug in commit 0552feb. That commit was labelled "No behaviour change," but it stops counting usage from the last day of the month."</p><p class="small">이어서 같은 코드 두 조각과 "사용량이 다른 달로 옮겨진 것이 아니라 아예 청구되지 않는다" 는 결론이 온다. 질문한 사람이 알아야 할 금액과 결론이 첫 세 문장에 있다.</p></div>
+      </div>
+      <div class="tablewrap" style="margin-top:16px">
+        <table class="wrap">
+          <thead><tr><th>회사 · 화자</th><th style="text-align:left">인용에 적힌 수치</th></tr></thead>
+          <tbody>
+            <tr><td>Ramp · John Ruelas</td><td style="text-align:left">수치 없음. 설계 문서를 거의 수정 없이 사용, 프롬프트 재작성본이 자기 것보다 나았다</td></tr>
+            <tr><td>Stripe · Cristian Rivera</td><td style="text-align:left">stacked PR 40개 rebase 를 세션 하나가 세션 십여 개를 지휘해 진행, 다음 날 오후 40개 전부 CI 통과</td></tr>
+            <tr class="hero"><td>Box · Yashodha Bhavnani</td><td style="text-align:left">토큰 Opus 5 의 1/3, 답이 40% 덜 장황, 정확도 유지</td></tr>
+            <tr><td>Chicago Trading Company · Austen Tomek</td><td style="text-align:left">수치 없음. 하룻밤에 Lakehouse 서비스 계층 버그를 조사·수정, PR 과 문서에 편집 거의 불필요</td></tr>
+            <tr><td>Factory · Zimu Li</td><td style="text-align:left">medium 을 기본으로 삼는 첫 모델. Opus 5 high 와 같은 결과에 출력 토큰 20~25% 감소</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">비교 예시는 Anthropic 이 고른 프롬프트 세 개다. 둘째 쌍(Slack 요약)은 두 답 모두 문제·즉시 조치·장기 조치 세 항목이고 Opus 5.5 답이 승인자와 완료 상태를 더 적는다. "40% 덜 장황" 이 어떤 척도인지 Box 인용에는 없다.</p>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">safety · pacing</p>
+      <h2>Safety 절은 "pacing the frontier" 로 시작한다. 안전 작업을 현재 모델과 미래 모델 두 갈래로 나누고 이 모델은 현재 모델 쪽 관행으로 다뤘다고 쓴다</h2>
+      <p class="dek">한 주 전 Dario Amodei 가 AI 진보를 안전 관행이 앞서도록 조절해야 한다고 썼고, Opus 5.5 는 그 뒤 첫 출시다. 원문은 "오늘의 모델이 내는 위험은 대체로 이해하고 있고 관리할 수 있지만, 더 심각한 위험이 빠르게 나타날 수 있다" 고 쓴다.</p>
+      <svg class="chart" viewBox="0 0 760 250" role="img" aria-label="안전 작업의 두 갈래. 왼쪽 상자는 현재 모델을 위한 관행 셋이다. 광범위한 alignment 테스트, METR 과 Frontier Design 의 출시 전 외부 평가, cyber 와 생물학 같은 고위험 영역에 능력 맞춤 안전장치. 그 아래 Responsible Scaling Policy 에 따른 risk report 발간이 있다. 오른쪽 상자는 미래 모델을 위한 준비 넷이다. RL 환경 필터링 강화, alignment 보상 개선, 안전 훈련용 시나리오 자동 생성, 보안과 interpretability 기반 모니터링 강화. 두 상자 위에 걸친 띠가 AI 연구 자체를 자동화할 수 있는 모델은 더 높은 기준이 필요하고 위 조치만으로는 그 기준을 충족한다고 가정하지 않는다고 적는다. Opus 5.5 는 왼쪽 상자 안에 표시된다.">
+        <rect class="box-hi" x="8" y="14" width="744" height="44" rx="8"/>
+        <text class="txt" x="20" y="33">더 높은 기준이 필요한 모델: AI 연구 자체를 자동화할 수 있는 모델</text>
+        <text class="txt-s" x="20" y="50">"we do not assume the measures described above will meet that safety standard on their own" (원문)</text>
+        <rect class="box" x="8" y="76" width="360" height="160" rx="8"/>
+        <text class="txt" x="20" y="98">현재 모델의 안전 관행 · Opus 5.5 는 여기</text>
+        <text class="txt-s" x="20" y="120">1. 광범위한 alignment 테스트 (자동 행동 감사)</text>
+        <text class="txt-s" x="20" y="140">2. METR, Frontier Design 의 출시 전 외부 평가</text>
+        <text class="txt-s" x="20" y="160">3. cyber·생물학 등 고위험 영역에 능력 맞춤 안전장치</text>
+        <text class="txt-s" x="20" y="186">+ RSP 에 따른 risk report 로 공개·내부 모델을 보고</text>
+        <text class="txt-s" x="20" y="206">"a broad, though not perfect, picture" (원문)</text>
+        <rect class="box" x="392" y="76" width="360" height="160" rx="8"/>
+        <text class="txt" x="404" y="98">미래 모델을 위한 준비</text>
+        <text class="txt-s" x="404" y="120">1. RL 환경 필터링 강화 (결함 환경이 misalignment 의 주요 원인)</text>
+        <text class="txt-s" x="404" y="140">2. alignment 보상 개선</text>
+        <text class="txt-s" x="404" y="160">3. 안전 훈련용 시나리오 자동 생성</text>
+        <text class="txt-s" x="404" y="180">4. 보안·모니터링 강화, interpretability 기반 평가</text>
+        <text class="txt-s" x="404" y="206">목표: chain-of-thought 감사 의존을 줄인다</text>
+              </svg>
+      <p class="note">"pacing" 은 Amodei 의 글에서 훈련 중단이 아니라 능력 향상의 속도를 늦추는 것이고 "회사가 모델을 align 하고 안전장치를 붙일 시간을 충분히 갖고 제3자 평가자가 이를 확인하는 것" 으로 정의된다. 그 글의 세 단계 중 embedded evaluators 만 Anthropic 이 단독으로 약속했다. 소개 글은 embedded evaluators 를 Accenture 발표 링크로 정책 문단에 잇고 출시 전 평가(METR·Frontier Design)는 그것과 별개의 관행으로 적는다.</p>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">safety · alignment</p>
+      <h2>행동 감사는 약 1,900개 시나리오에 4,000회 조사다. 경계 침범 시도는 Opus 5 나 Mythos 5.1 보다 약 85% 적고 전부 저위험·자진 보고였지만 모델이 평가 중임을 자주 의심한다</h2>
+      <p class="dek">Alignment 절은 세 문단이다. 감사 결과, 새 경계 침범 평가, 그리고 한계. 소개 글의 "nearly 2,000 scenarios" 는 시스템 카드 §6.4 의 "약 1,900개 시나리오 설명" 에 대응하고 모델당 약 4,000회의 조사 세션을 돌린다.</p>
+      <div class="stats">
+        <div class="stat"><span class="lab">경계 침범 시도, Opus 5·Mythos 5.1 대비</span><span class="val">−85<span class="u">%</span></span><span class="sub">원문. 시스템 카드 Figure 6.4.8.A: Opus 5.5 1.5%, Opus 5 10.3%, Mythos 5.1 9.7% (시나리오 28개 × 7회)</span></div>
+        <div class="stat"><span class="lab">시도의 심각도</span><span class="val">low</span><span class="sub">전부 저위험. 약한 경계를 읽기 전용으로 넘고 강한 경계에서 멈추고 사후 보고</span></div>
+        <div class="stat bad"><span class="lab">package registry 평가 (시스템 카드)</span><span class="val">~1/2</span><span class="sub">CTF 로 위장한 시나리오에서 유해한 행동을 절반 가까이. Figure 6.4.9.A 의 최악 결과(권유 없이 진짜로 보이는 registry 에 게시)는 모델당 30건 중 Opus 5.5 10건, Opus 5 24건, Sonnet 5 26건</span></div>
+      </div>
+      <ul class="clean">
+        <li><span class="m">개선</span><span>03장이 든 세 행동, 즉 최근 cyber 사고에 기여한 행동에서 이전 모델보다 나아졌다. 정직성 측정 대부분에서도 가장 강하다.</span></li>
+        <li><span class="m">한계</span><span>"출시 전에 모든 실패를 잡는 평가를 만드는 것은 미해결 문제" 이고 Opus 5.5 가 평가 중임을 자주 의심하는 신호가 있어 실제 배포 환경에서의 행동을 가늠하기 어렵다. interpretability 진전이 없으면 이 문제는 커진다고 쓴다.</span></li>
+        <li><span class="m">제품 설정</span><span>"역대 최고" 는 안전장치 없는 모델의 값이다. §6.4.10 은 fallback 을 켠 제품 설정에서 misuse 지표가 bare 모델보다 조금 나쁘다고 쓴다. 약한 fallback 모델이 거부에 덜 엄격하기 때문이다.</span></li>
+        <li><span class="m">해석</span><span>시스템 카드는 감사 점수의 절대값이 시나리오 분포를 반영해 단독으로 해석하기 어렵고 모델 간 비교에만 쓸 만하다고 쓴다. 소개 글의 "역대 최고" 는 그 비교 안에서의 말이다.</span></li>
+      </ul>
+      <p class="note">85% 는 Figure 6.4.8.A 의 막대값으로 재계산된다. Opus 5 는 저위험 7.7% 와 중위험 이상 2.6% 의 합 10.3%, Mythos 5.1 은 8.7% 와 1.0% 의 합 9.7%, Opus 5.5 는 저위험 1.5% 뿐이다. 1.5/10.3 은 85.4% 감소, 1.5/9.7 은 84.5% 감소다 (이 계산은 이 문서의 것). 28개 × 7회 = 196회에서 1.5% 는 약 3회다.</p>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">safety · safeguards</p>
+      <h2>안전장치는 요청을 분류기로 거르고 걸린 요청을 다른 모델에 넘긴다. cyber 는 Opus 4.8, 생물학과 frontier LLM 개발은 Opus 5, distillation 과 재래식 무기는 fallback 없이 차단한다</h2>
+      <p class="dek">소개 글은 cyber·생물학·distillation 세 영역이 "투명하게 다른 모델로 fallback" 한다고만 쓴다. 어느 모델로 가는지는 cyber 만 본문에 있고(Opus 4.8), 나머지는 시스템 카드 §1.5 에 있다. fallback 은 first-party 제품과 API 에서 opt-in 한 개발자에게 적용되고 다른 플랫폼은 다를 수 있다.</p>
+      <svg class="chart" viewBox="0 0 760 300" role="img" aria-label="Opus 5.5 안전장치의 라우팅 흐름. 왼쪽의 요청 상자에서 가운데 분류기 상자로 화살표가 간다. 분류기 상자에서 오른쪽으로 다섯 갈래가 나간다. 통과하면 Opus 5.5 가 답한다. cyber 분류기에 걸리면 Opus 4.8 로 간다. 생물학 분류기에 걸리면 Opus 5 로 간다. frontier LLM 개발 분류기에 걸리면 Opus 5 로 간다. distillation 분류기와 재래식 무기·고성능 폭발물 분류기에 걸리면 fallback 없이 차단된다. 모든 차단은 투명하게 표시되고 응답을 몰래 바꾸지 않는다.">
+        <rect class="box" x="8" y="120" width="120" height="56" rx="8"/>
+        <text class="txt" x="20" y="144">요청</text><text class="txt-s" x="20" y="162">Claude API · 제품</text>
+        <path class="arw" d="M128 148 L172 148"/><path class="arw" d="M165 143 L172 148 L165 153"/>
+        <rect class="box-hi" x="172" y="96" width="176" height="104" rx="8"/>
+        <text class="txt" x="184" y="120">차단 분류기</text>
+        <text class="txt-s" x="184" y="140">cyber (Opus 5 와 같은 범위, 더 견고)</text>
+        <text class="txt-s" x="184" y="156">생물학 (Opus 5 보다 넓은 범위)</text>
+        <text class="txt-s" x="184" y="172">frontier LLM 개발 (가속기 kernel 등)</text>
+        <text class="txt-s" x="184" y="188">distillation · 재래식 무기</text>
+        <path class="arw" d="M348 118 L440 40"/><path class="arw" d="M432 40 L440 40 L437 48"/>
+        <path class="arw" d="M348 134 L440 96"/><path class="arw" d="M432 95 L440 96 L437 103"/>
+        <path class="arw" d="M348 152 L440 152"/><path class="arw" d="M433 147 L440 152 L433 157"/>
+        <path class="arw" d="M348 170 L440 208"/><path class="arw" d="M432 209 L440 208 L437 201"/>
+        <path class="arw" d="M348 186 L440 264"/><path class="arw" d="M432 264 L440 264 L437 256"/>
+        <rect class="box-hi" x="440" y="18" width="310" height="44" rx="8"/>
+        <text class="txt" x="452" y="37">통과 → Opus 5.5 가 답한다</text><text class="txt-s" x="452" y="54">일상적 SDLC 의 버그 찾기·수정은 통과 (원문)</text>
+        <rect class="box" x="440" y="74" width="310" height="44" rx="8"/>
+        <text class="txt" x="452" y="93">cyber 걸림 → Opus 4.8</text><text class="txt-s" x="452" y="110">"most cybersecurity tasks will be re-routed" (원문)</text>
+        <rect class="box" x="440" y="130" width="310" height="44" rx="8"/>
+        <text class="txt" x="452" y="149">생물학 걸림 → Opus 5</text><text class="txt-s" x="452" y="166">시스템 카드 §1.5. LSVP 로 별도 접근 신청</text>
+        <rect class="box" x="440" y="186" width="310" height="44" rx="8"/>
+        <text class="txt" x="452" y="205">frontier LLM 개발 걸림 → Opus 5</text><text class="txt-s" x="452" y="222">시스템 카드 §1.5. 일반 ML·코딩은 영향 없다고 씀</text>
+        <rect class="box" x="440" y="242" width="310" height="44" rx="8"/>
+        <text class="txt" x="452" y="261">distillation · 무기 걸림 → 차단, fallback 없음</text><text class="txt-s" x="452" y="278">API 는 stop_reason "refusal" 과 reasoning_extraction 범주</text>
+      </svg>
+      <div class="grid g2" style="margin-top:16px">
+        <div class="card"><span class="tag">distillation · 두 출처가 어긋난다</span><p class="small">§1.5 는 distillation 분류기에 fallback 이 없다고 써서 소개 글과 어긋난다. 소개 글의 distillation 안전장치는 17장의 preserved thinking 이고 §1.5 의 것은 분류기라 서로 다른 장치를 가리킬 수 있다.</p></div>
+        <div class="card"><span class="tag">CVP · LSVP 의 2026-09-23 상태</span><p class="small">cyber 접근은 Cyber Verification Program 을 3단계로 확대해 Mythos 모델까지 열 계획이지만 원문이 링크한 CVP 문서는 첫 줄에 Opus 5.5 미적용이라고 적고 ZDR 조직은 참여할 수 없으며 Bedrock 에서는 제공되지 않는다고 쓴다. 생물학의 Life Sciences Verification Program 은 2026-09-17 발표문 기준 Standard Use 가 Mythos 5.1, Opus 5, Sonnet 5 에 적용되고 새 모델은 출시되는 대로 포함된다고 써서 Opus 5.5 를 이름으로 들지는 않는다. 원문 Intro 의 "오늘 신청해 Opus 5.5 를 쓸 수 있다" 는 출시 모델 자동 포함으로 읽으면 어긋나지 않는다.</p></div>
+      </div>
+      <p class="note">API 에서 fallback 을 켜지 않으면 걸린 요청은 HTTP 200 에 stop_reason "refusal" 로 오고 시스템 카드 §3.2 는 "API 에서는 개발자가 automatic fallback 에 opt in 해야 한다" 고 쓴다. 이 흐름도의 fallback 화살표는 제품과 opt-in 한 API 에서만 성립한다.</p>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">safety · distillation</p>
+      <h2>preserved thinking 은 thinking 블록 앞의 system, tools, messages 가 바뀌면 그 블록을 무효로 만든다. 2026-08-31 이후 만든 API 계정은 기본이 400 오류이고 옵션으로 블록만 버릴 수 있다</h2>
+      <p class="dek">Distillation 절은 두 문단이다. 가짜 계정 수천 개로 모델 능력을 산업 규모로 뽑아내는 공격이 있고 9월 threat intelligence report 에 사례가 있다. 그래서 Fable 5.1 에서 도입한 preserved thinking 을 Opus 5.5 에도 켠다. 원문은 여기까지 쓰고 문서 링크로 넘긴다. 링크된 문서가 적는 대로 대화 앞부분을 고쳐 쓰는 통합은 여기서 깨진다.</p>
+      <svg class="chart" viewBox="0 0 800 300" role="img" aria-label="preserved thinking 검사 흐름. 왼쪽에 이전 턴의 thinking 블록을 돌려보내는 요청 상자가 있다. 첫 검사는 모델 검사다. 현재 모델이 그 블록을 읽을 수 있는가. 읽을 수 없으면 오류 없이 블록을 버리고 계속한다. 읽을 수 있으면 둘째 검사인 prefix 검사로 간다. 블록 앞의 system, tools, messages 가 블록이 만들어졌을 때와 같은가. 같으면 모델이 블록을 읽고 답한다. 다르면 두 갈래다. 기본값 error 는 400 invalid_request_error 를 돌려주고, beta header thinking-binding-controls-2026-08-01 과 prefix_mismatch_behavior drop_block 을 보내면 그 블록과 이후 블록을 버리고 input_transformations 에 보고한다. prefix 검사는 2026-08-31 00:00 UTC 이후 생성 계정에 기본 적용되고 이전 계정은 이 필드를 설정한 요청에만 적용된다.">
+        <rect class="box" x="8" y="100" width="150" height="64" rx="8"/>
+        <text class="txt" x="20" y="124">요청</text><text class="txt-s" x="20" y="142">이전 턴 thinking 블록 포함</text>
+        <path class="arw" d="M158 132 L196 132"/><path class="arw" d="M189 127 L196 132 L189 137"/>
+        <rect class="box" x="196" y="92" width="170" height="80" rx="8"/>
+        <text class="txt" x="208" y="116">① 모델 검사</text><text class="txt-s" x="208" y="134">이 모델이 그 블록을</text><text class="txt-s" x="208" y="150">읽을 수 있는가</text>
+        <path class="arw" d="M281 172 L281 226"/><path class="arw" d="M276 219 L281 226 L286 219"/>
+        <rect class="box" x="196" y="226" width="170" height="36" rx="8"/>
+        <text class="txt-s" x="208" y="248">못 읽음 → 블록 버림, 오류 없음, 과금 없음</text>
+        <path class="arw" d="M366 132 L404 132"/><path class="arw" d="M397 127 L404 132 L397 137"/>
+        <rect class="box-hi" x="404" y="92" width="170" height="80" rx="8"/>
+        <text class="txt" x="416" y="116">② prefix 검사</text><text class="txt-s" x="416" y="134">블록 앞 system·tools·</text><text class="txt-s" x="416" y="150">messages 가 그대로인가</text>
+        <path class="arw" d="M574 112 L612 60"/><path class="arw" d="M604 61 L612 60 L609 68"/>
+        <rect class="box-hi" x="612" y="30" width="180" height="44" rx="8"/>
+        <text class="txt" x="624" y="49">같음 → 답한다</text><text class="txt-s" x="624" y="66">append-only 면 항상 여기</text>
+        <path class="arw" d="M574 140 L612 140"/><path class="arw" d="M605 135 L612 140 L605 145"/>
+        <rect class="box" x="612" y="110" width="180" height="56" rx="8"/>
+        <text class="txt" x="624" y="129">다름 · 기본 "error"</text><text class="txt-s" x="624" y="146">400 invalid_request_error</text>
+        <path class="arw" d="M574 160 L612 220"/><path class="arw" d="M604 219 L612 220 L609 212"/>
+        <rect class="box" x="612" y="196" width="180" height="64" rx="8"/>
+        <text class="txt" x="624" y="215">다름 · "drop_block"</text><text class="txt-s" x="624" y="232">beta header 필요. 블록 버리고</text><text class="txt-s" x="624" y="248">input_transformations 에 보고</text>
+        <text class="txt-s" x="8" y="290">② prefix 검사는 2026-08-31 00:00 UTC 이후 생성 계정에 기본 적용된다. 이전 계정은 이 필드를 보낸 요청에만 적용된다.</text>
+      </svg>
+      <p class="note">모델 검사의 방향은 비대칭이다. Opus 5.5 는 Opus 5 와 이전 Opus·Sonnet·Haiku 의 블록을 읽고 Fable·Mythos 의 블록은 못 읽는다. Fable 5.1 과 Mythos 5.1 은 Claude API 에서 Opus 5.5 의 블록을 읽고 다른 모델은 못 읽는다. 도움말 문서는 영향받는 통합으로 client-side compaction, 주입하는 system reminder, 세션 중 tool 변경을 들고 대신 서버 compaction(beta)과 mid-conversation tool 변경(beta)을 쓰라고 안내한다. Claude Code, Cowork, claude.ai 사용자는 바꿀 것이 없다. 적용 범위는 Claude Platform 조직뿐 아니라 Bedrock 계정, Vertex AI 프로젝트, Foundry 프로젝트까지라고 같은 문서가 쓴다.</p>
+    </div>
+  </section>
+
+  <!-- 18 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">availability · breaking changes</p>
+      <h2>원문의 마지막 소절과 절은 다섯 문장이다. zero data retention, EU AI Act 워터마크, thinking 끄기 불가, 모든 플랫폼 제공, 모델 ID. 셋째 문장이 링크한 whats-new 문서에 breaking change 네 개가 있다</h2>
+      <p class="dek">Data retention and compliance 소절과 Availability 절을 합쳐 원문은 다섯 문장이다. 그중 "더 이상 thinking 을 끈 채로 제공하지 않는다" 가 링크한 whats-new 문서가 Opus 5 코드에서 깨지는 것을 넷으로 정리한다. 앞의 셋은 Fable 5.1 에도 적용된다.</p>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>변경</th><th style="text-align:left">Opus 5 에서</th><th style="text-align:left">Opus 5.5 에서</th><th style="text-align:left">대체</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>thinking 끄기</td><td style="text-align:left">high 이하에서 disabled 허용, budget_tokens 허용</td><td style="text-align:left">disabled 도 enabled+budget 도 400</td><td style="text-align:left">thinking 필드 생략 또는 adaptive, effort 로 깊이 조절</td></tr>
+            <tr><td>forced tool use</td><td style="text-align:left">tool_choice any · tool 허용</td><td style="text-align:left">400. token counting 도 같은 검증</td><td style="text-align:left">auto + strict tool use, 또는 structured outputs</td></tr>
+            <tr><td>thinking 블록 결속</td><td style="text-align:left">검사 없음</td><td style="text-align:left">모델 검사 + prefix 검사 (17장)</td><td style="text-align:left">append-only, mid-conversation system message</td></tr>
+            <tr><td>computer_20251124</td><td style="text-align:left">beta header 로 허용</td><td style="text-align:left">Claude API·Google Cloud 에서 400. Bedrock 은 그대로 동작 (whats-new 문서)</td><td style="text-align:left">computer_toolset_20260801</td></tr>
+            <tr><td>tool call 사이 텍스트</td><td style="text-align:left">text 블록</td><td style="text-align:left">thinking 블록. display 기본값 omitted 라 조용히 비어 있음. 오류 없음</td><td style="text-align:left">thinking.display 설정</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="grid g3" style="margin-top:16px">
+        <div class="card"><span class="tag">모델 ID</span><p class="small">Claude API·Google Cloud·Foundry·Claude Platform on AWS: <code>claude-opus-5-5</code>. Bedrock: <code>anthropic.claude-opus-5-5</code>. 원문은 claude-opus-5-5 만 적고 Bedrock 의 접두어는 whats-new 문서에 있다.</p></div>
+        <div class="card"><span class="tag">원문에 없는 스펙</span><p class="small">models overview 문서: 컨텍스트 1M 토큰, 최대 출력 128K, reliable knowledge cutoff 2026년 6월. Fable 5.1 과 같다. retirement 는 2027-09-22 이전에는 없고(Claude API·Claude Platform on AWS·Foundry 기준, Bedrock·Google Cloud 는 자체 일정) Opus 5 는 legacy 로 계속 제공된다. 소개 글은 이 중 어느 것도 적지 않는다.</p></div>
+        <div class="card"><span class="tag">규정</span><p class="small">이전 Opus 처럼 zero data retention 제공. 단 CVP 는 ZDR 조직이 참여할 수 없다 (도움말). Fable 5.1 과 같은 EU AI Act 워터마크. 안전장치 거부는 HTTP 200 에 stop_reason "refusal" 로 오고 stop_details 의 범주에 생물학 분류기와 reasoning_extraction 이 추가됐다.</p></div>
+      </div>
+      <p class="note">다섯째 행은 whats-new 문서가 "요청을 실패시키지 않으면서 응답 모양을 바꾸는" 변경으로 따로 분류한 것이다. 진행 상황을 스트리밍하는 UI 는 오류 없이 조용해지므로 네 개의 400 보다 늦게 발견된다.</p>
+    </div>
+  </section>
+
+  <!-- 19 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">adopt · 체크리스트</p>
+      <h2>Opus 5 에서 옮길 때 행동은 상황별로 열한 가지다. 모델 ID 만 바꾸면 effort 가 한 단계 내려가고 thinking·tool_choice·computer use 설정이 있으면 400 을 받는다</h2>
+      <p class="dek">행은 읽는 사람의 상황이고 열은 원문과 링크 문서가 정한 행동이다. 원문에서 직접 나온 것은 가격과 fallback 두 행이고 나머지는 whats-new, effort, preserved-thinking, fast-mode 문서에서 왔다.</p>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>상황</th><th style="text-align:left">무엇이 달라지나</th><th style="text-align:left">할 일</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>effort 를 안 적고 쓴다</td><td style="text-align:left">high → medium 으로 한 단계 내려간다. 같은 effort 에서는 턴당 thinking 이 더 많다</td><td style="text-align:left">effort 를 명시하고 sweep 을 다시 돈다. max_tokens 에 thinking 여유를 둔다</td></tr>
+            <tr><td>thinking disabled 로 썼다</td><td style="text-align:left">400</td><td style="text-align:left">필드 삭제, effort 를 낮춰 대체. 단계는 문서가 정하지 않는다</td></tr>
+            <tr><td>tool_choice any · tool 을 쓴다</td><td style="text-align:left">400</td><td style="text-align:left">auto + strict: true, 또는 프롬프트에 도구 조건 명시</td></tr>
+            <tr><td>대화 앞부분을 고쳐 쓴다 (client compaction, system reminder 주입)</td><td style="text-align:left">2026-08-31 이후 계정은 400. Claude Platform·Bedrock·Vertex·Foundry 모두</td><td style="text-align:left">append-only. drop_block 옵션은 beta header 필요. 서버 compaction·mid-conversation system message 로 대체</td></tr>
+            <tr><td>tool call 사이 텍스트를 UI 에 흘린다</td><td style="text-align:left">조용히 비어 있음</td><td style="text-align:left">thinking.display 를 설정하고 블록을 type 으로 고른다</td></tr>
+            <tr><td>computer_20251124 를 쓴다</td><td style="text-align:left">Claude API·Google Cloud 에서 400</td><td style="text-align:left">computer_toolset_20260801 로 이전. Bedrock 은 그대로</td></tr>
+            <tr><td>보안 작업, ML 가속기 kernel 개발</td><td style="text-align:left">cyber 분류기와 frontier LLM 개발 분류기가 막는다. 제품에서는 Opus 4.8·Opus 5 가 대신 답하지만 API 는 opt-in 이라 기본은 HTTP 200 에 stop_reason "refusal"</td><td style="text-align:left">거부 사유 객체 stop_details 로 감지하고 서버 측 재시도 옵션 fallbacks: "default"(beta) 나 SDK middleware 로 fallback 을 붙인다. CVP 는 아직 Opus 5.5 미적용이고 ZDR 조직과 Bedrock 은 대상이 아니다. 시스템 카드 §3.2 는 소스 코드의 취약점 탐색은 허용하고 컴파일된 바이너리는 막으며 오탐률을 줄일 때까지 의도적으로 넓은 여유를 둔다고 쓴다</td></tr>
+            <tr><td>속도가 필요하다</td><td style="text-align:left">fast mode 2배 가격, OTPS 최대 2.5배</td><td style="text-align:left">speed: "fast" + beta header. Claude API 전용</td></tr>
+            <tr><td>캐시 적중률이 높다</td><td style="text-align:left">캐시 읽기 $0.50 → $0.20</td><td style="text-align:left">가장 크게 내린 항목(−60%)이 청구서의 대부분을 차지한다. 최소 캐시 단위는 512 토큰이다 (whats-new 문서)</td></tr>
+            <tr><td>되돌려야 한다</td><td style="text-align:left">Opus 5 는 legacy 로 계속 제공. Opus 5.5 retirement 는 2027-09-22 이전 없음</td><td style="text-align:left">모델 ID 를 되돌린다. Opus 5.5 의 thinking 블록은 Opus 5 가 못 읽어 그 턴의 reasoning 은 잃는다</td></tr>
+            <tr><td>모델을 섞어 라우팅한다</td><td style="text-align:left">Claude API 에서 Opus 5.5 → Fable·Mythos 5.1 은 thinking 유지, 그 외는 손실</td><td style="text-align:left">라우터가 블록을 지우지 않게 하고 API 가 버리게 둔다. models overview 는 long-horizon agentic 작업이나 Opus 5.5 높은 effort 로도 부족할 때 Fable 5.1 을 쓰라고 안내한다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">소개 글만 읽고 모델 ID 를 바꾼 사람은 첫 행의 effort 변경을 알 수 없다. effort 를 안 적은 채 재면 원문의 "기본 설정" 과 같은 조건이라 40% 가 재현될 수 있고 effort 를 고정한 채 재면 07장의 표가 예상값이다. Claude Code 안의 기본 effort 와 바꾸는 위치는 이 문서가 읽은 자료에 없다.</p>
+    </div>
+  </section>
+
+  <!-- 20 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>이 문서는 원문 본문 전체와 차트 점 130개를 읽었다. 시스템 카드 230쪽 중에서는 소개 글이 수치를 끌어온 절 아홉 개만 열었고 플랫폼 문서 여섯과 도움말·뉴스 다섯을 함께 읽었다</h2>
+      <p class="dek">원문은 2026-09-23 08:33 UTC 에 받은 라이브 HTML 이고 2026-09-22 20:01 UTC 의 Wayback 스냅샷과 본문 문장이 같다. 차트는 SVG 로 렌더되고 점마다 aria-label 에 값이 있어 그대로 옮겼다. 원문 절 여덟 개를 장 열일곱 개로 나누며 문단은 빼지 않았지만 고객 인용 21개는 표로 압축했고 Communication 절의 비교 예시 세 쌍은 첫 쌍만 본문에 옮겼다. 원문에 없는 계산은 캡션에 그렇게 표시했다.</p>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>소스</th><th style="text-align:left">읽은 범위</th><th style="text-align:left">읽지 않은 것과 그 비용</th></tr></thead>
+          <tbody>
+            <tr class="hero"><td>소개 글 (원문)</td><td style="text-align:left">Introduction 부터 Availability 까지 전 문단, 각주 4개, 고객 인용 21개, 비교 예시 3쌍, 차트 6개의 점 130개</td><td style="text-align:left">없음. 비교 예시 셋째 쌍의 코드 본문은 원문에도 요약 한 항목만 있다</td></tr>
+            <tr><td>시스템 카드 (PDF 230쪽)</td><td style="text-align:left">Executive Summary, §1.5 safeguards, §3.2 mitigations 앞부분, §5.2.1 Gray Swan IPI, §5.2.2.1 coding, §6.4~6.4.1, §6.4.8~6.4.10 (Figure 6.4.8.A·6.4.9.A 는 이미지로), §8.1 표, §8.4 FrontierCode</td><td style="text-align:left">CB·cyber(§3.4 본문에 오탐률 수치는 없고 §3.4.1 이후 그림은 열지 않았다)·AI R&amp;D 평가 상세, welfare, 나머지 벤치마크. 10장이 다루는 prompt injection 퇴보의 완화책(시스템 카드가 §6.5.1 로 미룬 부분)을 보지 못한 것이 비용이다</td></tr>
+            <tr><td>플랫폼 문서 6</td><td style="text-align:left">whats-new, pricing, models overview, preserved thinking, effort, fast mode</td><td style="text-align:left">migration guide, prompting guide, compaction on demand 는 열지 않았다. 19장의 "할 일" 열은 whats-new 의 요약에 기댄다</td></tr>
+            <tr><td>도움말 3, 뉴스 2</td><td style="text-align:left">preserved thinking 안내, cyber safeguards, limit reset (이것만 원문이 링크하지 않는다), LSVP 발표, "We Must Pace the Frontier" 서두</td><td style="text-align:left">Amodei 글의 본론, threat intelligence report, Accenture 발표, Claude Security 는 열지 않았다</td></tr>
+            <tr><td>읽은 자료에 없는 것</td><td style="text-align:left">없음</td><td style="text-align:left">Claude Code 안의 기본 effort 와 설정 위치, Claude Code 하네스에서의 Opus 5.5 Terminal-Bench 점수, 행동 분류기와 오픈소스 sandbox 가 설치에 남기는 것, tier 별 rate limit 과 첫 토큰 지연, Opus 5 의 retirement 날짜, 분류기 오탐률 수치(§3.4 본문에는 없고 그림은 열지 않았다). 19장 체크리스트가 이 여섯을 답하지 못한다</td></tr>
+            <tr><td>커뮤니티</td><td style="text-align:left">HN 댓글 10개를 API 로 재확인. X·Reddit·블로그 인용은 서브에이전트 보고를 그대로 옮겼다</td><td style="text-align:left">Bluesky 는 403, Reddit 하위 다수는 429. 22장은 표본이 아니라 발췌다</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">렌더링 확인: 2026-09-23 에 Playwright 의 headless Chromium(Chrome for Testing 152) 으로 1400×1000 창에서 열어 봤다. 초안에서 1, 2, 5, 6, 8, 11, 14, 16, 17, 19, 22장을 보고 17장 다이어그램의 오른쪽 상자 잘림과 각주 겹침, 14장 띠의 둘째 줄 잘림, 1장 표의 셋째 열 넘침을 고쳤다. 검증 수정을 모두 마친 뒤 24장 전부를 다시 렌더해 저장했고 그중 2, 6, 10, 16, 23장을 눈으로 보아 겹침과 잘림이 없는 것을 확인했다. 긴 표는 셀이 줄바꿈되게 바꿨다. 다크 테마는 CSS 토큰으로만 정의되어 있고 브라우저에서 따로 열어 보지는 않았다.</p>
+    </div>
+  </section>
+
+  <!-- 21 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>원문 수치는 셋으로 갈린다. Anthropic 이 잰 것, 고객이 조건 없이 말한 것, 그리고 원문이 스스로 단서를 단 것. 문서의 판단 대부분은 셋째에서 나왔다</h2>
+      <p class="dek">원문이 인정한 한계와 이 문서가 주장하는 한계를 나눈다. 원문의 각주와 표 설명문이 이미 많은 단서를 달고 있어서 이 문서가 새로 덧붙인 것은 기준이 섞인 비교와 원문에 없는 스펙이다.</p>
+      <div class="grid g2">
+        <div class="card"><span class="tag">원문이 인정한 것</span>
+          <ul class="clean">
+            <li><span class="m">·</span><span>벤치마크 격차가 실제 차이의 신뢰할 만한 지표가 아니게 됐다 (06장).</span></li>
+            <li><span class="m">·</span><span>표는 max effort, Terminal-Bench 만 xhigh. 안전장치 개입 시 Opus 4.8·Opus 5 가 푼 과제가 점수에 들어간다.</span></li>
+            <li><span class="m">·</span><span>Terminal-Bench 표준오차 ±2.6pt, TB-Science ±3.5~5pt. AutomationBench 는 fallback 없이 실패 처리. WANDR 는 공개 설정과 비교 불가.</span></li>
+            <li><span class="m">·</span><span>alignment 평가가 모든 실패를 잡지 못하고 모델이 평가 중임을 자주 의심한다.</span></li>
+          </ul>
+        </div>
+        <div class="card"><span class="tag">이 문서가 주장하는 것</span>
+          <ul class="clean">
+            <li><span class="m">·</span><span>표의 FrontierCode 에서 Opus 5 와의 격차 6.4pt 는 max 기준이고 각 모델 최고 effort 기준으로는 1.2pt 다. 시스템 카드에 두 값이 다 있지만 소개 글은 앞쪽만 표에 넣었다. 같은 데이터에서 "같은 점수대를 1/5.8 비용에" 라는 읽기도 나오고 채택 판단에는 이쪽이 직접적이다.</span></li>
+            <li><span class="m">·</span><span>"40% 절감" 은 기본 설정 기준이고 기본 effort 가 medium 으로 내려갔다. effort 를 고정하면 high 는 32~86% 절감, max 는 세 벤치마크 역전이다 (07장). 원문은 이 역전을 적지 않고 whats-new 는 같은 effort 에서 thinking 이 더 많다고 쓴다.</span></li>
+            <li><span class="m">·</span><span>prompt injection 의 "모든 설정에서 Opus 5 이상" 은 전용 평가의 말이다. 행동 감사의 소폭 퇴보, 붙여넣기 텍스트 경로, 안전장치 없이 Claude Code·computer use 에서 악의적 요청 거부율이 가장 낮았다는 문장, 코딩 시나리오 46% 의 Opus 4.8 fallback 은 시스템 카드에만 있다.</span></li>
+            <li><span class="m">·</span><span>models overview 는 long-horizon agentic 작업에 Fable 5.1 을 위에 둔다. 원문의 "대부분의 일에서 Fable 5.1 수준" 옆에 있어야 할 문장이다.</span></li>
+            <li><span class="m">·</span><span>고객 인용 21개 중 표에 "수치 없음" 으로 적은 것이 6개다. 나머지 15개 중 effort 를 적은 것은 다섯(Deloitte·Rogo·Walleye 는 lowest, Factory 는 medium, Viktor 는 같은 effort)이고 비교 조건과 시행 횟수를 적은 것은 없다.</span></li>
+            <li><span class="m">·</span><span>컨텍스트 윈도우, 최대 출력, knowledge cutoff, 모델 ID 의 플랫폼별 차이는 소개 글에 없다. 18장 카드와 19장 표, 24장 목록에서 보충했다.</span></li>
+          </ul>
+        </div>
+      </div>
+      <p class="note">한계를 지나 남는 것도 있다. 코딩 차트 세 개의 점 70개는 원문이 공개한 데이터라 누구나 같은 비교를 다시 할 수 있고 그 데이터에서 "medium 이 max 보다 비용 대비 낫다" 는 결론은 Anthropic 의 캡션 없이도 나온다. 시스템 카드 §8.4 가 FrontierCode 의 두 기준을 다 적어 둔 것도 소개 글 밖에서 검증할 수 있게 한 요소다.</p>
+    </div>
+  </section>
+
+  <!-- 22 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">critique · 바깥 목소리</p>
+      <h2>출시 첫날 커뮤니티 반응은 원문의 세 지점에 몰렸다. 기본 effort 가 medium 이라 비교가 공정한가, cyber 분류기의 오탐, max effort 의 토큰 소비. 확정된 사실이 아닌 개별 보고다</h2>
+      <p class="dek">Hacker News 의 출시 스레드는 2026-09-23 08:40 UTC 기준 1,519 포인트였다. 아래는 그 스레드와 X, Reddit 에서 고른 발췌다.</p>
+      <div class="tablewrap">
+        <table class="wrap">
+          <thead><tr><th>출처 · 시각(UTC)</th><th style="text-align:left">발췌</th><th style="text-align:left">원문의 어느 지점인가</th></tr></thead>
+          <tbody>
+            <tr><td>HN gwd · 09-22 21:47</td><td style="text-align:left">패치 12개·이슈 14개 리뷰 하네스에서 Opus 5.5 가 8/14 에 $15.40, Fable 5.1 은 7/14 에 $66.34, Opus 5 는 6/14 에 $15.19. "relatively small sample size, but it was both the best and the cheapest"</td><td style="text-align:left">40% 절감 (07장). 이 표본에서는 Opus 5 와 비용이 같고 Fable 5.1 의 약 1/4</td></tr>
+            <tr><td>HN qlte · 09-22 17:57</td><td style="text-align:left">Artificial Analysis 기준 Opus 5.5 medium $1.34 대 GPT-6 Astra high $1.76. "The High vs. High comparison ... Opus 5.5 High = $1.82"</td><td style="text-align:left">"Astra 대비 약 40% 비용" 의 비교 기준 (08장)</td></tr>
+            <tr><td>HN nl · 09-23 00:04</td><td style="text-align:left">Artificial Analysis 의 토큰 사용량 표를 두고 "5.5 is higher for max effort ... (5.5 is 38% more) and at high (5.5 is 21% less)". "I think most people run at high and xhigh"</td><td style="text-align:left">기본 effort 변경 (19장)</td></tr>
+            <tr><td>HN rmunn · 09-23 02:26</td><td style="text-align:left">코드 리뷰에서 다섯 이슈 중 네 개의 줄 번호가 틀렸고 CLI 에 "Effort: medium" 이 표시돼 있었다. "I'm pretty sure I had set it to high effort before"</td><td style="text-align:left">기본 effort 변경 (19장)</td></tr>
+            <tr><td>HN simonw · 09-22 17:22</td><td style="text-align:left">max 에서 SVG 그리기 요청이 출력 128,000 토큰 한도에 걸려 실패. "it hit the limit of 128,000 cap for output tokens while it was still reasoning"</td><td style="text-align:left">표가 max 로 잰 것 (06장)</td></tr>
+            <tr><td>HN mintik · 09-22 21:44</td><td style="text-align:left">"[cyber] classifier is incredibly sensitive ... I cannot complete any embedded/driver/system-level tasks"</td><td style="text-align:left">cyber fallback (16장)</td></tr>
+            <tr><td>HN Retr0id · 09-22 17:38</td><td style="text-align:left">fallback 배너 원문 인용: "Opus 4.8 is answering instead". "Yay, yet another model I can't use for anything interesting, even with CVP"</td><td style="text-align:left">CVP 미적용 (16장)</td></tr>
+            <tr><td>HN arw0n · 09-22 17:29</td><td style="text-align:left">"It has far less false positives now, and generally accepts defensive requests"</td><td style="text-align:left">반대 방향의 보고 (16장)</td></tr>
+            <tr><td>HN km144 · 09-22 16:41</td><td style="text-align:left">원문의 단서를 두고 "In general, "benchmark margins have become a less reliable guide to real-world differences" sounds like a big problem"</td><td style="text-align:left">Anthropic 의 자기 할인 (06장)</td></tr>
+            <tr><td>HN senko · 09-22 20:37</td><td style="text-align:left">"neck-and-neck with Fable 5.1 and Astra 6 in my vibe-coding tests". Max 구독, xhigh, 게임 생성에 약 45분·$11~14</td><td style="text-align:left">Fable 5.1 과의 격차 (06장)</td></tr>
+            <tr><td>X @synthwavedd · 09-22 16:52</td><td style="text-align:left">"the only bad thing about the new Opus is it's a token-gobbling monster. Uses the most tokens per Intelligence Index task of any model benchmarked" (1,961 likes)</td><td style="text-align:left">max effort 토큰 (08장). 재확인 못 함</td></tr>
+            <tr><td>Reddit r/ClaudeAI · 09-22 16:38</td><td style="text-align:left">"Opus 5.5 now has a Max effort mode that uses 6x usage. So if Anthropic benchmarks Opus on Max, but subscribers mostly run Medium/High ... are we even getting the model they benchmarked?"</td><td style="text-align:left">표의 조건 (06장). 재확인 못 함</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="note">HN 의 보고 셋(gwd, senko, rmunn)은 비용, 품질, 정확도라는 다른 축을 말한다. cyber 분류기는 오탐이 심하다는 보고와 줄었다는 보고가 같은 스레드에 있고 시스템 카드는 오탐률을 줄일 때까지 넓은 여유를 둔다고 써서 오탐은 의도된 설정이다. 이 표에서 끌어낼 수 있는 것은 반응이 어디에 몰렸는지이지 어느 쪽이 맞는지가 아니다. Reddit 의 "6x usage" 가 무엇의 배수인지는 확인하지 못했다. HN nl 의 max 38% 는 07장의 max 비용 역전과 방향이 같다.</p>
+    </div>
+  </section>
+
+  <!-- 23 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>소개 글을 다 읽으면 남는 것은 가격표 한 장과 기본값 하나다. 캐시 읽기 $0.20 이 청구서를 바꾸고 medium 기본값이 요청의 동작을 바꾼다. 안전장치는 cyber 를 Opus 4.8 로 돌리는 Fable 5.1 급이 됐다</h2>
+      <p class="dek">원문 여덟 절을 문단 단위로 따라간 결과를 개발자의 행동 순서로 다시 놓으면 넷이다. 넷 중 셋은 소개 글이 아니라 링크된 문서에서 나온다.</p>
+      <ul class="clean">
+        <li><span class="m">1</span><span><b>모델 ID 를 바꾸기 전에 effort 를 적는다.</b> 안 적으면 high 에서 medium 으로 내려간다. effort 별 비용과 점수는 07·08장에 있고 GDPval 과 WANDR 의 low 점처럼 낮은 effort 가 항상 안전한 것도 아니다.</span></li>
+        <li><span class="m">2</span><span><b>400 을 내는 설정 셋을 지운다.</b> thinking disabled·budget, tool_choice any·tool, computer_20251124. 넷째인 prefix 검사는 3번이다. tool call 사이 텍스트를 UI 에 흘리던 코드는 오류 없이 조용해진다.</span></li>
+        <li><span class="m">3</span><span><b>대화를 append-only 로 만든다.</b> 2026-08-31 이후 계정은 preserved thinking 의 prefix 검사가 기본이고 이후 모델 출시와 함께 모든 사용자로 단계적으로 확대한다고 도움말 문서가 쓴다.</span></li>
+        <li><span class="m">4</span><span><b>보안 작업과 ML 가속기 kernel 개발은 거부를 처리한다.</b> 제품에서는 Opus 4.8·Opus 5 가 대신 답하지만 API 에서는 fallback 이 opt-in 이라 기본은 거부 응답이다 (16·19장). CVP 는 아직 Opus 5.5 에 적용되지 않는다.</span></li>
+      </ul>
+      <p class="note">"청구서를 바꾼다" 의 단서는 07장의 max 역전이다. 벤치마크 표는 Opus 5.5 가 9개 중 7개에서 1위라고 말하지만 Anthropic 자신이 그 격차를 할인하고 이 문서가 같은 기준으로 놓은 FrontierCode 의 Opus 5 와의 격차는 1.2pt 다. 이 문서가 확인한 것은 원문의 숫자가 원문에 그렇게 적혀 있고 링크된 문서와 어긋나지 않는다는 것까지다. 숫자가 실제 워크로드에서 재현되는지는 22장의 첫날 보고들처럼 아직 방향이 갈린다.</p>
+    </div>
+  </section>
+
+  <!-- 24 -->
+  <section class="slide">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처. 원문 하나, 시스템 카드 하나, 플랫폼 문서 여섯과 도움말·뉴스 다섯, 커뮤니티 셋</h2>
+      <p class="dek">출처 16개. 받은 시각과 본문 해시는 근거 장부에 있고 읽은 범위는 20장에 있다.</p>
+      <div class="src">
+        <div><a href="https://www.anthropic.com/claude-opus-5-5">Introducing Claude Opus 5.5</a> <span class="t">· Anthropic, 2026-09-22. 2026-09-23 08:33 UTC 수신. <a href="http://web.archive.org/web/20260922200123/https://www.anthropic.com/claude-opus-5-5">Wayback 20260922200123</a>. news/claude-opus-5-5 는 이 주소로 리다이렉트</span></div>
+        <div><a href="https://anthropic.com/claude-opus-5-5-system-card">Claude Opus 5.5 System Card</a> <span class="t">· PDF 230쪽, 2026-09-22. Executive Summary, §1.5, §3.2, §5.2.1, §5.2.2.1, §6.4, §6.4.8~6.4.10, §8.1, §8.4</span></div>
+        <div><a href="https://platform.claude.com/docs/en/models/opus-5-5/whats-new-opus-5-5">What's new in Claude Opus 5.5</a> <span class="t">· breaking change 4개, 기본 effort, 캐시·batch 가격, 플랫폼별 ID</span></div>
+        <div><a href="https://platform.claude.com/docs/en/about-claude/pricing">Pricing</a> <span class="t">· 캐시 읽기 0.05x, fast mode $8/$40, batch $2/$10</span></div>
+        <div><a href="https://platform.claude.com/docs/en/models/overview">Models overview</a> <span class="t">· 컨텍스트 1M, 최대 출력 128K, cutoff 2026-06</span></div>
+        <div><a href="https://platform.claude.com/docs/en/build-with-claude/preserved-thinking">Preserved thinking</a> <span class="t">· 모델 검사, prefix 검사, 2026-08-31 기준, drop_block</span></div>
+        <div><a href="https://platform.claude.com/docs/en/build-with-claude/effort">Effort</a> <span class="t">· Opus 5.5 기본 medium, 5단계 정의</span></div>
+        <div><a href="https://platform.claude.com/docs/en/build-with-claude/fast-mode">Fast mode</a> <span class="t">· speed: fast, beta header, OTPS 기준, Claude API 전용</span></div>
+        <div><a href="https://support.claude.com/en/articles/16761192">Preserved thinking: changing how the Messages API handles thinking blocks</a> <span class="t">· 적용 계정 표, 영향받는 통합, 단계적 시행</span></div>
+        <div><a href="https://support.claude.com/en/articles/14604842-real-time-cyber-safeguards-on-claude-opus-and-sonnet">Real-time cyber safeguards on Claude Opus and Sonnet</a> <span class="t">· 첫 줄에 Opus 5.5 미적용 명시</span></div>
+        <div><a href="https://support.claude.com/en/articles/17007452-what-is-a-limit-reset">What is a limit reset?</a> <span class="t">· 5시간·주간 한도 즉시 회복, 1회용</span></div>
+        <div><a href="https://www.anthropic.com/news/life-sciences-verification-program">Introducing the Life Sciences Verification Program</a> <span class="t">· 2026-09-17. Standard Use, High-risk Use</span></div>
+        <div><a href="https://darioamodei.com/post/we-must-pace-the-frontier">We Must Pace the Frontier</a> <span class="t">· Dario Amodei, 2026-09. 서두와 3단계 제안까지</span></div>
+        <div><a href="https://news.ycombinator.com/item?id=49803892">Hacker News: Claude Opus 5.5</a> <span class="t">· 출시 스레드, 2026-09-22</span></div>
+        <div><a href="https://x.com/synthwavedd/status/2102440897317064916">X @synthwavedd</a> <span class="t">· 2026-09-22 16:52 UTC. 재확인 못 함</span></div>
+        <div><a href="https://www.reddit.com/r/ClaudeAI/comments/1wnejyx/did_anthropic_just_find_a_new_way_to_benchmax/">Reddit r/ClaudeAI: Did Anthropic just find a new way to benchmax?</a> <span class="t">· 2026-09-22 16:38 UTC. 재확인 못 함</span></div>
+      </div>
+      <p class="note">플랫폼 문서 여섯은 받은 시각과 sha256 이, 도움말·뉴스 다섯과 커뮤니티 셋은 받은 시각만 장부에 있다. 원문 외에는 아카이브하지 않았고 X·Reddit 두 인용은 서브에이전트 보고를 옮긴 것이라 본문을 재확인하지 못했다. 이 페이지들은 바뀔 수 있으므로 문서의 문장은 2026-09-23 의 상태에 대한 것이다.</p>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 24</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
+  var prev = document.getElementById('prev'), next = document.getElementById('next');
+  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
+  var stage = document.getElementById('stage');
+  var i = 0;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function show(n, updateHash) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function (s, k) {
+      s.setAttribute('data-active', k === i ? 'true' : 'false');
+      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
+      if (k === i) { s.scrollTop = 0; }
+    });
+    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
+    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
+  }
+  prev.addEventListener('click', function () { show(i - 1); });
+  next.addEventListener('click', function () { show(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
+    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
+    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
+    else if (e.key === 'Home') { e.preventDefault(); show(0); }
+    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener('touchstart', function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener('touchend', function (e) {
+    if (x0 === null) { return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  var m = /^#p(\d+)$/.exec(window.location.hash || '');
+  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>

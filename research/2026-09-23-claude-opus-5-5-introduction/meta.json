@@ -1,0 +1,22 @@
+{
+  "title": "Claude Opus 5.5 소개 글: 성능과 안전장치는 Fable 5.1 급, 비용은 Opus 5 보다 40% 낮다는 주장",
+  "date": "2026-09-23",
+  "seq": 29,
+  "summary": "Anthropic 의 \"Introducing Claude Opus 5.5\" 전문을 원문 순서대로 정독했다. 가격은 입력 $4·출력 $20·캐시 읽기 $0.20 으로 Opus 5 대비 20%·20%·60% 인하이고 \"40% 절감\" 은 기본 effort 가 high 에서 medium 으로 내려간 기본 설정 기준이다. 벤치마크 표는 max effort 값인데 FrontierCode 는 medium 54.6% 이 max 54.4% 보다 높고 각 모델 최고 effort 로 놓으면 Opus 5 와의 격차가 6.4pt 에서 1.2pt 로 준다. thinking 끄기·forced tool use·computer_20251124 는 400 을 내고 cyber 작업은 Opus 4.8 로 fallback 한다.",
+  "category": "note",
+  "format": "deck",
+  "tags": [
+    "claude opus 5.5",
+    "anthropic",
+    "pricing",
+    "effort",
+    "preserved thinking",
+    "safeguards",
+    "benchmark",
+    "claude code"
+  ],
+  "source": {
+    "label": "anthropic.com/claude-opus-5-5",
+    "url": "https://www.anthropic.com/claude-opus-5-5"
+  }
+}
