@@ -21,8 +21,9 @@ research/*/src/
 # 셋 다 작다 (문서 하나에 수 KB).
 #
 # notes/ 는 올리지 않는다. 다듬지 않은 중간 산출물이고 발행물이 아니다.
-# 예외 둘: notes/web/<id>.txt 는 web 출처의 고정 사본이라 그것이 없으면 다른 기계와 CI 가
-# web 인용을 대조할 수 없다 (문서당 수십 KB). run.json 은 검증 실행의 기록이다 (수 KB).
+# 예외 셋: notes/web/<id>.txt 는 web 출처의 고정 사본이라 그것이 없으면 다른 기계와 CI 가
+# web 인용을 대조할 수 없다 (문서당 수십 KB). notes/figures.md 는 차트의 점이 있는 곳이라
+# 차트 인용의 대조가 거기 기댄다. run.json 은 검증 실행의 기록이다 (수 KB).
 .research/*
 !.research/*/
 .research/*/*
@@ -33,6 +34,7 @@ research/*/src/
 !.research/*/notes/
 .research/*/notes/*
 !.research/*/notes/web/
+!.research/*/notes/figures.md
 
 # node
 node_modules/

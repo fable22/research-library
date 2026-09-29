@@ -877,3 +877,26 @@ no `--allow`. The author reported eight remaining points; each became a change:
   item.
 - Lens A captured a blank page and moved on. Lens C carries the render command and the
   rule that a blank capture is not a checked rendering.
+
+## What the Opus 5.5 rewrite sent back
+
+The Opus 5.5 introduction was rewritten as an explainer against the user's original
+2026-09-23 request (full coverage in the article's order, per-section developer actions,
+numbers from opened sources), which the 2026-09-29 rewrite had narrowed into a migration
+walkthrough with an adoption checklist. 34 chapters, every chart and table in
+`notes/figures.md` redrawn, 183 claims matched with no `--allow`, a `reception` chapter
+from HN comments fetched through the Algolia API. Three things changed in the harness:
+
+- `notes/figures.md` is committed. Chart quotes are matched there, and an ignored file
+  meant CI could not match them; the author had appended the chart points to `w1.txt`
+  as a workaround.
+- Lens A reads the draft after B and C's must-fix items are applied, with their reports.
+  The skill had said both "fix as reports arrive" and "A reads B and C", without saying
+  which draft A sees.
+- The round cap left two one-line errors in a committed document. An item with one
+  correct answer found by the last re-check is now fixed once more and recorded under
+  `after_last_recheck`; the cap still ends rounds, not corrections.
+
+Not changed: `check-prose.mjs` does not count `그래서` as a paragraph-initial connective.
+Adding it would shift the column away from the human band it was measured against, so the
+regex and the band move together or not at all.

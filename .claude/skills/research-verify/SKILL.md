@@ -73,7 +73,9 @@ Say what was skipped at the top of the report, before the findings.
 ### 2. Launch the lenses
 
 Read B and C from `references/` and hand each to a separate subagent in the same message.
-When both have reported, hand A its file and their reports. Spawning them is the step;
+When both have reported, apply their must-fix items, then hand A its file, their reports
+and the document as it now stands; A reads the corrected draft, and what it finds is what
+B and C could not see. Spawning them is the step;
 asking permission for it is not. If they cannot be spawned, run what you can and declare
 the gap at the top of the report, as a missing `sources.jsonl` is declared.
 
@@ -188,8 +190,10 @@ fixing, since a lens that returns first has must-fix items that are already acti
 
 Re-run the machine checks after fixing, and re-run a lens over the chapters it touched. Stop
 when a round turns up no new must-fix item with one correct answer: a number, a quote, a
-direction, a dead reference. Two rounds at most; what the second re-check still finds is
-reported as found-and-unfixed. Fixes introduce their own errors and the second round finds
+direction, a dead reference. Two rounds at most. What the last re-check still finds is
+handled by kind: an item with one correct answer (a number, a reference, a quote) is fixed
+once more without another round and recorded in `run.json` under `after_last_recheck`;
+anything else is reported as found-and-unfixed. Fixes introduce their own errors and the second round finds
 them. Wording is different: each pass rewrites the document toward the gate and away from
 the reader, so wording findings from a re-check are recorded and left alone. Say whether the
 rendered page was opened after the fixes, and put the remaining needs-judgment items to the
