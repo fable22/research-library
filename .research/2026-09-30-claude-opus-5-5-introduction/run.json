@@ -11,7 +11,7 @@
   },
   "slides": 34,
   "corpus": {
-    "sources": 43,
+    "sources": 44,
     "retrievedAt": "2026-09-29T15:50:58Z~15:59:51Z",
     "w1": "원문 재수신. 2026-09-23 고정본과 비교해 성능 표 행 이름 OSWorld 2.0 → 2.1 만 바뀜, 차트 점 130개 동일. 새 고정본으로 교체, Wayback 20260929155704",
     "unchanged": [
@@ -36,12 +36,12 @@
     "notInNotes": "사용자가 notes/ 에 있다고 한 부속 문서 중 시스템 카드 텍스트, pricing, overview, preserved thinking, effort, 도움말 셋, LSVP, 에세이는 notes/ 에 사본이 없어 다시 받았다",
     "portability": "차트 aria-label 을 w1.txt 끝에, 시스템 카드 그림 렌더링 값을 s1.txt 끝에 붙였다. notes/figures.md 는 커밋되지 않아 다른 기계에서 대조할 수 없기 때문"
   },
-  "evidenceCount": 264,
-  "claimsCount": 183,
+  "evidenceCount": 270,
+  "claimsCount": 189,
   "claimKinds": {
-    "web": 151,
+    "web": 156,
     "derived": 23,
-    "absence": 9
+    "absence": 10
   },
   "figures": {
     "articleRedrawn": "성능 표, 가격 표, 차트 6개(점 130개) 전부. Communication 비교 셋 중 하나만 나란히, 둘은 한 줄 요약",
@@ -55,7 +55,7 @@
     "named": "Table 8.1.A(06장에 다른 행만), 나머지 system card 곡선은 setup 에 이름"
   },
   "checkClaims": {
-    "result": "OK 주장 183, 근거 295, 출처 43, --allow 없음",
+    "result": "OK 주장 189, 근거 303, 출처 44, --allow 없음",
     "negativeTest": "c7 인용의 2,872 를 2,873 으로 바꾼 사본을 --evidence 로 돌려 quote-match 로 막힘 확인"
   },
   "lensModel": "sonnet",
@@ -185,6 +185,256 @@
       "26장 앞부분 검사 상자 글자 넘침"
     ],
     "deckMode": false,
-    "narrowWidth": false
+    "narrowWidth": false,
+    "round3": {
+      "slides": [
+        1,
+        6,
+        13,
+        21,
+        24,
+        29,
+        31,
+        32
+      ],
+      "dark": [
+        32
+      ],
+      "overflowAll34": "없음",
+      "fixedFromRender": [
+        "29장 첫 표 값 열 잘림"
+      ]
+    }
+  },
+  "round3": {
+    "date": "2026-09-29T17:05Z~17:50Z (UTC)",
+    "askedBy": "user message 2026-09-30: 같은 문서, 새 커밋 하나",
+    "foundAndUnfixedResolved": [
+      "30장 d1~d9 행 장 목록 → 04, 05, 07~09, 16, 23, 26, 28, 29, 32",
+      "13장 key → 일곱 중 Opus 5 와 견준 넷(GitHub, Clio, Optiver, Kiro)"
+    ],
+    "headingsRenamed": [
+      {
+        "chapter": "tl-dr",
+        "before": "요약: 40% 는 가격과 기본 effort 가 함께 만든 숫자다",
+        "after": "요약: 40% 절감의 두 갈래"
+      },
+      {
+        "chapter": "problem",
+        "before": "문제 정의: 표는 max, 비용 주장은 기본값",
+        "after": "문제 정의: 표, 비용, 안전성의 세 조건"
+      },
+      {
+        "chapter": "intro-plans",
+        "before": "구독 한도와 limit reset: 늘린 폭은 적혀 있지 않다",
+        "after": "구독 한도와 limit reset"
+      },
+      {
+        "chapter": "bench-table",
+        "before": "Performance: 9행 표는 max effort 와 fallback 을 켠 값이다",
+        "after": "성능 표: 벤치마크 9개와 측정 조건"
+      },
+      {
+        "chapter": "price",
+        "before": "Pricing: 단가만의 인하 폭은 요청 구성에 달렸다",
+        "after": "가격: 입력 $4, 출력 $20, cache read $0.20"
+      },
+      {
+        "chapter": "coding-cases",
+        "before": "Coding: 일화 다섯 개는 방향만 옮길 수 있다",
+        "after": "Coding 일화: 200,000줄 감사와 HAProxy 번역"
+      },
+      {
+        "chapter": "coding-charts",
+        "before": "Coding 차트 셋: 기본값 하나를 경쟁 모델의 비싼 점과 맞댄다",
+        "after": "Coding 차트: Terminal-Bench, FrontierCode, CursorBench"
+      },
+      {
+        "chapter": "frontiercode",
+        "before": "FrontierCode: medium 이 가장 높고 max 에서 거의 돌아온다",
+        "after": "FrontierCode: effort 다섯 단계의 점수"
+      },
+      {
+        "chapter": "coding-quotes",
+        "before": "Coding 고객 인용 여덟: 모두 effort 를 밝히지 않았다",
+        "after": "Coding 고객 인용 여덟"
+      },
+      {
+        "chapter": "secure-agent",
+        "before": "The most secure coding agent: 첫 문단의 세 장치는 제품에 있다",
+        "after": "The most secure coding agent: classifier, sandbox, 코드 리뷰"
+      },
+      {
+        "chapter": "injection",
+        "before": "Prompt injection: 뚫린 요청은 거의 전부 fallback 쪽이었다",
+        "after": "Prompt injection: Gray Swan 벤치마크와 Shade 공격"
+      },
+      {
+        "chapter": "pasted-text",
+        "before": "붙여 넣은 텍스트: 사용자 턴에 심은 지시에 대한 회귀",
+        "after": "붙여 넣은 텍스트: 사용자 턴 속 지시와 <pasted_content>"
+      },
+      {
+        "chapter": "knowledge-cases",
+        "before": "Knowledge work: 셋 중 하나만 채점 기준을 밝혔다",
+        "after": "Knowledge work 일화: 실적 보고서, Walleye, 합병 분석"
+      },
+      {
+        "chapter": "knowledge-charts",
+        "before": "Knowledge work 차트 셋: low 에서는 Opus 5 보다 낮다",
+        "after": "Knowledge work 차트: GDPval, AutomationBench, WANDR"
+      },
+      {
+        "chapter": "knowledge-quotes",
+        "before": "Knowledge work 고객 인용 여덟: 가장 낮은 effort 로 충분했다는 셋",
+        "after": "Knowledge work 고객 인용 여덟"
+      },
+      {
+        "chapter": "communication",
+        "before": "Communication: 결론과 금액을 첫 줄에 둔다",
+        "after": "Communication: 비교 예시 셋과 고객 인용 다섯"
+      },
+      {
+        "chapter": "alignment",
+        "before": "Safety · Alignment: 「85% 덜」 은 28개 시나리오의 1.5% 대 10.3% 다",
+        "after": "Safety · Alignment: 행동 감사와 sandbox 탈출 평가"
+      },
+      {
+        "chapter": "cyber",
+        "before": "Safeguards · Cybersecurity: 소스 코드는 되고 바이너리는 막힌다",
+        "after": "Safeguards · Cybersecurity: 취약점 탐색 정책과 CVP"
+      },
+      {
+        "chapter": "bio",
+        "before": "Safeguards · Biology: 막힌 일을 풀려면 LSVP 에 조직으로 신청한다",
+        "after": "Safeguards · Biology: 연구 생물학 classifier 와 LSVP"
+      },
+      {
+        "chapter": "distillation",
+        "before": "Safety · Distillation: 대화 앞부분을 고치면 400",
+        "after": "Safety · Distillation: preserved thinking 의 두 검사"
+      },
+      {
+        "chapter": "retention",
+        "before": "Safety · Data retention: ZDR 과 두 검증 프로그램은 함께 서지 않는다",
+        "after": "Safety · Data retention: ZDR, 워터마크, 검증 프로그램"
+      },
+      {
+        "chapter": "availability",
+        "before": "Availability: 어디서나 같은 ID, 기능은 Claude API 가 가장 많다",
+        "after": "Availability: 플랫폼별 ID, 한도, 폐기 일정"
+      },
+      {
+        "chapter": "reception",
+        "before": "반응: effort, cache, cyber 에 몰린 반박과 보강",
+        "after": "반응: 원문 주장별 실무자 발언과 확인"
+      },
+      {
+        "chapter": "pacing",
+        "before": "Safety · Pacing the frontier: 회사가 지킬 절차에 대한 약속",
+        "after": "Safety · Pacing the frontier: 두 시간 축의 안전 작업과 에세이 3단계",
+        "note": "렌즈 C 3차가 찾음"
+      },
+      {
+        "chapter": "critique",
+        "before": "해석의 한계: 원문이 보여 주지 않은 표 하나와 섞인 비용 기준",
+        "after": "해석의 한계: Toolathlon, 비용 기준, 행 이름",
+        "note": "렌즈 C 3차가 찾음"
+      }
+    ],
+    "headingsRenamedCount": 25,
+    "dataLabelsChanged": {
+      "intro": "소개 절의 약속 → 소개 절",
+      "coding-charts": "코딩 차트 셋 → 코딩 차트",
+      "knowledge-charts": "지식 작업 차트 셋 → 지식 작업 차트"
+    },
+    "keysReducedToOneClaim": {
+      "bench-table": "Astra 두 행, GPT 칸 출처 → facts",
+      "cyber": "4.5%, CVP 미개방 → facts",
+      "retention": "워터마크 → 표 행"
+    },
+    "chaptersSplit": [],
+    "reception": {
+      "visibleHangulBefore": 982,
+      "visibleHangulAfter": 455,
+      "rowsBefore": 7,
+      "rowsAfter": 5,
+      "removedFromTable": [
+        "jdw64 5시간 한도(확인 불가, 첨언으로)",
+        "narmiouh(행에서 뺌, 3차 렌즈 C 지적 뒤 첨언에서도 뺌)",
+        "solsson, synthwavedd 는 이전부터 첨언"
+      ]
+    },
+    "newSource": {
+      "id": "d9",
+      "url": "https://platform.claude.com/docs/en/about-claude/model-deprecations",
+      "retrieved_at": "2026-09-29T17:16:49Z",
+      "note": "2026-09-29 07:09 수신본과 바이트 동일",
+      "usedIn": "29장 폐기 약속 두 행과 fallback 목적지 문단"
+    },
+    "recheck": {
+      "model": "sonnet",
+      "lensC": {
+        "report": "notes/verify/2026-09-30-round3-lensC.md",
+        "mustFix": 9,
+        "wording": 7
+      },
+      "lensA": {
+        "report": "notes/verify/2026-09-30-round3-lensA.md",
+        "mustFix": 4,
+        "wording": 12
+      },
+      "diffGiven": "notes/verify/2026-09-30-round3-diff.txt"
+    },
+    "authorFixesBeforeRecheckReturned": [
+      "29장 첫 표가 새 행 때문에 값 열이 잘림 → prose-table",
+      "30장 key 「플랫폼 문서 여덟」 → 아홉"
+    ]
+  },
+  "after_last_recheck": {
+    "fixed": [
+      {
+        "from": "A1",
+        "what": "32장 첫 행: nl 의 38% 가 Opus 5 max 대비임을 적고, 「방향만」 의 근거로 whats-new 를 되돌림. 2.1~10.4배는 6배 발언에만 붙임"
+      },
+      {
+        "from": "A2",
+        "what": "32장 본문 「크기를 확인할 수 없는 발언은 행으로 두지 않고」 → 「읽기를 바꾸지 않는 발언은」"
+      },
+      {
+        "from": "A3,C4",
+        "what": "05장 「(32장)」 → 「(32장 첨언의 HN 발언)」"
+      },
+      {
+        "from": "A4,C1",
+        "what": "30장 첨언 수신 시각에 「d9 만 17:16 UTC」"
+      },
+      {
+        "from": "C2",
+        "what": "30장 「07, 08, 26, 28장은 9월 29일 판을 근거로」 → 02, 04, 08, 09, 23, 26, 28, 29, 32장"
+      },
+      {
+        "from": "C5",
+        "what": "13장 표 Clio 행에 「Opus 5 보다 마일스톤에 빨리 닿고」"
+      },
+      {
+        "from": "C6,C7",
+        "what": "21, 31장 제목이 key 의 주장을 말함 → 내용 이름으로"
+      },
+      {
+        "from": "C8",
+        "what": "01장 표지 표의 옛 장 이름 셋"
+      },
+      {
+        "from": "C9",
+        "what": "32장 첨언에만 있던 narmiouh 65,927 토큰 문장 삭제"
+      }
+    ],
+    "recordedOnly": [
+      "C3 05장 key 에 주장 둘(5시간 한도 폭, limit reset). 이번 요청의 06·24·27 밖",
+      "A 문구 12줄, C 문구 7줄(보고서에 있음). 예: 29장 「코드를 바꿀 일은 없고」 는 d8 에서 추론, 폐기된 목적지에서 default routing 의 동작은 d8, d9 에 없음",
+      "32장 접힌 비율 약 49%(견본 16%)"
+    ],
+    "notRecheckedAfterTheseFixes": "위 수정은 재검증 뒤에 한 것이라 렌즈가 다시 읽지 않았다. 게이트 셋, check-claims, 렌더로만 확인"
   }
 }

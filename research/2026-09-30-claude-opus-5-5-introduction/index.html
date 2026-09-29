@@ -394,11 +394,11 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <table class="prose-table" style="margin:0 0 18px">
         <thead><tr><th>원문 절</th><th>이 문서의 장</th></tr></thead>
         <tbody>
-          <tr><td>Introduction</td><td>04 소개 절의 약속 · 05 구독 한도</td></tr>
+          <tr><td>Introduction</td><td>04 소개 절 · 05 구독 한도</td></tr>
           <tr><td>Performance and cost-effectiveness</td><td>06 성능 표 · 07 40% 의 분해 · 08 가격 · 09 fast mode</td></tr>
-          <tr><td>Coding</td><td>10 일화 · 11 코딩 차트 셋 · 12 FrontierCode · 13 고객 인용</td></tr>
+          <tr><td>Coding</td><td>10 일화 · 11 코딩 차트 · 12 FrontierCode · 13 고객 인용</td></tr>
           <tr><td>The most secure coding agent</td><td>14 제품 쪽 장치 · 15 prompt injection · 16 붙여 넣은 텍스트</td></tr>
-          <tr><td>Knowledge work</td><td>17 일화 · 18 지식 작업 차트 셋 · 19 고객 인용</td></tr>
+          <tr><td>Knowledge work</td><td>17 일화 · 18 지식 작업 차트 · 19 고객 인용</td></tr>
           <tr><td>Communication</td><td>20 글쓰기</td></tr>
           <tr><td>Safety</td><td>21 Pacing · 22 Alignment · 23 fallback 경로 · 24 cyber · 25 biology · 26 Distillation · 27 데이터 보관 · 28 thinking 끄기와 breaking change</td></tr>
           <tr><td>Availability</td><td>29 플랫폼과 한도</td></tr>
@@ -413,7 +413,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <section class="slide" data-label="요약">
     <div class="slide-inner">
       <p class="eyebrow">tl-dr</p>
-      <h2>요약: 40% 는 가격과 기본 effort 가 함께 만든 숫자다</h2>
+      <h2>요약: 40% 절감의 두 갈래</h2>
       <p class="key">원문의 「기본 설정에서 Opus 5 보다 40% 싸다」 는 토큰 단가 인하(요청 구성에 따라 20~60%)에 기본 effort 가 high 에서 medium 으로 한 단계 내려간 효과가 겹친 값이다. 원문 차트 여섯 개에서 기본값끼리 비교하면 과제당 비용은 Opus 5 의 0.10~0.62배(중앙값 약 0.28배)이고, 같은 effort 끼리 비교하면 max 에서만 세 벤치마크가 Opus 5 보다 비싸게 나온다. 다만 범위의 양 끝과 max 의 세 곳 중 둘은 비용 산정 기준이 섞이거나 밝혀지지 않은 차트라, 크기보다 방향을 읽는다.</p>
       <ul class="facts">
         <li><span class="m">가격</span><span>input $4, output $20, cache read $0.20(입력 단가의 0.05배), 5분 cache write $5, 1시간 cache write $8, batch $2/$10. Opus 5 는 $5, $25, $0.50, $6.25, $10, $2.50/$12.50 이다</span></li>
@@ -432,7 +432,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <section class="slide" data-label="문제 정의">
     <div class="slide-inner">
       <p class="eyebrow">problem</p>
-      <h2>문제 정의: 표는 max, 비용 주장은 기본값</h2>
+      <h2>문제 정의: 표, 비용, 안전성의 세 조건</h2>
       <p class="key">원문은 성능 표를 max effort 로, 비용 절감을 기본 설정으로, 안전성을 안전장치가 켜진 상태로 보여 준다. 세 조건이 한 글에 섞여 있어서, effort 를 고정해 둔 에이전트나 보안 코드를 다루는 에이전트가 Opus 5.5 로 옮기면 비용과 동작이 어떻게 되는지는 원문만으로 예측할 수 없다.</p>
       <p>개발자가 옮기기 전에 알아야 하는 질문은 셋이다.</p>
       <ul class="facts">
@@ -446,7 +446,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   </section>
 
   <!-- 04 -->
-  <section class="slide" data-label="소개 절의 약속">
+  <section class="slide" data-label="소개 절">
     <div class="slide-inner">
       <p class="eyebrow">intro</p>
       <h2>Introduction: 소개 절의 주장을 확인하는 장</h2>
@@ -474,7 +474,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <section class="slide" data-label="구독 한도">
     <div class="slide-inner">
       <p class="eyebrow">intro-plans</p>
-      <h2>구독 한도와 limit reset: 늘린 폭은 적혀 있지 않다</h2>
+      <h2>구독 한도와 limit reset</h2>
       <p class="key">원문은 Pro, Max, Team, 좌석형 Enterprise 의 5시간 한도를 늘린다고만 하고 얼마나 늘렸는지는 적지 않는다. 함께 주는 limit reset 은 5시간 한도나 주간 한도를 한 번 가득 채우는 단추이고, Claude Code 터미널과 IDE 에서는 누를 수 없다.</p>
       <ul class="facts">
         <li><span class="m">무엇</span><span>reset 에 따라 5시간 세션 한도나 주간 한도 중 하나가 즉시 가득 찬다. 주간 한도가 원래 도는 날짜는 그대로다</span></li>
@@ -482,7 +482,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         <li><span class="m">어디서</span><span>웹이나 Claude Desktop 의 Settings &gt; Usage 에서 누른다. 모바일, 그리고 터미널과 IDE 의 Claude Code 에는 단추가 없지만 한도는 계정 전체가 공유하므로 Claude Code 에도 적용된다</span></li>
         <li><span class="m">제외</span><span>이미 청구된 extra usage 를 돌려주지 않는다. 쓰기 전에 요금제를 내리거나 해지하면 사라진다</span></li>
       </ul>
-      <p>그래서 Claude Code 로 긴 세션을 돌리는 사람은 한도에 닿기 직전 브라우저에서 reset 을 눌러 두는 식으로 쓴다. 원문이 늘린 폭을 적지 않아서, 같은 일에 드는 토큰이 늘어난 사용자에게 한도가 실제로 넉넉해지는지는 알 수 없다(32장). API 사용자에게는 해당하지 않는다. API 의 rate limit 은 원문이 다루지 않는다.</p>
+      <p>그래서 Claude Code 로 긴 세션을 돌리는 사람은 한도에 닿기 직전 브라우저에서 reset 을 눌러 두는 식으로 쓴다. 원문이 늘린 폭을 적지 않아서, 같은 일에 드는 토큰이 늘어난 사용자에게 한도가 실제로 넉넉해지는지는 알 수 없다(32장 첨언의 HN 발언). API 사용자에게는 해당하지 않는다. API 의 rate limit 은 원문이 다루지 않는다.</p>
       <details class="more"><summary>첨언: 원문과 도움말</summary><p>원문: <span class="q">“In addition to the price drop, we’re increasing five-hour usage limits on Pro, Max, Team, and seat-based Enterprise plans. We’re also providing subscription users a rate limit reset, which you can now save and use whenever you choose.”</span> 도움말 「What is a limit reset?」: <span class="q">“The "Reset for free" button isn’t currently available on Claude Mobile or in Claude Code in your terminal or IDE, so open Claude in a browser or use Claude Desktop instead.”</span> 원문은 이 도움말을 링크하지 않는다. 한도를 늘린 폭은 원문, 도움말, 가격 문서 어디에도 없다.</p></details>
     </div>
   </section>
@@ -491,8 +491,8 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <section class="slide" data-label="성능 표">
     <div class="slide-inner">
       <p class="eyebrow">bench-table</p>
-      <h2>Performance: 9행 표는 max effort 와 fallback 을 켠 값이다</h2>
-      <p class="key">표의 Opus 5.5 칸은 max effort(Terminal-Bench 만 xhigh)에서 안전장치를 켠 채 잰 값이고, 걸린 요청은 Opus 4.8 이나 Opus 5 가 답했다. 9행 중 두 행(Terminal-Bench-Science, AutomationBench)은 GPT-6 Astra 가 더 높다. GPT 칸 가운데 각주가 출처를 밝힌 것은 Terminal-Bench(OpenAI), Terminal-Bench-Science 의 Astra(OpenAI), AutomationBench(Zapier 공개 leaderboard)뿐이고, 나머지 GPT 칸은 누가 쟀는지 원문에 없다.</p>
+      <h2>성능 표: 벤치마크 9개와 측정 조건</h2>
+      <p class="key">표의 Opus 5.5 칸은 max effort(Terminal-Bench 만 xhigh)에서 안전장치를 켠 채 잰 값이고, 걸린 요청은 Opus 4.8 이나 Opus 5 가 답했다.</p>
       <div class="tablewrap"><table>
         <thead><tr><th>영역 · 벤치마크</th><th>Opus 5.5</th><th>Fable 5.1</th><th>Opus 5</th><th>GPT-6 Astra</th><th>GPT-5.6 Sol</th></tr></thead>
         <tbody>
@@ -508,6 +508,8 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         </tbody>
       </table></div>
       <ul class="facts">
+        <li><span class="m">Astra</span><span>9행 중 두 행(Terminal-Bench-Science, AutomationBench)은 GPT-6 Astra 가 더 높다</span></li>
+        <li><span class="m">GPT 칸</span><span>GPT 칸 가운데 각주가 출처를 밝힌 것은 Terminal-Bench(OpenAI), Terminal-Bench-Science 의 Astra(OpenAI), AutomationBench(Zapier 공개 leaderboard)뿐이고, 나머지 GPT 칸은 누가 쟀는지 원문에 없다</span></li>
         <li><span class="m">¹</span><span>표준오차는 Opus 5.5 ±2.6pt, 다른 Claude ±1.6~2pt. 시스템 카드: 요청의 2.5% 가 fallback 으로 넘어갔고 시도의 10% 가 영향을 받았다</span></li>
         <li><span class="m">²</span><span>Zapier 가 fallback 없이 돌려 안전장치가 개입한 과제는 실패로 셌다. 원문은 실제보다 낮은 점수라고 적는다</span></li>
         <li><span class="m">³</span><span>표준오차 ±3.5~5pt. 시스템 카드: 요청의 3.9% 가 fallback, 시도의 5% 가 영향</span></li>
@@ -546,7 +548,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   <section class="slide" data-label="가격">
     <div class="slide-inner">
       <p class="eyebrow">price</p>
-      <h2>Pricing: 단가만의 인하 폭은 요청 구성에 달렸다</h2>
+      <h2>가격: 입력 $4, 출력 $20, cache read $0.20</h2>
       <p class="key">input, output, cache write 는 20% 내렸고 cache read 만 60% 내렸다. 그래서 단가만으로 줄어드는 폭은 cache read 가 요청에서 차지하는 비율에 따라 20% 에서 60% 사이에 놓이고, 긴 에이전트 세션처럼 cache read 가 대부분인 요청일수록 60% 에 가깝다.</p>
       <div class="tablewrap"><table>
         <thead><tr><th>백만 토큰당</th><th>Opus 5</th><th>Opus 5.5</th><th>변화</th></tr></thead>
@@ -602,7 +604,7 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="코딩 일화">
     <div class="slide-inner">
       <p class="eyebrow">coding-cases</p>
-      <h2>Coding: 일화 다섯 개는 방향만 옮길 수 있다</h2>
+      <h2>Coding 일화: 200,000줄 감사와 HAProxy 번역</h2>
       <p class="key">Coding 절 첫 문단과 소개 절의 일화는 시간, 토큰, 비용의 비율만 적고 effort, 하네스, 과제 정의를 밝히지 않는다. 내 작업으로 옮길 수 있는 것은 「긴 작업에서 Opus 5 보다 적은 토큰과 시간으로 끝났다」 는 방향이고, 배수는 옮길 수 없다.</p>
       <div class="tablewrap"><table class="prose-table">
         <thead><tr><th>누가</th><th>과제</th><th>Opus 5.5</th><th>비교 대상</th><th>밝힌 조건</th></tr></thead>
@@ -620,10 +622,10 @@ anthropic-beta: fast-mode-2026-02-01
   </section>
 
   <!-- 11 -->
-  <section class="slide" data-label="코딩 차트 셋">
+  <section class="slide" data-label="코딩 차트">
     <div class="slide-inner">
       <p class="eyebrow">coding-charts</p>
-      <h2>Coding 차트 셋: 기본값 하나를 경쟁 모델의 비싼 점과 맞댄다</h2>
+      <h2>Coding 차트: Terminal-Bench, FrontierCode, CursorBench</h2>
       <p class="key">세 코딩 차트에서 Opus 5.5 는 다섯 effort 모두 같은 단계의 Opus 5 보다 점수가 높고, CursorBench 의 max 를 뺀 14칸에서 비용도 낮다. 원문의 「기본 effort 로 1/5 비용」 류 문장은 Opus 5.5 medium 한 점을 경쟁 모델의 max 나 가장 높은 점과 맞댄 것이라, 같은 effort 끼리의 비율(07장)보다 차이가 크게 나온다.</p>
       <figure class="figure">
         <p class="fig-title">Terminal-Bench 4.0: medium 57.6% 가 Opus 5 max 52.3% 보다 높고 비용은 0.19배</p>
@@ -869,7 +871,7 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="FrontierCode">
     <div class="slide-inner">
       <p class="eyebrow">frontiercode</p>
-      <h2>FrontierCode: medium 이 가장 높고 max 에서 거의 돌아온다</h2>
+      <h2>FrontierCode: effort 다섯 단계의 점수</h2>
       <p class="key">FrontierCode 에서 Opus 5.5 는 medium 54.6% 가 가장 높고 high 54.0%, xhigh 51.4% 로 내려갔다가 max 54.4% 로 거의 돌아온다. 결과 파일에 오차 범위가 없어 이 굴곡이 잡음보다 큰지는 알 수 없다. 병합할 수 있는 diff 를 채점하는 벤치마크라 요청 범위 밖의 변경이 감점되고, 시스템 카드는 medium 위에서의 하강을 이 채점 규칙으로 설명한다.</p>
       <div class="bars" style="margin:0 0 16px">
         <div class="bar-row"><span class="bar-name">low</span><span class="bar-track"><span class="bar" style="--w:78.8%"></span></span><span class="bar-val">47.3%</span></div>
@@ -889,13 +891,13 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="코딩 고객 인용">
     <div class="slide-inner">
       <p class="eyebrow">coding-quotes</p>
-      <h2>Coding 고객 인용 여덟: 모두 effort 를 밝히지 않았다</h2>
-      <p class="key">Coding 절의 고객 인용 여덟 개 가운데 일곱은 Opus 5 보다 단계, 토큰, 시간이 줄었다고 말하고(Column 은 행동만 말한다), 어느 것도 effort 설정을 밝히지 않는다. 원문 차트의 기본값 비교와 방향이 같지만 과제가 제각각이라 배수를 합치거나 내 작업에 옮길 수 없다.</p>
+      <h2>Coding 고객 인용 여덟</h2>
+      <p class="key">Coding 절의 고객 인용 여덟 개 가운데 일곱은 단계, 토큰, 시간이 줄었다고 말하고(그중 Opus 5 와 견준 것은 GitHub, Clio, Optiver, Kiro 넷이고 Column 은 행동만 말한다), 어느 것도 effort 설정을 밝히지 않는다. 원문 차트의 기본값 비교와 방향이 같지만 과제가 제각각이라 배수를 합치거나 내 작업에 옮길 수 없다.</p>
       <div class="tablewrap"><table class="prose-table">
         <thead><tr><th>회사</th><th>측정한 것</th><th>수치</th></tr></thead>
         <tbody>
           <tr><td>GitHub</td><td>Copilot CLI 와 VS Code 의 토큰과 단계</td><td>VS Code terminal 과제를 Opus 5 보다 더 풀고 단계는 절반 미만</td></tr>
-          <tr><td>Clio</td><td>저장소 여섯 개에 걸친 무인 작업</td><td>18시간 넘게 과제 유지, 재작업 적음</td></tr>
+          <tr><td>Clio</td><td>저장소 여섯 개에 걸친 무인 작업</td><td>18시간 넘게 과제 유지. Opus 5 보다 마일스톤에 빨리 닿고 재작업 적음</td></tr>
           <tr><td>Lovable</td><td>빌드 단계</td><td>단계가 1/3~1/2 줄고 토큰이 크게 줆</td></tr>
           <tr><td>Quantium</td><td>복잡한 코딩 과제 하나</td><td>프롬프트 38개·4일 → 11개·3시간</td></tr>
           <tr><td>Spotify</td><td>내부 평가의 토큰 효율</td><td>같은 과제를 더 싸고 빠르게 (수치 없음)</td></tr>
@@ -913,7 +915,7 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="제품 쪽 장치">
     <div class="slide-inner">
       <p class="eyebrow">secure-agent</p>
-      <h2>The most secure coding agent: 첫 문단의 세 장치는 제품에 있다</h2>
+      <h2>The most secure coding agent: classifier, sandbox, 코드 리뷰</h2>
       <p class="key">절 첫 문단이 Opus 5.5 에 붙인 세 장치(행동마다 실행 전에 거르는 classifier, 감사할 수 있는 오픈소스 sandbox, 병합 전에 취약점을 잡는 코드 리뷰)는 시스템 카드에서 Claude Code 같은 제품 쪽 장치로 나온다. API 로 직접 에이전트를 돌릴 때 같은 층이 요청에 붙는다는 문장은 corpus 에 없다.</p>
       <ul class="facts">
         <li><span class="m">classifier</span><span>시스템 카드: Claude Code 의 auto mode 가 prompt injection probe 와 위험한 tool call 을 막는 classifier 를 짝지운다. auto mode 는 대부분의 사용자에게 Claude Code 의 기본 권한 모드다</span></li>
@@ -929,7 +931,7 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="prompt injection">
     <div class="slide-inner">
       <p class="eyebrow">injection</p>
-      <h2>Prompt injection: 뚫린 요청은 거의 전부 fallback 쪽이었다</h2>
+      <h2>Prompt injection: Gray Swan 벤치마크와 Shade 공격</h2>
       <p class="key">시스템 카드는 tool 결과로 들어오는 간접 prompt injection 에 대한 모델 자체의 저항이 모든 평가 환경에서 Opus 5 와 같거나 낫다고 적는다. 그러나 안전장치 fallback 이 켜진 coding 환경의 적응형 공격에서는 Opus 5.5 가 직접 답한 요청은 한 번도 뚫리지 않았고 Opus 4.8 로 넘어간 요청이 85.73% 뚫려, 전체 성공률 54.61% 는 거의 fallback 비율로 정해졌다.</p>
       <figure class="figure">
         <p class="fig-title">Gray Swan 의 적응형 공격 프로그램 Shade, coding 환경의 공격 성공률 (낮을수록 좋다)</p>
@@ -958,7 +960,7 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="붙여 넣은 텍스트">
     <div class="slide-inner">
       <p class="eyebrow">pasted-text</p>
-      <h2>붙여 넣은 텍스트: 사용자 턴에 심은 지시에 대한 회귀</h2>
+      <h2>붙여 넣은 텍스트: 사용자 턴 속 지시와 &lt;pasted_content&gt;</h2>
       <p class="key">사용자가 README, 로그, 이메일을 자기 메시지에 붙여 넣으면 Opus 5.5 는 그 안에 심어진 지시를 Opus 5 보다 자주 따른다. 출시판은 기본 effort 에서 약 2%, max 에서 7.4% 따랐고 0% 는 Claude Code 의 제품 쪽 완화를 더했을 때다. API 에서는 붙여 넣은 부분을 태그로 표시하는 일이 개발자 몫이다.</p>
       <figure class="figure">
         <p class="fig-title">Claude Code 에 붙여 넣은 문서 속 지시를 따른 비율</p>
@@ -987,7 +989,7 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="지식 작업 일화">
     <div class="slide-inner">
       <p class="eyebrow">knowledge-cases</p>
-      <h2>Knowledge work: 셋 중 하나만 채점 기준을 밝혔다</h2>
+      <h2>Knowledge work 일화: 실적 보고서, Walleye, 합병 분석</h2>
       <p class="key">Knowledge work 절의 내부 사례 셋 가운데 보고서 과제만 채점 기준(지어낸 수치나 인용이 하나라도 있으면 실패)을 밝혔고, 그 기준에서 Opus 5.5 는 18개 중 16개를 통과했으며 Fable 5.1 과 Opus 5 는 한 번도 통과하지 못했다. 나머지 둘은 시간과 비용 비율만 있다.</p>
       <div class="tablewrap"><table class="prose-table">
         <thead><tr><th>사례</th><th>Opus 5.5</th><th>비교</th><th>밝힌 조건</th></tr></thead>
@@ -1003,10 +1005,10 @@ anthropic-beta: fast-mode-2026-02-01
   </section>
 
   <!-- 18 -->
-  <section class="slide" data-label="지식 작업 차트 셋">
+  <section class="slide" data-label="지식 작업 차트">
     <div class="slide-inner">
       <p class="eyebrow">knowledge-charts</p>
-      <h2>Knowledge work 차트 셋: low 에서는 Opus 5 보다 낮다</h2>
+      <h2>Knowledge work 차트: GDPval, AutomationBench, WANDR</h2>
       <p class="key">지식 작업 차트 셋에서 Opus 5.5 는 medium 이상 모든 단계에서 같은 단계의 Opus 5 보다 높다. 그러나 low 에서는 GDPval(1224 대 1294)과 WANDR(31.2% 대 50.5%)에서 Opus 5 보다 낮아, 코딩 차트와 달리 effort 를 low 로 내리는 절약이 넓은 조사 과제에서는 통하지 않는다.</p>
       <figure class="figure">
         <p class="fig-title">GDPval-AA v2.1: max 1846 이 가장 높고 low 1224 는 가장 낮다</p>
@@ -1245,7 +1247,7 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="지식 작업 고객 인용">
     <div class="slide-inner">
       <p class="eyebrow">knowledge-quotes</p>
-      <h2>Knowledge work 고객 인용 여덟: 가장 낮은 effort 로 충분했다는 셋</h2>
+      <h2>Knowledge work 고객 인용 여덟</h2>
       <p class="key">지식 작업 인용 가운데 셋(Deloitte, Rogo, Walleye)은 Opus 5.5 의 가장 낮은 effort 로 충분했다고 말하고, 그중 Deloitte 와 Rogo 는 Opus 5 high 를 넘었다고 적는다. 원문 차트 여섯 개에서 Opus 5.5 low 가 Opus 5 high 를 넘는 것은 AutomationBench 하나뿐이라, low 로 충분한지는 과제마다 다시 재야 한다.</p>
       <div class="tablewrap"><table class="prose-table">
         <thead><tr><th>회사</th><th>조건</th><th>수치</th></tr></thead>
@@ -1270,7 +1272,7 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="글쓰기">
     <div class="slide-inner">
       <p class="eyebrow">communication</p>
-      <h2>Communication: 결론과 금액을 첫 줄에 둔다</h2>
+      <h2>Communication: 비교 예시 셋과 고객 인용 다섯</h2>
       <p class="key">Communication 절은 Opus 5.5 의 글이 읽기 쉽다고 주장하고, 근거는 측정값 없이 비교 예시 셋과 고객 인용 다섯뿐이다. 예시에서 달라진 것은 첫 줄의 내용이다. Opus 5 는 원인을 설명하며 시작하고 Opus 5.5 는 결론과 금액으로 시작한다.</p>
       <div class="grid g2" style="margin:0 0 16px">
         <div class="card"><span class="tag">Opus 5, 버그 설명의 첫 두 줄</span><p class="small"><span class="q">“What I found The extra drop isn’t the free tier — it’s a regression in 0552feb (“extract billing period boundaries into periods.py”, labelled “No behaviour change”).”</span></p></div>
@@ -1300,7 +1302,7 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="Pacing">
     <div class="slide-inner">
       <p class="eyebrow">pacing</p>
-      <h2>Safety · Pacing the frontier: 회사가 지킬 절차에 대한 약속</h2>
+      <h2>Safety · Pacing the frontier: 두 시간 축의 안전 작업과 에세이 3단계</h2>
       <p class="key">Pacing 절은 Opus 5.5 의 동작을 바꾸지 않는다. Anthropic 이 지킬 안전 절차와 정책에 대한 약속이다. 개발자가 쓸 수 있는 사실은 출시 전에 METR 와 Frontier Design 이 평가했다는 것과, 원문이 가리키는 에세이의 첫 단계(외부 평가자 상주)를 Anthropic 이 혼자 약속했다는 것이다.</p>
       <ul class="facts">
         <li><span class="m">현재 모델</span><span>정렬 시험, 외부 기관의 출시 전 평가, 위험 분야별 안전장치. Responsible Scaling Policy(RSP)에 따라 공개 모델과 내부 모델의 risk report 를 낸다</span></li>
@@ -1317,7 +1319,7 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="Alignment">
     <div class="slide-inner">
       <p class="eyebrow">alignment</p>
-      <h2>Safety · Alignment: 「85% 덜」 은 28개 시나리오의 1.5% 대 10.3% 다</h2>
+      <h2>Safety · Alignment: 행동 감사와 sandbox 탈출 평가</h2>
       <p class="key">「경계를 넘으려는 시도가 Opus 5 나 Mythos 5.1 보다 약 85% 적다」 는 손으로 만든 28개 시나리오를 모델마다 7번 돌려 Opus 5.5 1.5%, Opus 5 10.3%, Mythos 5.1 9.7% 를 비교한 값이다. 원문은 같은 절에서 Opus 5.5 가 평가받고 있다고 자주 의심한다고 밝혀, 실제 배포에서 같은 비율이 나오는지는 원문 스스로 확언하지 않는다.</p>
       <figure class="figure">
         <p class="fig-title">sandbox 경계를 넘으려 한 실행의 비율</p>
@@ -1400,8 +1402,8 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="cyber">
     <div class="slide-inner">
       <p class="eyebrow">cyber</p>
-      <h2>Safeguards · Cybersecurity: 소스 코드는 되고 바이너리는 막힌다</h2>
-      <p class="key">소스 코드의 취약점 찾기는 일반 접근에서도 허용되고, 컴파일된 바이너리의 취약점 찾기는 막힌다. 방어 목적 탐색이 classifier 에 걸리는 비율은 4.5% 로 Opus 5(13.9%)보다 낮지만, Opus 5.5 를 위한 Cyber Verification Program 은 2026-09-29 기준 아직 열리지 않았다.</p>
+      <h2>Safeguards · Cybersecurity: 취약점 탐색 정책과 CVP</h2>
+      <p class="key">소스 코드의 취약점 찾기는 일반 접근에서도 허용되고, 컴파일된 바이너리의 취약점 찾기는 막힌다.</p>
       <figure class="figure">
         <p class="fig-title">취약점 탐색 요청이 classifier 에 걸린 비율</p>
         <p class="fig-sub">시스템 카드 Figure 3.4.2.A 를 렌더링해 막대 표기값을 읽고 다시 그림. 모니터링 probe 로 뽑은 실제 트래픽 표본을 LLM 이 채점</p>
@@ -1415,7 +1417,8 @@ anthropic-beta: fast-mode-2026-02-01
         <figcaption>원 그림의 오차 막대는 옮기지 않았다. 이 표본은 취약점 탐색 트래픽이라, 32장의 반응이 말하는 임베디드나 드라이버 작업, 보안 강화 작업의 오탐률은 이 그림에 없다.</figcaption>
       </figure>
       <ul class="facts">
-        <li><span class="m">CVP</span><span>도움말 첫 줄: 이 글은 Opus 5.5 와 Sonnet 5.5 에는 적용되지 않고 곧 확대한다. 원문은 세 단계 신뢰 접근(Mythos 모델 포함)을 예고한다</span></li>
+        <li><span class="m">4.5%</span><span>방어 목적 탐색이 classifier 에 걸리는 비율은 4.5% 로 Opus 5(13.9%)보다 낮다</span></li>
+        <li><span class="m">CVP</span><span>Opus 5.5 를 위한 Cyber Verification Program 은 2026-09-29 기준 아직 열리지 않았다. 도움말 첫 줄: 이 글은 Opus 5.5 와 Sonnet 5.5 에는 적용되지 않고 곧 확대한다. 원문은 세 단계 신뢰 접근(Mythos 모델 포함)을 예고한다</span></li>
         <li><span class="m">CVP 제외</span><span>Zero Data Retention 조직은 지금 신청할 수 없다. Amazon Bedrock 에서는 제공하지 않는다</span></li>
         <li><span class="m">여유폭</span><span>시스템 카드: Mythos 5.1 수준의 cyber 능력 때문에 jailbreak 에 대한 여유폭을 일시적으로 넓혔고, classifier 오탐을 줄이는 중이다</span></li>
         <li><span class="m">구조</span><span>내부 activation probe → Opus 5.5 위에서 도는 가벼운 classifier → 별도 LLM classifier 의 세 단계</span></li>
@@ -1429,7 +1432,7 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="biology">
     <div class="slide-inner">
       <p class="eyebrow">bio</p>
-      <h2>Safeguards · Biology: 막힌 일을 풀려면 LSVP 에 조직으로 신청한다</h2>
+      <h2>Safeguards · Biology: 연구 생물학 classifier 와 LSVP</h2>
       <p class="key">생명과학 요청은 Fable 5 와 Fable 5.1 에 쓰던 연구 생물학 classifier 에 걸리고, 걸리면 Opus 5 로 넘어간다. 막힌 연구를 Opus 5.5 로 하려면 Life Sciences Verification Program 에 조직 단위로 신청해야 하고, LSVP 트래픽에는 30일 데이터 보관이 조건으로 붙는다.</p>
       <ul class="facts">
         <li><span class="m">범위</span><span>Opus 5 의 화학과 생물(CB) 오용 classifier 보다 넓은 주제를 덮는다. 거절이 첫 출력 전에 오면 bio 범주라 과금된다(23장)</span></li>
@@ -1447,7 +1450,7 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="Distillation">
     <div class="slide-inner">
       <p class="eyebrow">distillation</p>
-      <h2>Safety · Distillation: 대화 앞부분을 고치면 400</h2>
+      <h2>Safety · Distillation: preserved thinking 의 두 검사</h2>
       <p class="key">2026-08-31 00:00 UTC 이후 만든 계정에서는 thinking 블록 앞의 system, tools, messages 가 그 블록을 만들 때와 달라진 요청이 400 을 받는다. 그 전 계정은 필드를 설정한 요청에만 검사가 걸리므로, 자기 오래된 키로 테스트해 통과한 하네스도 새 계정 사용자에게서는 막힌다.</p>
       <figure class="figure">
         <p class="fig-title">돌려보낸 thinking 블록이 거치는 두 검사</p>
@@ -1488,12 +1491,13 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="데이터 보관">
     <div class="slide-inner">
       <p class="eyebrow">retention</p>
-      <h2>Safety · Data retention: ZDR 과 두 검증 프로그램은 함께 서지 않는다</h2>
-      <p class="key">Opus 5.5 는 이전 Opus 처럼 zero data retention 으로 쓸 수 있고, Fable 5.1 과 같은 워터마크 조치가 EU AI Act 대응으로 붙는다. 다만 CVP 는 ZDR 조직을 받지 않고 LSVP 는 30일 보관을 요구해서, 안전장치를 푸는 두 경로와 ZDR 은 같은 트래픽에서 함께 성립하지 않는다.</p>
+      <h2>Safety · Data retention: ZDR, 워터마크, 검증 프로그램</h2>
+      <p class="key">Opus 5.5 는 이전 Opus 처럼 zero data retention(ZDR)으로 쓸 수 있지만, CVP 는 ZDR 조직을 받지 않고 LSVP 는 30일 보관을 요구해서, 안전장치를 푸는 두 경로와 ZDR 은 같은 트래픽에서 함께 성립하지 않는다.</p>
       <div class="tablewrap"><table class="prose-table">
         <thead><tr><th>경로</th><th>데이터 보관 조건</th><th>근거</th></tr></thead>
         <tbody>
           <tr><td>일반 사용</td><td>ZDR 가능</td><td>원문 Data retention 절</td></tr>
+          <tr><td>워터마크</td><td>Fable 5.1 과 같은 워터마크 조치가 EU AI Act 대응으로 붙는다</td><td>원문 Data retention 절</td></tr>
           <tr><td>Cyber Verification Program</td><td>ZDR 조직은 현재 신청 불가. Google Cloud 경로는 데이터 보관 설정에 동의해야 함</td><td>CVP 도움말</td></tr>
           <tr><td>Life Sciences Verification Program</td><td>LSVP 트래픽 30일 보관</td><td>LSVP 공지</td></tr>
         </tbody>
@@ -1535,9 +1539,9 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="Availability">
     <div class="slide-inner">
       <p class="eyebrow">availability</p>
-      <h2>Availability: 어디서나 같은 ID, 기능은 Claude API 가 가장 많다</h2>
+      <h2>Availability: 플랫폼별 ID, 한도, 폐기 일정</h2>
       <p class="key">Opus 5.5 는 Claude API 와 AWS, Google Cloud, Microsoft Foundry 에서 모두 <code>claude-opus-5-5</code>(Bedrock 만 <code>anthropic.</code> 접두어)로 쓸 수 있다. fast mode 와 server-side fallback 은 Claude API 에만 있어서, 이 두 기능에 기대는 코드는 플랫폼을 옮기면 동작이 달라진다.</p>
-      <div class="tablewrap"><table>
+      <div class="tablewrap"><table class="prose-table">
         <thead><tr><th>항목</th><th>값</th></tr></thead>
         <tbody>
           <tr><td>Claude API, Claude Platform on AWS, Google Cloud, Foundry</td><td>claude-opus-5-5</td></tr>
@@ -1547,6 +1551,7 @@ anthropic-beta: fast-mode-2026-02-01
           <tr><td>최대 출력 (Batch, output-300k-2026-03-24 beta)</td><td>300K 토큰</td></tr>
           <tr><td>신뢰할 수 있는 knowledge cutoff</td><td>2026년 6월</td></tr>
           <tr><td>폐기(retirement) 약속</td><td>2027-09-22 이전에는 없음 (Anthropic 운영 플랫폼. Bedrock 과 Google Cloud 는 자체 일정)</td></tr>
+          <tr><td>fallback 목적지의 폐기 약속</td><td>Opus 5 는 2027-07-24, Opus 4.8 은 2027-05-28 이전에는 없음</td></tr>
         </tbody>
       </table></div>
       <div class="tablewrap"><table class="prose-table">
@@ -1558,7 +1563,7 @@ anthropic-beta: fast-mode-2026-02-01
           <tr><td>CVP</td><td>신청 가능(Opus 5.5 는 아직)</td><td>Bedrock 없음</td></tr>
         </tbody>
       </table></div>
-      <p>max effort 로 긴 과제를 돌리면 128K 출력 한도가 먼저 닿을 수 있다. thinking 도 이 한도에 들어가기 때문이고, 32장의 한 사용자는 max 에서 답을 쓰기 전에 128,000 토큰을 다 썼다. 128K 를 넘는 출력으로 overview 가 적는 경로는 Batch API 의 300K beta 하나다.</p>
+      <p>폐기 일정에서 개발자가 볼 곳은 fallback 목적지다. 두 목적지의 폐기 약속일이 Opus 5.5 보다 약 넉 달과 두 달 앞서는데, 목적지가 먼저 폐기되면 fallback 이 어디로 가는지는 corpus 에 없다. <code>fallbacks: "default"</code> 는 Anthropic 이 목적지를 정하므로 코드를 바꿀 일은 없고, 목적지를 모델 이름으로 적어 둔 명시 목록은 그 날짜 전에 고쳐야 한다. max effort 로 긴 과제를 돌리면 128K 출력 한도가 먼저 닿을 수 있다. thinking 도 이 한도에 들어가기 때문이고, 32장의 한 사용자는 max 에서 답을 쓰기 전에 128,000 토큰을 다 썼다. 128K 를 넘는 출력으로 overview 가 적는 경로는 Batch API 의 300K beta 하나다.</p>
       <details class="more"><summary>첨언: 원문과 models overview</summary><p>원문: <span class="q">“Claude Opus 5.5 is now available on all platforms, including Amazon Web Services, Google Cloud, and Microsoft Azure. On the Claude Platform, developers can get started with claude-opus-5-5.”</span> overview: <span class="q">“On the Message Batches API, Claude Opus 5.5, Claude Opus 5, Claude Sonnet 5.5, Claude Sonnet 5, Claude Opus 4.8, Claude Opus 4.7, Claude Opus 4.6, and Claude Sonnet 4.6 support up to 300k output tokens with the output-300k-2026-03-24 beta header.”</span> overview 는 헷갈리면 대부분의 작업을 Opus 5.5 로 시작하라고 권한다: <span class="q">“If you're unsure which model to use, start with Claude Opus 5.5 for most workloads.”</span></p></details>
     </div>
   </section>
@@ -1568,22 +1573,22 @@ anthropic-beta: fast-mode-2026-02-01
     <div class="slide-inner">
       <p class="eyebrow">setup</p>
       <h2>읽은 범위: 원문 전문, 시스템 카드 230쪽 중 49쪽</h2>
-      <p class="key">원문은 2026-09-29 15:50 UTC 에 다시 받아 전문을 읽었고, 9월 23일 판과 비교하면 성능 표의 행 이름 하나(OSWorld 2.0 → 2.1)만 바뀌었다. 부속 자료는 시스템 카드의 49쪽과 플랫폼 문서 여덟, 도움말 셋, 공지와 에세이 하나씩을 읽었고, 원문이 링크한 글 가운데 열 개 가까이는 열지 않았다.</p>
+      <p class="key">원문은 2026-09-29 15:50 UTC 에 다시 받아 전문을 읽었고, 9월 23일 판과 비교하면 성능 표의 행 이름 하나(OSWorld 2.0 → 2.1)만 바뀌었다. 부속 자료는 시스템 카드의 49쪽과 플랫폼 문서 아홉, 도움말 셋, 공지와 에세이 하나씩을 읽었고, 원문이 링크한 글 가운데 열 개 가까이는 열지 않았다.</p>
       <div class="tablewrap"><table class="prose-table">
         <thead><tr><th>id</th><th>자료</th><th>읽은 곳</th></tr></thead>
         <tbody>
           <tr><td>w1</td><td>Introducing Claude Opus 5.5 (원문)</td><td>전문, 표 둘, 각주 넷, 차트 점 130개, 인용 21개. Wayback 20260929155704</td></tr>
           <tr><td>s1</td><td>Claude Opus 5.5 System Card (PDF 230쪽)</td><td>요약 p2~4, §1.4~1.5, §3.1~3.5 일부, §5.2~5.2.2.1(computer use, browser use 의 §5.2.2.2~5.2.2.3 제외), §6.4.7~6.5.2, §6.6.2 일부, §8.1~8.8, §8.11, §8.13.1, §8.13.3~8.14.6</td></tr>
-          <tr><td>d1~d8</td><td>whats-new, pricing, models overview, preserved thinking, effort, fast mode, prompting guide, refusals and fallback</td><td>04, 07~09, 16, 23, 26, 28, 29장의 사실이 나온 절. d1 은 전문, d8 은 도입과 과금, server-side fallback, sticky routing 절</td></tr>
+          <tr><td>d1~d9</td><td>whats-new, pricing, models overview, preserved thinking, effort, fast mode, prompting guide, refusals and fallback, model deprecations</td><td>04, 05, 07~09, 16, 23, 26, 28, 29, 32장의 사실이 나온 절. d1 은 전문, d8 은 도입과 과금, server-side fallback, sticky routing 절</td></tr>
           <tr><td>h1~h3, n1, n2</td><td>도움말 셋(preserved thinking, cyber safeguards, limit reset), LSVP 공지, 「We Must Pace the Frontier」</td><td>도움말과 공지는 전문, 에세이는 서두와 두 절</td></tr>
           <tr><td>a1</td><td>Artificial Analysis 모델 페이지</td><td>요약과 FAQ 문장만. 반응의 출처라 열었다</td></tr>
           <tr><td>hn*, x1, r1</td><td>HN 출시 스레드와 그 댓글 24개, X 게시물 하나, Reddit 스레드 RSS</td><td>32장. 선택 기준은 그 장에</td></tr>
         </tbody>
       </table></div>
-      <p>근거 문서 가운데 pricing, overview, preserved thinking, effort 는 9월 23일 사본과 바이트가 다른데 옛 사본이 없어 무엇이 바뀌었는지 가리지 못했다. 07, 08, 26, 28장은 9월 29일 판을 근거로 한다.</p>
+      <p>근거 문서 가운데 pricing, overview, preserved thinking, effort 는 9월 23일 사본과 바이트가 다른데 옛 사본이 없어 무엇이 바뀌었는지 가리지 못했다. 02, 04, 08, 09, 23, 26, 28, 29, 32장은 이 넷의 9월 29일 판을 근거로 한다.</p>
       <p>열지 않은 것과 그 대가는 이렇다. 원문이 링크한 Frontier Design, METR, alignment assessment 글, threat intelligence report, Claude Security 공지, Accenture 발표, 보안과 감시에 관한 글, RSP 페이지, 워터마크 공지는 열지 않았다. 그래서 22장의 최근 사고 관련 행동과 27장의 워터마크 동작은 원문 문장까지만 다룬다. 시스템 카드의 CB 와 AI R&D 평가(§2), welfare(§7), 나머지 벤치마크를 열지 않아 25장의 Dyno Therapeutics 사례는 원문 문장뿐이다. Claude Code 문서를 열지 않아 Claude Code 안에서 effort 기본값이 어떻게 정해지는지는 확인하지 못했다(32장 rmunn).</p>
       <p>원문의 성능 표와 가격 표, 차트 여섯 개는 모두 다시 그렸다. Communication 의 비교 예시 셋 가운데 버그 설명만 첫 두 줄을 나란히 옮겼고 나머지 둘은 달라진 점을 한 줄씩 적었다. 시스템 카드에서는 Table 5.2.2.1.A, 8.14.5.A, Figure 3.4.2.A, 6.4.8.A, 6.5.1.B 를 다시 그렸고, 능력 요약 Table 8.1.A 는 원문 성능 표와 겹쳐 다른 행(OSWorld strict 값)만 06장에 옮겼다. 시스템 카드의 벤치마크별 effort 곡선(Figure 8.4.A/B, 8.8.A, 8.11.1.A~8.11.3.A, 8.13.1.A, 8.13.3.A/B, 8.14.6.A)과 감사 지표 그림(6.4.10.A, 3.4.1.A)은 원문 차트가 같은 벤치마크를 그리거나 이 문서의 주장에 쓰이지 않아 다시 그리지 않았다. Gray Swan 그림(5.2.1.A)은 열지 않고 본문 수치만 옮겼다.</p>
-      <details class="more"><summary>첨언: 고정과 해시</summary><p>모든 출처는 2026-09-29 15:50~16:00 UTC 에 받았고 읽은 텍스트를 사본으로 고정해 sha256 을 장부에 적었다. 시스템 카드 PDF 의 sha256 은 9월 23일 장부와 같았다. whats-new, fast mode, prompting guide 는 9월 29일 오전 사본과 바이트가 같고, 시스템 카드 그림 셋의 막대값은 PDF 텍스트에 없어 쪽을 렌더링해 읽었다. archive.org 는 원문 한 건만 새 스냅샷을 받았고 나머지 요청에는 429 를 냈다.</p></details>
+      <details class="more"><summary>첨언: 고정과 해시</summary><p>출처는 2026-09-29 15:50~16:00 UTC 에 받았고(d9 만 17:16 UTC) 읽은 텍스트를 사본으로 고정해 sha256 을 장부에 적었다. 시스템 카드 PDF 의 sha256 은 9월 23일 장부와 같았다. whats-new, fast mode, prompting guide 는 9월 29일 오전 사본과 바이트가 같고, 시스템 카드 그림 셋의 막대값은 PDF 텍스트에 없어 쪽을 렌더링해 읽었다. archive.org 는 원문 한 건만 새 스냅샷을 받았고 나머지 요청에는 429 를 냈다.</p></details>
     </div>
   </section>
 
@@ -1591,7 +1596,7 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="해석의 한계">
     <div class="slide-inner">
       <p class="eyebrow">critique</p>
-      <h2>해석의 한계: 원문이 보여 주지 않은 표 하나와 섞인 비용 기준</h2>
+      <h2>해석의 한계: Toolathlon, 비용 기준, 행 이름</h2>
       <p class="key">원문의 「모든 비교에서 앞선다」 는 인상은 고른 표에서 나온다. 시스템 카드에는 Opus 5.5 가 Opus 5 보다 낮은 Toolathlon 결과가 있고, 원문 표에서도 두 행은 GPT-6 Astra 가 높으며, 비용 차트 여섯 중 셋은 Opus 5.5 와 다른 모델의 비용 산정 기준이 다르거나 출처가 없다.</p>
       <figure class="figure">
         <p class="fig-title">Toolathlon Verified: Opus 5.5 가 Opus 5 보다 낮은 벤치마크</p>
@@ -1625,22 +1630,21 @@ anthropic-beta: fast-mode-2026-02-01
   <section class="slide" data-label="반응">
     <div class="slide-inner">
       <p class="eyebrow">reception</p>
-      <h2>반응: effort, cache, cyber 에 몰린 반박과 보강</h2>
-      <p class="key">출시 뒤 이틀 동안 HN, X, Reddit 의 실무자 반응 가운데 원문 주장에 근거를 대고 반박하거나 보강한 것은 effort 기본값, max 의 토큰 사용, cache 단가, cyber 안전장치에 몰렸다. 원문이나 부속 문서로 방향이 확인된 발언은 이 문서의 07, 08, 24, 28, 29장 읽기를 바꾸었다. 5시간 한도처럼 확인할 자료가 corpus 에 없는 발언은 05장에 단서로만 남겼다.</p>
+      <h2>반응: 원문 주장별 실무자 발언과 확인</h2>
+      <p class="key">출시 뒤 이틀 동안의 HN, X, Reddit 반응 가운데 원문의 읽기를 바꾸는 것은 effort 기본값과 max 의 비용, cache 단가, cyber 오탐에 대한 발언이다. 방향은 원문과 부속 문서로 확인했고 크기는 대부분 확인하지 못했다.</p>
       <div class="tablewrap"><table class="prose-table">
-        <thead><tr><th>원문의 주장</th><th>누가, 언제, 무엇을 말했나</th><th>확인</th><th>읽기가 바뀌나</th></tr></thead>
+        <thead><tr><th>원문 주장</th><th>누가, 언제, 무엇을</th><th>확인</th><th>장</th></tr></thead>
         <tbody>
-          <tr><td>기본 설정에서 40% 절감</td><td>HN nl, 09-23 00:04Z: Artificial Analysis 기준 5.5 는 max 에서 38% 더, high 에서 21% 덜 쓴다. Reddit TigerConsistent, 09-22 16:38Z: max 가 사용량을 6배 쓴다. 같은 스레드 rlemmie: 6배는 medium 이 기준이 되어서다</td><td>방향만 확인. whats-new 가 같은 effort 에서 더 생각하고 xhigh 와 max 에서 가장 크다고 적는다. Opus 5.5 의 max 비용은 원문 차트에서 medium 의 2.1~10.4배다. 38%, 21%, 6배 자체는 확인 못 함</td><td>바꾼다. 07장: 40% 는 기본값 조건</td></tr>
-          <tr><td>(같은 주장)</td><td>HN persedes, 09-23 16:01Z: max 를 이상값으로 보고 medium~max 비용의 중앙값을 내면 약 38% 절감이라 원문 40% 와 멀지 않다</td><td>어느 차트인지 밝히지 않아 확인 못 함. 원문 차트 여섯의 medium~max 24칸 비율 중앙값은 0.54 로 46% 절감</td><td>바꾼다. 07장: 40% 는 기본값끼리가 아니라 같은 effort 끼리 비교한 중앙값으로도 읽힌다</td></tr>
-          <tr><td>cache read $0.20, 60% 인하</td><td>HN bleonard, 09-22 17:50Z: 다른 모델은 모두 10% 였고 이것은 5% 라 긴 스레드가 싸진다. hedgehog, 17:34Z: 자기 요청의 98~99% 가 cache read</td><td>5% 는 가격 문서와 맞다. 「모두 10%」 는 Anthropic 모델에는 맞지 않는다(Fable 5.1 과 Mythos 5.1 은 2.5%). 타사는 확인 못 함</td><td>바꾼다. 08장의 98:1:1 행</td></tr>
-          <tr><td>(기본 effort, whats-new)</td><td>HN rmunn, 09-23 02:26Z: 코드 리뷰에서 줄 번호 다섯 중 넷이 틀렸고, Claude CLI 구석에 「Effort: medium」 이 떠 있었다. high 로 둔 줄 알았다</td><td>API 기본값 medium 은 문서로 확인. Claude Code 가 effort 를 되돌리는지는 Claude Code 문서를 열지 않아 확인 못 함</td><td>바꾼다. 28장: effort 를 명시해 두지 않으면 한 단계 낮아진다</td></tr>
-          <tr><td>(최대 출력 128K, 같은 effort 에서 더 생각)</td><td>HN simonw, 09-22 17:22Z: max 에서 답을 쓰기 전에 128,000 출력 한도에 닿아 $2.56 만 냈다. narmiouh, 09-23 10:05Z: 같은 프롬프트에 Fable 5.1 max 는 65,927 토큰</td><td>128K 와 「xhigh, max 에서 가장 더 생각한다」 는 문서로 확인. 한 프롬프트 표본이다</td><td>바꾼다. 29장</td></tr>
-          <tr><td>코드의 버그는 찾고 고칠 수 있다</td><td>HN mintik, 09-22 21:44Z: 임베디드, 드라이버, 시스템 수준 과제가 하나도 끝나지 않고 cyber 로 걸렸다. rolandf, 09-23 13:57Z: 앱 보안 강화 작업이 계속 4.8 로 넘어간다. arw0n, 09-22 17:29Z: 오탐이 훨씬 줄었고 방어 요청을 받아 준다</td><td>시스템 카드가 오탐을 줄이는 중이라고 인정. 측정된 방어 목적 걸림률 4.5% 는 취약점 탐색 표본이라 이 과제들을 덮지 않는다</td><td>바꾼다. 24장: 경계 근처는 직접 잰다</td></tr>
-          <tr><td>5시간 한도를 늘린다</td><td>HN jdw64, 09-23 20:08Z: Max 5x 에서 Opus 5 로는 거의 닿지 않던 5시간 한도에 같은 작업으로 한 시간 안에 닿는다</td><td>늘린 폭이 어디에도 없어 확인 못 함</td><td>단서만. 05장: 늘린 폭이 없어 토큰 증가분과 비교할 수 없다</td></tr>
+          <tr><td>기본 설정에서 40% 절감</td><td>HN nl(09-23): Artificial Analysis 에서 5.5 max 는 Opus 5 max 보다 38% 더 쓴다. Reddit TigerConsistent(09-22): max 가 사용량을 6배 쓴다. rlemmie: medium 이 기준이라서다</td><td>방향만. whats-new 는 같은 effort 에서 더 생각하고 xhigh 와 max 에서 가장 크다고 적는다. 6배는 원문 차트의 max 비용이 medium 의 2.1~10.4배인 것과 맞는다</td><td>07</td></tr>
+          <tr><td>(같은 주장)</td><td>HN persedes(09-23): medium~max 중앙값으로 약 38% 절감</td><td>차트를 밝히지 않음. 원문 차트로는 0.54배</td><td>07</td></tr>
+          <tr><td>cache read 60% 인하</td><td>HN bleonard, hedgehog(09-22): 5% 단가라 긴 세션이 싸진다. 요청의 98~99% 가 cache read</td><td>5% 는 맞다. 다른 모델이 모두 10% 라는 말은 Anthropic 모델에서 틀림</td><td>08</td></tr>
+          <tr><td>(effort 기본값, 128K)</td><td>HN rmunn(09-23): CLI 에 「Effort: medium」. simonw(09-22): max 가 128,000 출력 한도에 닿았다</td><td>API 기본값과 128K 는 문서로 확인</td><td>28, 29</td></tr>
+          <tr><td>코드의 버그는 고칠 수 있다</td><td>HN mintik(09-22), rolandf(09-23): 드라이버와 보안 강화 작업이 cyber 로 걸린다. arw0n(09-22): 오탐이 줄었다</td><td>측정된 4.5% 는 취약점 탐색 표본이라 이 작업을 덮지 않음</td><td>24</td></tr>
         </tbody>
       </table></div>
-      <p>뺀 반응도 기준이 있다. 모델 선호, 가격 정책 일반론, pacing 에 대한 의견처럼 원문의 특정 주장에 근거를 대지 않은 발언과, 이 문서가 이미 적은 사실을 확인만 해 주는 발언(CVP 가 아직 Opus 5 뿐이라는 지적)은 넣지 않았다. HN solsson(09-23 12:21Z)이 high effort 와 auto mode 에서 <code>pkill -f "cat"</code> 이 같은 기계의 다른 작업을 죽였다고 적은 것은 14장의 제품 쪽 classifier 가 모든 파괴적 명령을 잡지는 않는다는 한 사례지만, 시스템 카드의 파괴적 행동 평가(최근 세션 1% 미만)를 반박할 표본은 아니어서 표에 넣지 않았다. X 의 @synthwavedd(09-22 16:52Z)는 Artificial Analysis 에서 가장 토큰을 많이 쓰는 모델이라고 했는데, 사본의 문장은 max effort 로 2억 6천만 토큰(중앙값 8,800만)을 썼다는 것까지라 「가장 많다」 는 확인하지 못했다.</p>
-      <details class="more"><summary>첨언: 발언 원문과 선택 방법</summary><p>nl: <span class="q">“5.5 is higher for max effort, slightly higher for xhigh and lower for high, medium and low effort.”</span> <span class="q">“The biggest proportional difference seems to be at max (5.5 is 38% more) and at high (5.5 is 21% less).”</span> TigerConsistent: <span class="q">“Opus 5.5 now has a Max effort mode that uses 6x usage.”</span> rlemmie: <span class="q">“Notwithstanding anything else, the "6x or more" is just a consequence of making "medium" default, rather than "high".”</span> bleonard: <span class="q">“All of the previous models across major providers had a 10% cache read cost (vs normal cost) and not this is 5%”</span> rmunn: <span class="q">“Then I noticed in the corner of the Claude CLI UI that it was showing "Effort: medium".”</span> simonw: <span class="q">“I haven't managed to get one for level "max" yet, it hit the limit of 128,000 cap for output tokens while it was still reasoning about the question!”</span> mintik: <span class="q">“[cyber] classifier is incredibly sensitive with Opus 5.5 I cannot complete any embedded/driver/system-level tasks.”</span> jdw64: <span class="q">“Now, with the same tasks, I hit the 5-hour limit in under an hour.”</span> synthwavedd: <span class="q">“Uses the most tokens per Intelligence Index task of any model benchmarked.”</span> Artificial Analysis: <span class="q">“When evaluating the Intelligence Index, it generated 260M tokens, which is very verbose in comparison to the median of 88M.”</span></p>
+      <p>다섯 행이 함께 가리키는 것은 원문의 숫자가 effort 와 요청의 모양에 묶여 있다는 점이다. max 를 쓰거나, cache 가 적은 짧은 요청을 보내거나, 드라이버와 보안 코드를 다루는 개발자는 원문이 보여 준 평균에서 벗어난 쪽에 선다. 그래서 이 발언들은 원문의 숫자를 부정하지 않고, 그 숫자가 성립하는 조건을 좁힌다. 읽기를 바꾸지 않는 발언은 행으로 두지 않고 첨언에 적었다.</p>
+      <details class="more"><summary>첨언: 발언 원문과 선택 방법</summary><p>뺀 반응도 기준이 있다. 모델 선호, 가격 정책 일반론, pacing 에 대한 의견처럼 원문의 특정 주장에 근거를 대지 않은 발언과, 이 문서가 이미 적은 사실을 확인만 해 주는 발언(CVP 가 아직 Opus 5 뿐이라는 지적)은 넣지 않았다. HN jdw64(09-23 20:08Z)는 Max 5x 에서 같은 작업으로 5시간 한도에 한 시간 안에 닿는다고 썼지만, 원문이 늘린 폭을 적지 않아 확인할 수 없어 05장에 단서로만 남겼다. HN solsson(09-23 12:21Z)이 high effort 와 auto mode 에서 <code>pkill -f "cat"</code> 이 같은 기계의 다른 작업을 죽였다고 적은 것은 14장의 제품 쪽 classifier 가 모든 파괴적 명령을 잡지는 않는다는 한 사례지만, 시스템 카드의 파괴적 행동 평가(최근 세션 1% 미만)를 반박할 표본은 아니어서 표에 넣지 않았다. X 의 @synthwavedd(09-22 16:52Z)는 Artificial Analysis 에서 가장 토큰을 많이 쓰는 모델이라고 했는데, 사본의 문장은 max effort 로 2억 6천만 토큰(중앙값 8,800만)을 썼다는 것까지라 「가장 많다」 는 확인하지 못했다. 시각은 모두 UTC 다.</p>
+      <p>nl: <span class="q">“5.5 is higher for max effort, slightly higher for xhigh and lower for high, medium and low effort.”</span> <span class="q">“The biggest proportional difference seems to be at max (5.5 is 38% more) and at high (5.5 is 21% less).”</span> TigerConsistent: <span class="q">“Opus 5.5 now has a Max effort mode that uses 6x usage.”</span> rlemmie: <span class="q">“Notwithstanding anything else, the "6x or more" is just a consequence of making "medium" default, rather than "high".”</span> persedes: <span class="q">“Again seeing how max is a clear outlier, the median cost saving is ~38%, not that far off from the proclaimed 40%.”</span> hedgehog: <span class="q">“In my mix it's usually 98% or 99% at which point Fable 5.1 was pretty close to the same cost as Opus 5 due to the cheaper cached read.”</span> bleonard: <span class="q">“All of the previous models across major providers had a 10% cache read cost (vs normal cost) and not this is 5%”</span> rmunn: <span class="q">“Then I noticed in the corner of the Claude CLI UI that it was showing "Effort: medium".”</span> simonw: <span class="q">“I haven't managed to get one for level "max" yet, it hit the limit of 128,000 cap for output tokens while it was still reasoning about the question!”</span> mintik: <span class="q">“[cyber] classifier is incredibly sensitive with Opus 5.5 I cannot complete any embedded/driver/system-level tasks.”</span> jdw64: <span class="q">“Now, with the same tasks, I hit the 5-hour limit in under an hour.”</span> synthwavedd: <span class="q">“Uses the most tokens per Intelligence Index task of any model benchmarked.”</span> Artificial Analysis: <span class="q">“When evaluating the Intelligence Index, it generated 260M tokens, which is very verbose in comparison to the median of 88M.”</span></p>
       <p>HN 스레드(수신 시점 1,806점)의 댓글 가운데 effort, 가격, cache, cyber, fallback, thinking, benchmark 같은 낱말이 든 긴 댓글의 앞부분을 읽은 뒤, 원문 주장을 겨냥한 24개와 스레드 자체를 Algolia API 로 다시 받아 읽었다. X 는 한 게시물의 본문만 syndication 으로 받았고 첨부 이미지는 열지 않았다. Reddit 은 JSON 이 403 이라 RSS 로 받은 OP 와 댓글 62개를 읽었다. 시각은 모두 UTC 다.</p></details>
     </div>
   </section>
@@ -1678,6 +1682,7 @@ anthropic-beta: fast-mode-2026-02-01
         <div><a href="https://platform.claude.com/docs/en/build-with-claude/fast-mode">d6 · Fast mode</a></div>
         <div><a href="https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-opus-5-5">d7 · Prompting Claude Opus 5.5</a></div>
         <div><a href="https://platform.claude.com/docs/en/build-with-claude/refusals-and-fallback">d8 · Refusals and fallback</a></div>
+        <div><a href="https://platform.claude.com/docs/en/about-claude/model-deprecations">d9 · Model deprecations</a></div>
         <div><a href="https://support.claude.com/en/articles/16761192">h1 · Preserved thinking (Help Center)</a></div>
         <div><a href="https://support.claude.com/en/articles/14604842-real-time-cyber-safeguards-on-claude-opus-and-sonnet">h2 · Real-time cyber safeguards on Claude Opus and Sonnet</a></div>
         <div><a href="https://support.claude.com/en/articles/17007452-what-is-a-limit-reset">h3 · What is a limit reset?</a></div>
