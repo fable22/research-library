@@ -10,7 +10,8 @@ references resolve, and whether a reader who cannot see the figures is told what
 Whether the content is correct is another lens's job. Whether the sentences read well is
 nobody's lens: the author reads for that with the counter open before handing off, and a
 context asked whether prose reads well returns its own taste as findings. Do not rewrite
-sentences.
+sentences. A finding is a structural defect the author has to repair; a heading you would
+have phrased differently is not one.
 
 Document: `{DOC_PATH}`
 Repo rules: `{REPO_ROOT}/AGENTS.md`
@@ -31,16 +32,19 @@ is. A sentence is fine when the sentence is what the subject is; what fails is a
 about the subject standing in for it. `../../research-doc/SKILL.md` states the rule and names
 every place the title is copied to. Check that those still agree, because no gate does.
 
-**Do `h2` headings name their content?** Chapter titles are statements
-(`결과 2. 단계가 많은 질문일수록 차이가 커진다`), and a plain label is legitimate where the
-content is one (`결과 5. ablation`). Flag a heading that names nothing, an inflated one
-(`가장 중요한 표`) or two abstract nouns set in parallel, and say which chapter and what it
-holds.
+**Does each `h2` name its content, and does the claim sit in `.key`?** The heading is short
+and names what the chapter holds (`thinking 끄기: disabled → between_tools`); the claim is
+stated once, in `.key`. Flag a heading that names nothing, an inflated one (`가장 중요한 표`)
+or two abstract nouns set in parallel, a `.key` with no claim in it, and a body that
+restates the `.key` instead of supporting it.
 
 **Is the chapter grammar followed?** The elements and their order are in
 `../../research-doc/SKILL.md` §The chapter grammar: `.eyebrow`, `h2`, `.key` (`.dek` in older
-documents), body, `details.more`, `.note`. Find chapters that skip or reorder an element, and
-a `.key` that summarizes the body instead of saying what the reader does with the claim.
+documents), body, `details.more`, and an optional `.note`. Find chapters that skip or
+reorder an element, and compare each against the specimen for the document's kind in
+`../../research-doc/references/specimens/`: an explainer chapter whose mechanism sits only in
+the fold, or a walkthrough chapter whose diff comes after the source's conditions, is a
+finding.
 
 **A claim that lives only inside the fold.** Open every `details.more` and check that each
 sentence supports a claim the visible text already makes: a derivation, a source location, a

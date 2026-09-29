@@ -21,17 +21,26 @@ resting on "trust me" the moment the document leaves your machine.
 
 ## 1. Decide what the document has to answer
 
-Choose the kind first. It settles who the document serves and which chapters it needs;
-`../research-doc/SKILL.md` defines the reader once and gives the chapters per kind.
+Choose the kind first, from what was asked. It settles who the document serves and which
+chapters it needs; `../research-doc/SKILL.md` defines the reader once and gives the
+chapters per kind.
 
-| Kind | The reader has to | Write down |
-|---|---|---|
-| `comparison` | decide whether to adopt | what would make them hold: a license, an open bug, a path with no tests |
-| `explainer` | understand the principle well enough to predict its behavior | the case the source never shows, where the prediction could fail |
-| `walkthrough` | follow the implementation to change or extend it | the path, and where it leaves the process boundary |
+| Kind | The ask sounds like | The reader has to | Write down |
+|---|---|---|---|
+| `comparison` | 쓸까, 대안 대비 어떤가 | decide adopt / trial / assess / hold | what would make them hold: a license, an open bug, a path with no tests |
+| `explainer` | 설명해 줘, 원리가 뭔가 | predict the behavior on a case the source never shows | that case, and where the prediction could fail |
+| `walkthrough` | 옮기려면, 바꾸려면, 어디를 고치나 | follow the implementation to change or extend it | the path, and where it leaves the process boundary |
 
-Set the kind as `purpose` in `meta.json` once `new-doc.mjs` has created it. The verify
-lenses read it to know what the document was meant to do.
+The adoption call is the comparison's chapter and no other kind's. An explainer or a
+walkthrough that ends in adopt / hold answers a question nobody asked. When the ask names
+no kind, ask, with the three as options; there is no default.
+
+```bash
+node scripts/new-doc.mjs <YYYY-MM-DD-slug> <paper|oss> <comparison|explainer|walkthrough>
+```
+
+The scaffold writes the kind as `purpose` in `meta.json` and lays out the chapters that
+kind needs. The verify lenses read `purpose` to know what the document was meant to do.
 
 Then write the question the document settles and the condition that would flip its answer.
 Without them, coverage is decided by what is easy to reach, and the setup chapter ends up
@@ -100,7 +109,7 @@ git tag | wc -l            # 0 tells you nothing either way
 git log -1 --format=%s     # a message referencing a high PR number contradicts the count
 ```
 
-One commit and zero tags beside a HEAD message citing PR #2943 means the history was cut.
+One commit and zero tags beside a HEAD message that references a high PR number means the history was cut.
 A commit message can also say the upstream reset its history; that is a different fact and
 belongs in the document.
 
@@ -201,9 +210,7 @@ you: `check-claims.mjs` can open a file but cannot open your context.
 stopped to copy it; written months later it is a guess.
 
 Extract spans yourself. A subagent hands back what it concluded, and the conclusion was
-the part you were supposed to reach from the words. Three or four spans is a thin read of
-anything substantial and fifty usually means copying rather than choosing; neither is a
-target.
+the part you were supposed to reach from the words.
 
 ## 8. Coverage is disclosed
 

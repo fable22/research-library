@@ -261,7 +261,7 @@ if (argv.includes('--counts')) {
   }
   console.log('\n아래 두 줄이 사람이 쓴 기술 블로그의 중앙값이다. 같은 방법으로 잰 것이라 위와 나란히 놓을 수 있다.');
   console.log('밴드는 양방향이다. 사람 값보다 한참 낮은 열도 사람 글이 아니다. 어느 열이 밖인지 보고 prose-ko.md 로 간다.');
-  console.log('마지막 세 열은 슬라이드마다 첨언(details)을 접은 채 보이는 한글 수의 중앙값·최대와, 첨언으로 접힌 비율이다. 잘 읽힌 슬라이드는 300~400자 근처였다 (visual.md 「Fold」).');
+  console.log('마지막 세 열은 슬라이드마다 첨언(details)을 접은 채 보이는 한글 수의 중앙값·최대와, 첨언으로 접힌 비율이다. 종류별 기준은 .claude/skills/research-doc/references/specimens/ 의 견본이다.');
   process.exit(0);
 }
 

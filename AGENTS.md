@@ -40,7 +40,7 @@ the prose rules all live inside them. Restating any of it here means two copies 
 |---|---|---|
 | `research-source` | Starting research. Choosing the document kind, pinning the corpus to a portable identity | author's |
 | `research-doc` | Writing the document | the same author context |
-| `research-verify` | After the draft is finished | three lenses in separate contexts, and a fourth that reads their reports |
+| `research-verify` | After the draft is finished | two lenses in separate contexts, then the reader lens, which also reads their reports |
 
 Do not break context between `research-source` and `research-doc`. When a claim starts to
 feel shaky mid-sentence you have to be able to reopen the source, and across a context
@@ -60,7 +60,8 @@ reduced path. Run that path and do not skip verify.
 ## Commands
 
 ```bash
-node scripts/new-doc.mjs <slug> <paper|oss>      # scaffold both trees
+node scripts/new-doc.mjs <slug> <paper|oss> <comparison|explainer|walkthrough>
+                                                 # scaffold both trees; the kind picks the chapters
 node scripts/new-doc.mjs rename <old> <new>      # move both trees together
 node scripts/check-doc.mjs research/<slug>       # gate on the publication
 node scripts/check-prose.mjs research/<slug>     # gate on the Korean prose
