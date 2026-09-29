@@ -223,6 +223,32 @@ feedback without a reliable external signal. Numbers and quotes have that signal
 wording does not. The fix loop in `research-chain.js` runs one round by default and opens a
 second only for findings with one correct answer.
 
+## Why the default reading mode is a continuous page (2026-09-29)
+
+`report-harness-survey-2026-09-29.md` looked at what the most-used research agents and
+report harnesses actually emit. None of the research agents emits a deck; decks come from
+presentation frameworks. Single-file HTML is common and stays. The user chose the survey's
+recommendation: the same shell now opens as a continuous page with the rail as a table of
+contents (`body[data-mode="article"]`), and deck mode is a toggle kept in localStorage.
+Documents published before 2026-09-30 embed their own copy of the shell and are unchanged.
+From that date `check-doc.mjs` requires `meta.purpose` (comparison / explainer / walkthrough)
+and an `h2` plus `.key` on every section after the cover, because the survey's second
+finding was that one chapter spine was being applied to three different reader tasks.
+
+## Why a slide folds its support (2026-09-29)
+
+The user read the rewritten Opus 5.5 document and named the remaining problem: every slide
+was a wall of sentences at one weight, so the claim and its support could not be told apart.
+Measured on that document, the tl-dr slide showed 672 Hangul characters and the densest
+slide 1,082, with a three-sentence `.dek`, stat cards carrying two or three sentences each,
+and list items of two to four sentences. Two slides were re-laid without changing a
+sentence: a one-or-two-sentence `.key` under the title, one-line stat subs, a four-line fact
+list, and the rest in `details.more`. Visible text fell to 316 and 382 characters with the
+full text still present; the user judged this the readable shape. That is the basis for the
+`.key` / `details.more` slots in `research-doc/SKILL.md`, the Fold entry in `visual.md`, and
+the per-slide visible count in `check-prose.mjs --counts`. The 300–400 figure is those two
+slides, not a corpus.
+
 ## The comma the documents all share
 
 [KatFishNet (ACL 2025)](https://aclanthology.org/2025.acl-long.1030/) measured what separates
@@ -640,3 +666,72 @@ present — a file, a field, a quote at a locator, a number inside a table — a
 closed by construction. `check-doc.mjs` is structural except for `em-dash`, which is one
 character, and `process-narration`, which is four regexes over an open class and carries the
 same caveat.
+
+
+## What the 2026-09-29 skill cleanup moved out of the skills
+
+The cleanup followed the two reviews of the same day (`harness-review-2026-09-29.md`,
+`report-harness-survey-2026-09-29.md`). Three decisions drove it: the default document is
+continuous text with a deck toggle, the reader's task depends on a document kind chosen at
+the question stage, and the author's context carries fewer simultaneous rules. What the
+skills lost in the process is recorded here, so the rules can still be audited.
+
+**Kinds.** `comparison`, `explainer` and `walkthrough` replace the single "developer deciding
+whether to adopt" reader. The trigger was `oss.md` saying the reader is deciding whether to
+adopt while `research-doc/SKILL.md` said adoption is one angle and not the test; six files
+defined the reader six ways. The survey's proposal 2 (OpenAI's brief/summary/comparison/report
+choice, LangChain's per-question structure) supplied the split: what stays common is the
+summary, the evidence and the limits, and chapter set and length follow the kind. The kind
+names come from the user's decision, and `purpose` in `meta.json` is where the lenses read
+it. The numbered spine ①–⑫ and the "⑩ rows" mentioned above are gone; chapters are named by
+eyebrow, and the coverage chapter is the `setup` chapter everywhere, because "chapter 7" was
+right for one document in 28.
+
+**Chapter, not slide.** The `.key` and `details.more` grammar of the section above now sits in
+`research-doc/SKILL.md` §The chapter grammar as the contract for a continuous document with a
+deck toggle. The class name `slide` stayed because the shell keys on it. The 300–400
+character figure was dropped from `visual.md`; it came from two chapters and the skill now
+says "a few hundred", with `--counts` printing the actual count.
+
+**Specimens that were real documents.** These were illustrations in the skill bodies and are
+recorded here so the skills carry neutral versions instead:
+- A direction reversal: a document called a table's gaps widening when they went
+  7.5/12.8/9.6 → 5.1/10.5/16.9, and built "weaker models benefit more from structure" on it.
+  It appeared in five files (`prose-ko.md`, `lens-numbers.md`, `research-verify/SKILL.md`,
+  `paper.md`, and the worked example). The skills now use invented figures.
+- A unit error: 2.5–3.9 was pages read per query, not tool calls, and a rebuttal rested on the
+  misreading. A range error: 78–84% written 84–87%, and 0.860–0.989 written 0.93–0.99.
+- An ablation that also cut the budget, so a claimed escape from a budget-asymmetry objection
+  failed because two things moved.
+- A coverage chapter claiming 23 of 65 files with four unread directories totalling 34.
+- A reading path meant to reach the ablation whose two stops both linked the conclusion, and a
+  compilation-cost gap repeated six times.
+- A stale pointer: `prose-ko.md` said that file carried a ban on metaphors and
+  inflated headings. No metaphor rule exists anywhere in the repository, and the inflated-
+  heading rule lives in `research-doc/SKILL.md`.
+- "A mature TypeScript monorepo" whose request path ran through four files of 150–250 KB each,
+  the basis for the compression-subagent rule; and a 1M-context remark that a load lands in
+  the middle where recall is worst.
+
+**Prose measurements.** The skills used to state them; the reasons are in the sections above
+and in `readability-diagnosis-2026-09-29.md`. Removed from the skill text: the human comma
+band of 30–38% and 1.3–1.6 per 100 characters (`--counts` prints the band), instruction-tuned
+models nominalizing at about twice the human rate, one sentence in five ending on a negation
+against one in forty for human technical writing, and `~를 통해` appearing about twice as
+often in untranslated Korean as in translated. The `--counts` output is now the reference for
+each figure.
+
+**Rule count.** The diagnosis counted about 99 bold instructions in the author's context
+(and about 110 with `oss.md`), against the 80 at which compliance was reported to fall.
+The cleanup merged entries that had one ✗/✓ each into one entry with several, moved
+gate-enforced rules to a sentence, gave the duplicated rules one owner (the reader in
+`research-doc/SKILL.md`, the trace scope there too, "do not list what passed" in
+`research-verify/SKILL.md`, the four number checks in `lens-numbers.md`), dropped a
+rationalizations table that repeated rules stated elsewhere, and rewrote the `X is not Y.
+Z is.` contrasts in the instructions as directives with a subject and a verb.
+
+**The claims gate.** `research-verify/SKILL.md` now states a 400-character quote cap and a
+`verdict` of `confirmed`, `unverified` or `derived`, which the code side is changing
+`check-claims.mjs` to enforce. The review measured a median quote of 297 characters in one
+document and a maximum of 2,604 in another, so a cap was the smallest change that keeps a
+quote pointing at one sentence.

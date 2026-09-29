@@ -35,6 +35,7 @@ function findRoot(from) {
 const ROOT = findRoot(dirname(fileURLToPath(import.meta.url)));
 
 const QUOTE_MIN = 40;   // 이보다 짧으면 우연히 맞을 수 있다
+const QUOTE_MAX = 400;  // 이보다 길면 단락째 인용이다. 무조건 맞고, 어느 문장이 주장을 받치는지는 아무도 핀하지 못한다
 const LINE_SLACK = 15;  // locator 앞뒤로 이만큼 안에 있으면 통과
 
 const RULES = {
@@ -46,9 +47,10 @@ const RULES = {
   'source-local-path': 'sources.jsonl 에 로컬 경로가 새어 들어가지 않았는가',
   'source-drift': '고정해 둔 원문이 지금 받은 것과 같은 바이트인가 (paper)',
   'empty-evidence': 'verdict=confirmed 인 주장에 근거가 있는가',
-  'quote-length': `quote 가 ${QUOTE_MIN}자 이상인가`,
+  'quote-length': `quote 가 ${QUOTE_MIN}~${QUOTE_MAX}자인가`,
+  'web-unchecked': 'web 출처만 근거로 삼은 confirmed 주장이 있는가 (web 인용은 대조 수단이 없다. 통과가 아니라 미검증이다)',
   'quote-match': `quote 가 고정 커밋의 locator ±${LINE_SLACK}줄 안에 실제로 있는가`,
-  'numeric-match': '주장에 적힌 수치가 인용한 표·절 안에 실제로 있는가 (paper)',
+  'numeric-match': '주장에 적힌 수치가 인용한 표·절 안에 실제로 있는가 (paper 전체, repo 는 kind=numeric)',
   'derived-inputs': 'kind=derived 주장이 계산의 입력값과 원문에 없다는 표시를 갖는가',
   'locator-form': 'locator 가 path:line 또는 표/절 식별자 형태인가 (kind 값 검증도 여기서 난다)',
   scope: '무엇을 기준으로 확인했는지 scope 에 적혀 있는가',
@@ -56,12 +58,22 @@ const RULES = {
   'behavioral-limits': 'kind=behavioral 주장에 확인하지 못한 것이 적혀 있는가',
   'history-claim': 'kind=history 주장의 source 에 이력이 실제로 있는가',
   'claim-kind-source': 'kind=code 주장이 구현 파일을 근거로 삼는가 (문서 파일이면 kind=doc)',
+  'verdict-form': 'verdict 가 confirmed / unverified / derived 중 하나인가 (그 밖의 판정은 note 에 적는다)',
 };
+
+// verdict 는 게이트가 읽는 값이라 열린 낱말이면 안 된다. confirmed 만 근거를 요구받고, 나머지
+// 낱말(computed, bounded, proposed …)은 근거 없이 통과했다. 판정의 뉘앙스는 note 로 간다.
+const VERDICTS = ['confirmed', 'unverified', 'derived'];
 
 // derived: 원문이 인쇄하지 않은 수치. 표 두 개를 겹쳐 만든 비교 같은 것.
 // research-doc 이 허용하고 caption 에 밝히라고 한 그것이다. 원문에 없는 것이 정상이므로
 // numeric-match 를 걸면 안 되고, 대신 계산의 입력값이 원문에 있는지를 본다.
 const KINDS = ['code', 'numeric', 'derived', 'absence', 'behavioral', 'history', 'doc', 'web'];
+
+// web 출처만 근거로 삼은 confirmed 주장. 인용을 대조할 원문이 없으므로 통과로 세지 않는다.
+const webOnly = [];
+// 보존본도 해시도 없는 web 출처. 막지는 않고 출력에 센다. 스키마 필드는 archive_url 과 text_sha256 이다.
+let webNoPin = 0;
 
 // 프로젝트가 자기 문서에 써 둔 것과 구현이 그렇게 돼 있는 것은 다른 사실이다.
 // quote-match 는 둘을 구별하지 못한다 (문서 파일에도 그 줄은 실재하므로).
@@ -203,6 +215,7 @@ for (const s of sources || []) {
   } else if (s.kind === 'web') {
     if (!s.url) add('source-identity', `source ${s.id} (web) 에 url 이 없다`);
     if (!s.retrieved_at) add('source-identity', `source ${s.id} 에 retrieved_at 이 없다`);
+    if (!(s.archive_url || s.text_sha256 || s.sha256 || s.content_sha256 || s.html_sha256 || s.capture_sha256)) webNoPin++;
   } else {
     add('source-identity', `source ${s.id} 의 kind 가 repo/paper/web 이 아니다: ${s.kind}`);
   }
@@ -440,7 +453,11 @@ for (const c of claims || []) {
 
   const evidence = Array.isArray(c.evidence) ? c.evidence : [];
   const paperScopes = [];   // derived 주장이 인용한 표들. 아래 evidence 루프가 채운다
+  let webEv = 0, checkedEv = 0;   // web 근거와 원문 대조가 가능한 근거의 수
 
+  if (c.verdict !== undefined && !VERDICTS.includes(c.verdict)) {
+    add('verdict-form', `${id} 의 verdict 가 ${VERDICTS.join('/')} 중 하나가 아니다: ${JSON.stringify(c.verdict)}. 판정의 뉘앙스는 note 에 적을 것`);
+  }
   if (c.verdict === 'confirmed' && !evidence.length && c.kind !== 'absence') {
     add('empty-evidence', `${id} 는 verdict=confirmed 인데 evidence 가 비어 있다`);
   }
@@ -495,12 +512,18 @@ for (const c of claims || []) {
         `${id} 의 quote 가 ${e.quote.length}자다 (${QUOTE_MIN}자 이상 필요). 짧으면 우연히 맞는다: "${e.quote}"`);
       continue;
     }
+    if (e.quote.length > QUOTE_MAX) {
+      add('quote-length',
+        `${id} 의 quote 가 ${e.quote.length}자다 (${QUOTE_MAX}자 이하). 단락째 인용은 무조건 맞는다. 주장을 받치는 문장만 남길 것`);
+      continue;
+    }
 
     // ---- 논문 ----
     if (src.kind === 'paper') {
       const text = resolvePaper(src);
       if (text === null) continue;
       paperChecked++;
+      checkedEv++;
 
       const loc = (e.locator || '').trim();
       if (!PAPER_LOCATOR.test(loc)) {
@@ -547,7 +570,8 @@ for (const c of claims || []) {
       continue;
     }
 
-    if (src.kind !== 'repo') continue;  // web 은 아직 대조 수단이 없다
+    if (src.kind === 'web') { webEv++; continue; }   // 대조할 원문이 없다. 아래에서 미검증으로 센다
+    if (src.kind !== 'repo') continue;
 
     const m = /^(.+):(\d+)$/.exec(e.locator || '');
     if (!m) {
@@ -556,6 +580,7 @@ for (const c of claims || []) {
     }
     const [, file, lineStr] = m;
     const line = Number(lineStr);
+    checkedEv++;
 
     if (c.kind === 'code' && looksLikeDoc(file)) {
       add('claim-kind-source',
@@ -584,7 +609,21 @@ for (const c of claims || []) {
         ? `${id}: quote 가 ${file} 안에 있긴 하나 ${line}행 ±${LINE_SLACK} 밖이다. locator 를 고칠 것`
         : `${id}: quote 가 ${src.repo}@${src.commit} 의 ${file} 에 없다. 지어낸 인용이거나 커밋이 다르다`);
     }
+
+    // repo 수치도 대조한다. 논문과 달리 파일 전체에서 찾는다. 값이 quote 옆이 아니라 상수
+    // 정의에 있을 수 있어서다. numeric 만 보는 것은 line 번호나 버전 같은 수치가 문장에
+    // 흔히 섞여 들어와 다른 kind 에서는 오탐이 되기 때문이다.
+    if (c.kind === 'numeric') {
+      const missing = numsIn(c.text).filter((n) => !hasNum(content, n));
+      if (missing.length) {
+        add('numeric-match',
+          `${id}: 주장의 수치가 ${file} 안에 없다: ${missing.join(', ')}\n` +
+          `      "${c.text.slice(0, 70)}${c.text.length > 70 ? '…' : ''}"`);
+      }
+    }
   }
+
+  if (webEv && !checkedEv && c.verdict === 'confirmed') webOnly.push(id);
 
   // 파생 수치는 표 두 개를 겹쳐 만드는 것이 본령이다. 입력값 하나하나가
   // 인용한 표 중 어딘가에 있으면 되고, 어느 표인지까지 요구하지는 않는다.
@@ -633,6 +672,12 @@ if (claims && claims.length === 0) {
     + '이 상태로 통과시키면 "검증했다" 와 "검증할 것이 없었다" 가 같은 출력이 된다');
 }
 
+if (webOnly.length) {
+  add('web-unchecked',
+    `${webOnly.length}건은 web 출처만 근거다. web 인용은 대조할 원문이 없어 확인되지 않았다: ${webOnly.slice(0, 12).join(', ')}${webOnly.length > 12 ? ' …' : ''}\n` +
+    `      보존본(archive_url)과 text_sha256 을 남기고, 그래도 넘기려면 --allow=web-unchecked 로 명시할 것`);
+}
+
 const blocked = problems.filter((x) => !allowed.has(x.rule));
 const waived = problems.filter((x) => allowed.has(x.rule));
 
@@ -649,9 +694,12 @@ for (const x of waived) console.log(`      허용됨  [${x.rule}] ${x.msg}`);
 if (paperUnscoped) {
   console.log(`      논문 근거 ${paperChecked}건 중 ${paperUnscoped}건은 표·그림으로 좁히지 못해 문서 전체에서 대조했다`);
 }
+if (webNoPin) {
+  console.log(`      web 출처 ${webNoPin}개에 보존본(archive_url)도 해시(text_sha256)도 없다. 그 페이지가 바뀌면 다시 확인할 길이 없다`);
+}
 
 if (blocked.length) {
   console.log(`\n${blocked.length}건이 막혔다. 고치거나 --allow= 로 명시적으로 넘길 것.`);
   process.exit(1);
 }
-console.log('\n통과. 인용이 고정 원문과 일치한다. 주장이 옳다는 뜻은 아니다.');
+console.log(`\n통과. 고정 원문이 있는 인용은 일치한다${webOnly.length ? ` (web 만 근거인 ${webOnly.length}건은 허용으로 넘겼다)` : ''}. 주장이 옳다는 뜻은 아니다.`);

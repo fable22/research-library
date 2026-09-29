@@ -58,7 +58,7 @@ Steps:
 1. Read .claude/skills/research-source/SKILL.md and follow it.
 2. Before writing prose, enumerate what the corpus contains: a paper's section list, a
    repository's tree by directory. You cannot report what you did not read without first
-   knowing what there was to read, and chapter 7 is built from this.
+   knowing what there was to read, and the setup chapter is built from this.
 3. Fill ${EVID}/evidence.jsonl as you read, per that skill. Quotes and locators, taken
    while the file is open. Do not begin a chapter with it still empty.
 4. Staying in the same context, continue with .claude/skills/research-doc/SKILL.md and
@@ -78,7 +78,10 @@ from the words.
 
 Output: JSON matching the schema.
 Boundaries: do not commit, do not create a branch, do not touch claims.jsonl. Claims are
-extracted later, from the sentences that shipped.`,
+extracted later, from the sentences that shipped. Stop when both gates pass: the hand-off to
+research-verify that research-doc describes is for runs outside this workflow. Here phase 2
+runs the lenses in contexts you cannot reach, and starting them yourself would review the
+document twice.`,
   {
     label: `draft:${a.slug}`,
     schema: {
@@ -89,7 +92,7 @@ extracted later, from the sentences that shipped.`,
         gatesPassed: { type: 'boolean' },
         checkoutPath: { type: 'string' },
         summary: { type: 'string' },
-        // What was read, in the shape chapter 7 needs. Reporting these is what makes a
+        // What was read, in the shape the setup chapter needs. Reporting these is what makes a
         // thin read visible; a prompt line asking for depth is not.
         evidenceCount: { type: 'integer' },
         corpusEnumerated: { type: 'array', items: { type: 'string' } },
@@ -114,6 +117,9 @@ log(`draft complete: ${draft.slides} slides, ${draft.evidenceCount} evidence spa
 const NOT_THE_AUTHOR = `${HOUSE}
 
 Document: ${DOC}/index.html
+${a.question ? `The question the document exists to settle: ${a.question}` : ''}
+What the document is for (comparison / explainer / walkthrough) is the purpose field of
+${DOC}/meta.json; read it first, because what counts as missing depends on it.
 Corpus identity: ${EVID}/sources.jsonl
 Evidence the author recorded while reading: ${EVID}/evidence.jsonl
 Checkout: ${draft.checkoutPath || '(none given; fetch it from the pinned identity)'}
@@ -194,6 +200,15 @@ let stoppedBecause = 'cap'
 // Must-fix items the last round confirmed but had no round left to act on. Empty unless the
 // loop ends on the cap.
 let openFindings = []
+// Round results accumulate. A later round is handed only the re-check's new findings, so
+// what it returns under needsJudgment or rejected cannot include round 1's, and reading the
+// last round alone dropped them from the PR and opened it ready for review.
+const acc = { fixed: [], rejected: [], needsJudgment: [], unverified: [], wording: [] }
+// A lens that returned nothing is a perspective nobody applied. It goes under unverified,
+// which also forces the PR to open as a draft.
+const deadLenses = LENSES.map((L) => L.key).filter((k) => !got.some((r) => r.key === k))
+if (!dReport) deadLenses.push('D')
+for (const k of deadLenses) acc.unverified.push(`렌즈 ${k} 가 결과를 내지 못했다. 그 관점은 검토되지 않았다.`)
 
 for (let round = 1; round <= MAX_ROUNDS; round++) {
   fixed = await agent(`${HOUSE}
@@ -246,6 +261,7 @@ not yours to decide; put it in needsJudgment and leave the document alone.`,
     rejected: (fixed.rejected || []).length,
     touched: (fixed.touchedSlides || []).length,
   })
+  for (const k of ['fixed', 'rejected', 'needsJudgment', 'unverified']) acc[k].push(...(fixed[k] || []))
 
   if (!fixed.touchedSlides || fixed.touchedSlides.length === 0) {
     stoppedBecause = 'nothing-changed'
@@ -305,6 +321,7 @@ Output: JSON matching the schema. No prose report this round.`,
   const hard = (recheck.newMustFix || []).filter((x) => x && x.kind !== 'wording').map((x) => x.text)
   const wording = (recheck.newMustFix || []).filter((x) => x && x.kind === 'wording').map((x) => x.text)
   const fresh = [...hard, ...(recheck.badRejections || [])]
+  acc.wording.push(...wording)
   rounds[rounds.length - 1].recheck = { hard: hard.length, wording: wording.length, badRejections: (recheck.badRejections || []).length }
   if (fresh.length === 0) {
     stoppedBecause = 'dry'
@@ -347,17 +364,22 @@ anything. The document is a deck and most of what is wrong with one is only visi
 is on screen. Use whatever opens a browser on this machine; if nothing does, say so and put
 the path in your result rather than treating it as a failure.
 
-First write `${EVID}/notes/run.json` (create `notes/` if needed; it is git-ignored) with
-this run's record, so the next decision about the chain rests on numbers rather than memory:
-${JSON.stringify({ slug: a.slug, slides: draft.slides, evidenceCount: draft.evidenceCount, lensesReported: got.map((r) => r.key), fixRounds: rounds, stoppedBecause, openFindings: openFindings.length, needsJudgment: (fixed.needsJudgment || []).length, unverified: (fixed.unverified || []).length })}
+First write ${EVID}/run.json (committed with the ledgers, a few KB) with this run's
+record, so the next decision about the chain rests on numbers rather than memory. Add
+finishedAt with the current time:
+${JSON.stringify({ slug: a.slug, question: a.question || null, slides: draft.slides, evidenceCount: draft.evidenceCount, lensesReported: got.map((r) => r.key), deadLenses, fixRounds: rounds, stoppedBecause, openFindings: openFindings.length, needsJudgment: acc.needsJudgment.length, unverified: acc.unverified.length, wordingRecorded: acc.wording })}
 
 Put these in the PR body, under headings of their own:
 
 For a person to decide:
-${(fixed.needsJudgment || []).map((x) => `- ${x}`).join('\n') || '- (none)'}
+${acc.needsJudgment.map((x) => `- ${x}`).join('\n') || '- (none)'}
 
 Not verified:
-${(fixed.unverified || []).map((x) => `- ${x}`).join('\n') || '- (none)'}
+${acc.unverified.map((x) => `- ${x}`).join('\n') || '- (none)'}
+
+Wording findings recorded and not acted on (the re-check named them; a further round on
+wording rewrites toward the gate):
+${acc.wording.map((x) => `- ${x}`).join('\n') || '- (none)'}
 
 Found and not fixed:
 ${openFindings.map((x) => `- ${x}`).join('\n') || '- (none)'}
@@ -374,7 +396,7 @@ Boundaries: do not merge, do not mark it ready for review, do not push to main.`
     schema: {
       type: 'object',
       required: ['branch', 'prUrl'],
-      properties: { branch: { type: 'string' }, prUrl: { type: 'string' }, commit: { type: 'string' } },
+      properties: { branch: { type: 'string' }, prUrl: { type: 'string' }, commit: { type: 'string' }, isDraft: { type: 'boolean' }, docPath: { type: 'string' } },
     },
   })
 
@@ -389,8 +411,10 @@ return {
   notRead: draft.notRead || [],
   fixRounds: rounds,
   stoppedBecause,
-  rejectedFindings: fixed.rejected || [],
-  needsJudgment: fixed.needsJudgment || [],
-  unverified: fixed.unverified || [],
+  deadLenses,
+  rejectedFindings: acc.rejected,
+  needsJudgment: acc.needsJudgment,
+  unverified: acc.unverified,
+  wordingRecorded: acc.wording,
   openFindings,
 }

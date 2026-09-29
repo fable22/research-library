@@ -181,6 +181,17 @@ strong { font-weight: 700; }
 .stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
 .stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
 .stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+/* 핵심 한두 문장. 제목 아래에서 독자가 이 주장으로 무엇을 하는지 말한다. */
+.key { font-size: clamp(15px, 1.5vw, 17px); font-weight: 600; line-height: 1.55; color: var(--ink); margin: 0 0 22px; padding-left: 12px; border-left: 4px solid var(--link); max-width: 70ch; text-wrap: pretty; }
+/* 첨언. 계산 과정, 원문 문단 위치, 인용 원문, 조건의 세부. 기본은 접힘. */
+details.more { margin: 0 0 22px; border: 1px solid var(--rule); border-radius: 10px; padding: 8px 14px; background: var(--card); color: var(--ink-2); font-size: 14px; }
+details.more summary { cursor: pointer; font-weight: 600; color: var(--muted); font-size: 13px; }
+details.more[open] summary { margin-bottom: 6px; }
+details.more p { margin: 8px 0; }
+/* 한 줄짜리 사실 목록. 항목마다 한 줄이 넘으면 첨언으로 보낸다. */
+ul.facts { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 8px; }
+ul.facts li { display: grid; grid-template-columns: 3.2em 1fr; gap: 10px; font-size: 14.5px; color: var(--ink); line-height: 1.5; }
+ul.facts li .m { font-size: 12px; color: var(--muted); padding-top: 3px; }
 .stat.hero .val { color: var(--link); }
 .stat.bad .val { color: var(--redlink); }
 
@@ -307,6 +318,18 @@ ul.clean li b { color: var(--ink); }
   .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
   .hint { display: none; }
 }
+/* ── article: 기본 읽기 방식. 장을 이어서 스크롤로 읽고 rail 은 목차가 된다. 덱은 토글. ── */
+body[data-mode="article"] .deck { position: static; inset: auto; min-height: 100vh; }
+body[data-mode="article"] .rail { position: sticky; top: 0; height: 100vh; box-sizing: border-box; }
+body[data-mode="article"] .stage { overflow: visible; }
+body[data-mode="article"] .slide {
+  position: static; inset: auto; opacity: 1; visibility: visible; transform: none; transition: none;
+  overflow: visible; padding-bottom: 40px; border-bottom: 1px solid var(--rule); scroll-margin-top: 8px;
+}
+body[data-mode="article"] .slide:last-child { border-bottom: 0; padding-bottom: 96px; }
+body[data-mode="article"] .hud { position: fixed; }
+body[data-mode="article"] #prev, body[data-mode="article"] #next, body[data-mode="article"] .hint { display: none; }
+
 @media print {
   .deck { position: static; height: auto; grid-template-columns: 1fr; }
   .rail, .hud { display: none; }
@@ -347,7 +370,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
 .card a { color: var(--link); text-underline-offset: 2px; }
 </style>
 </head>
-<body>
+<body data-mode="article">
 <div class="deck">
   <nav class="rail" aria-label="목차">
     <div class="rail-head">_index.md</div>
@@ -366,58 +389,95 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
     <span class="counter" id="counter">01 / {{COUNT}}</span>
     <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
     <span class="hint">← → 키 · Space · Home / End</span>
+    <button class="nav-btn" id="mode" aria-label="읽기 방식 전환">덱으로 보기</button>
   </footer>
 </div>
 
 <script>
 (function () {
-  var slides  = Array.prototype.slice.call(document.querySelectorAll('.slide'));
-  var railBtn = Array.prototype.slice.call(document.querySelectorAll('.rail-item'));
-  var prev = document.getElementById('prev'), next = document.getElementById('next');
-  var counter = document.getElementById('counter'), progbar = document.getElementById('progbar');
-  var stage = document.getElementById('stage');
+  var slides  = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll(".rail-item"));
+  var prev = document.getElementById("prev"), next = document.getElementById("next");
+  var counter = document.getElementById("counter"), progbar = document.getElementById("progbar");
+  var stage = document.getElementById("stage"), modeBtn = document.getElementById("mode");
   var i = 0;
-  function pad(n) { return (n < 10 ? '0' : '') + n; }
-  function show(n, updateHash) {
+  slides.forEach(function (s, k) { if (!s.id) { s.id = "p" + (k + 1); } });
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function isArticle() { return document.body.getAttribute("data-mode") !== "deck"; }
+  function mark(n) {
     i = Math.max(0, Math.min(slides.length - 1, n));
-    slides.forEach(function (s, k) {
-      s.setAttribute('data-active', k === i ? 'true' : 'false');
-      s.setAttribute('aria-hidden', k === i ? 'false' : 'true');
-      if (k === i) { s.scrollTop = 0; }
-    });
-    railBtn.forEach(function (b, k) { b.setAttribute('aria-current', k === i ? 'true' : 'false'); });
-    counter.textContent = pad(i + 1) + ' / ' + pad(slides.length);
-    progbar.style.width = ((i + 1) / slides.length * 100) + '%';
+    railBtn.forEach(function (b, k) { b.setAttribute("aria-current", k === i ? "true" : "false"); });
+    counter.textContent = pad(i + 1) + " / " + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + "%";
     prev.disabled = (i === 0);
     next.disabled = (i === slides.length - 1);
-    if (updateHash !== false) { try { history.replaceState(null, '', '#p' + (i + 1)); } catch (e) {} }
   }
-  prev.addEventListener('click', function () { show(i - 1); });
-  next.addEventListener('click', function () { show(i + 1); });
+  function show(n, updateHash) {
+    mark(n);
+    slides.forEach(function (s, k) {
+      s.setAttribute("data-active", k === i ? "true" : "false");
+      s.setAttribute("aria-hidden", k === i ? "false" : "true");
+      if (k === i) { s.scrollTop = 0; }
+    });
+    if (updateHash !== false) { try { history.replaceState(null, "", "#p" + (i + 1)); } catch (e) {} }
+  }
+  // article 에서는 장을 숨기지 않는다. 목차 클릭과 #pN 은 그 장으로 스크롤한다.
+  function go(n, updateHash) {
+    if (!isArticle()) { show(n, updateHash); return; }
+    mark(n);
+    slides.forEach(function (s) { s.setAttribute("data-active", "true"); s.setAttribute("aria-hidden", "false"); });
+    slides[i].scrollIntoView({ block: "start" });
+    if (updateHash !== false) { try { history.replaceState(null, "", "#p" + (i + 1)); } catch (e) {} }
+  }
+  function setMode(m) {
+    document.body.setAttribute("data-mode", m);
+    try { localStorage.setItem("rl-mode", m); } catch (e) {}
+    modeBtn.textContent = m === "deck" ? "이어 읽기" : "덱으로 보기";
+    go(i, false);
+  }
+  modeBtn.addEventListener("click", function () { setMode(isArticle() ? "deck" : "article"); });
+  prev.addEventListener("click", function () { go(i - 1); });
+  next.addEventListener("click", function () { go(i + 1); });
   railBtn.forEach(function (b) {
-    b.addEventListener('click', function () { show(parseInt(b.getAttribute('data-go'), 10)); });
+    b.addEventListener("click", function () { go(parseInt(b.getAttribute("data-go"), 10)); });
   });
-  document.addEventListener('keydown', function (e) {
-    if (e.metaKey || e.ctrlKey || e.altKey) { return; }
+  document.addEventListener("keydown", function (e) {
+    if (isArticle() || e.metaKey || e.ctrlKey || e.altKey) { return; }
     var t = e.target;
-    if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA')) { return; }
-    if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); show(i + 1); }
-    else if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); show(i - 1); }
-    else if (e.key === 'Home') { e.preventDefault(); show(0); }
-    else if (e.key === 'End') { e.preventDefault(); show(slides.length - 1); }
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) { return; }
+    if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); show(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); show(i - 1); }
+    else if (e.key === "Home") { e.preventDefault(); show(0); }
+    else if (e.key === "End") { e.preventDefault(); show(slides.length - 1); }
   });
   var x0 = null, y0 = null;
-  stage.addEventListener('touchstart', function (e) {
+  stage.addEventListener("touchstart", function (e) {
     x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
   }, { passive: true });
-  stage.addEventListener('touchend', function (e) {
-    if (x0 === null) { return; }
+  stage.addEventListener("touchend", function (e) {
+    if (x0 === null || isArticle()) { x0 = null; return; }
     var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
     if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
     x0 = null; y0 = null;
   }, { passive: true });
-  var m = /^#p(\d+)$/.exec(window.location.hash || '');
-  show(m ? parseInt(m[1], 10) - 1 : 0, false);
+  // article 에서 스크롤 위치를 목차에 반영한다.
+  var ticking = false;
+  window.addEventListener("scroll", function () {
+    if (!isArticle() || ticking) { return; }
+    ticking = true;
+    window.requestAnimationFrame(function () {
+      ticking = false;
+      var line = window.innerHeight * 0.35, best = 0;
+      for (var k = 0; k < slides.length; k++) { if (slides[k].getBoundingClientRect().top <= line) { best = k; } }
+      if (best !== i) { mark(best); try { history.replaceState(null, "", "#p" + (best + 1)); } catch (e) {} }
+    });
+  }, { passive: true });
+  var saved = null;
+  try { saved = localStorage.getItem("rl-mode"); } catch (e) {}
+  document.body.setAttribute("data-mode", saved === "deck" ? "deck" : "article");
+  modeBtn.textContent = isArticle() ? "덱으로 보기" : "이어 읽기";
+  var m = /^#p(\d+)$/.exec(window.location.hash || "");
+  go(m ? parseInt(m[1], 10) - 1 : 0, false);
 })();
 </script>
 </body>

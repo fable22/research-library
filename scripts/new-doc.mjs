@@ -88,15 +88,16 @@ function buildSlides(chapters, { title, summary }) {
     const active = i === 0 ? ' data-active="true"' : '';
     const head = i === 0
       ? `      <h1>${esc(title)}</h1>\n      <p class="dek">${esc(summary)}</p>`
-      : `      <h2>${esc(label)}. TODO 주장문으로 바꿀 것</h2>\n      <p class="dek">TODO 2~4문장. ${esc(hint || '')}</p>`;
+      : `      <h2>${esc(label)}. TODO 주장문으로 바꿀 것</h2>\n      <p class="key">TODO 한두 문장. 독자가 이 주장으로 무엇을 하는가. ${esc(hint || '')}</p>`;
     return [
       `  <!-- ${pad2(i + 1)} -->`,
       `  <section class="slide"${active}>`,
       '    <div class="slide-inner">',
       `      <p class="eyebrow">${eyebrow}</p>`,
       head,
-      '      <p>TODO 본문</p>',
-      '      <p class="note">TODO 이 장이 다루지 않는 것</p>',
+      '      <p>TODO 본문. 항목마다 한 줄</p>',
+      '      <details class="more"><summary>첨언</summary><p>TODO 계산 과정, 원문 위치, 인용, 조건. 새 주장은 여기 못 들어간다</p></details>',
+      '      <p class="note">TODO 이 장이 다루지 않는 것. 한 문장</p>',
       '    </div>',
       '  </section>',
     ].join('\n');
@@ -171,6 +172,7 @@ async function create(slug, kind, opts) {
     summary,
     // 새 값을 쓰면 build-index.mjs 의 CATEGORY_LABEL 에도 넣어야 한다. 없으면 라벨 없이 나간다.
     category: kind,
+    purpose: 'TODO comparison | explainer | walkthrough',
   }, null, 2) + '\n');
 
   await mkdir(join(workDir, 'notes'), { recursive: true });
