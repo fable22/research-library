@@ -110,7 +110,7 @@ node scripts/check-doc.mjs research/YYYY-MM-DD-slug
 node scripts/build-index.mjs
 ```
 
-`new-doc.mjs` 가 출발용 골격이 들어간 `index.html` 과 `meta.json`, 그리고 `.research/<slug>/` 의 작업 파일을 함께 만듭니다. 인자 둘이 장 구성을 정합니다. corpus(`paper`, `oss`)는 읽은 범위와 결과 장의 힌트를, 문서 종류(`comparison`, `explainer`, `walkthrough`)는 가운데 세 장을 정하고 `meta.json` 의 `purpose` 로 남습니다. 도입 판단 장은 `comparison` 에만 있습니다. 종류는 조사를 시킨 말에서 고르고 기본값은 없습니다. 만든 직후 `check-doc.mjs` 를 통과합니다. 장 수는 늘리든 줄이든 상관없습니다. 게이트가 요구하는 장은 eyebrow 여섯 개(`index`, `tl-dr`, `problem`, `critique`, `conclusion`, `sources`)이고, 나머지 구조 규칙은 `--help` 가 알려 줍니다.
+`new-doc.mjs` 가 출발용 골격이 들어간 `index.html` 과 `meta.json`, 그리고 `.research/<slug>/` 의 작업 파일을 함께 만듭니다. 인자 둘이 장 구성을 정합니다. corpus(`paper`, `oss`, `web`)는 읽은 범위와 결과 장의 힌트를, 문서 종류(`comparison`, `explainer`, `walkthrough`)는 가운데 세 장을 정하고 `meta.json` 의 `purpose` 로 남습니다. 도입 판단 장은 `comparison` 에만 있습니다. 종류는 조사를 시킨 말에서 고르고 기본값은 없습니다. 만든 직후 `check-doc.mjs` 를 통과합니다. 장 수는 늘리든 줄이든 상관없습니다. 게이트가 요구하는 장은 eyebrow 여섯 개(`index`, `tl-dr`, `problem`, `critique`, `conclusion`, `sources`)이고, 나머지 구조 규칙은 `--help` 가 알려 줍니다.
 
 문서의 CSS 와 JS 는 `assets/deck-shell.html` 에 있습니다. 기본은 장을 이어 읽는 연속 문서(`<body data-mode="article">`)이고 덱은 토글입니다. 문서마다 복붙되던 셸을 파일 하나로 모았습니다.
 

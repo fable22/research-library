@@ -70,7 +70,24 @@ written before this harness existed do not have one.
 
 Say what was skipped at the top of the report, before the findings.
 
-### 2. Extract claims from the shipped sentences
+### 2. Launch the lenses
+
+Read B and C from `references/` and hand each to a separate subagent in the same message.
+When both have reported, hand A its file and their reports. Spawning them is the step;
+asking permission for it is not. If they cannot be spawned, run what you can and declare
+the gap at the top of the report, as a missing `sources.jsonl` is declared.
+
+| Lens | File | Looks at |
+|---|---|---|
+| B | `references/lens-numbers.md` | Every number against the pinned source: value, direction, unit, range, base |
+| C | `references/lens-prose.md` | Structure: repetition, references, headings, chapter grammar against the kind's specimen, a claim only in the fold, accessibility |
+| A | `references/lens-reader.md` | Can the reader do what `purpose` promises, and what is missing, including what B and C could not see: a pinned source nothing leans on, a modality never run, a quote that is verbatim while the sentence around it widens it |
+
+Each lens needs the document path, `sources.jsonl` and the corpus checkout, and reviews the
+whole document; the `setup` chapter is where the document says what it read. B reopens the source itself, so without a checkout or a retrievable paper it
+cannot work. Each lens writes its findings in Korean.
+
+### 3. Extract claims from the shipped sentences, while the lenses run
 
 Walk the visible text of `research/<slug>/index.html`, skipping CSS and JS, and write
 `.research/<slug>/claims.jsonl`. Include `figcaption` and table cells, where qualifiers like
@@ -104,23 +121,6 @@ calculations the source did not make, absence claims and conditional behavior cl
 background, term definitions, navigation text and common knowledge. Drop a sentence too
 ambiguous to pin down, and leave each one whole; one sentence per claim is where a
 verifier's confidence peaks.
-
-### 3. Launch the lenses
-
-Read B and C from `references/` and hand each to a separate subagent in the same message.
-When both have reported, hand A its file and their reports. Spawning them is the step;
-asking permission for it is not. If they cannot be spawned, run what you can and declare
-the gap at the top of the report, as a missing `sources.jsonl` is declared.
-
-| Lens | File | Looks at |
-|---|---|---|
-| B | `references/lens-numbers.md` | Every number against the pinned source: value, direction, unit, range, base |
-| C | `references/lens-prose.md` | Structure: repetition, references, headings, chapter grammar against the kind's specimen, a claim only in the fold, accessibility |
-| A | `references/lens-reader.md` | Can the reader do what `purpose` promises, and what is missing, including what B and C could not see: a pinned source nothing leans on, a modality never run, a quote that is verbatim while the sentence around it widens it |
-
-Each lens needs the document path, `sources.jsonl`, the corpus checkout and the `setup`
-chapter. B reopens the source itself, so without a checkout or a retrievable paper it
-cannot work. Each lens writes its findings in Korean.
 
 ### 4. Machine checks
 
@@ -186,7 +186,8 @@ fixing, since a lens that returns first has must-fix items that are already acti
 
 Re-run the machine checks after fixing, and re-run a lens over the chapters it touched. Stop
 when a round turns up no new must-fix item with one correct answer: a number, a quote, a
-direction, a dead reference. Fixes introduce their own errors and the second round finds
+direction, a dead reference. Two rounds at most; what the second re-check still finds is
+reported as found-and-unfixed. Fixes introduce their own errors and the second round finds
 them. Wording is different: each pass rewrites the document toward the gate and away from
 the reader, so wording findings from a re-check are recorded and left alone. Say whether the
 rendered page was opened after the fixes, and put the remaining needs-judgment items to the
@@ -195,6 +196,11 @@ user in one message.
 **A round only the author has read is not finished, the last one included.** A run that
 stops on a budget or a round cap still re-verifies what it just changed, and reports what
 that turned up as found-and-unfixed, a category of its own.
+
+**A fact lens A reports missing goes into the chapter whose `.key` it supports**, as a
+fact-list line or in the fold; that is support, not a second claim. When no chapter's claim
+covers it, it needs a chapter, and that is a needs-judgment item rather than a line squeezed
+into the nearest one.
 
 **Lenses find and the author fixes.** When the finder is also the fixer, the review ends at
 "close enough". Split findings into must-fix and needs-judgment only; a warning tier drains

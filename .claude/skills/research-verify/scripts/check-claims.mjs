@@ -48,7 +48,7 @@ const RULES = {
   'source-drift': '고정해 둔 원문이 지금 받은 것과 같은 바이트인가 (paper)',
   'empty-evidence': 'verdict=confirmed 인 주장에 근거가 있는가',
   'quote-length': `quote 가 ${QUOTE_MIN}~${QUOTE_MAX}자인가`,
-  'web-unchecked': 'web 출처만 근거로 삼은 confirmed 주장이 있는가 (web 인용은 대조 수단이 없다. 통과가 아니라 미검증이다)',
+  'web-unchecked': 'web 출처만 근거인 confirmed 주장 중 고정 사본(--web id=<path> 또는 notes/web/<id>.txt)으로 대조하지 못한 것이 있는가. 통과가 아니라 미검증이다',
   'quote-match': `quote 가 고정 커밋의 locator ±${LINE_SLACK}줄 안에 실제로 있는가`,
   'numeric-match': '주장에 적힌 수치가 인용한 표·절 안에 실제로 있는가 (paper 전체, repo 는 kind=numeric)',
   'derived-inputs': 'kind=derived 주장이 계산의 입력값과 원문에 없다는 표시를 갖는가',
@@ -74,6 +74,8 @@ const KINDS = ['code', 'numeric', 'derived', 'absence', 'behavioral', 'history',
 const webOnly = [];
 // 보존본도 해시도 없는 web 출처. 막지는 않고 출력에 센다. 스키마 필드는 archive_url 과 text_sha256 이다.
 let webNoPin = 0;
+// 고정 사본은 있으나 그 sha256 이 sources.jsonl 의 text_sha256 과 다른 web 출처. 대조는 하되 출력에 센다.
+let webDrift = 0;
 
 // 프로젝트가 자기 문서에 써 둔 것과 구현이 그렇게 돼 있는 것은 다른 사실이다.
 // quote-match 는 둘을 구별하지 못한다 (문서 파일에도 그 줄은 실재하므로).
@@ -93,6 +95,7 @@ if (argv.includes('--help') || argv.includes('-h')) {
   console.log('옵션:');
   console.log('  --repo owner/name=<path>   체크아웃 위치를 직접 지정 (여러 번 가능)');
   console.log('  --papers <dir>             논문 원문 캐시 위치');
+  console.log('  --web id=<path>            web 출처의 고정 사본(텍스트). 없으면 .research/<slug>/notes/web/<id>.txt 를 찾는다');
   console.log('  --evidence <path>          .research/<slug> 가 아닌 곳에서 근거를 읽는다');
   console.log('  --allow=rule,rule          규칙을 명시적으로 끈다');
   console.log('\n체크아웃 해결 순서 (repo):');
@@ -113,17 +116,16 @@ if (argv.includes('--help') || argv.includes('-h')) {
 }
 
 const repoOverride = new Map();
-for (const a of argv) {
-  if (!a.startsWith('--repo=') && a !== '--repo') continue;
-}
+const webOverride = new Map();
+const setPair = (map, kv) => {
+  const [k, v] = kv.split('=');
+  if (k && v) map.set(k, resolve(v.replace(/^~/, process.env.HOME || '~')));
+};
 for (let i = 0; i < argv.length; i++) {
-  if (argv[i] === '--repo' && argv[i + 1]) {
-    const [k, v] = argv[++i].split('=');
-    if (k && v) repoOverride.set(k, resolve(v.replace(/^~/, process.env.HOME || '~')));
-  } else if (argv[i].startsWith('--repo=')) {
-    const [k, v] = argv[i].slice('--repo='.length).split('=');
-    if (k && v) repoOverride.set(k, resolve(v.replace(/^~/, process.env.HOME || '~')));
-  }
+  if (argv[i] === '--repo' && argv[i + 1]) setPair(repoOverride, argv[++i]);
+  else if (argv[i].startsWith('--repo=')) setPair(repoOverride, argv[i].slice('--repo='.length));
+  else if (argv[i] === '--web' && argv[i + 1]) setPair(webOverride, argv[++i]);
+  else if (argv[i].startsWith('--web=')) setPair(webOverride, argv[i].slice('--web='.length));
 }
 
 const allowArg = argv.find((a) => a.startsWith('--allow='));
@@ -146,7 +148,7 @@ const pIdx = argv.indexOf('--papers');
 if (pIdx >= 0 && argv[pIdx + 1]) paperOverrideDir = resolve(argv[pIdx + 1]);
 
 const target = argv.find((a, i) => !a.startsWith('-')
-  && argv[i - 1] !== '--evidence' && argv[i - 1] !== '--repo' && argv[i - 1] !== '--papers');
+  && argv[i - 1] !== '--evidence' && argv[i - 1] !== '--repo' && argv[i - 1] !== '--papers' && argv[i - 1] !== '--web');
 if (!target) {
   console.error('검사할 문서를 지정할 것: node .claude/skills/research-verify/scripts/check-claims.mjs research/<slug>');
   process.exit(2);
@@ -276,6 +278,30 @@ const PAPER_DIR = paperOverrideDir
 
 const paperCache = new Map();
 const missingPapers = new Set();
+
+// web 출처는 살아 있는 페이지라 대조할 원문이 없다. 읽은 텍스트를 notes/web/<id>.txt 로
+// 남겨 두면 (또는 --web id=<path>) 그 사본과 대조한다. notes/ 는 커밋되지 않으므로 이 대조는
+// 그 머신에서만 되고, 그래서 text_sha256 이 사본의 신원이다.
+const webCache = new Map();
+let webFiguresText = null;
+function webFigures() {
+  if (webFiguresText === null) {
+    const path = join(evidenceDir, 'notes', 'figures.md');
+    webFiguresText = existsSync(path) ? readFileSync(path, 'utf8') : '';
+  }
+  return webFiguresText;
+}
+function resolveWeb(src) {
+  if (webCache.has(src.id)) return webCache.get(src.id);
+  const path = webOverride.get(src.id) || join(evidenceDir, 'notes', 'web', `${src.id}.txt`);
+  let text = null;
+  if (existsSync(path)) {
+    text = readFileSync(path, 'utf8');
+    if (src.text_sha256 && createHash('sha256').update(text).digest('hex') !== src.text_sha256) webDrift++;
+  }
+  webCache.set(src.id, text);
+  return text;
+}
 
 // 그림 안의 수치는 .tex 에 없다. pin-paper.mjs 가 PDF 에서 뽑아 둔 것을 따로 읽는다.
 const figureCache = new Map();
@@ -570,7 +596,18 @@ for (const c of claims || []) {
       continue;
     }
 
-    if (src.kind === 'web') { webEv++; continue; }   // 대조할 원문이 없다. 아래에서 미검증으로 센다
+    if (src.kind === 'web') {
+      const wt = resolveWeb(src);
+      if (wt === null) { webEv++; continue; }   // 고정 사본이 없다. 아래에서 미검증으로 센다
+      checkedEv++;
+      // 차트의 점은 본문 사본이 아니라 notes/figures.md 에 있다 (논문의 figures.txt 와 같은 자리).
+      if (!norm(wt).includes(norm(e.quote)) && !norm(webFigures()).includes(norm(e.quote))) {
+        add('quote-match',
+          `${id}: quote 가 web 출처 ${src.id} 의 고정 사본에도 notes/figures.md 에도 없다. 지어낸 인용이거나 사본이 다른 판이다\n` +
+          `      "${e.quote.slice(0, 70)}${e.quote.length > 70 ? '…' : ''}"`);
+      }
+      continue;
+    }
     if (src.kind !== 'repo') continue;
 
     const m = /^(.+):(\d+)$/.exec(e.locator || '');
@@ -674,8 +711,8 @@ if (claims && claims.length === 0) {
 
 if (webOnly.length) {
   add('web-unchecked',
-    `${webOnly.length}건은 web 출처만 근거다. web 인용은 대조할 원문이 없어 확인되지 않았다: ${webOnly.slice(0, 12).join(', ')}${webOnly.length > 12 ? ' …' : ''}\n` +
-    `      보존본(archive_url)과 text_sha256 을 남기고, 그래도 넘기려면 --allow=web-unchecked 로 명시할 것`);
+    `${webOnly.length}건은 web 출처만 근거인데 고정 사본이 없어 확인되지 않았다: ${webOnly.slice(0, 12).join(', ')}${webOnly.length > 12 ? ' …' : ''}\n` +
+    `      읽은 텍스트를 .research/<slug>/notes/web/<id>.txt 로 두거나 --web id=<path> 로 알려주면 대조한다. 그래도 넘기려면 --allow=web-unchecked 로 명시할 것`);
 }
 
 const blocked = problems.filter((x) => !allowed.has(x.rule));
@@ -693,6 +730,9 @@ for (const x of waived) console.log(`      허용됨  [${x.rule}] ${x.msg}`);
 // 둘을 같은 강도로 보고하면 통과가 실제보다 강해 보인다.
 if (paperUnscoped) {
   console.log(`      논문 근거 ${paperChecked}건 중 ${paperUnscoped}건은 표·그림으로 좁히지 못해 문서 전체에서 대조했다`);
+}
+if (webDrift) {
+  console.log(`      web 고정 사본 ${webDrift}개의 sha256 이 sources.jsonl 의 text_sha256 과 다르다. 대조는 했지만 그 사본이 읽은 바이트라는 보장은 없다`);
 }
 if (webNoPin) {
   console.log(`      web 출처 ${webNoPin}개에 보존본(archive_url)도 해시(text_sha256)도 없다. 그 페이지가 바뀌면 다시 확인할 길이 없다`);

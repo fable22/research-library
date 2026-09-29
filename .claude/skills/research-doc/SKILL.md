@@ -23,6 +23,8 @@ Read before writing:
 - `references/visual.md`, whenever the document has a mechanism, an architecture, a loop
   or a comparison. A shape drawn wrong is read as fact.
 - `references/paper.md` or `references/oss.md`, by what the corpus is.
+- `.research/<slug>/notes/figures.md`, what the source drew or tabulated. Every entry is
+  redrawn in the document or named in `setup` with the reason it is absent.
 
 ## The reader, and the three kinds
 
@@ -66,7 +68,7 @@ chapters for the kind; rename them after their content (`nav-reward`, `result-co
 | `problem` | What was failing before this existed |
 | the kind's middle | `references/paper.md` and `references/oss.md` say how each fills |
 | `setup` | What was read, and what was not |
-| `result-*` | Results |
+| `result-*` | Results, redrawn from the source's own charts and tables (`visual.md` §The source's own figures) |
 | `critique` | Limits, with attribution; end with a named result that survives them, where one exists |
 | `conclusion`, `sources` | Conclusion; sources |
 
@@ -101,7 +103,8 @@ h2              a short heading that names what the chapter holds
 .key            the chapter's one claim, in one or two sentences, with the condition it
                 holds under. The only place the claim is stated; the body supports it
 body            a figure, a diff, a table, a fact list with one line per item, or short
-                paragraphs of mechanism (references/visual.md)
+                paragraphs of mechanism. Where the source drew or tabulated it, the body
+                is that chart or table redrawn, not prose about it (references/visual.md)
 details.more    첨언: the verbatim quote, the derivation, which paragraph of the source
                 says it, the setting in full. Folded by default
 .note           optional. One sentence, when it changes what the reader does next

@@ -36,6 +36,10 @@ const cases = [
     evidence: [{ source: 'w1', locator: 'https://example.com/post', quote: 'I made this sentence up and nobody can check it against anything at all' }] })], ['web-unchecked']],
   ['통과', 'web 만 근거인데 --allow=web-unchecked 로 명시', [claim({ id: 'c2', kind: 'web', text: '블로그가 그렇게 말한다',
     evidence: [{ source: 'w1', locator: 'https://example.com/post', quote: 'I made this sentence up and nobody can check it against anything at all' }] })], [], '--allow=web-unchecked'],
+  ['통과', 'web 근거를 고정 사본과 대조', [claim({ id: 'c3', kind: 'web', text: '안내서가 그렇게 말한다',
+    evidence: [{ source: 'w1', locator: '§Pricing', quote: 'The default effort is medium and a request that omits effort runs at medium' }] })], [], '--web', 'w1=WEBTXT'],
+  ['차단', 'web 근거가 고정 사본에 없음', [claim({ id: 'x5', kind: 'web', text: '안내서가 그렇게 말한다',
+    evidence: [{ source: 'w1', locator: '§Pricing', quote: 'I made this sentence up and nobody can check it against anything at all' }] })], ['quote-match'], '--web', 'w1=WEBTXT'],
   ['차단', '400자를 넘는 quote', [claim({ id: 'x3', kind: 'code', text: '주장',
     evidence: [{ source: 'r1', locator: `${FILE}:${L_SIZE}`, quote: 'x'.repeat(401) }] })], ['quote-length']],
   ['차단', '열거형 밖의 verdict', [claim({ id: 'x4', kind: 'doc', verdict: 'bounded', text: '주장',
@@ -43,13 +47,15 @@ const cases = [
 ];
 
 let pass = 0, fail = 0;
-for (const [want, name, claims, rules, extra] of cases) {
+for (const [want, name, claims, rules, ...extra] of cases) {
   const dir = mkdtempSync(join(tmpdir(), 'claims-rules-'));
+  const webTxt = join(dir, 'w1.txt');
+  writeFileSync(webTxt, '# Behavior differences\n\nThe default effort is medium and a request that omits effort runs at medium; on the previous model it ran at high.\n');
   writeFileSync(join(dir, 'sources.jsonl'), [REPO, WEB].map((s) => JSON.stringify(s)).join('\n') + '\n');
   writeFileSync(join(dir, 'claims.jsonl'), claims.map((c) => JSON.stringify(c)).join('\n') + '\n');
   writeFileSync(join(dir, 'evidence.jsonl'), '');
   const args = [CHECK, 'research/2026-09-21-jev-system-one', '--evidence', dir, `--repo`, `self/self=${ROOT}`];
-  if (extra) args.push(extra);
+  for (const x of extra) args.push(x.replace('WEBTXT', webTxt));
   const r = spawnSync('node', args, { cwd: ROOT, encoding: 'utf8' });
   const out = r.stdout + r.stderr;
   const blocked = r.status !== 0;

@@ -67,7 +67,7 @@ const RULES = {
   'em-dash': '본문에 em dash 가 없는가',
   'process-narration': '문서를 어떻게 만들었는지 쓰지 않았는가',
   'meta-purpose': `meta.json 의 purpose 가 ${'comparison / explainer / walkthrough'} 중 하나인가 (${'2026-09-30'} 이후 문서)`,
-  'section-grammar': '표지 뒤 모든 장에 h2 와 .key 가 있는가 (2026-09-30 이후 문서. .dek 는 그 전 문서의 이름)',
+  'section-grammar': '표지 뒤 모든 장에 h2 와 .key 가 있는가 (sources 장은 .key 없이 된다. 2026-09-30 이후 문서. .dek 는 그 전 문서의 이름)',
 };
 
 // 장 문법과 purpose 는 2026-09-30 부터 쓴 문서에만 요구한다. 그 전 28편은 .dek 와 무목적으로
@@ -294,7 +294,9 @@ function checkDoc(doc, byslug) {
     sections.forEach((s, k) => {
       const lacks = [];
       if (!/<h2\b/.test(s)) lacks.push('h2');
-      if (!/class="key"/.test(s)) lacks.push('.key');
+      // sources 장은 주장이 없어 .key 를 요구하지 않는다. 요구하면 채우기용 문장이 생긴다.
+      const isSources = /<p class="eyebrow">\s*sources\s*</.test(s);
+      if (!isSources && !/class="key"/.test(s)) lacks.push('.key');
       if (lacks.length) add('section-grammar', `${k + 2}장에 ${lacks.join(', ')} 가 없다. 제목 아래 핵심 한두 문장이 있어야 훑는 독자가 주장을 만난다`);
     });
   }

@@ -21,7 +21,7 @@
       </ul>
       <p>되돌리기는 모델 ID 를 바꾸면 끝난다. Opus 5 는 legacy 로 남고 Opus 5.5 의 thinking 블록만 읽지 못하므로 되돌린 턴의 reasoning 은 잃는다.</p>
       <details class="more"><summary>첨언: 원문, 계산, 되돌리기 시한</summary>
-        <p>whats-new 「Behavior differences」: “The default effort is <code>medium</code>. A request that omits <code>effort</code> runs at <code>medium</code>; on Claude Opus 5 it ran at <code>high</code>.” 같은 문서: “At the same effort setting the model tends to think more per turn than Claude Opus 5, most of all at <code>xhigh</code> and <code>max</code>.”</p>
+        <p>whats-new 「Behavior differences」: <span class="q">“The default effort is <code>medium</code>. A request that omits <code>effort</code> runs at <code>medium</code>; on Claude Opus 5 it ran at <code>high</code>.”</span> 같은 문서: <span class="q">“At the same effort setting the model tends to think more per turn than Claude Opus 5, most of all at <code>xhigh</code> and <code>max</code>.”</span></p>
         <p>절감률은 원문 차트의 점에서 1 − (Opus 5.5 비용 / Opus 5 비용) 으로 계산했고 원문에는 같은 effort 끼리의 비교가 없다. high: Terminal-Bench 4.0 $3.88 대 $10.64 (−64%), FrontierCode $1.09 대 $7.62 (−86%), CursorBench $3.97 대 $9.00 (−56%), GDPval $1.54 대 $3.03 (−49%), AutomationBench $0.70 대 $1.03 (−32%), WANDR $16.88 대 $43.49 (−61%). max: −29%, −50%, +12%, +32%, +8%, −38% 같은 순서다.</p>
         <p>model-deprecations 문서의 retirement 하한은 Opus 5 가 2027-07-24, Opus 5.5 가 2027-09-22 다. Claude API, Claude Platform on AWS, Foundry 기준이고 Bedrock 과 Google Cloud 는 자체 일정을 따른다.</p>
       </details>

@@ -803,3 +803,50 @@ that were "not a target"; both were replaced or removed.
 passages without marking them. `research-doc/SKILL.md` now has a §Quoting the source with a
 ✗/✓ pair: verbatim text goes inside `.q`, `.wl` or `<cite>`, which `check-prose.mjs` already
 skipped without the author being told why.
+
+## What the first document under the rewritten skills sent back
+
+The Sonnet 5.5 migration document was written a third time on the same corpus, by the same
+model, under the rewritten skills (v3, `research/2026-09-30-claude-sonnet-5-5-migration-v3`
+on the opus worktree branch). Against v2: framing sentences 40% → 30%, negative `.note`
+endings 10/16 → 0/2, `것이다` 76 → 21 per 100k, one lens call fewer per round, 28 → 22
+minutes. The author agent reported twelve points where the skills blocked or contradicted
+it, and each became a change:
+
+- The scaffold still put "TODO 주장문" in `h2` and a `.note` placeholder in every chapter,
+  the opposite of the grammar. Placeholders now match, `.note` is absent, and `sources`
+  has no `.key` (the gate exempts it; a required `.key` on a chapter with no claim
+  produced a filler sentence).
+- `.note` was defined three ways (optional; "gather disclaimers here"; "limits go in the
+  clause"). The specimens README now says the same thing as prose-ko rule 2.
+- No corpus type fit a developer guide, so `oss` hints (file:line, commit SHA) leaked into
+  a web document. `new-doc.mjs` takes `web`, with its own hints.
+- `check-claims.mjs` matched no web quote at all; 71 of 78 claims went through on
+  `--allow=web-unchecked` although the fixed copies were on disk. It now matches quotes
+  against `notes/web/<id>.txt` (or `--web id=<path>`) and reports a hash mismatch against
+  `text_sha256` as a note rather than a block, since the copies are local.
+- Lens B read "Coverage: the setup chapter" as its scope and checked one chapter. The line
+  now says where the document states what it read, and that the review covers the whole
+  document.
+- Lens A's "missing" items and lens C's "one claim per chapter" collided: adding the
+  missing fact drew a second-claim finding, and the whole second round was that. The verify
+  skill now says a supporting fact goes into the chapter whose `.key` it supports and is
+  support, not a claim; a fact no chapter covers is a needs-judgment item.
+- `.q` in the shell was a block quote, so inline quoting needed document-local CSS; the
+  shell now styles `span.q` inline, and the specimens use it in their folds. Text tables
+  rendered right-aligned and unwrapped; `table.prose-table` in the shell fixes that.
+- The round cap ("at most two") and the order of extraction versus lenses (lenses first,
+  extract while they run) were in the workflow but not the skill. Now in the skill.
+- prose-ko rule 15 ("a summary carries its numbers") pushed the author to count items,
+  and the counts drifted after edits; the rule now says not to tally.
+
+**Figures.** The user asked why v3 carried none of the source's four benchmark charts
+(80 data points, already extracted to `notes/figures.md`). The rule existed in `visual.md`
+(redraw the source's charts; name the central figure) and the pin step wrote
+`notes/figures.md` for papers only; nothing in the spine, the specimens or the lenses
+asked for it, and the check "no figure taken from the source" was lost when lens D folded
+into A. Now: `research-source` writes `notes/figures.md` for every corpus with a chart's
+data points; `research-doc` lists it among the files to read, the `result-*` row and the
+body slot say the source's chart is redrawn rather than paraphrased; the specimens README
+says where each kind draws; lens A checks every entry of `notes/figures.md` was redrawn or
+named. v2 and v3 both have one SVG and two figures; that is the gap this closes.
