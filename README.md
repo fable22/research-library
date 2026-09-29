@@ -19,7 +19,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 | 2026-09-09 | [Claude Platform 비용·성능: prompt cache, instructions, effort 세 축을 /claude-api 명령 셋이 돌린다](https://fable22.github.io/research-library/research/2026-09-09-claude-platform-cost-performance/) | 메모 |
 | 2026-09-07 | [HarnessDev: LLM이 실행 하네스를 만들고 고치는 능력을 재는 벤치마크](https://fable22.github.io/research-library/research/2026-09-07-harnessdev-model-harness-transfer/) | 논문 분석 |
 | 2026-09-02 | [anydoc: 픽셀 대신 Office 원본 구조와 PDF text layer를 읽는다](https://fable22.github.io/research-library/research/2026-09-02-anydoc-enterprise-ingestion/) | 오픈소스 분석 |
-| 2026-08-30 | [AI Agents Push Humans Out of the Loop: 승인 자동화와 사람의 검토](https://fable22.github.io/research-library/research/2026-08-30-oversight-degradation-vs-auto-approval/) | 논문 분석 |
+| 2026-08-30 | [AI Agents Push Humans Out of the Loop: 승인 자동화(auto-approval)와 사람의 검토](https://fable22.github.io/research-library/research/2026-08-30-oversight-degradation-vs-auto-approval/) | 논문 분석 |
 | 2026-08-28 | [OpsHarness: 자가진화 제안을 이중 게이트로만 들여보내는 RCA 외부 하네스](https://fable22.github.io/research-library/research/2026-08-28-opsharness-self-evolving-rca/) | 논문 분석 |
 | 2026-08-28 | [JIT-Agent: 하네스를 태스크마다 모델이 새로 조립하게 만든 27B 메타 모델](https://fable22.github.io/research-library/research/2026-08-28-jit-agent-harness-intelligence/) | 논문 분석 |
 | 2026-08-20 | [Cerebras Knowledge 아키텍처: 원천별 수집부터 근거를 돌려주는 검색까지](https://fable22.github.io/research-library/research/2026-08-20-cerebras-kb-architecture/) | 주제 리서치 |
