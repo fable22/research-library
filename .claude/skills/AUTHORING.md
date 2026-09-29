@@ -48,6 +48,10 @@ constraint is and why it binds; leave how open unless the how is the rule.
 Prefer the shorter version. If a rule lands in one sentence, one sentence is the whole
 entry.
 
+Do not write the instruction in the register it forbids. A skill body built from `X is not
+Y. Z is.` teaches that cadence, and the Korean comes out as `~가 아니다` endings and two
+abstract nouns set in parallel. Say what to do, with a subject and a verb.
+
 Rule count is itself a cost. Compliance falls as the number of simultaneous rules rises,
 and it falls for rules the output already satisfies, so an entry that is merely true is not
 free. Adding one means asking which one it displaces.

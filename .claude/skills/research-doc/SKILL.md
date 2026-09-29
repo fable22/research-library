@@ -131,7 +131,9 @@ body       figure, table, chart, trace, code, prose — references/visual.md
 
 `h2` reads as a statement: `결과 2. 단계가 많은 질문일수록 차이가 커진다`. Plain labels
 are fine where the content is genuinely a label (`결과 5. ablation`). What does not work
-is an inflated heading — `가장 중요한 표`, `그림이 말하지 않는 것`. Name the content.
+is an inflated heading — `가장 중요한 표`, `그림이 말하지 않는 것` — or two abstract nouns
+set against each other (`가치는 ~에 있고, 질문은 ~에 있다`), which has the shape of a claim
+and no subject. Name the content, and name what it does.
 
 The `.note` is where a slide admits what it does not cover. A slide with no qualifier is
 usually a slide that overclaimed.
@@ -267,6 +269,17 @@ Say plainly whether you looked at the rendered page. If no headless browser was
 available, say that instead of implying you checked.
 
 ## Hand off
+
+Before handing off, read the document once for how it reads, with the counter open:
+
+```bash
+node scripts/check-prose.mjs research/<slug> --counts
+```
+
+The table prints the human band under each column. A column outside it is where to look;
+the fix is in `references/prose-ko.md`. This is the one place prose gets read for its own
+sake: the verify lenses check structure, numbers and completeness, not how a sentence
+reads, because a context asked whether a document reads well returns noise.
 
 When both gates pass, continue with `../research-verify/SKILL.md`. Do not stop to ask
 first. Passing the static gate and being correct are different things, and the errors that

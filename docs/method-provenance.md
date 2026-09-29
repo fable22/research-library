@@ -28,7 +28,8 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | Connective tissue stays; the deck's rail is why elaboration is cheap here | `references/prose-ko.md` | expertise reversal, and the cell this reader is in. See the note below |
 | Count the prose rules that carry a number; leave the rest to the lens | `check-prose.mjs` | the rules were enforced in proportion to how greppable they were. See the count below |
 | `~가 아니라 ~다` is reported, not blocked | `check-prose.mjs` | the count that looked like a violation was mostly quotes and attribution. See the note below |
-| `~를 통해` is not translationese; `~들` is not noise; a comma after a connective ending is the tell | `references/prose-ko.md` | corpus measurement, against the prescriptive list the rules were built from. See the audit below |
+| `~를 통해` is not translationese; `~들` is not noise; a comma after a connective ending is a rate to hold in the human band, not a defect | `references/prose-ko.md`, `check-prose.mjs` | corpus measurement, against the prescriptive list the rules were built from. See the audit below, and the 2026-09-29 note |
+| Noun chains, disclaimer sentences and abstract-noun parallelism are the failure that replaced translationese; lens C no longer judges how sentences read | `references/prose-ko.md`, `lens-prose.md`, `research-chain.js` | measured against 86 human tech-blog posts. See the 2026-09-29 note |
 | Quotes leave the prose the gate reads, in every container the documents actually use | `check-prose.mjs`, `check-doc.mjs` | both gates said quotes were excluded and stripped only `blockquote` / `pre`+`code`. See the 2026-08-30 audit |
 | The polite register is blocked at zero | `check-prose.mjs`, `references/prose-ko.md` | the register rule had no counter, and all 13 occurrences in the corpus are quotes. See the 2026-08-30 audit |
 | No rule against ending a sentence on a noun phrase | `references/prose-ko.md`, by omission | an outside guide proposed it; measured here, the 9.8% are captions and labels. See the outside-style-guide note |
@@ -205,6 +206,23 @@ corpus, and 42.090 in translated — Korean written without translation uses it 
 [조의연 (2012)](https://www.kci.go.kr/kciportal/ci/sereArticleSearch/ciSereArtiView.kci?sereArticleSearchBean.artiId=ART001644267)
 argues that deleting it produces mistranslation. The rule is now about where the plural is
 already carried, not about the marker.
+## What the 2026-09-29 readability diagnosis changed
+
+Full report: `readability-diagnosis-2026-09-29.md`. The short form: with the prose gate in
+place, the counted items went to zero and three uncounted ones took their place. Against 86
+human-written Korean tech-blog posts measured with the same `visibleProse`, post-gate
+documents carried ~1,300 `·` noun joins and ~380 three-noun chains per 100k Hangul (humans
+0), 19% negative-ending sentences (humans 2–3%), and a connective-comma rate of 17% where
+humans sit at 30–38% *by this counter*. The 4–13% band below is KatFishNet's morphological
+measurement and does not transfer to the eojeol approximation; the rule now holds the
+repo-measured band, in both directions.
+
+Lens C lost its prose judgment for two reasons already on this page: the ICC .091 result
+below, and Kamoi et al. (TACL 2024), who find no successful self-correction from prompted-LLM
+feedback without a reliable external signal. Numbers and quotes have that signal;
+wording does not. The fix loop in `research-chain.js` runs one round by default and opens a
+second only for findings with one correct answer.
+
 ## The comma the documents all share
 
 [KatFishNet (ACL 2025)](https://aclanthology.org/2025.acl-long.1030/) measured what separates

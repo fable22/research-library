@@ -1,7 +1,7 @@
 ---
 name: research-verify
 description: Adversarially reviews a finished research document draft. Four lenses
-  (adoption decider, number checker, prose auditor, completeness critic) read the draft in
+  (adoption decider, number checker, structure auditor, completeness critic) read the draft in
   separate contexts, claims are extracted from the sentences that shipped, and
   check-claims.mjs machine-verifies them against the pinned corpus. Usually this runs as a
   phase of the /research-chain workflow; invoke it directly when a draft already exists.
@@ -140,7 +140,7 @@ declared.
 |---|---|---|
 | A | `references/lens-adoption.md` | Can a developer decide adopt/hold from this? What is missing? |
 | B | `references/lens-numbers.md` | Every number against the pinned source: value, direction, unit, range |
-| C | `references/lens-prose.md` | Repo writing rules, repetition, internal references, accessibility |
+| C | `references/lens-prose.md` | Structure: repetition, internal references, headings that name nothing, accessibility. Not how sentences read; the author's read pass owns that |
 | D | `references/lens-completeness.md` | What none of the others could see: a claim no lens covered, a pinned source nothing leans on, a modality never run, **a quote that is accurate while the reading built on it is not** |
 
 D owns that last one because nothing else can reach it. `check-claims.mjs` confirms the
@@ -214,8 +214,11 @@ Do not wait for every lens before fixing. A lens that returns first has must-fix
 that are already actionable, and the others will not change them.
 
 Re-run the machine checks after fixing, and re-run a lens over the slides it touched. Stop
-when a round turns up no new must-fix item, not when the first round is cleared. Fixes
-introduce their own errors and it is the second round that finds them. Say whether the
+when a round turns up no new must-fix item with one correct answer — a number, a quote, a
+direction, a dead reference. Fixes introduce their own errors and it is the second round
+that finds them. A second round spent on wording is different: each pass rewrites the
+document toward the gate and away from the reader, so wording findings from a re-check are
+recorded and not acted on in a further round. Say whether the
 rendered page was opened after the fixes, not before them, and put the remaining
 needs-judgment items to the user in one message.
 
