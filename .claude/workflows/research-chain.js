@@ -58,7 +58,7 @@ Steps:
 1. Read .claude/skills/research-source/SKILL.md and follow it.
 2. Before writing prose, enumerate what the corpus contains: a paper's section list, a
    repository's tree by directory. You cannot report what you did not read without first
-   knowing what there was to read, and chapter 7 is built from this.
+   knowing what there was to read, and the setup chapter is built from this.
 3. Fill ${EVID}/evidence.jsonl as you read, per that skill. Quotes and locators, taken
    while the file is open. Do not begin a chapter with it still empty.
 4. Staying in the same context, continue with .claude/skills/research-doc/SKILL.md and
@@ -92,7 +92,7 @@ document twice.`,
         gatesPassed: { type: 'boolean' },
         checkoutPath: { type: 'string' },
         summary: { type: 'string' },
-        // What was read, in the shape chapter 7 needs. Reporting these is what makes a
+        // What was read, in the shape the setup chapter needs. Reporting these is what makes a
         // thin read visible; a prompt line asking for depth is not.
         evidenceCount: { type: 'integer' },
         corpusEnumerated: { type: 'array', items: { type: 'string' } },
@@ -117,6 +117,9 @@ log(`draft complete: ${draft.slides} slides, ${draft.evidenceCount} evidence spa
 const NOT_THE_AUTHOR = `${HOUSE}
 
 Document: ${DOC}/index.html
+${a.question ? `The question the document exists to settle: ${a.question}` : ''}
+What the document is for (comparison / explainer / walkthrough) is the purpose field of
+${DOC}/meta.json; read it first, because what counts as missing depends on it.
 Corpus identity: ${EVID}/sources.jsonl
 Evidence the author recorded while reading: ${EVID}/evidence.jsonl
 Checkout: ${draft.checkoutPath || '(none given; fetch it from the pinned identity)'}

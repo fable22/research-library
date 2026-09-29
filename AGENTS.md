@@ -38,9 +38,9 @@ the prose rules all live inside them. Restating any of it here means two copies 
 
 | Skill | When | Context |
 |---|---|---|
-| `research-source` | Starting research. Pinning the corpus to a portable identity | author's |
-| `research-doc` | Writing the document | the **same** author context |
-| `research-verify` | After the draft is finished | **four lenses, deliberately separate contexts** |
+| `research-source` | Starting research. Choosing the document kind, pinning the corpus to a portable identity | author's |
+| `research-doc` | Writing the document | the same author context |
+| `research-verify` | After the draft is finished | three lenses in separate contexts, and a fourth that reads their reports |
 
 Do not break context between `research-source` and `research-doc`. When a claim starts to
 feel shaky mid-sentence you have to be able to reopen the source, and across a context
@@ -54,8 +54,8 @@ for it.
 `research-verify` is the opposite: always break it, for the reason that skill states at its
 top — a context re-reading its own sentences confirms what it already believes.
 
-Not being able to separate them reduces the review; the skill carries the reduced path.
-Skipping verify is not one of the options.
+When the contexts cannot be separated the review shrinks, and the skill carries the
+reduced path. Run that path and do not skip verify.
 
 ## Commands
 

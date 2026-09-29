@@ -55,7 +55,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 ├── index.html                      # Pages 목록 페이지 (스크립트가 생성)
 ├── assets/
 │   ├── index.css                   # 목록 페이지 스타일
-│   └── deck-shell.html             # 문서 덱의 CSS·JS 셸 (new-doc.mjs 가 찍어낸다)
+│   └── deck-shell.html             # 문서의 CSS·JS 셸, 연속 문서가 기본이고 덱은 토글 (new-doc.mjs 가 찍어낸다)
 ├── scripts/                        # 발행 인프라. skill 없이도 돌아간다
 │   ├── build-index.mjs             # meta.json 을 모아 index.html 과 위 표를 생성
 │   ├── check-doc.mjs               # 문서가 형식과 규약을 지키는지 검사
@@ -84,7 +84,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 
 `research/` 와 `.research/` 는 **같은 디렉터리 이름**을 씁니다. 그래야 `check-claims.mjs research/<slug>` 한 줄로 근거를 찾을 수 있고, 매핑 파일이나 작업 경로가 발행물에 새어 들어가지 않습니다.
 
-`sources.jsonl`, `evidence.jsonl`, `claims.jsonl` 은 커밋합니다. 조사는 머신 여러 대에서 이뤄지는데, 발행물만 머지되고 근거가 따라오지 않으면 받는 쪽에서 그 문서의 수치를 하나도 다시 확인할 수 없습니다. 세 파일 모두 문서당 수 KB입니다. `notes/` 는 다듬지 않은 중간 산출물이라 올리지 않습니다.
+`sources.jsonl`, `evidence.jsonl`, `claims.jsonl` 은 커밋합니다. 조사는 머신 여러 대에서 이뤄지는데, 발행물만 머지되고 근거가 따라오지 않으면 받는 쪽에서 그 문서의 수치를 하나도 다시 확인할 수 없습니다. 세 파일의 크기는 문서마다 달라서 큰 문서는 수백 KB에 이릅니다. `notes/` 는 다듬지 않은 중간 산출물이라 올리지 않습니다.
 
 스크립트가 두 곳에 나뉜 기준은 **누가 돌리는가**입니다. `scripts/` 는 발행물을 검사하고 목록을 만드는 저장소 게이트라서 skill 이 없어도 사람이 그대로 돌립니다. skill 안의 스크립트는 `.research/` 의 작업 산출물만 다루므로 그 skill 의 절차 밖에서는 쓸 일이 없습니다.
 
@@ -110,9 +110,9 @@ node scripts/check-doc.mjs research/YYYY-MM-DD-slug
 node scripts/build-index.mjs
 ```
 
-`new-doc.mjs` 가 출발용 골격이 들어간 `index.html` 과 `meta.json`, 그리고 `.research/<slug>/` 의 작업 파일을 함께 만듭니다. 유형은 `paper` 와 `oss` 두 가지이고 장 구성이 조금 다릅니다. 만든 직후 `check-doc.mjs` 를 통과합니다. 장 수는 늘리든 줄이든 상관없습니다. 게이트가 검사하는 것은 필수 eyebrow 여섯 개뿐입니다.
+`new-doc.mjs` 가 출발용 골격이 들어간 `index.html` 과 `meta.json`, 그리고 `.research/<slug>/` 의 작업 파일을 함께 만듭니다. 유형은 `paper` 와 `oss` 두 가지이고 장 구성이 조금 다릅니다. 만든 직후 `check-doc.mjs` 를 통과합니다. 장 수는 늘리든 줄이든 상관없습니다. 게이트가 요구하는 장은 eyebrow 여섯 개(`index`, `tl-dr`, `problem`, `critique`, `conclusion`, `sources`)이고, 나머지 구조 규칙은 `--help` 가 알려 줍니다. 문서 종류(`comparison`, `explainer`, `walkthrough`)는 조사를 시작할 때 고르고 `meta.json` 의 `purpose` 에 적습니다.
 
-덱의 CSS 와 JS 는 `assets/deck-shell.html` 에 있습니다. 기존 세 문서의 CSS 블록 md5 가 완전히 같고 JS 도 같아서, 어차피 복붙되던 것을 파일 하나로 모았습니다.
+문서의 CSS 와 JS 는 `assets/deck-shell.html` 에 있습니다. 기본은 장을 이어 읽는 연속 문서(`<body data-mode="article">`)이고 덱은 토글입니다. 문서마다 복붙되던 셸을 파일 하나로 모았습니다.
 
 이름은 조사가 끝나야 정해지는 경우가 많습니다. 바꿀 때는 직접 옮기지 말고 `rename` 을 쓰세요.
 
@@ -199,7 +199,7 @@ node scripts/check-prose.mjs --counts           # 막지 않는 밀도표
 node scripts/check-prose.mjs --help             # 규칙 목록
 ```
 
-한국어 산문을 봅니다. 반응어, 과장 형용사, 출처 없는 귀속, 이중 피동, 합쇼체 종결처럼 **낱말 목록으로 셀 수 있는 것만** 막습니다. 인용은 검사 대상이 아니라서 인용 그릇과 따옴표 안은 먼저 걷어냅니다. 셀 수 없는 것은 `--counts` 가 밀도만 내고 판단은 사람이나 검토 렌즈가 합니다.
+한국어 산문을 봅니다. 반응어, 과장 형용사, 출처 없는 귀속, 이중 피동, 합쇼체 종결처럼 **낱말 목록으로 셀 수 있는 것만** 막습니다. 인용은 검사 대상이 아니라서 인용 그릇과 따옴표 안은 먼저 걷어냅니다. 셀 수 없는 것은 `--counts` 가 밀도만 내고 판단은 저자의 읽기 패스가 합니다. 검토 렌즈는 문장이 읽히는지를 판정하지 않습니다.
 
 **경고 등급은 없습니다.** 걸리면 종료 코드 1 입니다. 예외가 필요하면 `--allow=size` 처럼 규칙 id 를 명시해야 하고, 넘긴 항목은 출력에 남습니다. 경고 등급을 두면 전부 경고로 흘러가고 아무도 고치지 않기 때문입니다.
 
