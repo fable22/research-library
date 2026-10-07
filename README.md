@@ -12,6 +12,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 
 | 날짜 | 문서 | 분류 |
 |---|---|---|
+| 2026-10-07 | [Meta 의 organizational second brain: 전문가 교정을 재학습 없이 검증된 텍스트 편집으로 바꾸는 지식 시스템](https://fable22.github.io/research-library/research/2026-10-07-meta-organizational-second-brain/) | 메모 |
 | 2026-09-30 | [Claude Sonnet 5.5 이전 안내: Sonnet 5 코드에서 바꿀 곳](https://fable22.github.io/research-library/research/2026-09-30-claude-sonnet-5-5-migration/) | 메모 |
 | 2026-09-30 | [Claude Opus 5.5 소개 글: 절마다 내 코드와 비용에서 달라지는 것](https://fable22.github.io/research-library/research/2026-09-30-claude-opus-5-5-introduction/) | 메모 |
 | 2026-09-21 | [Jev System One: 문장 대신 판단과 확률을 반환하는 모델](https://fable22.github.io/research-library/research/2026-09-21-jev-system-one/) | 주제 리서치 |

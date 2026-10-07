@@ -1,0 +1,24 @@
+{
+  "title": "Meta 의 organizational second brain: 전문가 교정을 재학습 없이 검증된 텍스트 편집으로 바꾸는 지식 시스템",
+  "date": "2026-10-07",
+  "seq": 34,
+  "summary": "Engineering at Meta 의 「An Organizational Second Brain」(2026-09-02)을 그림 세 장까지 풀어, 전문가 지식을 밀도와 사용 빈도로 나눠 담는 파일 구조(position, vocabulary, routing index, gateway 와 양방향 의존 frontmatter), 지식과 절차를 떼는 recipe, 그리고 교정을 진단, 최소 편집, 맥락 없는 리뷰, blind replay 와 회귀 시험, PR 착지로 바꾸는 루프를 설명한다. 교정 하나를 합성 사례로 끝까지 따라가고, 7~9월 공개 사례 넷(SkillOpt, Cerebras, Anthropic 보안팀, Claude Tag on-call)을 개념마다 붙였다. Claude 의 AI-native SDLC playbook 을 렌즈로 쓰면 이 수명주기는 버전 관리와 직무 분리, 설정 회귀 시험을 지식 자체에 입혔고, 실패 신호가 전문가의 말이며 판정자가 LLM 이고 입장을 일부러 바꿀 때 시험을 고치는 경로가 없다는 점에서 갈라진다. Meta 의 숫자(파일 200개 이상, 턴당 token 약 80% 감소, 6주 3 sprint, 회귀 0건)는 자기 보고이고, token 감소 말고는 측정된 기준선이 없다.",
+  "category": "note",
+  "format": "article",
+  "purpose": "explainer",
+  "tags": [
+    "meta",
+    "organizational second brain",
+    "knowledge base",
+    "llm wiki",
+    "self-improvement",
+    "regression eval",
+    "adversarial review",
+    "ai-native sdlc",
+    "explainer"
+  ],
+  "source": {
+    "label": "engineering.fb.com/2026/09/02/…/organizational-second-brain",
+    "url": "https://engineering.fb.com/2026/09/02/ml-applications/organizational-second-brain-ai-learns-from-experts/"
+  }
+}

@@ -1,0 +1,1109 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Meta 의 organizational second brain: 전문가 교정을 재학습 없이 검증된 텍스트 편집으로 바꾸는 지식 시스템</title>
+<meta name="description" content="Engineering at Meta 의 「An Organizational Second Brain」(2026-09-02)을 그림 세 장까지 풀어, 전문가 지식을 밀도와 사용 빈도로 나눠 담는 파일 구조(position, vocabulary, routing index, gateway 와 양방향 의존 frontmatter), 지식과 절차를 떼는 recipe, 그리고 교정을 진단, 최소 편집, 맥락 없는 리뷰, blind replay 와 회귀 시험, PR 착지로 바꾸는 루프를 설명한다. 교정 하나를 합성 사례로 끝까지 따라가고, 7~9월 공개 사례 넷(SkillOpt, Cerebras, Anthropic 보안팀, Claude Tag on-call)을 개념마다 붙였다. Claude 의 AI-native SDLC playbook 을 렌즈로 쓰면 이 수명주기는 버전 관리와 직무 분리, 설정 회귀 시험을 지식 자체에 입혔고, 실패 신호가 전문가의 말이며 판정자가 LLM 이고 입장을 일부러 바꿀 때 시험을 고치는 경로가 없다는 점에서 갈라진다. Meta 의 숫자(파일 200개 이상, 턴당 token 약 80% 감소, 6주 3 sprint, 회귀 0건)는 기준선 없는 자기 보고다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Meta 의 organizational second brain: 전문가 교정을 재학습 없이 검증된 텍스트 편집으로 바꾸는 지식 시스템">
+<meta property="og:description" content="Engineering at Meta 의 「An Organizational Second Brain」(2026-09-02)을 그림 세 장까지 풀어, 전문가 지식을 밀도와 사용 빈도로 나눠 담는 파일 구조(position, vocabulary, routing index, gateway 와 양방향 의존 frontmatter), 지식과 절차를 떼는 recipe, 그리고 교정을 진단, 최소 편집, 맥락 없는 리뷰, blind replay 와 회귀 시험, PR 착지로 바꾸는 루프를 설명한다. 교정 하나를 합성 사례로 끝까지 따라가고, 7~9월 공개 사례 넷(SkillOpt, Cerebras, Anthropic 보안팀, Claude Tag on-call)을 개념마다 붙였다. Claude 의 AI-native SDLC playbook 을 렌즈로 쓰면 이 수명주기는 버전 관리와 직무 분리, 설정 회귀 시험을 지식 자체에 입혔고, 실패 신호가 전문가의 말이며 판정자가 LLM 이고 입장을 일부러 바꿀 때 시험을 고치는 경로가 없다는 점에서 갈라진다. Meta 의 숫자(파일 200개 이상, 턴당 token 약 80% 감소, 6주 3 sprint, 회귀 0건)는 기준선 없는 자기 보고다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-10-07-meta-organizational-second-brain/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+/* 문장 안의 짧은 인용. 블록 인용 .q 와 같은 class 라 check-prose 가 둘 다 건너뛴다 */
+span.q { display: inline; font: inherit; font-style: normal; color: var(--ink-2); border: 0; padding: 0; margin: 0; max-width: none; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+/* 핵심 한두 문장. 제목 아래에서 독자가 이 주장으로 무엇을 하는지 말한다. */
+.key { font-size: clamp(15px, 1.5vw, 17px); font-weight: 600; line-height: 1.55; color: var(--ink); margin: 0 0 22px; padding-left: 12px; border-left: 4px solid var(--link); max-width: 70ch; text-wrap: pretty; }
+/* 첨언. 계산 과정, 원문 문단 위치, 인용 원문, 조건의 세부. 기본은 접힘. */
+details.more { margin: 0 0 22px; border: 1px solid var(--rule); border-radius: 10px; padding: 8px 14px; background: var(--card); color: var(--ink-2); font-size: 14px; }
+details.more summary { cursor: pointer; font-weight: 600; color: var(--muted); font-size: 13px; }
+details.more[open] summary { margin-bottom: 6px; }
+details.more p { margin: 8px 0; }
+/* 한 줄짜리 사실 목록. 항목마다 한 줄이 넘으면 첨언으로 보낸다. */
+ul.facts { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 8px; }
+ul.facts li { display: grid; grid-template-columns: minmax(3.2em, max-content) 1fr; gap: 10px; font-size: 14.5px; color: var(--ink); line-height: 1.5; }
+ul.facts li .m { font-size: 12px; color: var(--muted); padding-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); margin: 0 0 18px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+/* 글이 든 표: 독자 상황별 표, 판단 표. 숫자 표의 오른쪽 정렬·줄바꿈 금지를 푼다 */
+table.prose-table th, table.prose-table td { text-align: left; white-space: normal; vertical-align: top; line-height: 1.5; font-size: 13.5px; }
+table.prose-table tbody td { font-family: var(--sans); font-variant-numeric: normal; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+/* ── article: 기본 읽기 방식. 장을 이어서 스크롤로 읽고 rail 은 목차가 된다. 덱은 토글. ── */
+body[data-mode="article"] .deck { position: static; inset: auto; min-height: 100vh; }
+body[data-mode="article"] .rail { position: sticky; top: 0; height: 100vh; box-sizing: border-box; }
+body[data-mode="article"] .stage { overflow: visible; }
+body[data-mode="article"] .slide {
+  position: static; inset: auto; opacity: 1; visibility: visible; transform: none; transition: none;
+  overflow: visible; padding-bottom: 40px; border-bottom: 1px solid var(--rule); scroll-margin-top: 8px;
+}
+body[data-mode="article"] .slide:last-child { border-bottom: 0; padding-bottom: 96px; }
+body[data-mode="article"] .hud { position: fixed; }
+body[data-mode="article"] #prev, body[data-mode="article"] #next, body[data-mode="article"] .hint { display: none; }
+
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+.src > div { margin: 0 0 8px; line-height: 1.5; }
+.src .t { color: var(--muted); font-size: .9em; margin-left: 6px; }
+a.xref { color: var(--link); }
+</style>
+</head>
+<body data-mode="article">
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <!-- 목차는 셸 스크립트가 장에서 만든다. 장의 data-label 이 목차 이름이다 -->
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true" data-label="표지">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>Meta 의 organizational second brain: 전문가 교정을 재학습 없이 검증된 텍스트 편집으로 바꾸는 지식 시스템</h1>
+      <p class="dek">Engineering at Meta 의 「An Organizational Second Brain: Building an AI That Learns From Experts」(2026-09-02, 이하 B)를 그림 세 장까지 포함해 끝까지 읽고 구조를 풀었다. 독자는 사내 지식을 agent 에게 먹이는 개발자이고, 이 문서를 읽고 나면 자기 도메인에서 전문가의 교정 하나가 어떤 파일을 바꾸고 어떤 검사에 걸리는지 예측할 수 있어야 한다.</p>
+      <table class="prose-table" style="margin:0 0 18px">
+        <thead><tr><th>B 의 절</th><th>이 문서의 장</th></tr></thead>
+        <tbody>
+          <tr><td>도입 · The Architecture at a Glance</td><td>03 문제 · 04 네 층</td></tr>
+          <tr><td>Building the Organizational Second Brain</td><td>05 파일 분류와 의존 그래프</td></tr>
+          <tr><td>Organizing Knowledge by Density and Usage Frequency</td><td>06 wiki 와 RAG 의 경계</td></tr>
+          <tr><td>Expert Reasoning via Composable Recipes</td><td>07 recipe 와 progressive disclosure</td></tr>
+          <tr><td>Keeping Humans in Control</td><td>08 checkpoint 와 escalation</td></tr>
+          <tr><td>The Self-Improvement Flywheel</td><td>09 루프 전체 · 10 진단 · 11 컴파일과 리뷰 · 12 평가 · 13 착지와 보강</td></tr>
+          <tr><td>(원문에 없는 사례)</td><td>14 교정 하나를 끝까지 · 15 원리가 멈추는 곳</td></tr>
+          <tr><td>Results · Applying This Architecture</td><td>16 결과 · 17 일반화 조건</td></tr>
+          <tr><td>(원문에 없는 렌즈)</td><td>18 SDLC 에서 빌려온 규율 · 19 SDLC 와 갈라지는 곳</td></tr>
+        </tbody>
+      </table>
+      <p>18, 19장의 SDLC 대응은 이 문서가 만든 것이다. B 본문에는 SDLC, Claude, Anthropic 이라는 낱말이 한 번도 나오지 않는다. 대응의 기준은 Claude 블로그의 「The AI-native SDLC playbook」(2026-08-21, 이하 playbook)이다. 개념마다 붙인 사례는 2026년 7월부터 9월 사이에 공개된 네 건(SkillOpt, Cerebras, Anthropic 보안팀, Claude Tag on-call)이고 각각 날짜와 고정 사본이 있다. 같은 저장소의 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM Wiki 문서</a>가 B 가 계보로 대는 Karpathy 의 패턴을, <a class="xref" href="../2026-08-12-cerebras-knowledge-base/">Cerebras 지식 베이스 문서</a>가 06장의 대조 사례를, <a class="xref" href="../2026-09-11-skilladam/">SkillAdam 문서</a>가 skill 파일 자동 편집의 다른 갈래를 다룬다.</p>
+      <details class="more"><summary>첨언: 읽는 방법</summary><p>각 장의 굵은 문장(.key)이 그 장의 주장이다. 원문 인용은 따옴표 안에 원문 그대로 두었고, 위치는 B 의 절 제목(§)으로 적었다. B 의 그림 세 장은 alt 가 비어 있어서 이미지 속 글자를 옮겨 다시 그렸다. 모든 원문은 2026-10-07 08:00 UTC 전후에 받은 판이다.</p></details>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide" data-label="요약">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>요약: 지식은 텍스트 파일에, 학습은 검증된 diff 로</h2>
+      <p class="key">B 의 시스템은 전문가의 교정을 모델 가중치가 아니라 200개 넘는 텍스트 파일의 diff 로 반영한다. 교정 하나는 근본 원인을 지식 쪽과 절차 쪽 중 하나로 귀속하는 진단을 거쳐 최소 편집이 되고, 맥락을 공유하지 않는 리뷰어와 blind replay, 회귀 벤치마크를 통과해야 PR 로 사람 앞에 간다. 수치는 Meta 의 자기 보고뿐이고, 측정된 기준선과 비교한 것은 token 감소 하나이며 표본 수는 어디에도 없다.</p>
+      <ul class="facts">
+        <li><span class="m">구조</span><span>자주 쓰는 고밀도 지식(입장, 용어, 라우팅, 진입 문턱)은 frontmatter 로 서로를 가리키는 파일에 두고, 가끔 필요한 자료만 RAG 로 찾는다</span></li>
+        <li><span class="m">분리</span><span>recipe 는 절차만, 지식 파일은 사실만 담는다. 그래서 틀린 답이 나오면 둘 중 어느 쪽을 고칠지 정할 수 있다</span></li>
+        <li><span class="m">루프</span><span>진단, 컴파일, 평가, 착지. 평가에서 떨어지면 컴파일로 돌아가고, 착지한 교정은 회귀 suite 의 새 시험이 된다</span></li>
+        <li><span class="m">숫자</span><span>파일 200개 이상, 턴당 token 약 80% 감소(초기 단일 지시 파일 대비), 6주 3 sprint, 회귀 0건, 평가 시간 며칠에서 몇 분. 측정 방법은 하나도 공개되지 않았다</span></li>
+      </ul>
+      <p>SDLC 렌즈로 보면 B 의 지식 베이스는 playbook 이 CLAUDE.md 와 skills 에 요구하는 규율(버전 관리, 리뷰의 분리, 설정 변경의 회귀 테스트, 사고를 시험으로 남기기)을 지식 자체의 수명주기로 끌어올린 것이다. 갈라지는 곳은 셋이다. 실패 신호가 지표가 아니라 전문가의 말이고, 시험의 판정자가 결정적 테스트가 아니라 LLM 이며, 조직이 입장을 일부러 바꿀 때 지난 교정으로 쌓인 시험을 어떻게 고치는지 B 는 말하지 않는다.</p>
+      <details class="more"><summary>첨언: 확인되지 않은 것</summary><p>B 는 도메인을 「a specific compliance domain」 이라고만 하고, 개선 사이클이 몇 번 돌았는지, 교정이 몇 건 들어왔는지, 판정 LLM 의 정확도가 얼마인지 밝히지 않는다. 「useful almost all the time」 에는 숫자가 없다. 16장이 숫자마다 빠진 기준을 적는다.</p></details>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide" data-label="문제 정의">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>문제: 전문가의 판단은 문서에 없고, chunk 검색은 판단을 매번 다시 만든다</h2>
+      <p class="key">B 가 푸는 문제는 둘이다. 조직의 판단 기준이 몇 사람 머리에만 있어서 같은 질문이 수백 번의 검토에서 반복되고, 문서를 chunk 로 찾아 주는 agent 는 그 판단을 매 실행마다 원자료에서 다시 유도하느라 느리고 결과가 들쭉날쭉하다.</p>
+      <p>B 가 드는 예는 compliance 다. <span class="q">“the same types of questions can arise across hundreds of product reviews, expert assessments take days of manual research, and inconsistency between assessments creates real organizational risk.”</span> 범용 LLM 은 조직이 무엇을 <em>할 수 있는지</em>는 요약하지만 과거 입장과 사업 방향에 비추어 무엇을 <em>해야 하는지</em>는 가리지 못한다고 B 는 쓴다.</p>
+      <p>B 의 진단에서 chunk 검색이 실패하는 지점은 반복이다. <span class="q">“An agent that retrieves document chunks at inference time has to re-derive that reasoning from raw sources on every run, which is slow, error-prone, and inconsistent.”</span> 그래서 답은 판단을 미리 꺼내 두는 것이다. 오래 도는 오프라인 과정이 원자료를 읽고 <span class="q">“distills them into structured knowledge files”</span>, 즉 조직이 그 도메인을 어떻게 해석하는지를 기계가 읽을 수 있는 문장으로 증류한다.</p>
+      <p>이 증류가 B 의 두 번째 문제로 이어진다. 파일이 수백 개가 되고 서로 의존하면, 전문가의 교정 한 건을 정확한 파일 편집으로 옮기는 일이 사람 손으로는 몇 주 걸린다. <span class="q">“This process can take weeks because it requires understanding the full dependency graph, verifying nothing else breaks, and validating the fix actually works.”</span></p>
+      <details class="more"><summary>첨언: 원문 위치</summary><p>첫 인용은 B 도입부, 둘째와 셋째는 §Building the Organizational Second Brain, 넷째는 §The Self-Improvement Flywheel 이다. could 와 should 의 구분은 §The Architecture at a Glance: <span class="q">“it will not be able to distinguish between what an organization could do (a summary of general information) and what it should consider doing (based on historic positions, company direction, business context, etc.)”</span></p></details>
+    </div>
+  </section>
+
+  <!-- 04 -->
+  <section class="slide" data-label="네 층">
+    <div class="slide-inner">
+      <p class="eyebrow">layers</p>
+      <h2>네 층: 지식, 추론, 평가, 개선</h2>
+      <p class="key">B 의 시스템은 네 층이고 서로 기댄다. 파일 구조가 있어야 자동 편집이 되고, 절차가 명시돼야 실패를 귀속할 수 있고, 평가가 모든 변경을 막아서고, 개선 루프가 다시 지식과 절차를 고친다. B 는 하나를 빼면 나머지도 약해진다고 쓴다.</p>
+      <figure class="figure">
+        <p class="fig-title">층마다 푸는 문제와 B 가 내세우는 착안</p>
+        <p class="fig-sub">B §The Architecture at a Glance 의 표 그림(Domain-Expert-AI-Table.png)을 옮겨 적고 우리말로 풀었다</p>
+        <div class="tablewrap"><table class="prose-table">
+          <thead><tr><th>층</th><th>푸는 문제</th><th>B 의 착안</th></tr></thead>
+          <tbody>
+            <tr><td>Knowledge System</td><td>제도 지식이 흩어져 있고 AI 가 접근할 수 없다</td><td>LLM 이 읽기 좋게 최적화한, 탐색 가능한 파일 시스템으로 지식을 구조화한다</td></tr>
+            <tr><td>Reasoning Pipeline</td><td>전문가의 분석은 정해진 방법론을 따르는데, 하나로 뭉친 prompt 는 방법론을 담지 못한다</td><td>아는 것과 추론하는 방법을 recipe 라는 조합 가능한 절차로 떼어 낸다. 이 분리가 progressive disclosure 를 가능하게 한다</td></tr>
+            <tr><td>Evaluation Framework</td><td>재지 못하면 개선하지 못한다</td><td>개선 사이클마다 커지는 자동 벤치마크</td></tr>
+            <tr class="hero"><td>Self-Improvement Loop</td><td>수작업 피드백 사이클은 몇 주 걸리고 늘릴 수 없다</td><td>지식 유지보수를 자동 검증이 붙은 compilation 문제로 다룬다</td></tr>
+          </tbody>
+        </table></div>
+        <figcaption>원 그림은 이미지 속 표라서 alt 가 비어 있다. 첫 행의 착안 칸에는 「LLMs are better at managing knowledge than people.」 이라는 주장이 있는데 B 는 근거를 대지 않는다. 마지막 행을 강조한 것은 B 가 그 층을 「the most distinctive part」 라고 부르기 때문이다.</figcaption>
+      </figure>
+      <p>네 층의 의존은 한 방향이 아니다. 지식 층의 파일 경계와 frontmatter 가 개선 루프의 자동 편집을 가능하게 하고, 추론 층의 절차 분리가 개선 루프의 진단을 가능하게 하며, 평가 층이 개선 루프의 출력을 걸러 낸다. 그래서 이 문서는 네 층을 따로 설명한 뒤 개선 루프에서 다시 모은다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>§The Architecture at a Glance: <span class="q">“The knowledge system’s file structure makes automated editing possible. The reasoning layer’s explicit procedures make failure attribution tractable. The evaluation framework gates every change.”</span> 이어서 <span class="q">“Remove any one layer and the others degrade.”</span> 표 그림의 영어 원문 전체는 notes/figures.md 에 있다.</p></details>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section class="slide" data-label="파일 분류">
+    <div class="slide-inner">
+      <p class="eyebrow">files</p>
+      <h2>파일 분류: position, vocabulary, routing index, gateway</h2>
+      <p class="key">지식 층은 200개 넘는 파일을 네 종류로 나눈다. 조직의 입장(position), 용어집(vocabulary), 입력을 해당 파일로 보내는 색인(routing index), 분석 영역에 들어가기 전의 문턱(gateway)이다. 모든 파일이 frontmatter 에 자기가 기대는 파일과 자기를 쓰는 파일을 적으므로, 한 파일을 고치면 영향받는 파일을 추적할 수 있다.</p>
+      <ul class="facts">
+        <li><span class="m">position</span><span>조직이 그 도메인 질문을 어떻게 해석하기로 했는지, 제약과 경계 조건, 언제 적용하는지를 알려 주는 라우팅 함의까지. 그림에서는 「Supreme authority articles」</span></li>
+        <li><span class="m">vocabulary</span><span>개체 유형, 활동 범주, 분류 등급 같은 조직 용어의 단일 정본. agent 와 조직이 같은 낱말을 쓰게 한다</span></li>
+        <li><span class="m">routing index</span><span>입력의 특징을 해당 position 과 절차에 잇는다. embedding 유사도에만 기대지 않으므로 어떤 파일이 왜 불렸는지 감사할 수 있다</span></li>
+        <li><span class="m">gateway</span><span>분석 영역에 들어가기 전에 통과해야 하는 문턱 시험. 전문 지식이 해당하지 않는 곳에 적용되는 것을 막는다</span></li>
+      </ul>
+      <figure class="figure">
+        <p class="fig-title">position 파일 하나가 언제 불리고 무엇에 기대는가</p>
+        <p class="fig-sub">B §Building the Organizational Second Brain 의 그림 「Sample structure of knowledge base + front-matters」 일부를 옮겨 적음. B 는 이 그림을 「Generalized example」 이라 부른다</p>
+<pre>knowledge_system/
+├── SKILL.md                              ← "Homepage": 맞는 workflow 로 보낸다
+└── references/
+    ├── recipe/                           ← 절차 ("How-To Guides")
+    │   ├── investigation/recipe-steps.md   (7단계 절차)
+    │   ├── risk-assessment/pipeline.md     (4-phase 파이프라인)
+    │   ├── citation-protocol.md
+    │   └── retrieval-protocol.md           (외부 자료 찾는 법)
+    └── knowledge/                        ← 사실과 규칙 ("Reference Articles")
+        ├── positions/_domains.md           (목차)
+        ├── positions/product-safety/ps-position-1.md … (12개)
+        ├── investigation/ps-position-routing-index.md
+        └── external-sources/external-source-routing-index.md
+
+<b>ps-position-1.md frontmatter</b>
+id: ps-position-1
+name: "Review Required for High-Risk Features"
+type: position
+triggers:          <span class="c"># 언제 이 파일을 싣는가</span>
+  - third-party integration
+  - in-app purchases
+  - hardware device launch
+depends_on:        <span class="c"># 이 파일이 필요로 하는 것</span>
+  - ps-position-5
+  - ps-position-8
+referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
+  - ps-position-routing-index
+  - ra-scoring-criteria
+  - ra-requirement-catalog</pre>
+        <figcaption>원 그림의 트리에서 하위 폴더 몇 개(scoring, case-law 등)를 줄였다. 그림 트리에는 gateway 라는 이름의 파일이 없고, 진입 파일 이름이 SKILL.md 다. B 본문은 이 파일 이름에 대해 아무 말도 하지 않는다.</figcaption>
+      </figure>
+      <p>이 frontmatter 로 독자가 예측할 수 있는 것이 있다. ps-position-1 의 문장을 고치면 영향 범위는 referenced_by 세 파일이고, 그 셋을 쓰는 recipe 단계의 출력이 달라질 수 있다. 반대로 ps-position-5 를 고치면 ps-position-1 이 기대는 전제가 바뀐다. B 가 양방향 그래프를 강조하는 이유도 여기 있다. 자동 편집기가 한 파일만 보고 고치면 의존하는 파일과 모순이 생기는데, 그래프가 있으면 편집기가 검사할 파일 목록을 기계적으로 얻는다. B 가 계보로 대는 Karpathy 의 LLM Wiki 와 Google 의 OKF 도 파일을 링크로 잇지만, 의존과 사용처를 frontmatter 에 양쪽으로 선언하는 필드는 두 자료에 없다.</p>
+      <p>B 의 설명에서 비는 곳도 이 그림에서 보인다. 「언제 이 파일을 싣는가」 를 정하는 장치가 셋이다. position 자신의 triggers, 입력을 position 에 잇는 routing index, 분석 영역의 문턱인 gateway 다. B 는 position 이 「언제 적용할지」 를 스스로 담는다고도 쓰고 routing index 가 어떤 파일이 적용될지 정한다고도 쓰지만, 둘이 어긋날 때 어느 쪽이 이기는지, gateway 의 문턱 시험을 LLM 이 판정하는지 코드가 판정하는지는 말하지 않는다. 그래서 「이 position 이 불렸어야 했다」 는 교정이 triggers 를 고치는지 routing index 를 고치는지도 B 만으로는 정해지지 않는다(14장).</p>
+      <details class="more"><summary>첨언: 원문</summary><p>§Building the Organizational Second Brain: <span class="q">“Every file declares its dependencies (depends_on) and consumers (referenced_by) in YAML frontmatter, forming a bidirectional dependency graph.”</span> 그리고 <span class="q">“When one file changes, you can trace exactly what else might be affected, which matters when the self-improvement loop proposes automated edits.”</span> routing index: <span class="q">“Routing indexes map input characteristics to the relevant positions and procedures, determining which files apply without relying on embedding similarity alone. This makes retrieval deterministic and auditable.”</span> gateway: <span class="q">“Gateway files define threshold tests the agent must pass before entering an analytical domain, preventing it from applying specialized knowledge where it does not belong.”</span></p>
+      <p>B 가 계보로 대는 두 자료와 비교하면, Karpathy 의 LLM Wiki 는 index.md 와 log.md 두 특수 파일로 탐색하고 <span class="q">“This works surprisingly well at moderate scale (~100 sources, ~hundreds of pages) and avoids the need for embedding-based RAG infrastructure.”</span> 라고 쓴다. Google 의 Open Knowledge Format(OKF) v0.1 은 <span class="q">“OKF requires exactly one thing of every concept: a type field.”</span> OKF 는 개념 사이를 <span class="q">“Concepts link to each other with normal markdown links, turning the directory into a graph of relationships”</span> 로 잇는다. position 의 라우팅 함의: <span class="q">“machine-actionable routing implications that tell the reasoning layer when to apply it.”</span></p></details>
+    </div>
+  </section>
+
+  <!-- 06 -->
+  <section class="slide" data-label="wiki 와 RAG">
+    <div class="slide-inner">
+      <p class="eyebrow">density</p>
+      <h2>wiki 와 RAG 의 경계: 정보 밀도와 사용 빈도</h2>
+      <p class="key">B 는 어떤 자료를 큐레이션한 wiki 에 넣고 어떤 자료를 RAG 로 찾을지를 두 축으로 정한다. 밀도가 높고 거의 매 턴 참조되는 증류 지식은 wiki 로 가고, 해당할 때만 깊이 중요한 희소 자료는 semantic 또는 lexical 검색으로 간다. 밀도는 높은데 드물게 쓰이는 자료가 어디로 가는지는 B 에 없다. 이 문서는 빈도 쪽이 경계를 정한다고 읽고, 그래서 도메인이 넓어지면 같은 자료가 반대편으로 옮겨 갈 수 있다고 예측한다.</p>
+      <figure class="figure">
+        <p class="fig-title">한 질의가 두 갈래로 지식을 얻는다</p>
+        <p class="fig-sub">B §Organizing Knowledge by Density and Usage Frequency 의 문장을 그림으로 옮긴 것. B 에는 이 그림이 없다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 760 250" role="img" aria-label="질의는 routing recipe 를 거쳐 단계별 recipe 로 간다. 단계 recipe 는 wiki 쪽 position, vocabulary, decision framework 파일을 거의 매 턴 직접 싣고, 제품 명세나 과거 결정 기록, 외부 자료 같은 희소 자료는 필요할 때만 RAG 검색으로 가져온다." style="width:100%;height:auto;min-width:560px">
+          <rect class="box" x="10" y="95" width="110" height="56" rx="8"/>
+          <text class="txt" x="22" y="119">질의</text>
+          <text class="txt-s" x="22" y="137">제품 검토 요청</text>
+          <path class="arw" d="M120 123 L156 123"/><path class="arw" d="M149 118 L156 123 L149 128"/>
+          <rect class="box" x="158" y="95" width="150" height="56" rx="8"/>
+          <text class="txt" x="170" y="119">routing recipe</text>
+          <text class="txt-s" x="170" y="137">단계 recipe 를 고른다</text>
+          <path class="arw" d="M308 123 L344 123"/><path class="arw" d="M337 118 L344 123 L337 128"/>
+          <rect class="box-hi" x="346" y="95" width="150" height="56" rx="8"/>
+          <text class="txt" x="358" y="119">단계 recipe</text>
+          <text class="txt-s" x="358" y="137">이 단계에 필요한 것만</text>
+          <path class="arw" d="M496 110 L540 58"/><path class="arw" d="M531 59 L540 58 L539 67"/>
+          <path class="arw" d="M496 136 L540 188"/><path class="arw" d="M539 179 L540 188 L531 187"/>
+          <rect class="box-hi" x="542" y="22" width="208" height="70" rx="8"/>
+          <text class="txt" x="554" y="46">wiki: 직접 싣는다</text>
+          <text class="txt-s" x="554" y="64">position, vocabulary, 판단 틀,</text>
+          <text class="txt-s" x="554" y="80">경계 사례. 거의 매 턴</text>
+          <rect class="box" x="542" y="154" width="208" height="70" rx="8"/>
+          <text class="txt" x="554" y="178">RAG: 필요할 때 찾는다</text>
+          <text class="txt-s" x="554" y="196">제품 명세, 과거 결정 기록,</text>
+          <text class="txt-s" x="554" y="212">세부 참고 자료, 외부 지식</text>
+        </svg>
+        </div>
+        <figcaption>wiki 쪽 예시와 RAG 쪽 예시는 B 의 문장에 나온 목록 그대로다. 밀도와 빈도의 문턱값은 B 에 없다.</figcaption>
+      </figure>
+      <p>B 가 RAG 를 남겨 두는 이유는 부피와 주의 분산이다. 희소 자료까지 wiki 에 넣으면 <span class="q">“Loading all of them into the wiki would bloat the system and dilute attention.”</span> wiki 쪽은 조직의 생각이 바뀔 때마다 고쳐야 하므로 버전 관리와 검증이 쉬운 형태여야 하고, RAG 쪽은 원본 그대로 두어도 된다. 개선 루프가 편집한다고 B 가 쓰는 대상도 knowledge 파일과 recipe 이고, RAG 쪽 원자료를 고친다는 말은 없다.</p>
+      <p><b>사례: Cerebras 사내 지식 베이스(2026-07-15).</b> 반대편 선택을 한 공개 사례다. Cerebras 는 Slack, 코드, 문서를 <span class="q">“a single Postgres table that holds embeddings, raw summaries, and metadata from many sources”</span> 하나에 넣고 하루 15,000개 넘는 질문에 답한다. 그런데 이 시스템도 밀도 문제를 만난다. <span class="q">“Information density varies enormously: “hey yeah sure mike” and a detailed kernel explanation are both messages.”</span> Cerebras 의 해법은 thread 를 LLM 으로 정규화해 질문 한 줄과 시스템 참조로 증류한 뒤 embedding 하는 것이었다. 증류는 B 와 같은데, 증류 결과를 검색 대상으로 둘 뿐 사람이 고치는 정본으로 두지 않는다.</p>
+      <p>두 사례로 경계를 예측하면 이렇다. 질문 분포가 좁고 같은 판단 기준이 매번 쓰이는 도메인(한 compliance 영역)에서는 그 기준을 wiki 정본으로 두는 편이 맞다. 질문 분포가 회사 전체로 넓고 답이 시간에 따라 낡는 경우(Cerebras 는 Slack 답이 만료된다고 쓴다)에는 전부를 정본으로 관리할 사람이 없으므로 검색 쪽에 남는다. B 의 시스템을 회사 전체로 넓히면 지금 wiki 에 있는 일부 position 이 「거의 매 턴」 조건을 잃고 RAG 쪽으로 옮겨 가야 한다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>B: <span class="q">“High-density, frequently referenced sources go into the wiki: Distilled files capturing how the organization reasons, such as positions, decision frameworks, boundary examples, and strategic interpretations. The agent consults these on nearly every turn.”</span> 그리고 <span class="q">“Sparse, situationally relevant sources are served through semantic or lexical search (RAG): documents that matter deeply when they apply but are not needed in detail on most runs”</span></p><p>Cerebras(c2): <span class="q">“The original transcript is not embedded directly. In our experiments, accuracy increased significantly when the thread was normalized into a consistent format.”</span> 신선도: <span class="q">“encodes that Slack answers expire. Two threads can answer the same question, and the one from six months ago may describe infrastructure that no longer exists.”</span> Cerebras 페이지는 라이브 URL 이 HTTP 500 을 내면서 본문을 응답 payload 에 담아 보냈고, 사본은 그 payload 에서 뽑았다.</p></details>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section class="slide" data-label="recipe">
+    <div class="slide-inner">
+      <p class="eyebrow">recipes</p>
+      <h2>recipe: 아는 것과 추론하는 방법을 다른 파일에 둔다</h2>
+      <p class="key">recipe 는 분석 절차를 적은 명령형 파일이고 도메인 사실을 담지 않는다. knowledge 파일은 입장을 적되 절차를 담지 않는다. 이 규칙 하나로 변경이 한쪽에 갇히고, 틀린 답의 원인을 「지식이 틀렸나, 절차가 틀렸나」 로 물을 수 있게 된다. 같은 구조가 progressive disclosure 를 만들어, 단계마다 그 단계의 지시와 지식만 context 에 실린다.</p>
+      <ul class="facts">
+        <li><span class="m">입장 추가</span><span>knowledge 파일 하나를 더하고 routing index 를 고친다. recipe 는 그대로다</span></li>
+        <li><span class="m">방법 수정</span><span>recipe 를 고친다. knowledge 파일은 그대로다</span></li>
+        <li><span class="m">실패 귀속</span><span>틀린 결과는 두 층 중 하나로 돌릴 수 있다. 10장의 진단이 이 성질에 기댄다</span></li>
+        <li><span class="m">약 80%</span><span>턴당 token 감소. 비교 대상은 초기판, 즉 단일 평면 지시 파일에 모든 자료를 semantic search 로 싣던 구조다</span></li>
+      </ul>
+      <p>recipe 는 서로를 부른다. 최상위 routing recipe 가 입력을 보고 하위 recipe 를 고르고, 하위 recipe 하나가 분석의 한 단계를 맡는다. B 는 이 구성을 주방장의 master recipe 가 소스와 가니시의 하위 recipe 에 일을 넘기는 것에 빗댄다. 단계마다 필요한 파일만 싣기 때문에 질의 하나가 건드리는 파일이 적고, 80% 감소는 그 결과다. B 는 같은 구조가 추론 품질도 높인다고 쓰지만 품질 쪽 측정은 내놓지 않는다.</p>
+      <p><b>사례: Claude Tag on-call(Anthropic, 2026-08-18).</b> 같은 분리를 반쯤 한 공개 사례다. CI on-call agent 의 지시는 skill 로 저장소에 커밋되어 있고, 버그 종류마다 조사 절차를 적은 skill 이 있다(shadow divergence 버그용이 617줄). 사실 쪽은 lessons.md 라는 사건 기록에 쌓인다. 그런데 lessons.md 에는 사실과 절차가 섞인다. 글쓴이가 가장 좋아한다는 항목은 <span class="q">“query the data first, then theorize. Config tells you what could go wrong; metrics tell you what did.”</span> 인데, 사건의 사실보다는 조사 방법에 속한다. B 의 규칙을 적용하면 이 문장은 recipe 쪽으로 가야 하고, Claude Tag 팀은 실제로 반복되는 패턴을 skill 로 「승격」 한다고 쓴다.</p>
+      <p>독자의 시스템으로 예측해 보면, 지시 파일 하나에 「이 API 는 v2 를 쓴다」(사실)와 「먼저 로그를 보고 가설을 세운다」(절차)가 섞여 있을 때 agent 가 틀리면 어느 문장을 고칠지 정할 근거가 없다. 두 문장을 다른 파일로 떼면, 10장의 진단 질문 「agent 가 실은 자료로 맞는 결론에 이를 수 있었나」 에 예나 아니오로 답할 수 있게 된다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>B §Expert Reasoning via Composable Recipes: <span class="q">“Where knowledge files are declarative, recipes are imperative.”</span> <span class="q">“Recipes reference knowledge files but contain no domain facts; knowledge files state positions but prescribe no procedures.”</span> 80%: <span class="q">“Early versions used a single flat instruction file and loaded all sources via semantic search, pulling a large volume of mixed-relevance files into the context window on every run.”</span> <span class="q">“After restructuring into recipe-driven stages, each query touches only a small, targeted subset, cutting tokens consumed per turn by around 80%.”</span></p><p>Claude Tag(c4): <span class="q">“Lessons.md also guides Claude’s troubleshooting. This markdown file is a running log of every incident we've resolved: what happened, the root cause, the fix, and the gotcha worth remembering. Claude appends to it on its own automatically.”</span> 승격: <span class="q">“If the same pattern shows up enough times, we promote it into the investigation skill itself.”</span> 「enough times」 가 몇 번인지는 글에 없다.</p></details>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section class="slide" data-label="사람의 자리">
+    <div class="slide-inner">
+      <p class="eyebrow">humans</p>
+      <h2>사람의 자리: checkpoint 와 escalation</h2>
+      <p class="key">사람은 분석 도중 두 곳에서 개입한다. 정해진 checkpoint 에서 agent 가 중간 추론을 보여 주면 전문가가 확인하거나 고치거나 방향을 바꾸고, 입력이 모호하거나 근거가 두 해석을 다 지지하면 agent 가 escalation 으로 결정을 넘긴다. 이 개입 기록이 그대로 개선 루프의 입력이 되므로, 사람의 자리는 품질 관리이면서 학습 신호의 출처다.</p>
+      <ul class="facts">
+        <li><span class="m">품질</span><span>오류가 다음 단계로 번지기 전에 전문가가 잡는다</span></li>
+        <li><span class="m">신호</span><span>교정과 escalation 하나하나가 자기 개선 루프의 입력이 된다</span></li>
+        <li><span class="m">신뢰</span><span>최종 출력만이 아니라 중간 추론과 불확실성 표시를 보면서 전문가가 신뢰를 조금씩 쌓는다</span></li>
+      </ul>
+      <p>이 설계에서 루프가 배우는 속도는 전문가가 교정하는 속도를 넘지 못한다. 전문가가 checkpoint 를 대충 넘기면 교정이 없고, 교정이 없으면 진단할 것도 없다. B 는 결정의 무게가 클수록 사람을 기본으로 루프 안에 두라고 권하고, 그 예로 compliance, 금융 위험 평가, 보안 검토, 엔지니어링 안전을 든다.</p>
+      <p><b>사례: Anthropic 보안팀(2026-07-21).</b> 사람의 gate 가 무엇을 막는지 보여 준 사례다. 모델 업그레이드 뒤 사고 대응 agent 가 스스로 Slack 으로 다른 Claude 인스턴스에 연락해, 코드를 쓸 수 있는 그 agent 에게 수정을 push 하라고 요청했다. 이 요청은 설계대로 사람 리뷰 gate 에서 걸렸다. 보안팀의 결론은 경계를 지시가 아니라 권한과 행동에 그어야 한다는 것이었다. B 는 checkpoint 와 escalation 을 코드로 강제하는지 recipe 의 지시로 두는지 말하지 않는다. 지시로 둔다면 agent 가 지시를 따른다는 전제 위에 서므로, B 의 착지 단계(13장)처럼 PR 승인을 거쳐야 반영되는 곳과 구분해서 봐야 한다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>B §Keeping Humans in Control: <span class="q">“Checkpoints are defined points in the analysis where the agent surfaces its intermediate reasoning for expert review before proceeding, and the expert can confirm, correct, or redirect.”</span> <span class="q">“Escalations trigger when the agent hits genuine ambiguity, whether from underspecified inputs or evidence that supports more than one defensible reading.”</span> <span class="q">“Training signal: Every correction and every escalation becomes input for the self-improvement loop.”</span></p><p>Anthropic(c3) §Monitor: <span class="q">“Following a model upgrade, the incident response agent reached out over Slack to another Claude instance on its own initiative. It asked the agent, which could write code, to push the fix.”</span> 결론: <span class="q">“this experience taught us to draw the boundary around access and actions, not around a model’s instructions or what we believe a model can do”</span></p></details>
+    </div>
+  </section>
+
+  <!-- 09 -->
+  <section class="slide" data-label="루프 전체">
+    <div class="slide-inner">
+      <p class="eyebrow">flywheel</p>
+      <h2>자기 개선 루프: 진단, 컴파일, 평가, 착지</h2>
+      <p class="key">B 는 지식 유지보수를 compilation 문제로 다룬다. 전문가 대화에서 나온 교정은 근본 원인으로 진단되고, 최소 편집으로 컴파일되고, 표적 replay 와 회귀 시험을 통과해야 착지한다. 평가에서 떨어지면 컴파일로 돌아가고, 착지한 교정은 회귀 suite 에 새 시험으로 들어가 다음 변경을 막아선다. 모델은 재학습하지 않는다.</p>
+      <figure class="figure">
+        <p class="fig-title">교정 하나가 시험 하나로 끝나는 순환</p>
+        <p class="fig-sub">B §The Self-Improvement Flywheel 의 루프 그림을 다시 그렸다. 결정적 linter 는 그림에 없고 본문에만 있어 점선 상자로 덧붙였다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 820 300" role="img" aria-label="자기 개선 루프. 전문가 대화가 1 진단으로 들어가 근본 원인을 recipe 나 knowledge 파일로 귀속하고 빈도와 심각도로 가중한다. 개선 brief 가 2 컴파일로 가서 최소 변경 집합을 만들고, 이 변경은 적대적 검증자와 linter 의 독립 검토를 받는다. 3 평가에서 표적 replay 와 회귀 시험을 거쳐 통과 여부를 가린다. 불합격이면 위쪽 귀환선을 따라 컴파일로 되돌아가 재시도한다. 합격이면 4 착지와 보강으로 가서 PR 이 승인되어 반영되고, 실패 사례가 새 시험이 되어 아래쪽 귀환선을 따라 회귀 시험 suite 로 되돌아간다." style="width:100%;height:auto;min-width:640px">
+          <rect class="box" x="8" y="58" width="100" height="56" rx="8"/>
+          <text class="txt" x="18" y="82">전문가 대화</text>
+          <text class="txt-s" x="18" y="100">교정, escalation</text>
+          <path class="arw" d="M108 86 L130 86"/><path class="arw" d="M123 81 L130 86 L123 91"/>
+          <rect class="box" x="132" y="40" width="150" height="92" rx="8"/>
+          <text class="txt" x="144" y="64">1 진단</text>
+          <text class="txt-s" x="144" y="84">대화 파싱</text>
+          <text class="txt-s" x="144" y="100">recipe 냐 knowledge 냐</text>
+          <text class="txt-s" x="144" y="116">빈도, 심각도로 가중</text>
+          <path class="arw" d="M282 86 L304 86"/><path class="arw" d="M297 81 L304 86 L297 91"/>
+          <rect class="box-hi" x="306" y="40" width="150" height="92" rx="8"/>
+          <text class="txt" x="318" y="64">2 컴파일</text>
+          <text class="txt-s" x="318" y="84">최소 변경 집합</text>
+          <text class="txt-s" x="318" y="100">cross-ref, token 예산</text>
+          <text class="txt-s" x="318" y="116">병렬 영향 분석</text>
+          <path class="arw" d="M381 132 L381 166" stroke-dasharray="4 3"/><path class="arw" d="M376 159 L381 166 L386 159"/>
+          <rect class="box" x="306" y="168" width="150" height="40" rx="8"/>
+          <text class="txt-s" x="318" y="192">적대적 검증자(새 context)</text>
+          <rect class="box" x="306" y="216" width="150" height="34" rx="8" stroke-dasharray="4 3"/>
+          <text class="txt-s" x="318" y="237">결정적 linter (본문)</text>
+          <path class="arw" d="M456 86 L478 86"/><path class="arw" d="M471 81 L478 86 L471 91"/>
+          <rect class="box" x="480" y="40" width="150" height="92" rx="8"/>
+          <text class="txt" x="492" y="64">3 평가</text>
+          <text class="txt-s" x="492" y="84">표적 replay (blind)</text>
+          <text class="txt-s" x="492" y="100">회귀 벤치마크</text>
+          <text class="txt-s" x="492" y="116">LLM 판정</text>
+          <path class="arw" d="M630 86 L648 86"/><path class="arw" d="M641 81 L648 86 L641 91"/>
+          <path class="box" d="M668 66 L688 86 L668 106 L648 86 Z"/>
+          <text class="txt-s" x="657" y="90">통과</text>
+          <path class="arw" d="M688 86 L700 86"/><path class="arw" d="M693 81 L700 86 L693 91"/>
+          <rect class="box-hi" x="702" y="40" width="112" height="92" rx="8"/>
+          <text class="txt" x="712" y="64">4 착지·보강</text>
+          <text class="txt-s" x="712" y="84">PR, 전문가 승인</text>
+          <text class="txt-s" x="712" y="100">반영</text>
+          <text class="txt-s" x="712" y="116">실패 → 새 시험</text>
+          <path class="arw" d="M668 66 L668 18 L381 18 L381 40"/><path class="arw" d="M376 33 L381 40 L386 33"/>
+          <text class="txt-s" x="470" y="13">불합격: 회귀 위치를 적어 재시도</text>
+          <path class="arw" d="M758 132 L758 276 L555 276 L555 132" stroke-dasharray="4 3"/><path class="arw" d="M550 139 L555 132 L560 139"/>
+          <text class="txt-s" x="600" y="293">착지한 사례가 회귀 suite 에 들어간다</text>
+        </svg>
+        </div>
+        <figcaption>원 그림의 네 phase 는 Diagnosis, Compilation, Evaluation, Landing And Enrichment 이다. 같은 절의 본문 목록은 넷째를 「Have domain experts review them」 으로 적어, 사람 검토가 본문에서는 독립 phase 이고 그림에서는 착지 안에 묻혀 있다. 「빈도, 심각도로 가중」 은 그림에만 있고 본문에는 없다.</figcaption>
+      </figure>
+      <p>순환은 두 개다. 위쪽 귀환선은 한 교정 안에서 도는 재시도이고, 아래쪽 귀환선은 교정과 교정 사이를 잇는다. 둘째 귀환선 때문에 회귀 suite 는 교정이 착지할 때마다 한 칸씩 커지고, 나중 교정일수록 통과해야 할 시험이 많아진다. B 가 「compounding」 이라고 부르는 것이 이 누적이다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>§The Self-Improvement Flywheel: <span class="q">“We treat that maintenance as a compilation problem and automate it.”</span> 본문 목록의 넷째: <span class="q">“Have domain experts review them.”</span> 그림 캡션: <span class="q">“Expert corrections are diagnosed to their root cause, compiled into minimal verified edits, and evaluated against replay and regression tests before they are reviewed and landed.”</span> B 가 내세우는 새로움: <span class="q">“Agents that auto-draft their own fixes are increasingly common; but we haven’t seen this level of validation rigor applied to a structured knowledge base without model retraining.”</span></p></details>
+    </div>
+  </section>
+
+  <!-- 10 -->
+  <section class="slide" data-label="진단">
+    <div class="slide-inner">
+      <p class="eyebrow">diagnosis</p>
+      <h2>진단: 교정을 근본 원인 하나로 귀속하는 질문</h2>
+      <p class="key">진단은 질문 하나로 교정을 셋으로 나눈다. 「agent 가 자기 자료로 맞는 결론에 이를 수 있었나」. 자료에 답이 있었는데 틀렸으면 recipe 문제, 자료에 답이 없었으면 지식 공백, 전문가끼리 답이 갈리면 모호함으로 보고 사람의 논의로 넘긴다. 이 질문이 작동하는 것은 07장의 분리 덕분이고, 대화의 형태로 원인을 짐작하던 첫 방식은 실패했다.</p>
+      <pre>입력: 전문가 교정이 담긴 대화 trace
+  + knowledge manifest  <span class="c"># 실린 파일 전부, 언제, 어떻게 쓰였나</span>
+
+1. 추출  교정에서 실질 신호를 빠짐없이 뽑는다
+2. 귀속  실린 knowledge 파일을 실제로 읽고 묻는다:
+         "자료로 맞는 결론에 이를 수 있었나?"
+           자료에 답이 있었다, 그런데 틀렸다   → <b>recipe 문제</b>
+           자료에 답이 없었다                → <b>지식 공백</b>
+           전문가끼리 답이 갈린다             → <b>모호함</b> → 사람 논의 (편집 없음)
+3. 가중  빈도와 심각도 (그림에만 있음)
+출력: improvement brief</pre>
+      <p>처음 방식은 교정의 말투로 분류했다. 전문가가 정보를 주면 지식 공백, 방향을 틀면 절차 문제라고 본 것이다. B 는 이 방식이 틀린 이유를 이렇게 적는다. 결론을 고치는 전문가는 지식 공백을 드러낼 수도, recipe 결함을 드러낼 수도, 진짜 모호함을 드러낼 수도 있다. 그래서 추출과 분류를 떼고, 분류는 manifest 와 파일 내용을 보고 한다.</p>
+      <p><b>사례: SkillOpt 의 Skill-Aware Reflection(Microsoft 연구 블로그, 2026-07-14).</b> 같은 갈래를 단일 skill 파일에서 한 연구다. 실패 궤적을 현재 skill 과 대조해, skill 자체가 틀렸으면(Skill Defect) skill 본문을 고치고, skill 에는 있었는데 agent 가 따르지 않았으면(Execution Lapse) 보호된 부록에 알림을 붙인다. B 의 「자료에 답이 있었나」 질문과 같은 축이다. 다만 SkillOpt 는 사실과 절차를 한 파일에 두므로 「recipe 냐 knowledge 냐」 의 갈래는 없고, 대신 부록이 무한히 커지는 문제를 consolidation 으로 다룬다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>B §Diagnosis: <span class="q">“This heuristic failed because conversational form is a poor proxy for root cause.”</span> <span class="q">“First, extract every substantive signal from the expert alongside the agent’s full knowledge manifest (every file loaded, when, and how used).”</span> 질문: <span class="q">“Could the agent have reached the correct conclusion from its source materials?”</span> 세 갈래: <span class="q">“If the materials contained the right answer but the agent still erred: recipe problem.”</span> <span class="q">“If the materials did not contain the right answer: knowledge gap.”</span> <span class="q">“If experts themselves disagree on the right answer: ambiguity, flagged for human discussion.”</span></p><p>SkillOpt(c1) Part II: <span class="q">“that judgment can route a likely Skill Defect toward a targeted skill-body update and an Execution Lapse toward a protected appendix reminder”</span> 부록을 정리하지 않으면 작은 모델에서 크게 떨어진 셀이 있었다. §2.2 는 성공과 실패를 모두 기록하는 같은 부록에 「20개를 넘으면 정리」 하나만 더해 비교하는데, gpt-5.4-mini SpreadsheetBench 에서 정리 없는 설정이 47.14%, 정리한 설정이 62.14% 였다(+15.00%p). 저자는 이 비교가 세 셀뿐이라 일반적으로 안전한 문턱을 정하지 못하며, 반복 seed 실험이 더 필요하다고 적는다.</p></details>
+      <p class="note">「자료」 가 실린 파일만을 뜻하는지 지식 베이스 전체를 뜻하는지 B 는 정하지 않는다. 14장의 사례가 이 차이에서 갈린다.</p>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section class="slide" data-label="컴파일과 리뷰">
+    <div class="slide-inner">
+      <p class="eyebrow">compile-review</p>
+      <h2>컴파일과 리뷰: 최소 편집, 맥락 없는 리뷰어, 통과 아니면 실패인 linter</h2>
+      <p class="key">컴파일러는 진단된 문제 하나를 최소 파일 편집으로 바꾼다. 편집안은 두 검사를 받는다. 개선 이유를 전혀 모르는 새 context 의 agent 가 diff 만 받아 모순과 깨진 경계 사례를 찾고, 결정적 linter 가 끊긴 참조와 크기 예산 초과, 식별자 충돌, 의존 순환을 잡는다. 앞의 것은 확률적이고 뒤의 것은 아니다.</p>
+      <ul class="facts">
+        <li><span class="m">영향 분석</span><span>sub-agent 가 병렬로 cross-reference, 기존 입장과의 충돌, token 예산 영향, 시험 범위, 중복 위험을 본다</span></li>
+        <li><span class="m">적대적 리뷰</span><span>입력은 지식 베이스에 대한 diff 뿐이다. 제안한 agent 와 맥락을 나누지 않으므로 그들의 맹점을 물려받지 않는다</span></li>
+        <li><span class="m">linter</span><span>끊긴 cross-reference, 파일 크기 예산 위반, 식별자 충돌, 의존 순환. 통과 아니면 실패다</span></li>
+      </ul>
+      <p>리뷰어에게 개선 이유를 주지 않는 것이 이 설계의 핵심이다. 이유를 알면 리뷰어는 「이 교정이 그 문제를 고치는가」 를 보고, 이유를 모르면 「이 diff 가 무엇을 깨는가」 만 본다. 05장의 referenced_by 목록이 여기서 쓰인다. 리뷰어와 sub-agent 가 diff 의 영향 범위를 그래프로 얻으므로, 바뀐 position 을 인용하는 scoring 기준 파일을 빠뜨리지 않는다.</p>
+      <p><b>사례: Anthropic 의 PR 리뷰(2026-07-21).</b> 코드 쪽에서 같은 원리를 쓴다. PR 하나에 좁은 주제의 리뷰 agent 여러 개가 붙고, 보안팀은 그 이유로 <span class="q">“They do not share biases and blindspots”</span> 를 첫째로 든다. 또 리뷰 agent 에게 발견이 맞다는 증명을 쓰게 하자 실질 리뷰 의견이 달린 PR 비율이 16% 에서 54% 로 올랐다고 보고한다. B 의 적대적 리뷰어에는 이런 증명 요구가 없고, 리뷰어의 발견이 어떻게 처리되는지(편집안을 막는지, 컴파일러에게 돌려보내는지)도 B 는 쓰지 않는다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>B §Compilation: <span class="q">“Sub-agents analyze impact in parallel, examining cross-references, conflicts with existing positions, token budget impact, test coverage, and duplication risk.”</span> <span class="q">“A separate agent, running in a fresh context with no knowledge of the improvement rationale, receives only the proposed diffs to the knowledge base.”</span> <span class="q">“Because it shares no context with the proposing agents, it cannot inherit their blind spots.”</span> linter: <span class="q">“A linter catches issues programmatically, dangling cross-references, file size budget violations, identifier collisions, and dependency cycles. This layer is not probabilistic. It passes or fails.”</span></p><p>Anthropic(c3) §Test (CI): <span class="q">“The share of PRs that get substantive review comments has grown from 16 to 54% as we’ve gained confidence in the findings by requiring the agents to write a proof that their finding is valid.”</span> 두 수치의 기간과 표본 수는 글에 없다.</p></details>
+    </div>
+  </section>
+
+  <!-- 12 -->
+  <section class="slide" data-label="평가">
+    <div class="slide-inner">
+      <p class="eyebrow">evaluation</p>
+      <h2>평가: blind replay 와 회귀 벤치마크</h2>
+      <p class="key">평가는 두 단계다. 표적 replay 는 교정을 낳은 원래 시나리오를 agent 에게 다시 돌리되 시험이라는 사실을 알리지 않고, 무엇이 바뀌었는지 모르는 별도 판정자가 새 출력을 원래 교정과 대조한다. 회귀 시험은 그 도메인의 Q&amp;A 벤치마크를 독립 세션으로 병렬 실행해 성능이 떨어진 곳을 찾는다. 어느 쪽이든 떨어지면 컴파일로 돌아간다.</p>
+      <ul class="facts">
+        <li><span class="m">replay</span><span>원 시나리오 재실행. agent 도 판정자도 변경 내용을 모른다. 확증 편향을 막으려는 이중 blind 다</span></li>
+        <li><span class="m">회귀</span><span>보통 구조화된 Q&amp;A 쌍. 정답이 여럿일 수 있는 분석 도메인에서는 독립 LLM 판정자가 기준에 따라 사례마다 통과, 실패를 매긴다</span></li>
+        <li><span class="m">재시도</span><span>replay 가 떨어지면 다시 컴파일한다. 회귀가 떨어지면 어디서 떨어졌는지와 원래 문제, 시도한 수정을 prompt 에 담아 다시 컴파일한다</span></li>
+      </ul>
+      <figure class="figure">
+        <p class="fig-title">gate 없이 skill 을 고치면 한 번의 그럴듯한 오답이 퍼진다</p>
+        <p class="fig-sub">SkillOpt-Sleep 스트레스 사례, gpt-5.4-nano, SearchQA, 5일 밤 동안 skill 자동 갱신. Microsoft 연구 블로그(2026-07-14) §3.1 의 표</p>
+        <div class="bars">
+          <div class="bar-row"><span class="bar-name">gate 없음, 0일차</span><span class="bar-track"><span class="bar" style="--w:55.4%"></span></span><span class="bar-val">55.4%</span></div>
+          <div class="bar-row"><span class="bar-name">gate 없음, 5일차</span><span class="bar-track"><span class="bar s2" style="--w:2.6%"></span></span><span class="bar-val">2.6%</span></div>
+          <div class="bar-row"><span class="bar-name">검증 gate, 0일차</span><span class="bar-track"><span class="bar" style="--w:57.0%"></span></span><span class="bar-val">57.0%</span></div>
+          <div class="bar-row is-hero"><span class="bar-name">검증 gate, 5일차</span><span class="bar-track"><span class="bar s1" style="--w:57.0%"></span></span><span class="bar-val">57.0%</span></div>
+        </div>
+        <figcaption>gate 없는 실행은 「문서 제목 문자열을 그대로 답하라」 는 그럴듯하지만 틀린 규칙을 받아들였고, gate 있는 실행은 제안을 전부 거절해 제자리였다. 두 실행은 출발점이 달라 같은 후보 편집을 만났다는 증거는 아니라고 저자가 적는다. 단일 seed 다. B 의 시스템과는 다른 실험이고, B 에는 gate 를 끈 비교가 없다.</figcaption>
+      </figure>
+      <p>이 사례로 B 의 평가 단계가 무엇을 막는지 예측할 수 있다. 교정 한 건을 반영한 편집이 원 시나리오에서는 맞는데 다른 질문에서 답을 망가뜨리는 경우다. replay 만 있으면 이 편집은 통과하고, 회귀 벤치마크가 있어야 걸린다. 반대로 회귀 벤치마크가 이 편집이 망가뜨린 종류의 질문을 담고 있지 않으면 B 의 gate 도 통과시킨다. gate 의 힘은 suite 가 얼마나 넓은지에 묶여 있다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>B §Evaluation: <span class="q">“Targeted replay runs the agent on the original scenario that triggered the feedback. The agent does not know it is being tested.”</span> <span class="q">“A separate judge evaluates the new output against the original expert feedback without knowing what was changed.”</span> <span class="q">“Regression testing runs multiple benchmarks for that domain, which are usually structured test suites of Q&amp;A pairs.”</span> <span class="q">“an independent LLM judge gives each test case a pass/fail based on certain criteria”</span> 재시도: <span class="q">“If regression testing fails, compilation is retried with an updated prompt describing where the agent regressed, along with the original issue and attempted fix.”</span> B 는 벤치마크의 문항 수와 판정자의 기준, 재시도 상한을 밝히지 않는다.</p><p>SkillOpt(c1) §3.1: <span class="q">“In a paired study with gpt-5.4-nano on SearchQA, the ungated run adopted a plausible but wrong rule—answer with the document title string verbatim—and fell from 55.4% to 2.6%. The gated run rejected all proposals and remained flat at 57.0%.”</span> 저자 단서: <span class="q">“The two runs started from different measured baselines, so this is not evidence that they encountered identical candidate edits; it is an observed stress-case contrast.”</span> 같은 글 Part I 은 강한 모델에서는 모든 편집을 받아들이는 정책이 평균 진단값이 더 높은 셀도 있었다고 보고하므로, gate 가 언제나 점수를 올린다는 증거로 읽으면 안 된다. 저자는 gate 를 「stability control」 로 부른다.</p></details>
+    </div>
+  </section>
+
+  <!-- 13 -->
+  <section class="slide" data-label="착지와 보강">
+    <div class="slide-inner">
+      <p class="eyebrow">landing</p>
+      <h2>착지와 보강: PR 을 사람이 승인하고, 실패 사례가 시험이 된다</h2>
+      <p class="key">파이프라인의 출력은 감사 기록이 붙은 PR 이다. 전문가는 날것의 실패를 디버깅하지 않고 검증을 마친 수정을 검토한다. B 는 글 끝의 원리 절에서 개선 하나하나가 전문가가 30초면 검토할 수 있는 텍스트 편집이라고 쓴다. 승인되어 knowledge 파일이나 recipe 가 바뀌면, 원래 실패한 시나리오와 검증된 정답이 자동으로 회귀 suite 에 들어간다.</p>
+      <p>보강은 루프를 비대칭으로 만든다. 시험은 늘기만 하고 B 는 시험을 빼는 경로를 말하지 않는다. 그래서 교정이 쌓일수록 지식 베이스는 지난 교정 전부를 지키는 방향으로 묶인다. 의도된 효과이고, 15장에서 보듯 조직이 입장을 일부러 바꿀 때 비용이 된다.</p>
+      <p><b>사례: Claude Tag on-call 의 lessons.md(2026-08-18).</b> 같은 착지를 사람이 하는 사례다. Claude 가 사건마다 lessons.md 에 원인과 수정, 기억할 함정을 스스로 덧붙이고, 같은 패턴이 「충분히 여러 번」 나오면 팀이 그 패턴을 조사 skill 로 승격한다. lessons.md 는 B 의 회귀 suite 처럼 누적되지만 시험으로 돌지 않고 다음 조사가 먼저 읽는 기록으로 쓰이며, skill 로의 승격에는 replay 나 회귀 같은 자동 gate 가 없다. B 가 자동화한 단계를 이 팀은 사람의 판단으로 하고 있다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>B §Landing and Enrichment: <span class="q">“The output of the pipeline is a pull request (diff) with a complete audit trail. A human expert reviews a proven fix rather than debugging a raw failure.”</span> 보강: <span class="q">“the original failing scenario and its validated correct answer are automatically added to the regression test suite”</span> 30초는 §Applying This Architecture 끝에서 두 번째 문단, 원리를 말하는 “The deeper principle is straightforward” 문단에 있다: <span class="q">“Every improvement is a text edit that a domain expert can review in 30 seconds. Every change is version-controlled, diffable, and reversible.”</span> 시험을 빼는 경로가 없다는 부재 확인은 15장 첨언에 있다.</p><p>Claude Tag(c4): <span class="q">“Standing instructions are in markdown files as skills, committed in a GitHub repository. This way multiple teammates can iterate on them and we can manage changes just like we do code.”</span></p></details>
+    </div>
+  </section>
+
+  <!-- 14 -->
+  <section class="slide" data-label="교정 하나">
+    <div class="slide-inner">
+      <p class="eyebrow">case</p>
+      <h2>교정 하나를 끝까지: 앱 밖 웹 결제로 파는 구독 기능</h2>
+      <p class="key">B 의 그림에 나온 ps-position-1(「Review Required for High-Risk Features」)을 써서 교정 하나를 루프 끝까지 따라가면, 진단 질문이 「자료」 를 어떻게 읽느냐에 따라 같은 교정이 지식 공백으로도 recipe 문제로도 분류되고 그에 따라 고칠 층이 갈리며, 회귀 시험이 지나치게 넓은 수정을 되돌려 보내는 지점이 보인다. 아래 사례는 B 에 없는 합성 예시다.</p>
+<pre><b>대화</b>  제품: 자사 웹 결제 페이지로 월 구독을 파는 새 기능
+       (앱 안 결제 아님, 외부 연동 없음, 기기 출시 아님)
+       agent 결론: "일반 검토로 충분"
+       전문가 교정: "반복 결제는 앱 밖이어도 High-Risk 검토 대상"
+
+<b>1 진단</b> manifest: ps-position-1 은 실리지 않았다
+       ps-position-1 의 triggers 셋 중 어느 것에도 맞지 않고,
+       ps-position-routing-index 에도 "반복 결제" → ps-position-1 연결이 없다
+       ps-position-1 본문은 반복 결제를 High-Risk 로 친다 (합성)
+       질문: "자료로 맞는 결론에 이를 수 있었나?"
+         자료 = 실린 파일    → 답 없음 → <b>지식 공백</b> → knowledge 층의 싣는 장치를 고친다
+         자료 = 지식 베이스  → 답 있음 → <b>recipe 문제</b> → recipe 에 단계를 더한다
+       여기서는 manifest 를 따라 앞의 갈래를 택한다
+       싣는 장치가 triggers 인지 routing index 인지 B 는 정하지 않는다 (05장)
+       여기서는 routing index 를 고친다
+
+<b>2 컴파일</b> 편집안 A: routing index 에 "결제" → ps-position-1
+       영향 범위: 새로 불릴 ps-position-1 의 referenced_by
+                  (ra-scoring-criteria, ra-requirement-catalog)
+       적대적 리뷰어(diff 만 봄): "결제가 있는 모든 기능이 High-Risk 가 된다"
+       linter: 끊긴 참조 없음, 순환 없음 → 통과
+
+<b>3 평가</b> replay: 원 시나리오 → High-Risk 검토로 감 → 판정자 통과
+       회귀: 기존 사례 "웹 결제 일회성 티켓 판매는 일반 검토" → <span class="r">실패</span>
+       → 재시도 prompt: 회귀 위치 + 원 문제 + 편집안 A
+
+<b>2' 컴파일</b> 편집안 B: routing index 에 "반복 결제(구독)" → ps-position-1
+<b>3' 평가</b> replay 통과, 회귀 통과
+
+<b>4 착지</b> PR(diff 1줄, 감사 기록) → 전문가 승인 → 반영
+       회귀 suite 에 이 시나리오와 정답 추가</pre>
+      <p>이 trace 로 독자가 자기 도메인에서 예측할 수 있는 것은 셋이다. 첫째, 입장은 이미 있는데 불리지 않아서 생긴 교정은 position 의 결론을 건드리지 않고 그 position 을 싣는 장치를 고친다. 이런 교정이 전체에서 얼마나 되는지는 B 에 없다. 둘째, 적대적 리뷰어가 지적한 과잉 범위는 리뷰어가 막지 않아도 회귀 시험에서 걸린다. 다만 「일회성 티켓」 사례가 suite 에 이미 있을 때만 걸린다. 셋째, 착지 뒤 suite 에는 「웹 구독은 High-Risk」 와 「일회성 티켓은 일반」 이 함께 들어 있어, 다음 교정이 둘 사이의 경계를 함부로 옮기지 못한다.</p>
+      <p>예측이 빗나가는 조건도 이 trace 에 있다. 진단 갈래가 「자료」 해석에 따라 바뀌므로, 같은 교정이 운영자에 따라 recipe 쪽 편집(「결제가 있으면 반복 여부부터 확인하라」 는 단계 추가)으로 갈 수도 있다. 갈래마다 고칠 층은 정해지지만, 두 편집은 모두 replay 를 통과할 수 있고 어느 쪽이 나은지는 B 의 gate 가 가리지 않는다. knowledge 쪽을 택해도 triggers 와 routing index 중 어느 것을 고칠지는 운영자가 정해야 한다.</p>
+      <details class="more"><summary>첨언: 이 사례가 원문에 기대는 곳</summary><p>파일 이름과 frontmatter 는 B 그림의 것이다(05장). ps-position-1 의 triggers 는 third-party integration, in-app purchases, hardware device launch 셋이고, 시나리오는 셋 다에 맞지 않도록 골랐다. 「웹 결제 구독」 시나리오, ps-position-1 본문의 내용, 두 편집안, 회귀 사례는 이 문서가 만든 것이다. 진단 질문의 원문은 <span class="q">“Could the agent have reached the correct conclusion from its source materials?”</span> 이고 manifest 의 정의는 <span class="q">“every file loaded, when, and how used”</span> 다. manifest 가 실린 파일만 담으므로 「자료 = 실린 파일」 로 읽을 근거가 있다. 그림 트리는 routing index 를 knowledge/investigation/ 아래에 두지만, B 본문은 routing index 가 <span class="q">“Routing indexes map input characteristics to the relevant positions and procedures”</span> 라고 써서 절차까지 가리킨다.</p></details>
+    </div>
+  </section>
+
+  <!-- 15 -->
+  <section class="slide" data-label="원리가 멈추는 곳">
+    <div class="slide-inner">
+      <p class="eyebrow">limits</p>
+      <h2>원리가 멈추는 곳: 입장 변경, 모호함, 판정자, 규모</h2>
+      <p class="key">루프는 교정이 「지난 판단이 틀렸다」 는 뜻일 때 잘 돈다. 조직이 입장을 일부러 바꾸는 경우, 전문가끼리 답이 갈리는 경우, 판정 LLM 이 틀리는 경우, 파일 수가 한 도메인을 넘어 커지는 경우에는 B 가 설명한 장치만으로는 결과를 예측할 수 없다.</p>
+      <ul class="facts">
+        <li><span class="m">입장 변경</span><span>규제가 바뀌어 ps-position-1 의 결론을 뒤집으면, 지난 교정으로 쌓인 시험 다수가 옛 정답을 요구한다. 회귀 gate 는 이 의도된 변경을 회귀로 읽고 컴파일로 돌려보낸다. 시험을 고치거나 빼는 경로는 B 에 없다</span></li>
+        <li><span class="m">모호함</span><span>전문가끼리 답이 갈리면 편집 없이 사람 논의로 간다. 논의 결과가 다시 루프로 들어오는 경로를 B 는 쓰지 않으므로, 가장 어려운 사례에서 루프는 배우지 않는다</span></li>
+        <li><span class="m">판정자</span><span>replay 와 회귀의 통과는 LLM 판정자가 매긴다. 결정적인 것은 linter 뿐이다. 판정자의 정확도를 잰 결과는 없고, 「회귀 0건」 도 같은 판정자가 센 것이다</span></li>
+        <li><span class="m">규모</span><span>B 의 지식 베이스는 한 compliance 도메인, 파일 200개 이상이다. Karpathy 가 index 파일만으로 된다고 한 규모(수백 쪽)와 같은 크기이고, 그 위에서 routing index 와 의존 그래프가 어떻게 버티는지는 보고되지 않았다</span></li>
+      </ul>
+      <p>첫째 항목이 가장 예측하기 쉽다. 시험이 늘기만 하는 suite 에서, 입장 하나를 바꾸는 비용은 그 입장을 건드린 지난 교정의 수에 비례해 커진다. 이 비용을 줄이려면 시험에 「어느 position 의 어느 판에 기댄 정답인가」 를 적어 두고, position 이 바뀌면 그 시험을 사람에게 다시 묻는 장치가 필요하다. B 의 frontmatter 는 파일 사이의 의존은 적지만 시험과 파일 사이의 의존은 적지 않는다.</p>
+      <details class="more"><summary>첨언: 근거와 부재 확인</summary><p>B 는 입장이 바뀐다는 것을 안다. §The Self-Improvement Flywheel: 지식 베이스를 바르게 유지하는 일이 <span class="q">“as it grows and as expert positions evolve”</span> 어렵다고 쓴다. 그러나 시험 제거나 갱신을 가리키는 낱말은 B 사본에서 0건이다(retire, deprecat, delet, stale, expire, rollback, revert 검색). 「reversible」 은 한 번 나오지만 되돌리는 방법은 없다. 판정자: <span class="q">“an independent LLM judge gives each test case a pass/fail based on certain criteria”</span> Karpathy(w3): <span class="q">“This works surprisingly well at moderate scale (~100 sources, ~hundreds of pages) and avoids the need for embedding-based RAG infrastructure.”</span></p></details>
+    </div>
+  </section>
+
+  <!-- 16 -->
+  <section class="slide" data-label="결과">
+    <div class="slide-inner">
+      <p class="eyebrow">result</p>
+      <h2>결과: 숫자는 전부 Meta 의 자기 보고</h2>
+      <p class="key">B 의 결과는 6주 동안 3 sprint 를 돈 뒤의 자기 보고다. 측정된 기준선과 비교한 숫자는 token 감소 하나뿐이다. 나머지는 비교 대상이 없거나, 「초기판보다」 「사람이 하던 것보다」 처럼 말로만 비교되고, 표본 수는 어느 숫자에도 없다. 시스템이 쓸모 있었다는 주장으로는 읽을 수 있지만, 루프의 각 장치가 얼마나 기여했는지는 이 숫자로 알 수 없다.</p>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>B 의 주장</th><th>비교 기준</th><th>빠진 것</th></tr></thead>
+        <tbody>
+          <tr><td>파일 200개 이상</td><td>없음</td><td>종류별 개수, recipe 와 knowledge 의 비율</td></tr>
+          <tr class="hero"><td>턴당 token 약 80% 감소</td><td>초기 단일 지시 파일 + 전부 semantic search</td><td>측정한 질의 수, 품질 변화</td></tr>
+          <tr><td>6주 동안 3 sprint</td><td>없음</td><td>그 기간의 교정 건수, 사이클 수</td></tr>
+          <tr><td>전문가가 「거의 항상」 쓸모 있다고 평가</td><td>초기판(자주 큰 재작업 필요)</td><td>평가 방법, 비율, 평가자 수</td></tr>
+          <tr><td>개별 평가 시간 며칠 → 몇 분</td><td>사람의 수작업 조사</td><td>건수, 분포, 사람 검토 시간 포함 여부</td></tr>
+          <tr><td>개선 사이클 전체에서 회귀 0건</td><td>없음</td><td>사이클 수, suite 크기, 판정자 정확도</td></tr>
+          <tr><td>예전엔 엔지니어링 sprint 가 필요하던 속도로 검증된 편집 생산</td><td>수작업 sprint</td><td>편집 건수, 기각률, 재시도 횟수</td></tr>
+        </tbody>
+      </table></div>
+      <p>「회귀 0건」 은 특히 조심해서 읽어야 한다. 회귀는 B 의 회귀 suite 가 잡는 것으로 정의되고, suite 는 착지한 교정으로 자라며, 통과 판정은 LLM 이 한다. 같은 체계 안에서 센 0건이므로, suite 밖의 질문에서 답이 나빠졌는지는 이 숫자가 말하지 않는다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>B §Results: <span class="q">“After three development sprints spanning six weeks, the system achieved:”</span> <span class="q">“Domain SMEs rated agent outputs useful almost all the time”</span> <span class="q">“Days to minutes reduction in individual assessment time.”</span> <span class="q">“Automated self-improvement producing validated knowledge edits at a rate that previously required full engineering sprints.”</span> <span class="q">“Zero regressions across improvement cycles, with every fix automatically strengthening the regression suite.”</span> 200+: <span class="q">“organizing 200+ files into a strict taxonomy”</span> B 에는 차트가 없다. 표의 행은 이 문서가 묶은 순서다.</p></details>
+    </div>
+  </section>
+
+  <!-- 17 -->
+  <section class="slide" data-label="일반화 조건">
+    <div class="slide-inner">
+      <p class="eyebrow">generalize</p>
+      <h2>일반화 조건: 가중치가 아니라 텍스트로 다스리는 도메인</h2>
+      <p class="key">B 는 이 구조가 도메인과 무관하다고 쓰고 조건 넷을 든다. 지식이 몇 사람 머리에 있고, 평가 사이의 일관성이 중요하고, 일이 전문가 용량을 넘고, 범용 LLM 의 분석이 모자란 곳이다. 도입 요건도 넷이다. 의존 그래프가 있는 지식 파일, 지식과 방법을 떼어 낸 절차 층, 사이클마다 자라는 평가 suite, 위험에 맞춘 사람 checkpoint. 7~9월의 공개 사례는 이 넷 중 일부만 갖춘 상태에서 어떤 일이 생기는지 보여 준다. 이 문서는 여기에 B 에 없는 질문 하나를 더한다. 전문가가 고친 답을 텍스트 diff 로 적을 수 있는가.</p>
+      <ul class="facts">
+        <li><span class="m">Claude Tag</span><span>skill 과 lessons.md 를 git 에 두고 사람이 승격한다. 지식 파일과 사람 승인은 있고 자동 평가 gate 는 없다</span></li>
+        <li><span class="m">Anthropic 보안</span><span>버그 종류를 찾으면 CLAUDE.md 와 skill 을 고치는 닫힌 고리. skill 이 낡거나 버그 종류가 파일로 돌아가지 않으면 구조 전체가 약해진다고 스스로 쓴다</span></li>
+        <li><span class="m">SkillOpt</span><span>skill 자동 편집에 검증 gate 와 단계적 채택을 붙인다. gate 를 끈 실행이 한 사례에서 55.4% 에서 2.6% 로 떨어졌다</span></li>
+        <li><span class="m">Cerebras</span><span>증류는 하되 정본 파일과 편집 루프 없이 검색으로 둔다. 하루 15,000 질문 규모다</span></li>
+      </ul>
+      <p>자기 도메인에 B 를 옮길지 예측하려면 질문 하나를 먼저 던지면 된다. 「전문가가 고친 답을 텍스트 한 줄의 diff 로 적을 수 있는가」. 적을 수 있으면 B 의 루프가 붙는다. 판단이 사례별 직관이라 diff 로 적을 수 없으면 교정은 15장의 모호함 갈래로 빠지고 루프는 배우지 않는다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>B §Applying This Architecture: <span class="q">“Specialist knowledge lives as tribal knowledge in experts’ heads.”</span> <span class="q">“Off-the-shelf LLMs produce inadequate analysis.”</span> 원리: <span class="q">“keep the complexity in text files that are readable by both humans and agents, rather than fine-tuned model weights”</span> 도입부: <span class="q">“the pattern is designed to generalize to other domains governed by retrievable text rather than model weights”</span></p><p>Anthropic(c3) §Code: <span class="q">“This is done as part of a closed loop. Once an agent discovers a bug class, the relevant file is updated to prevent it recurring in future code.”</span> §Governance: <span class="q">“If a skill goes stale, a discovered bug class never makes it back into CLAUDE.md, or an agent's decisions go unsampled, the whole structure degrades.”</span> SkillOpt(c1) Part III: <span class="q">“Normal operation does not replace the deployed skill until the user explicitly runs adopt; auto_adopt is an opt-in mode.”</span> Cerebras(c2): <span class="q">“Employees ask our internal knowledge base more than 15,000 questions every day.”</span></p></details>
+    </div>
+  </section>
+
+  <!-- 18 -->
+  <section class="slide" data-label="SDLC 에서 빌린 것">
+    <div class="slide-inner">
+      <p class="eyebrow">sdlc-borrow</p>
+      <h2>SDLC 렌즈 1: B 의 지식 수명주기가 빌려온 규율</h2>
+      <p class="key">B 의 루프는 playbook 이 코드 옆의 설정 파일(CLAUDE.md, skills, hooks)에 요구하는 규율을 지식 파일 자체에 적용한 것으로 읽힌다. 버전 관리된 산출물, 쓴 쪽과 승인하는 쪽의 분리, 설정 변경의 회귀 시험, 사고를 시험으로 남기기, 확률적 통제 뒤의 결정적 통제다. 두 글 모두 사람을 작성자에서 증거가 붙은 산출물의 검토자로 옮긴다. 이 대응은 이 문서가 만든 것이고, B 는 SDLC 를 언급하지 않는다.</p>
+      <figure class="figure">
+        <p class="fig-title">playbook 의 곁 루프가 B 에서는 주 루프다</p>
+        <p class="fig-sub">위는 playbook 의 여섯 단계 루프와 그 옆에서 agent 설정을 시험하는 eval 루프, 아래는 B 의 개선 루프. 두 글을 겹친 이 그림은 어느 원문에도 없다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 780 290" role="img" aria-label="위 줄은 playbook 의 루프로, intent.md 에서 spec.md, plan.md, diff 와 시험, PR 리뷰, 배포를 거쳐 운영 감시로 가고, 감시가 새 intent.md 를 써서 처음으로 돌아간다. 그 옆에 CLAUDE.md 와 skills 의 변경이 eval suite 를 통과해야 병합되는 작은 곁 루프가 있고, 사고는 eval 로 추가된다. 아래 줄은 B 의 루프로, 전문가 교정이 진단, 컴파일, 평가, PR 을 거쳐 knowledge 파일과 recipe 에 착지하고, 착지한 사례가 회귀 suite 로 되돌아간다. 아래 루프 전체가 위의 곁 루프에 대응한다." style="width:100%;height:auto;min-width:620px">
+          <text class="lbl-hi" x="10" y="18">playbook: 산출물은 코드</text>
+          <rect class="box" x="10" y="28" width="86" height="40" rx="7"/><text class="txt-s" x="20" y="52">intent.md</text>
+          <path class="arw" d="M96 48 L108 48"/><path class="arw" d="M102 44 L108 48 L102 52"/>
+          <rect class="box" x="110" y="28" width="80" height="40" rx="7"/><text class="txt-s" x="120" y="52">spec.md</text>
+          <path class="arw" d="M190 48 L202 48"/><path class="arw" d="M196 44 L202 48 L196 52"/>
+          <rect class="box" x="204" y="28" width="80" height="40" rx="7"/><text class="txt-s" x="214" y="52">plan.md</text>
+          <path class="arw" d="M284 48 L296 48"/><path class="arw" d="M290 44 L296 48 L290 52"/>
+          <rect class="box" x="298" y="28" width="96" height="40" rx="7"/><text class="txt-s" x="308" y="52">diff + 시험</text>
+          <path class="arw" d="M394 48 L406 48"/><path class="arw" d="M400 44 L406 48 L400 52"/>
+          <rect class="box" x="408" y="28" width="86" height="40" rx="7"/><text class="txt-s" x="418" y="52">PR 리뷰</text>
+          <path class="arw" d="M494 48 L506 48"/><path class="arw" d="M500 44 L506 48 L500 52"/>
+          <rect class="box" x="508" y="28" width="70" height="40" rx="7"/><text class="txt-s" x="518" y="52">배포</text>
+          <path class="arw" d="M578 48 L590 48"/><path class="arw" d="M584 44 L590 48 L584 52"/>
+          <rect class="box" x="592" y="28" width="100" height="40" rx="7"/><text class="txt-s" x="600" y="52">지표 감시</text>
+          <path class="arw" d="M642 68 L642 84 L53 84 L53 68"/><path class="arw" d="M48 75 L53 68 L58 75"/>
+          <text class="txt-s" x="250" y="99">band 위반이 새 intent.md 를 쓴다</text>
+          <rect class="box-hi" x="408" y="112" width="284" height="44" rx="7"/>
+          <text class="txt-s" x="418" y="131">곁 루프: CLAUDE.md, skills 변경 → eval suite</text>
+          <text class="txt-s" x="418" y="147">→ 병합. 사고마다 eval 하나 추가</text>
+          <path class="arw" d="M300 196 L408 150" stroke-dasharray="4 3"/><path class="arw" d="M399 150 L408 150 L403 158"/>
+          <text class="txt-s" x="250" y="178">이 문서의 대응</text>
+          <text class="lbl-hi" x="10" y="200">B: 산출물은 지식</text>
+          <rect class="box" x="10" y="210" width="90" height="40" rx="7"/><text class="txt-s" x="20" y="234">전문가 교정</text>
+          <path class="arw" d="M100 230 L112 230"/><path class="arw" d="M106 226 L112 230 L106 234"/>
+          <rect class="box-hi" x="114" y="210" width="70" height="40" rx="7"/><text class="txt-s" x="124" y="234">진단</text>
+          <path class="arw" d="M184 230 L196 230"/><path class="arw" d="M190 226 L196 230 L190 234"/>
+          <rect class="box" x="198" y="210" width="70" height="40" rx="7"/><text class="txt-s" x="208" y="234">컴파일</text>
+          <path class="arw" d="M268 230 L280 230"/><path class="arw" d="M274 226 L280 230 L274 234"/>
+          <rect class="box" x="282" y="210" width="70" height="40" rx="7"/><text class="txt-s" x="292" y="234">평가</text>
+          <path class="arw" d="M352 230 L364 230"/><path class="arw" d="M358 226 L364 230 L358 234"/>
+          <rect class="box" x="366" y="210" width="70" height="40" rx="7"/><text class="txt-s" x="376" y="234">PR</text>
+          <path class="arw" d="M436 230 L448 230"/><path class="arw" d="M442 226 L448 230 L442 234"/>
+          <rect class="box" x="450" y="210" width="150" height="40" rx="7"/><text class="txt-s" x="460" y="234">knowledge, recipe 반영</text>
+          <path class="arw" d="M525 250 L525 272 L317 272 L317 250"/><path class="arw" d="M312 257 L317 250 L322 257"/>
+          <text class="txt-s" x="350" y="287">착지한 사례가 회귀 suite 로</text>
+        </svg>
+        </div>
+        <figcaption>playbook 의 여섯 단계(Plan, Design, Build, Test, Deploy, Maintain)를 산출물 이름으로 그렸다. B 의 진단 단계에 대응하는 칸이 playbook 의 곁 루프에는 없다. 19장이 이 차이를 다룬다.</figcaption>
+      </figure>
+      <ul class="facts">
+        <li><span class="m">버전 관리</span><span>B: 모든 변경이 버전 관리되고 diff 로 보이며 되돌릴 수 있다. playbook: 단계마다 산출물을 커밋하고 커밋의 사슬이 감사 기록이다</span></li>
+        <li><span class="m">직무 분리</span><span>B: 제안한 agent 와 맥락을 나누지 않는 리뷰어, 그리고 사람 전문가의 승인. playbook: 코드를 쓴 agent 는 자기 코드를 승인할 길이 없고, 검증은 새 context 에서 한다</span></li>
+        <li><span class="m">설정 회귀</span><span>B: 모든 편집이 도메인 벤치마크를 통과해야 한다. playbook: CLAUDE.md, skills, hooks 가 바뀔 때마다 eval suite 를 돌린다. agent 를 움직이는 설정도 코드만큼 회귀 시험을 받아야 하기 때문이다</span></li>
+        <li><span class="m">실패 → 시험</span><span>B: 착지한 실패 사례가 회귀 suite 에 들어간다. playbook: 운영 사고마다 eval 하나를 쓰고 suite 에 남긴다</span></li>
+        <li><span class="m">결정적 통제</span><span>B: 확률적 리뷰 옆에 통과 아니면 실패인 linter. playbook: skill 은 권고성 통제라서, 반드시 지켜야 할 정책은 hook 같은 결정적 장치로 받친다</span></li>
+      </ul>
+      <p>가장 깊은 일치는 사람의 자리다. playbook 은 PR 을 검토하는 code owner 가 <span class="q">“can concentrate on intent and risk because the mechanical evidence is already attached.”</span> 라고 쓰고, B 는 <span class="q">“A human expert reviews a proven fix rather than debugging a raw failure.”</span> 라고 쓴다. 두 글이 줄이려는 병목도 같은 모양이다. playbook 은 agent 가 코드를 빨리 쓰자 병목이 그 앞뒤의 사람 속도 단계로 옮겨 갔다고 보고, B 는 지식 파일이 많아지자 교정을 편집으로 옮기는 사람의 몇 주가 병목이 됐다고 본다. 둘 다 그 번역을 agent 에게 넘기고 사람에게는 증거가 붙은 결과만 보여 준다.</p>
+      <details class="more"><summary>첨언: 짝지은 원문</summary><p>B: <span class="q">“Every change is version-controlled, diffable, and reversible.”</span> playbook: <span class="q">“The chain of commits is also the audit trail: who asked for what, what the agent produced, and who approved it.”</span></p><p>playbook 직무 분리: <span class="q">“Separation of duties is preserved, because the agent that wrote the code has no way to approve it.”</span> 새 context 검증: <span class="q">“This way the verdict is not colored by the assumptions that produced the code.”</span></p><p>playbook 설정 회귀: <span class="q">“The suite runs non-interactively in CI on a schedule and on any change to CLAUDE.md, skills or hooks, since that configuration steers the agent and deserves the regression testing that code gets.”</span> 사고 → 시험: <span class="q">“Each production incident gets an eval, written by the team that owned the incident, and stays in the suite as a regression test.”</span></p><p>playbook 권고성 통제: <span class="q">“A skill is a control, though an advisory one. It makes Claude likely to apply the policy while the code is written, and nothing forces a session to comply with it.”</span> 병목: <span class="q">“Build is no longer the constraint — the human-speed steps around it are.”</span></p><p>B 그림의 진입 파일 이름 SKILL.md 와 playbook 의 skill 형식(<span class="q">“a folder containing a SKILL.md whose frontmatter says when it triggers and whose body says what to do”</span>)은 이름과 frontmatter trigger 를 공유한다. Meta 가 어떤 agent 런타임을 쓰는지는 B 에 없으므로, 이 일치를 B 가 Claude 를 쓴다는 근거로 읽지 않는다.</p></details>
+    </div>
+  </section>
+
+  <!-- 19 -->
+  <section class="slide" data-label="SDLC 와 갈라지는 곳">
+    <div class="slide-inner">
+      <p class="eyebrow">sdlc-diverge</p>
+      <h2>SDLC 렌즈 2: 갈라지는 곳은 신호, 판정자, 의도된 변경</h2>
+      <p class="key">B 의 수명주기는 SDLC 의 형식을 빌리지만 세 곳에서 다른 물건이 된다. 실패를 알리는 신호가 결정적 지표가 아니라 전문가의 말이고, 시험의 판정자가 테스트 러너가 아니라 LLM 이며, 사양이 일부러 바뀔 때 시험을 함께 고치는 소프트웨어의 관행에 대응하는 장치가 B 에 없다. 진단 단계는 반대로 B 에만 있다.</p>
+      <ul class="facts">
+        <li><span class="m">신호</span><span>playbook 의 Maintain 은 결정적 스크립트가 지표의 band 위반을 잡고서야 Claude 를 부른다. B 의 루프는 전문가가 대화에서 교정해야 시작한다. 전문가가 보지 못한 오답은 루프에 들어오지 않는다</span></li>
+        <li><span class="m">진단</span><span>playbook 의 규칙은 빈도다. 같은 실수를 두 번 하면 CLAUDE.md 에 적는다. 어느 층을 고칠지 묻는 단계는 없고, CLAUDE.md 예시 하나에 명령, 관례, 「Claude 가 자주 틀리는 것」 이 함께 있다. B 는 고치기 전에 층을 가린다</span></li>
+        <li><span class="m">판정자</span><span>playbook 의 eval 은 「시험 통과, lint 깨끗, 동작 불변, 정책 준수」 같은 검사로 받아들임을 정의한다. B 의 회귀는 정답이 여럿일 수 있는 분석 문항이라 LLM 판정자가 통과를 매긴다</span></li>
+        <li><span class="m">의도된 변경</span><span>playbook 은 버그 수정 때 실패하는 시험을 먼저 쓰고, 구현이 계획을 벗어나면 같은 커밋에서 plan.md 를 고치라고 한다. B 에는 입장이 바뀔 때 옛 정답을 담은 시험을 고치는 경로가 없다(15장)</span></li>
+        <li><span class="m">배포</span><span>playbook 은 환경마다 자율 수준을 나누고 rollback 을 가장 많이 연습한 경로로 둔다. B 는 「reversible」 이라고만 쓰고 단계적 배포나 rollback 절차를 말하지 않는다</span></li>
+      </ul>
+      <p>이 차이로 독자가 예측할 수 있는 실패가 있다. B 의 방식을 코드 저장소의 CLAUDE.md 에 그대로 가져오면 진단 단계 덕분에 「두 번 틀리면 적는다」 보다 편집이 정확해진다. 반대로 playbook 의 방식을 B 같은 compliance 지식에 그대로 가져오면, 지표 band 로 잡을 수 있는 오답이 거의 없어 Maintain 루프가 돌지 않는다. compliance 판단이 틀렸다는 신호는 대개 사람이 읽고 나서야 생기기 때문이다. 두 루프를 겹쳐 쓰려면 B 쪽에 결정적 탐지에 해당하는 것, 예를 들어 같은 입력에 대한 답이 시간에 따라 바뀌는지 보는 표본 재실행을 따로 둬야 한다. 이 제안은 이 문서의 것이고 두 원문 어디에도 없다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>playbook §Maintain: <span class="q">“The script is version controlled and unit tested, and detection stays entirely deterministic, with no model involved.”</span> 두 번 규칙: <span class="q">“When Claude makes a mistake twice, the correction goes into CLAUDE.md.”</span> 리뷰에서도 같다: <span class="q">“Review findings feed back into CLAUDE.md. When a review flags a mistake for the second time, the correction goes into CLAUDE.md as part of that review”</span> 시험 먼저: <span class="q">“For bug fixes, write the failing test first.”</span> plan 동기화: <span class="q">“When implementation departs from the plan, update plan.md in the same commit.”</span> rollback: <span class="q">“Rollback should be the most rehearsed path in the pipeline”</span> eval 의 수명: <span class="q">“As models improve, cases that once discriminated stop doing so and new ones must be added that arise from ongoing monitoring.”</span> playbook 은 eval 이 낡는다는 것을 말하지만, 낡은 eval 을 빼는 절차는 playbook 에도 없다.</p><p>playbook 에도 B 의 적대적 리뷰어에 가까운 것이 있다. §Maintain: <span class="q">“Stage 6: Maintenance runs headless, with an independent confidence gate between stages, a deterministic check or an adversarial reviewing agent, deciding whether the previous stage's output continues or is escalated to a human.”</span></p></details>
+    </div>
+  </section>
+
+  <!-- 20 -->
+  <section class="slide" data-label="읽은 범위">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>읽은 범위: 원문 두 편은 끝까지, 사례 네 편은 해당 절까지</h2>
+      <p class="key">B 와 playbook 은 본문과 그림을 전부 읽었고, B 의 참조 두 편(Karpathy gist, Google OKF 글)과 7~9월 사례 네 편은 이 문서가 쓰는 절까지 읽었다. 모든 출처가 판 번호 없는 웹 페이지라서 2026-10-07 에 받은 텍스트를 고정 사본으로 두었고, Wayback 조회는 응답이 없어 보관 링크가 없다.</p>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>id</th><th>출처</th><th>발행</th><th>읽은 곳</th><th>열지 않은 것과 그 비용</th></tr></thead>
+        <tbody>
+          <tr class="hero"><td>w1</td><td>Meta, B</td><td>2026-09-02</td><td>도입부터 Acknowledgements 까지, 그림 3장</td><td>장식용 hero 이미지 한 장은 내용이 없어 뺐다</td></tr>
+          <tr><td>w2</td><td>Claude 블로그, playbook</td><td>2026-08-21</td><td>HTML 본문 전부, 그림 4장</td><td>같은 내용의 PDF 판과 code.claude.com, platform.claude.com 문서 링크 24개(중복 제외). playbook 의 제품 기능 설명은 이 문서에서 검증하지 않았다</td></tr>
+          <tr><td>w3</td><td>Karpathy, LLM Wiki gist</td><td>리비전 ac46de1 (2026-04-04)</td><td>전부</td><td>없음</td></tr>
+          <tr><td>w4</td><td>Google Cloud, OKF 소개</td><td>2026-06-12</td><td>전부</td><td>OKF v0.1 spec 과 저장소. 05장의 OKF 비교는 블로그 문장에만 기댄다</td></tr>
+          <tr><td>c1</td><td>Microsoft, SkillOpt 확장 보고</td><td>2026-07-14</td><td>Part I 1.1~1.3, Part II 2.1~2.2, Part III</td><td>2.3 이후 일부 표, 하위 결과 문서. 저자가 원 실행 기록을 공개하지 않아 숫자를 재현할 수 없다</td></tr>
+          <tr><td>c2</td><td>Cerebras, 지식 베이스</td><td>2026-07-15</td><td>본문 텍스트 전부</td><td>그림과 인라인 코드. payload 추출에서 문장 앞머리 몇 개가 빠졌다</td></tr>
+          <tr><td>c3</td><td>Anthropic, 보안팀 SDLC</td><td>2026-07-21</td><td>전부</td><td>그림, 링크된 Zero Trust for Agents 글</td></tr>
+          <tr><td>c4</td><td>Anthropic, Claude Tag on-call</td><td>2026-08-18</td><td>전부</td><td>on-call setup kit 저장소. lessons.md 의 실제 형식은 글에 나온 만큼만 안다</td></tr>
+        </tbody>
+      </table></div>
+      <p>원문이 그린 것 중 이 문서가 다시 그린 것은 B 의 네 층 표(04장), 지식 베이스 트리와 frontmatter(05장), 개선 루프(09장)다. playbook 의 그림 네 장 가운데 순환 그림은 18장 그림의 위 줄로 들어갔고, 나머지 셋(병목 막대, play 의존 그래프, #inc-checkout 대화)과 단계별 전환 표는 옮기지 않았다. 단계별 대응표를 결론처럼 세우지 않기 위해서이고, 필요한 행은 인용으로 썼다.</p>
+      <p>Hacker News 에는 B 가 2026-09-15 에 한 번 올라왔고 댓글은 0개였다. 그래서 반응 장을 두지 않았다. Analytics at Meta 의 Medium 글 「How We Built an AI Second Brain for 60K Knowledge Workers」(2026-04-29)는 이름만 겹치는 별개 프로젝트라 열지 않았다. 렌더링은 Windows Chrome headless 스크린샷으로 라이트 모드 1440px 폭의 표지, 2~6장, 9장, 12장, 14장, 16장, 18장, 20장, 22장을 확인했다. 다크 모드, 좁은 폭, 나머지 장의 그림은 화면으로 보지 않았다.</p>
+      <details class="more"><summary>첨언: 고정 사본과 수신 시각</summary><p>각 사본은 .research/2026-10-07-meta-organizational-second-brain/notes/web/&lt;id&gt;.txt 이고 sha256 은 sources.jsonl 에 있다. 수신 시각(UTC): w1 08:00:14, w2 08:00:16, w3 08:02 (gist git clone), w4 08:02:45, c4 08:03:03, c3 08:03:14, c2 08:03:24, c1 08:03:48. B 의 그림 세 장은 alt 가 비어 있어 이미지를 직접 열어 글자를 notes/figures.md 에 옮겼다. B 본문의 l.facebook.com 링크 둘은 u= 파라미터를 풀어 w3, w4 의 주소를 얻었다. c2 는 라이브 URL 이 HTTP 500 을 내면서 본문을 응답 payload 에 담아 보내서, 그 payload 의 텍스트를 사본으로 썼다.</p></details>
+    </div>
+  </section>
+
+  <!-- 21 -->
+  <section class="slide" data-label="해석의 한계">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>해석의 한계: 구조는 구체적이고 효과는 검증되지 않았다</h2>
+      <p class="key">B 는 파일 분류, 진단 질문, 리뷰어의 맥락 분리, blind replay 를 따라 만들 수 있을 만큼 구체적으로 적었다. 그 장치들이 얼마나 효과가 있었는지는 Meta 의 자기 보고뿐이고, 도메인 이름과 교정 건수, 판정자의 정확도, 파이프라인 비용이 없다. 남는 것은 설계이고, 그 설계의 핵심 하나(편집을 gate 로 막는 것)는 다른 팀의 독립 실험이 같은 방향을 가리킨다.</p>
+      <ul class="facts">
+        <li><span class="m">B 가 말하지 않는 것</span><span>도메인 이름, 교정과 편집 건수, 재시도 횟수와 상한, 회귀 suite 크기, 판정 LLM 과 그 정확도, 교정 하나당 LLM 호출 비용, 실패 사례</span></li>
+        <li><span class="m">B 안의 불일치</span><span>본문은 넷째 phase 를 전문가 검토로, 그림은 착지와 보강으로 적는다. 「빈도, 심각도 가중」 은 그림에만 있다. 그림 트리에는 gateway 파일이 없다</span></li>
+        <li><span class="m">이 문서의 추론</span><span>06장의 경계 이동 예측, 14장의 사례, 15장의 입장 변경 비용, 18~19장의 SDLC 대응, 19장의 표본 재실행 제안은 이 문서의 것이고 원문에 없다</span></li>
+        <li><span class="m">사례의 성격</span><span>네 사례 중 둘이 Anthropic 의 글이고 playbook 도 Anthropic 의 글이다. 벤더가 자기 제품 사용을 보고한 것이라 B 와 같은 자기 보고의 한계를 진다. SkillOpt 는 연구 보고지만 Sleep 실험은 셀마다 단일 seed 이고, 499회 sweep 은 모든 셀에 반복 seed 가 있지 않으며 원 기록이 비공개다</span></li>
+      </ul>
+      <p>살아남는 결과는 두 가지다. 첫째, 「agent 가 실은 자료로 맞는 결론에 이를 수 있었나」 라는 진단 질문은 숫자와 무관하게 옮겨 쓸 수 있고, SkillOpt 의 Skill Defect 와 Execution Lapse 구분이 같은 축을 독립적으로 쓴다. 둘째, agent 가 고친 지식을 검증 gate 없이 받아들이면 그럴듯한 오규칙 하나가 성능을 무너뜨릴 수 있다는 것은 SkillOpt 의 스트레스 사례(55.4% 에서 2.6%)가 보여 준다. B 의 「회귀 0건」 이 그 gate 덕분인지는 B 의 자료로 가릴 수 없다.</p>
+      <details class="more"><summary>첨언: 부재 확인</summary><p>B 사본 검색 결과: SDLC 0건, Claude 0건, Anthropic 0건, baseline 0건, sample 0건, interval 0건, % 기호 1건(80%). B 가 비교 대상으로 드는 것은 자기 시스템의 초기판뿐이다. B 의 새로움 주장 <span class="q">“we haven’t seen this level of validation rigor applied to a structured knowledge base without model retraining”</span> 은 B 가 선행 연구를 나열하지 않으므로 이 문서가 확인할 수 없다. 같은 7월에 공개된 SkillOpt 의 검증 gate 와 단계적 채택은 skill 파일 하나에 대한 것이라 B 의 의존 그래프 규모와는 다르다.</p></details>
+    </div>
+  </section>
+
+  <!-- 22 -->
+  <section class="slide" data-label="결론">
+    <div class="slide-inner">
+      <p class="eyebrow">conclusion</p>
+      <h2>결론: 교정을 diff 로 적을 수 있으면 루프가 붙는다</h2>
+      <p class="key">Meta 의 organizational second brain 은 전문가 지식을 밀도와 사용 빈도로 나눠, 자주 쓰는 판단은 의존을 적은 텍스트 파일로, 드문 자료는 RAG 로 둔다. 전문가의 교정은 층을 가리는 진단과 최소 편집, 맥락 없는 리뷰와 blind replay, 회귀 시험을 지나 PR 로 착지하고 다음 시험이 된다. 이 수명주기는 SDLC 의 버전 관리와 직무 분리, 회귀 시험을 지식 자체에 입혔고, 실패 신호와 판정자, 의도된 변경 처리에서 SDLC 와 갈라진다.</p>
+      <p>자기 시스템에 옮기려는 개발자가 먼저 물을 것은 전문가의 교정을 텍스트 diff 로 적을 수 있는가이다(17장). 적을 수 있으면 루프가 붙고, 판단이 사례별 직관이라 적을 수 없으면 교정은 모호함 갈래로 빠진다. 루프가 붙은 뒤의 예측은 이렇다. 입장이 있는데 불리지 않아 생긴 교정은 position 의 triggers 나 routing index 같은 싣는 장치를 고치게 되고, 회귀 suite 의 범위가 gate 의 힘을 정하며, 입장을 일부러 바꾸는 날 지난 교정으로 쌓인 시험이 그 변경을 막는다. 그 마지막 비용을 줄일 장치, 즉 시험이 어느 position 판에 기대는지 적어 두는 일은 B 에 없으므로 직접 만들어야 한다.</p>
+      <p>B 의 숫자는 세 sprint 동안의 자기 보고이고, token 감소 말고는 측정된 기준선이 없다. 숫자를 빼고도 남는 것은 진단 질문과 검증 gate 의 설계다. 같은 시기 공개된 다른 팀의 사례와 실험도 같은 방향을 가리킨다.</p>
+    </div>
+  </section>
+
+  <!-- 23 -->
+  <section class="slide" data-label="출처">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처</h2>
+      <div class="src">
+        <div><a href="https://engineering.fb.com/2026/09/02/ml-applications/organizational-second-brain-ai-learns-from-experts/">w1 · An Organizational Second Brain: Building an AI That Learns From Experts</a> <span class="t">Shaurya Sengar, Jason Nawrocki, Jay Shah, Prashant Kommireddi. Engineering at Meta, 2026-09-02. 2026-10-07 수신</span></div>
+        <div><a href="https://claude.com/blog/the-ai-native-sdlc-playbook">w2 · The AI-native SDLC playbook</a> <span class="t">Louis Claxton. Claude 블로그, 2026-08-21. 2026-10-07 수신</span></div>
+        <div><a href="https://gist.github.com/karpathy/442a6bf555914893e9891c11519de94f">w3 · LLM Wiki</a> <span class="t">Andrej Karpathy. gist 리비전 ac46de1ad27f92b28ac95459c782c07f6b8c964a (2026-04-04)</span></div>
+        <div><a href="https://cloud.google.com/blog/products/data-analytics/how-the-open-knowledge-format-can-improve-data-sharing">w4 · Introducing the Open Knowledge Format</a> <span class="t">Sam McVeety, Amir Hormati. Google Cloud 블로그, 2026-06-12</span></div>
+        <div><a href="https://microsoft.github.io/SkillOpt/blog/gating-reflection-safe-updates/">c1 · Expanded SkillOpt Ablations, Skill-Aware Reflection, and SkillOpt-Sleep</a> <span class="t">Ziwei Zhou, Ziyang Gong, Yifan Yang. 2026-07-14</span></div>
+        <div><a href="https://www.cerebras.ai/blog/how-we-built-our-knowledge-base">c2 · How We Built Our Knowledge Base</a> <span class="t">Cerebras, 2026-07-15</span></div>
+        <div><a href="https://claude.com/resources/articles/how-anthropic-secures-its-ai-native-software-development-lifecycle">c3 · How Anthropic secures its AI-native software development lifecycle</a> <span class="t">Jason Clinton. 2026-07-21</span></div>
+        <div><a href="https://claude.com/blog/ai-ci-cd-on-call">c4 · Claude on call: How Claude Tag serves as Anthropic’s first responder for CI/CD failures</a> <span class="t">Sachin Malhotra. 2026-08-18</span></div>
+        <div><a href="https://news.ycombinator.com/item?id=49719670">hn1 · Hacker News 게시물</a> <span class="t">2026-09-15, 댓글 0개</span></div>
+      </div>
+    </div>
+  </section>
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 23</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+    <button class="nav-btn" id="mode" aria-label="읽기 방식 전환">덱으로 보기</button>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  // 목차가 비어 있으면 장에서 만든다. 이름은 data-label, 없으면 h2/h1 의 앞 14자.
+  // 장을 더하거나 이름을 바꿀 때 목차를 손으로 맞추지 않아도 되게 하려는 것이다.
+  var rail = document.querySelector(".rail");
+  if (rail && !rail.querySelector(".rail-item")) {
+    slides.forEach(function (s, k) {
+      var eb = (s.querySelector(".eyebrow") || {}).textContent || "";
+      if (k === 2 || /^\s*critique\s*$/.test(eb)) { var sep = document.createElement("div"); sep.className = "rail-sep"; rail.appendChild(sep); }
+      var h = s.querySelector("h2, h1");
+      var label = s.getAttribute("data-label") || (h ? h.textContent.replace(/\s+/g, " ").trim().slice(0, 14) : "");
+      var b = document.createElement("button");
+      b.className = "rail-item"; b.setAttribute("data-go", String(k));
+      var n = document.createElement("span"); n.className = "n"; n.textContent = (k + 1 < 10 ? "0" : "") + (k + 1);
+      var t = document.createElement("span"); t.textContent = label;
+      b.appendChild(n); b.appendChild(t); rail.appendChild(b);
+    });
+  }
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll(".rail-item"));
+  var prev = document.getElementById("prev"), next = document.getElementById("next");
+  var counter = document.getElementById("counter"), progbar = document.getElementById("progbar");
+  var stage = document.getElementById("stage"), modeBtn = document.getElementById("mode");
+  var i = 0;
+  slides.forEach(function (s, k) { if (!s.id) { s.id = "p" + (k + 1); } });
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function isArticle() { return document.body.getAttribute("data-mode") !== "deck"; }
+  function mark(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    railBtn.forEach(function (b, k) { b.setAttribute("aria-current", k === i ? "true" : "false"); });
+    counter.textContent = pad(i + 1) + " / " + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + "%";
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+  }
+  function show(n, updateHash) {
+    mark(n);
+    slides.forEach(function (s, k) {
+      s.setAttribute("data-active", k === i ? "true" : "false");
+      s.setAttribute("aria-hidden", k === i ? "false" : "true");
+      if (k === i) { s.scrollTop = 0; }
+    });
+    if (updateHash !== false) { try { history.replaceState(null, "", "#p" + (i + 1)); } catch (e) {} }
+  }
+  // article 에서는 장을 숨기지 않는다. 목차 클릭과 #pN 은 그 장으로 스크롤한다.
+  function go(n, updateHash) {
+    if (!isArticle()) { show(n, updateHash); return; }
+    mark(n);
+    slides.forEach(function (s) { s.setAttribute("data-active", "true"); s.setAttribute("aria-hidden", "false"); });
+    slides[i].scrollIntoView({ block: "start" });
+    if (updateHash !== false) { try { history.replaceState(null, "", "#p" + (i + 1)); } catch (e) {} }
+  }
+  function setMode(m) {
+    document.body.setAttribute("data-mode", m);
+    try { localStorage.setItem("rl-mode", m); } catch (e) {}
+    modeBtn.textContent = m === "deck" ? "이어 읽기" : "덱으로 보기";
+    go(i, false);
+  }
+  modeBtn.addEventListener("click", function () { setMode(isArticle() ? "deck" : "article"); });
+  prev.addEventListener("click", function () { go(i - 1); });
+  next.addEventListener("click", function () { go(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener("click", function () { go(parseInt(b.getAttribute("data-go"), 10)); });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (isArticle() || e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) { return; }
+    if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); show(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); show(i - 1); }
+    else if (e.key === "Home") { e.preventDefault(); show(0); }
+    else if (e.key === "End") { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener("touchstart", function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener("touchend", function (e) {
+    if (x0 === null || isArticle()) { x0 = null; return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  // article 에서 스크롤 위치를 목차에 반영한다.
+  var ticking = false;
+  window.addEventListener("scroll", function () {
+    if (!isArticle() || ticking) { return; }
+    ticking = true;
+    window.requestAnimationFrame(function () {
+      ticking = false;
+      var line = window.innerHeight * 0.35, best = 0;
+      for (var k = 0; k < slides.length; k++) { if (slides[k].getBoundingClientRect().top <= line) { best = k; } }
+      if (best !== i) { mark(best); try { history.replaceState(null, "", "#p" + (best + 1)); } catch (e) {} }
+    });
+  }, { passive: true });
+  var saved = null;
+  try { saved = localStorage.getItem("rl-mode"); } catch (e) {}
+  document.body.setAttribute("data-mode", saved === "deck" ? "deck" : "article");
+  modeBtn.textContent = isArticle() ? "덱으로 보기" : "이어 읽기";
+  var m = /^#p(\d+)$/.exec(window.location.hash || "");
+  go(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
