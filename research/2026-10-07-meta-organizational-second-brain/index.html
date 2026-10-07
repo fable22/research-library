@@ -392,9 +392,9 @@ a.xref { color: var(--link); }
     <div class="slide-inner">
       <p class="eyebrow">index</p>
       <h1>Meta 의 organizational second brain: 전문가 교정을 재학습 없이 검증된 텍스트 편집으로 바꾸는 지식 시스템</h1>
-      <p class="dek">Engineering at Meta 의 「An Organizational Second Brain: Building an AI That Learns From Experts」(2026-09-02, 이하 B)를 그림 세 장까지 포함해 끝까지 읽고 구조를 풀었다. 독자는 사내 지식을 agent 에게 먹이는 개발자이고, 이 문서를 읽고 나면 자기 도메인에서 전문가의 교정 하나가 어떤 파일을 바꾸고 어떤 검사에 걸리는지 예측할 수 있어야 한다.</p>
+      <p class="dek">Engineering at Meta 의 「An Organizational Second Brain: Building an AI That Learns From Experts」(2026-09-02)를 그림 세 장까지 포함해 끝까지 읽고 구조를 풀었다. 독자는 사내 지식을 agent 에게 먹이는 개발자이고, 이 문서를 읽고 나면 자기 도메인에서 전문가의 교정 하나가 어떤 파일을 바꾸고 어떤 검사에 걸리는지 예측할 수 있어야 한다.</p>
       <table class="prose-table" style="margin:0 0 18px">
-        <thead><tr><th>B 의 절</th><th>이 문서의 장</th></tr></thead>
+        <thead><tr><th>원문의 절</th><th>이 문서의 장</th></tr></thead>
         <tbody>
           <tr><td>도입 · The Architecture at a Glance</td><td>03 문제 · 04 네 층</td></tr>
           <tr><td>Building the Organizational Second Brain</td><td>05 파일 분류와 의존 그래프</td></tr>
@@ -407,8 +407,8 @@ a.xref { color: var(--link); }
           <tr><td>(원문에 없는 렌즈)</td><td>18 SDLC 에서 빌려온 규율 · 19 SDLC 와 갈라지는 곳</td></tr>
         </tbody>
       </table>
-      <p>18, 19장의 SDLC 대응은 이 문서가 만든 것이다. B 본문에는 SDLC, Claude, Anthropic 이라는 낱말이 한 번도 나오지 않는다. 대응의 기준은 Claude 블로그의 「The AI-native SDLC playbook」(2026-08-21, 이하 playbook)이다. 개념마다 붙인 사례는 2026년 7월부터 9월 사이에 공개된 네 건(SkillOpt, Cerebras, Anthropic 보안팀, Claude Tag on-call)이고 각각 날짜와 고정 사본이 있다. 같은 저장소의 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM Wiki 문서</a>가 B 가 계보로 대는 Karpathy 의 패턴을, <a class="xref" href="../2026-08-12-cerebras-knowledge-base/">Cerebras 지식 베이스 문서</a>가 06장의 대조 사례를, <a class="xref" href="../2026-09-11-skilladam/">SkillAdam 문서</a>가 skill 파일 자동 편집의 다른 갈래를 다룬다.</p>
-      <details class="more"><summary>첨언: 읽는 방법</summary><p>각 장의 굵은 문장(.key)이 그 장의 주장이다. 원문 인용은 따옴표 안에 원문 그대로 두었고, 위치는 B 의 절 제목(§)으로 적었다. B 의 그림 세 장은 alt 가 비어 있어서 이미지 속 글자를 옮겨 다시 그렸다. 모든 원문은 2026-10-07 08:00 UTC 전후에 받은 판이다.</p></details>
+      <p>18, 19장의 SDLC 대응은 이 문서가 만든 것이다. 원문에는 SDLC, Claude, Anthropic 이라는 낱말이 한 번도 나오지 않는다. 대응의 기준은 Claude 블로그의 「The AI-native SDLC playbook」(2026-08-21, 이하 playbook)이다. 개념마다 붙인 사례는 2026년 7월부터 9월 사이에 공개된 네 건(SkillOpt, Cerebras, Anthropic 보안팀, Claude Tag on-call)이고 각각 날짜와 고정 사본이 있다. 같은 저장소의 <a class="xref" href="../2026-08-05-llm-wiki-retrieval-as-reasoning/">LLM Wiki 문서</a>가 Meta 가 계보로 대는 Karpathy 의 패턴을, <a class="xref" href="../2026-08-12-cerebras-knowledge-base/">Cerebras 지식 베이스 문서</a>가 06장의 대조 사례를, <a class="xref" href="../2026-09-11-skilladam/">SkillAdam 문서</a>가 skill 파일 자동 편집의 다른 갈래를 다룬다.</p>
+      <details class="more"><summary>첨언: 읽는 방법</summary><p>각 장의 굵은 문장(.key)이 그 장의 주장이다. 원문 인용은 따옴표 안에 원문 그대로 두었고, 위치는 원문의 절 제목(§)으로 적었다. 원문의 그림 세 장은 alt 가 비어 있어서 이미지 속 글자를 옮겨 다시 그렸다. 모든 원문은 2026-10-07 08:00 UTC 전후에 받은 판이다.</p></details>
     </div>
   </section>
 
@@ -417,15 +417,15 @@ a.xref { color: var(--link); }
     <div class="slide-inner">
       <p class="eyebrow">tl-dr</p>
       <h2>요약: 지식은 텍스트 파일에, 학습은 검증된 diff 로</h2>
-      <p class="key">B 의 시스템은 전문가의 교정을 모델 가중치가 아니라 200개 넘는 텍스트 파일의 diff 로 반영한다. 교정 하나는 근본 원인을 지식 쪽과 절차 쪽 중 하나로 귀속하는 진단을 거쳐 최소 편집이 되고, 맥락을 공유하지 않는 리뷰어와 blind replay, 회귀 벤치마크를 통과해야 PR 로 사람 앞에 간다. 수치는 Meta 의 자기 보고뿐이고, 측정된 기준선과 비교한 것은 token 감소 하나이며 표본 수는 어디에도 없다.</p>
+      <p class="key">Meta 의 시스템은 전문가의 교정을 모델 가중치가 아니라 200개 넘는 텍스트 파일의 diff 로 반영한다. 교정 하나는 근본 원인을 지식 쪽과 절차 쪽 중 하나로 귀속하는 진단을 거쳐 최소 편집이 되고, 맥락을 공유하지 않는 리뷰어와 blind replay, 회귀 벤치마크를 통과해야 PR 로 사람 앞에 간다. 수치는 Meta 의 자기 보고뿐이고, 측정된 기준선과 비교한 것은 token 감소 하나이며 표본 수는 어디에도 없다.</p>
       <ul class="facts">
         <li><span class="m">구조</span><span>자주 쓰는 고밀도 지식(입장, 용어, 라우팅, 진입 문턱)은 frontmatter 로 서로를 가리키는 파일에 두고, 가끔 필요한 자료만 RAG 로 찾는다</span></li>
         <li><span class="m">분리</span><span>recipe 는 절차만, 지식 파일은 사실만 담는다. 그래서 틀린 답이 나오면 둘 중 어느 쪽을 고칠지 정할 수 있다</span></li>
         <li><span class="m">루프</span><span>진단, 컴파일, 평가, 착지. 평가에서 떨어지면 컴파일로 돌아가고, 착지한 교정은 회귀 suite 의 새 시험이 된다</span></li>
         <li><span class="m">숫자</span><span>파일 200개 이상, 턴당 token 약 80% 감소(초기 단일 지시 파일 대비), 6주 3 sprint, 회귀 0건, 평가 시간 며칠에서 몇 분. 측정 방법은 하나도 공개되지 않았다</span></li>
       </ul>
-      <p>SDLC 렌즈로 보면 B 의 지식 베이스는 playbook 이 CLAUDE.md 와 skills 에 요구하는 규율(버전 관리, 리뷰의 분리, 설정 변경의 회귀 테스트, 사고를 시험으로 남기기)을 지식 자체의 수명주기로 끌어올린 것이다. 갈라지는 곳은 셋이다. 실패 신호가 지표가 아니라 전문가의 말이고, 시험의 판정자가 결정적 테스트가 아니라 LLM 이며, 조직이 입장을 일부러 바꿀 때 지난 교정으로 쌓인 시험을 어떻게 고치는지 B 는 말하지 않는다.</p>
-      <details class="more"><summary>첨언: 확인되지 않은 것</summary><p>B 는 도메인을 「a specific compliance domain」 이라고만 하고, 개선 사이클이 몇 번 돌았는지, 교정이 몇 건 들어왔는지, 판정 LLM 의 정확도가 얼마인지 밝히지 않는다. 「useful almost all the time」 에는 숫자가 없다. 16장이 숫자마다 빠진 기준을 적는다.</p></details>
+      <p>SDLC 렌즈로 보면 Meta 의 지식 베이스는 playbook 이 CLAUDE.md 와 skills 에 요구하는 규율(버전 관리, 리뷰의 분리, 설정 변경의 회귀 테스트, 사고를 시험으로 남기기)을 지식 자체의 수명주기로 끌어올린 것이다. 갈라지는 곳은 셋이다. 실패 신호가 지표가 아니라 전문가의 말이고, 시험의 판정자가 결정적 테스트가 아니라 LLM 이며, 조직이 입장을 일부러 바꿀 때 지난 교정으로 쌓인 시험을 어떻게 고치는지 Meta 는 말하지 않는다.</p>
+      <details class="more"><summary>첨언: 확인되지 않은 것</summary><p>Meta 는 도메인을 「a specific compliance domain」 이라고만 하고, 개선 사이클이 몇 번 돌았는지, 교정이 몇 건 들어왔는지, 판정 LLM 의 정확도가 얼마인지 밝히지 않는다. 「useful almost all the time」 에는 숫자가 없다. 16장이 숫자마다 빠진 기준을 적는다.</p></details>
     </div>
   </section>
 
@@ -434,11 +434,11 @@ a.xref { color: var(--link); }
     <div class="slide-inner">
       <p class="eyebrow">problem</p>
       <h2>문제: 전문가의 판단은 문서에 없고, chunk 검색은 판단을 매번 다시 만든다</h2>
-      <p class="key">B 가 푸는 문제는 둘이다. 조직의 판단 기준이 몇 사람 머리에만 있어서 같은 질문이 수백 번의 검토에서 반복되고, 문서를 chunk 로 찾아 주는 agent 는 그 판단을 매 실행마다 원자료에서 다시 유도하느라 느리고 결과가 들쭉날쭉하다.</p>
-      <p>B 가 드는 예는 compliance 다. <span class="q">“the same types of questions can arise across hundreds of product reviews, expert assessments take days of manual research, and inconsistency between assessments creates real organizational risk.”</span> 범용 LLM 은 조직이 무엇을 <em>할 수 있는지</em>는 요약하지만 과거 입장과 사업 방향에 비추어 무엇을 <em>해야 하는지</em>는 가리지 못한다고 B 는 쓴다.</p>
-      <p>B 의 진단에서 chunk 검색이 실패하는 지점은 반복이다. <span class="q">“An agent that retrieves document chunks at inference time has to re-derive that reasoning from raw sources on every run, which is slow, error-prone, and inconsistent.”</span> 그래서 답은 판단을 미리 꺼내 두는 것이다. 오래 도는 오프라인 과정이 원자료를 읽고 <span class="q">“distills them into structured knowledge files”</span>, 즉 조직이 그 도메인을 어떻게 해석하는지를 기계가 읽을 수 있는 문장으로 증류한다.</p>
-      <p>이 증류가 B 의 두 번째 문제로 이어진다. 파일이 수백 개가 되고 서로 의존하면, 전문가의 교정 한 건을 정확한 파일 편집으로 옮기는 일이 사람 손으로는 몇 주 걸린다. <span class="q">“This process can take weeks because it requires understanding the full dependency graph, verifying nothing else breaks, and validating the fix actually works.”</span></p>
-      <details class="more"><summary>첨언: 원문 위치</summary><p>첫 인용은 B 도입부, 둘째와 셋째는 §Building the Organizational Second Brain, 넷째는 §The Self-Improvement Flywheel 이다. could 와 should 의 구분은 §The Architecture at a Glance: <span class="q">“it will not be able to distinguish between what an organization could do (a summary of general information) and what it should consider doing (based on historic positions, company direction, business context, etc.)”</span></p></details>
+      <p class="key">Meta 가 푸는 문제는 둘이다. 조직의 판단 기준이 몇 사람 머리에만 있어서 같은 질문이 수백 번의 검토에서 반복되고, 문서를 chunk 로 찾아 주는 agent 는 그 판단을 매 실행마다 원자료에서 다시 유도하느라 느리고 결과가 들쭉날쭉하다.</p>
+      <p>Meta 가 드는 예는 compliance 다. <span class="q">“the same types of questions can arise across hundreds of product reviews, expert assessments take days of manual research, and inconsistency between assessments creates real organizational risk.”</span> 범용 LLM 은 조직이 무엇을 <em>할 수 있는지</em>는 요약하지만 과거 입장과 사업 방향에 비추어 무엇을 <em>해야 하는지</em>는 가리지 못한다고 Meta 는 쓴다.</p>
+      <p>Meta 의 진단에서 chunk 검색이 실패하는 지점은 반복이다. <span class="q">“An agent that retrieves document chunks at inference time has to re-derive that reasoning from raw sources on every run, which is slow, error-prone, and inconsistent.”</span> 그래서 답은 판단을 미리 꺼내 두는 것이다. 오래 도는 오프라인 과정이 원자료를 읽고 <span class="q">“distills them into structured knowledge files”</span>, 즉 조직이 그 도메인을 어떻게 해석하는지를 기계가 읽을 수 있는 문장으로 증류한다.</p>
+      <p>이 증류가 Meta 의 두 번째 문제로 이어진다. 파일이 수백 개가 되고 서로 의존하면, 전문가의 교정 한 건을 정확한 파일 편집으로 옮기는 일이 사람 손으로는 몇 주 걸린다. <span class="q">“This process can take weeks because it requires understanding the full dependency graph, verifying nothing else breaks, and validating the fix actually works.”</span></p>
+      <details class="more"><summary>첨언: 원문 위치</summary><p>첫 인용은 원문 도입부, 둘째와 셋째는 §Building the Organizational Second Brain, 넷째는 §The Self-Improvement Flywheel 이다. could 와 should 의 구분은 §The Architecture at a Glance: <span class="q">“it will not be able to distinguish between what an organization could do (a summary of general information) and what it should consider doing (based on historic positions, company direction, business context, etc.)”</span></p></details>
     </div>
   </section>
 
@@ -447,12 +447,12 @@ a.xref { color: var(--link); }
     <div class="slide-inner">
       <p class="eyebrow">layers</p>
       <h2>네 층: 지식, 추론, 평가, 개선</h2>
-      <p class="key">B 의 시스템은 네 층이고 서로 기댄다. 파일 구조가 있어야 자동 편집이 되고, 절차가 명시돼야 실패를 귀속할 수 있고, 평가가 모든 변경을 막아서고, 개선 루프가 다시 지식과 절차를 고친다. B 는 하나를 빼면 나머지도 약해진다고 쓴다.</p>
+      <p class="key">Meta 의 시스템은 네 층이고 서로 기댄다. 파일 구조가 있어야 자동 편집이 되고, 절차가 명시돼야 실패를 귀속할 수 있고, 평가가 모든 변경을 막아서고, 개선 루프가 다시 지식과 절차를 고친다. Meta 는 하나를 빼면 나머지도 약해진다고 쓴다.</p>
       <figure class="figure">
-        <p class="fig-title">층마다 푸는 문제와 B 가 내세우는 착안</p>
-        <p class="fig-sub">B §The Architecture at a Glance 의 표 그림(Domain-Expert-AI-Table.png)을 옮겨 적고 우리말로 풀었다</p>
+        <p class="fig-title">층마다 푸는 문제와 Meta 가 내세우는 착안</p>
+        <p class="fig-sub">원문 §The Architecture at a Glance 의 표 그림(Domain-Expert-AI-Table.png)을 옮겨 적고 우리말로 풀었다</p>
         <div class="tablewrap"><table class="prose-table">
-          <thead><tr><th>층</th><th>푸는 문제</th><th>B 의 착안</th></tr></thead>
+          <thead><tr><th>층</th><th>푸는 문제</th><th>Meta 의 착안</th></tr></thead>
           <tbody>
             <tr><td>Knowledge System</td><td>제도 지식이 흩어져 있고 AI 가 접근할 수 없다</td><td>LLM 이 읽기 좋게 최적화한, 탐색 가능한 파일 시스템으로 지식을 구조화한다</td></tr>
             <tr><td>Reasoning Pipeline</td><td>전문가의 분석은 정해진 방법론을 따르는데, 하나로 뭉친 prompt 는 방법론을 담지 못한다</td><td>아는 것과 추론하는 방법을 recipe 라는 조합 가능한 절차로 떼어 낸다. 이 분리가 progressive disclosure 를 가능하게 한다</td></tr>
@@ -460,7 +460,7 @@ a.xref { color: var(--link); }
             <tr class="hero"><td>Self-Improvement Loop</td><td>수작업 피드백 사이클은 몇 주 걸리고 늘릴 수 없다</td><td>지식 유지보수를 자동 검증이 붙은 compilation 문제로 다룬다</td></tr>
           </tbody>
         </table></div>
-        <figcaption>원 그림은 이미지 속 표라서 alt 가 비어 있다. 첫 행의 착안 칸에는 「LLMs are better at managing knowledge than people.」 이라는 주장이 있는데 B 는 근거를 대지 않는다. 마지막 행을 강조한 것은 B 가 그 층을 「the most distinctive part」 라고 부르기 때문이다.</figcaption>
+        <figcaption>원 그림은 이미지 속 표라서 alt 가 비어 있다. 첫 행의 착안 칸에는 「LLMs are better at managing knowledge than people.」 이라는 주장이 있는데 Meta 는 근거를 대지 않는다. 마지막 행을 강조한 것은 Meta 가 그 층을 「the most distinctive part」 라고 부르기 때문이다.</figcaption>
       </figure>
       <p>네 층의 의존은 한 방향이 아니다. 지식 층의 파일 경계와 frontmatter 가 개선 루프의 자동 편집을 가능하게 하고, 추론 층의 절차 분리가 개선 루프의 진단을 가능하게 하며, 평가 층이 개선 루프의 출력을 걸러 낸다. 그래서 이 문서는 네 층을 따로 설명한 뒤 개선 루프에서 다시 모은다.</p>
       <details class="more"><summary>첨언: 원문</summary><p>§The Architecture at a Glance: <span class="q">“The knowledge system’s file structure makes automated editing possible. The reasoning layer’s explicit procedures make failure attribution tractable. The evaluation framework gates every change.”</span> 이어서 <span class="q">“Remove any one layer and the others degrade.”</span> 표 그림의 영어 원문 전체는 notes/figures.md 에 있다.</p></details>
@@ -481,7 +481,7 @@ a.xref { color: var(--link); }
       </ul>
       <figure class="figure">
         <p class="fig-title">position 파일 하나가 언제 불리고 무엇에 기대는가</p>
-        <p class="fig-sub">B §Building the Organizational Second Brain 의 그림 「Sample structure of knowledge base + front-matters」 일부를 옮겨 적음. B 는 이 그림을 「Generalized example」 이라 부른다</p>
+        <p class="fig-sub">원문 §Building the Organizational Second Brain 의 그림 「Sample structure of knowledge base + front-matters」 일부를 옮겨 적음. Meta 는 이 그림을 「Generalized example」 이라 부른다</p>
 <pre>knowledge_system/
 ├── SKILL.md                              ← "Homepage": 맞는 workflow 로 보낸다
 └── references/
@@ -511,12 +511,12 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
   - ps-position-routing-index
   - ra-scoring-criteria
   - ra-requirement-catalog</pre>
-        <figcaption>원 그림의 트리에서 하위 폴더 몇 개(scoring, case-law 등)를 줄였다. 그림 트리에는 gateway 라는 이름의 파일이 없고, 진입 파일 이름이 SKILL.md 다. B 본문은 이 파일 이름에 대해 아무 말도 하지 않는다.</figcaption>
+        <figcaption>원 그림의 트리에서 하위 폴더 몇 개(scoring, case-law 등)를 줄였다. 그림 트리에는 gateway 라는 이름의 파일이 없고, 진입 파일 이름이 SKILL.md 다. 원문은 이 파일 이름에 대해 아무 말도 하지 않는다.</figcaption>
       </figure>
-      <p>이 frontmatter 로 독자가 예측할 수 있는 것이 있다. ps-position-1 의 문장을 고치면 영향 범위는 referenced_by 세 파일이고, 그 셋을 쓰는 recipe 단계의 출력이 달라질 수 있다. 반대로 ps-position-5 를 고치면 ps-position-1 이 기대는 전제가 바뀐다. B 가 양방향 그래프를 강조하는 이유도 여기 있다. 자동 편집기가 한 파일만 보고 고치면 의존하는 파일과 모순이 생기는데, 그래프가 있으면 편집기가 검사할 파일 목록을 기계적으로 얻는다. B 가 계보로 대는 Karpathy 의 LLM Wiki 와 Google 의 OKF 도 파일을 링크로 잇지만, 의존과 사용처를 frontmatter 에 양쪽으로 선언하는 필드는 두 자료에 없다.</p>
-      <p>B 의 설명에서 비는 곳도 이 그림에서 보인다. 「언제 이 파일을 싣는가」 를 정하는 장치가 셋이다. position 자신의 triggers, 입력을 position 에 잇는 routing index, 분석 영역의 문턱인 gateway 다. B 는 position 이 「언제 적용할지」 를 스스로 담는다고도 쓰고 routing index 가 어떤 파일이 적용될지 정한다고도 쓰지만, 둘이 어긋날 때 어느 쪽이 이기는지, gateway 의 문턱 시험을 LLM 이 판정하는지 코드가 판정하는지는 말하지 않는다. 그래서 「이 position 이 불렸어야 했다」 는 교정이 triggers 를 고치는지 routing index 를 고치는지도 B 만으로는 정해지지 않는다(14장).</p>
+      <p>이 frontmatter 로 독자가 예측할 수 있는 것이 있다. ps-position-1 의 문장을 고치면 영향 범위는 referenced_by 세 파일이고, 그 셋을 쓰는 recipe 단계의 출력이 달라질 수 있다. 반대로 ps-position-5 를 고치면 ps-position-1 이 기대는 전제가 바뀐다. Meta 가 양방향 그래프를 강조하는 이유도 여기 있다. 자동 편집기가 한 파일만 보고 고치면 의존하는 파일과 모순이 생기는데, 그래프가 있으면 편집기가 검사할 파일 목록을 기계적으로 얻는다. Meta 가 계보로 대는 Karpathy 의 LLM Wiki 와 Google 의 OKF 도 파일을 링크로 잇지만, 의존과 사용처를 frontmatter 에 양쪽으로 선언하는 필드는 두 자료에 없다.</p>
+      <p>Meta 의 설명에서 비는 곳도 이 그림에서 보인다. 「언제 이 파일을 싣는가」 를 정하는 장치가 셋이다. position 자신의 triggers, 입력을 position 에 잇는 routing index, 분석 영역의 문턱인 gateway 다. Meta 는 position 이 「언제 적용할지」 를 스스로 담는다고도 쓰고 routing index 가 어떤 파일이 적용될지 정한다고도 쓰지만, 둘이 어긋날 때 어느 쪽이 이기는지, gateway 의 문턱 시험을 LLM 이 판정하는지 코드가 판정하는지는 말하지 않는다. 그래서 「이 position 이 불렸어야 했다」 는 교정이 triggers 를 고치는지 routing index 를 고치는지도 원문만으로는 정해지지 않는다(14장).</p>
       <details class="more"><summary>첨언: 원문</summary><p>§Building the Organizational Second Brain: <span class="q">“Every file declares its dependencies (depends_on) and consumers (referenced_by) in YAML frontmatter, forming a bidirectional dependency graph.”</span> 그리고 <span class="q">“When one file changes, you can trace exactly what else might be affected, which matters when the self-improvement loop proposes automated edits.”</span> routing index: <span class="q">“Routing indexes map input characteristics to the relevant positions and procedures, determining which files apply without relying on embedding similarity alone. This makes retrieval deterministic and auditable.”</span> gateway: <span class="q">“Gateway files define threshold tests the agent must pass before entering an analytical domain, preventing it from applying specialized knowledge where it does not belong.”</span></p>
-      <p>B 가 계보로 대는 두 자료와 비교하면, Karpathy 의 LLM Wiki 는 index.md 와 log.md 두 특수 파일로 탐색하고 <span class="q">“This works surprisingly well at moderate scale (~100 sources, ~hundreds of pages) and avoids the need for embedding-based RAG infrastructure.”</span> 라고 쓴다. Google 의 Open Knowledge Format(OKF) v0.1 은 <span class="q">“OKF requires exactly one thing of every concept: a type field.”</span> OKF 는 개념 사이를 <span class="q">“Concepts link to each other with normal markdown links, turning the directory into a graph of relationships”</span> 로 잇는다. position 의 라우팅 함의: <span class="q">“machine-actionable routing implications that tell the reasoning layer when to apply it.”</span></p></details>
+      <p>Meta 가 계보로 대는 두 자료와 비교하면, Karpathy 의 LLM Wiki 는 index.md 와 log.md 두 특수 파일로 탐색하고 <span class="q">“This works surprisingly well at moderate scale (~100 sources, ~hundreds of pages) and avoids the need for embedding-based RAG infrastructure.”</span> 라고 쓴다. Google 의 Open Knowledge Format(OKF) v0.1 은 <span class="q">“OKF requires exactly one thing of every concept: a type field.”</span> OKF 는 개념 사이를 <span class="q">“Concepts link to each other with normal markdown links, turning the directory into a graph of relationships”</span> 로 잇는다. position 의 라우팅 함의: <span class="q">“machine-actionable routing implications that tell the reasoning layer when to apply it.”</span></p></details>
     </div>
   </section>
 
@@ -525,10 +525,10 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
     <div class="slide-inner">
       <p class="eyebrow">density</p>
       <h2>wiki 와 RAG 의 경계: 정보 밀도와 사용 빈도</h2>
-      <p class="key">B 는 어떤 자료를 큐레이션한 wiki 에 넣고 어떤 자료를 RAG 로 찾을지를 두 축으로 정한다. 밀도가 높고 거의 매 턴 참조되는 증류 지식은 wiki 로 가고, 해당할 때만 깊이 중요한 희소 자료는 semantic 또는 lexical 검색으로 간다. 밀도는 높은데 드물게 쓰이는 자료가 어디로 가는지는 B 에 없다. 이 문서는 빈도 쪽이 경계를 정한다고 읽고, 그래서 도메인이 넓어지면 같은 자료가 반대편으로 옮겨 갈 수 있다고 예측한다.</p>
+      <p class="key">Meta 는 어떤 자료를 큐레이션한 wiki 에 넣고 어떤 자료를 RAG 로 찾을지를 두 축으로 정한다. 밀도가 높고 거의 매 턴 참조되는 증류 지식은 wiki 로 가고, 해당할 때만 깊이 중요한 희소 자료는 semantic 또는 lexical 검색으로 간다. 밀도는 높은데 드물게 쓰이는 자료가 어디로 가는지는 원문에 없다. 이 문서는 빈도 쪽이 경계를 정한다고 읽고, 그래서 도메인이 넓어지면 같은 자료가 반대편으로 옮겨 갈 수 있다고 예측한다.</p>
       <figure class="figure">
         <p class="fig-title">한 질의가 두 갈래로 지식을 얻는다</p>
-        <p class="fig-sub">B §Organizing Knowledge by Density and Usage Frequency 의 문장을 그림으로 옮긴 것. B 에는 이 그림이 없다</p>
+        <p class="fig-sub">원문 §Organizing Knowledge by Density and Usage Frequency 의 문장을 그림으로 옮긴 것. 원문에는 이 그림이 없다</p>
         <div class="svgwrap">
         <svg class="chart" viewBox="0 0 760 250" role="img" aria-label="질의는 routing recipe 를 거쳐 단계별 recipe 로 간다. 단계 recipe 는 wiki 쪽 position, vocabulary, decision framework 파일을 거의 매 턴 직접 싣고, 제품 명세나 과거 결정 기록, 외부 자료 같은 희소 자료는 필요할 때만 RAG 검색으로 가져온다." style="width:100%;height:auto;min-width:560px">
           <rect class="box" x="10" y="95" width="110" height="56" rx="8"/>
@@ -554,12 +554,12 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
           <text class="txt-s" x="554" y="212">세부 참고 자료, 외부 지식</text>
         </svg>
         </div>
-        <figcaption>wiki 쪽 예시와 RAG 쪽 예시는 B 의 문장에 나온 목록 그대로다. 밀도와 빈도의 문턱값은 B 에 없다.</figcaption>
+        <figcaption>wiki 쪽 예시와 RAG 쪽 예시는 원문의 문장에 나온 목록 그대로다. 밀도와 빈도의 문턱값은 원문에 없다.</figcaption>
       </figure>
-      <p>B 가 RAG 를 남겨 두는 이유는 부피와 주의 분산이다. 희소 자료까지 wiki 에 넣으면 <span class="q">“Loading all of them into the wiki would bloat the system and dilute attention.”</span> wiki 쪽은 조직의 생각이 바뀔 때마다 고쳐야 하므로 버전 관리와 검증이 쉬운 형태여야 하고, RAG 쪽은 원본 그대로 두어도 된다. 개선 루프가 편집한다고 B 가 쓰는 대상도 knowledge 파일과 recipe 이고, RAG 쪽 원자료를 고친다는 말은 없다.</p>
-      <p><b>사례: Cerebras 사내 지식 베이스(2026-07-15).</b> 반대편 선택을 한 공개 사례다. Cerebras 는 Slack, 코드, 문서를 <span class="q">“a single Postgres table that holds embeddings, raw summaries, and metadata from many sources”</span> 하나에 넣고 하루 15,000개 넘는 질문에 답한다. 그런데 이 시스템도 밀도 문제를 만난다. <span class="q">“Information density varies enormously: “hey yeah sure mike” and a detailed kernel explanation are both messages.”</span> Cerebras 의 해법은 thread 를 LLM 으로 정규화해 질문 한 줄과 시스템 참조로 증류한 뒤 embedding 하는 것이었다. 증류는 B 와 같은데, 증류 결과를 검색 대상으로 둘 뿐 사람이 고치는 정본으로 두지 않는다.</p>
-      <p>두 사례로 경계를 예측하면 이렇다. 질문 분포가 좁고 같은 판단 기준이 매번 쓰이는 도메인(한 compliance 영역)에서는 그 기준을 wiki 정본으로 두는 편이 맞다. 질문 분포가 회사 전체로 넓고 답이 시간에 따라 낡는 경우(Cerebras 는 Slack 답이 만료된다고 쓴다)에는 전부를 정본으로 관리할 사람이 없으므로 검색 쪽에 남는다. B 의 시스템을 회사 전체로 넓히면 지금 wiki 에 있는 일부 position 이 「거의 매 턴」 조건을 잃고 RAG 쪽으로 옮겨 가야 한다.</p>
-      <details class="more"><summary>첨언: 원문</summary><p>B: <span class="q">“High-density, frequently referenced sources go into the wiki: Distilled files capturing how the organization reasons, such as positions, decision frameworks, boundary examples, and strategic interpretations. The agent consults these on nearly every turn.”</span> 그리고 <span class="q">“Sparse, situationally relevant sources are served through semantic or lexical search (RAG): documents that matter deeply when they apply but are not needed in detail on most runs”</span></p><p>Cerebras(c2): <span class="q">“The original transcript is not embedded directly. In our experiments, accuracy increased significantly when the thread was normalized into a consistent format.”</span> 신선도: <span class="q">“encodes that Slack answers expire. Two threads can answer the same question, and the one from six months ago may describe infrastructure that no longer exists.”</span> Cerebras 페이지는 라이브 URL 이 HTTP 500 을 내면서 본문을 응답 payload 에 담아 보냈고, 사본은 그 payload 에서 뽑았다.</p></details>
+      <p>Meta 가 RAG 를 남겨 두는 이유는 부피와 주의 분산이다. 희소 자료까지 wiki 에 넣으면 <span class="q">“Loading all of them into the wiki would bloat the system and dilute attention.”</span> wiki 쪽은 조직의 생각이 바뀔 때마다 고쳐야 하므로 버전 관리와 검증이 쉬운 형태여야 하고, RAG 쪽은 원본 그대로 두어도 된다. 개선 루프가 편집한다고 Meta 가 쓰는 대상도 knowledge 파일과 recipe 이고, RAG 쪽 원자료를 고친다는 말은 없다.</p>
+      <p><b>사례: Cerebras 사내 지식 베이스(2026-07-15).</b> 반대편 선택을 한 공개 사례다. Cerebras 는 Slack, 코드, 문서를 <span class="q">“a single Postgres table that holds embeddings, raw summaries, and metadata from many sources”</span> 하나에 넣고 하루 15,000개 넘는 질문에 답한다. 그런데 이 시스템도 밀도 문제를 만난다. <span class="q">“Information density varies enormously: “hey yeah sure mike” and a detailed kernel explanation are both messages.”</span> Cerebras 의 해법은 thread 를 LLM 으로 정규화해 질문 한 줄과 시스템 참조로 증류한 뒤 embedding 하는 것이었다. 증류는 Meta 와 같은데, 증류 결과를 검색 대상으로 둘 뿐 사람이 고치는 정본으로 두지 않는다.</p>
+      <p>두 사례로 경계를 예측하면 이렇다. 질문 분포가 좁고 같은 판단 기준이 매번 쓰이는 도메인(한 compliance 영역)에서는 그 기준을 wiki 정본으로 두는 편이 맞다. 질문 분포가 회사 전체로 넓고 답이 시간에 따라 낡는 경우(Cerebras 는 Slack 답이 만료된다고 쓴다)에는 전부를 정본으로 관리할 사람이 없으므로 검색 쪽에 남는다. Meta 의 시스템을 회사 전체로 넓히면 지금 wiki 에 있는 일부 position 이 「거의 매 턴」 조건을 잃고 RAG 쪽으로 옮겨 가야 한다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>Meta: <span class="q">“High-density, frequently referenced sources go into the wiki: Distilled files capturing how the organization reasons, such as positions, decision frameworks, boundary examples, and strategic interpretations. The agent consults these on nearly every turn.”</span> 그리고 <span class="q">“Sparse, situationally relevant sources are served through semantic or lexical search (RAG): documents that matter deeply when they apply but are not needed in detail on most runs”</span></p><p>Cerebras(c2): <span class="q">“The original transcript is not embedded directly. In our experiments, accuracy increased significantly when the thread was normalized into a consistent format.”</span> 신선도: <span class="q">“encodes that Slack answers expire. Two threads can answer the same question, and the one from six months ago may describe infrastructure that no longer exists.”</span> Cerebras 페이지는 라이브 URL 이 HTTP 500 을 내면서 본문을 응답 payload 에 담아 보냈고, 사본은 그 payload 에서 뽑았다.</p></details>
     </div>
   </section>
 
@@ -575,10 +575,10 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
         <li><span class="m">실패 귀속</span><span>틀린 결과는 두 층 중 하나로 돌릴 수 있다. 10장의 진단이 이 성질에 기댄다</span></li>
         <li><span class="m">약 80%</span><span>턴당 token 감소. 비교 대상은 초기판, 즉 단일 평면 지시 파일에 모든 자료를 semantic search 로 싣던 구조다</span></li>
       </ul>
-      <p>recipe 는 서로를 부른다. 최상위 routing recipe 가 입력을 보고 하위 recipe 를 고르고, 하위 recipe 하나가 분석의 한 단계를 맡는다. B 는 이 구성을 주방장의 master recipe 가 소스와 가니시의 하위 recipe 에 일을 넘기는 것에 빗댄다. 단계마다 필요한 파일만 싣기 때문에 질의 하나가 건드리는 파일이 적고, 80% 감소는 그 결과다. B 는 같은 구조가 추론 품질도 높인다고 쓰지만 품질 쪽 측정은 내놓지 않는다.</p>
-      <p><b>사례: Claude Tag on-call(Anthropic, 2026-08-18).</b> 같은 분리를 반쯤 한 공개 사례다. CI on-call agent 의 지시는 skill 로 저장소에 커밋되어 있고, 버그 종류마다 조사 절차를 적은 skill 이 있다(shadow divergence 버그용이 617줄). 사실 쪽은 lessons.md 라는 사건 기록에 쌓인다. 그런데 lessons.md 에는 사실과 절차가 섞인다. 글쓴이가 가장 좋아한다는 항목은 <span class="q">“query the data first, then theorize. Config tells you what could go wrong; metrics tell you what did.”</span> 인데, 사건의 사실보다는 조사 방법에 속한다. B 의 규칙을 적용하면 이 문장은 recipe 쪽으로 가야 하고, Claude Tag 팀은 실제로 반복되는 패턴을 skill 로 「승격」 한다고 쓴다.</p>
+      <p>recipe 는 서로를 부른다. 최상위 routing recipe 가 입력을 보고 하위 recipe 를 고르고, 하위 recipe 하나가 분석의 한 단계를 맡는다. Meta 는 이 구성을 주방장의 master recipe 가 소스와 가니시의 하위 recipe 에 일을 넘기는 것에 빗댄다. 단계마다 필요한 파일만 싣기 때문에 질의 하나가 건드리는 파일이 적고, 80% 감소는 그 결과다. Meta 는 같은 구조가 추론 품질도 높인다고 쓰지만 품질 쪽 측정은 내놓지 않는다.</p>
+      <p><b>사례: Claude Tag on-call(Anthropic, 2026-08-18).</b> 같은 분리를 반쯤 한 공개 사례다. CI on-call agent 의 지시는 skill 로 저장소에 커밋되어 있고, 버그 종류마다 조사 절차를 적은 skill 이 있다(shadow divergence 버그용이 617줄). 사실 쪽은 lessons.md 라는 사건 기록에 쌓인다. 그런데 lessons.md 에는 사실과 절차가 섞인다. 글쓴이가 가장 좋아한다는 항목은 <span class="q">“query the data first, then theorize. Config tells you what could go wrong; metrics tell you what did.”</span> 인데, 사건의 사실보다는 조사 방법에 속한다. Meta 의 규칙을 적용하면 이 문장은 recipe 쪽으로 가야 하고, Claude Tag 팀은 실제로 반복되는 패턴을 skill 로 「승격」 한다고 쓴다.</p>
       <p>독자의 시스템으로 예측해 보면, 지시 파일 하나에 「이 API 는 v2 를 쓴다」(사실)와 「먼저 로그를 보고 가설을 세운다」(절차)가 섞여 있을 때 agent 가 틀리면 어느 문장을 고칠지 정할 근거가 없다. 두 문장을 다른 파일로 떼면, 10장의 진단 질문 「agent 가 실은 자료로 맞는 결론에 이를 수 있었나」 에 예나 아니오로 답할 수 있게 된다.</p>
-      <details class="more"><summary>첨언: 원문</summary><p>B §Expert Reasoning via Composable Recipes: <span class="q">“Where knowledge files are declarative, recipes are imperative.”</span> <span class="q">“Recipes reference knowledge files but contain no domain facts; knowledge files state positions but prescribe no procedures.”</span> 80%: <span class="q">“Early versions used a single flat instruction file and loaded all sources via semantic search, pulling a large volume of mixed-relevance files into the context window on every run.”</span> <span class="q">“After restructuring into recipe-driven stages, each query touches only a small, targeted subset, cutting tokens consumed per turn by around 80%.”</span></p><p>Claude Tag(c4): <span class="q">“Lessons.md also guides Claude’s troubleshooting. This markdown file is a running log of every incident we've resolved: what happened, the root cause, the fix, and the gotcha worth remembering. Claude appends to it on its own automatically.”</span> 승격: <span class="q">“If the same pattern shows up enough times, we promote it into the investigation skill itself.”</span> 「enough times」 가 몇 번인지는 글에 없다.</p></details>
+      <details class="more"><summary>첨언: 원문</summary><p>원문 §Expert Reasoning via Composable Recipes: <span class="q">“Where knowledge files are declarative, recipes are imperative.”</span> <span class="q">“Recipes reference knowledge files but contain no domain facts; knowledge files state positions but prescribe no procedures.”</span> 80%: <span class="q">“Early versions used a single flat instruction file and loaded all sources via semantic search, pulling a large volume of mixed-relevance files into the context window on every run.”</span> <span class="q">“After restructuring into recipe-driven stages, each query touches only a small, targeted subset, cutting tokens consumed per turn by around 80%.”</span></p><p>Claude Tag(c4): <span class="q">“Lessons.md also guides Claude’s troubleshooting. This markdown file is a running log of every incident we've resolved: what happened, the root cause, the fix, and the gotcha worth remembering. Claude appends to it on its own automatically.”</span> 승격: <span class="q">“If the same pattern shows up enough times, we promote it into the investigation skill itself.”</span> 「enough times」 가 몇 번인지는 글에 없다.</p></details>
     </div>
   </section>
 
@@ -593,9 +593,9 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
         <li><span class="m">신호</span><span>교정과 escalation 하나하나가 자기 개선 루프의 입력이 된다</span></li>
         <li><span class="m">신뢰</span><span>최종 출력만이 아니라 중간 추론과 불확실성 표시를 보면서 전문가가 신뢰를 조금씩 쌓는다</span></li>
       </ul>
-      <p>이 설계에서 루프가 배우는 속도는 전문가가 교정하는 속도를 넘지 못한다. 전문가가 checkpoint 를 대충 넘기면 교정이 없고, 교정이 없으면 진단할 것도 없다. B 는 결정의 무게가 클수록 사람을 기본으로 루프 안에 두라고 권하고, 그 예로 compliance, 금융 위험 평가, 보안 검토, 엔지니어링 안전을 든다.</p>
-      <p><b>사례: Anthropic 보안팀(2026-07-21).</b> 사람의 gate 가 무엇을 막는지 보여 준 사례다. 모델 업그레이드 뒤 사고 대응 agent 가 스스로 Slack 으로 다른 Claude 인스턴스에 연락해, 코드를 쓸 수 있는 그 agent 에게 수정을 push 하라고 요청했다. 이 요청은 설계대로 사람 리뷰 gate 에서 걸렸다. 보안팀의 결론은 경계를 지시가 아니라 권한과 행동에 그어야 한다는 것이었다. B 는 checkpoint 와 escalation 을 코드로 강제하는지 recipe 의 지시로 두는지 말하지 않는다. 지시로 둔다면 agent 가 지시를 따른다는 전제 위에 서므로, B 의 착지 단계(13장)처럼 PR 승인을 거쳐야 반영되는 곳과 구분해서 봐야 한다.</p>
-      <details class="more"><summary>첨언: 원문</summary><p>B §Keeping Humans in Control: <span class="q">“Checkpoints are defined points in the analysis where the agent surfaces its intermediate reasoning for expert review before proceeding, and the expert can confirm, correct, or redirect.”</span> <span class="q">“Escalations trigger when the agent hits genuine ambiguity, whether from underspecified inputs or evidence that supports more than one defensible reading.”</span> <span class="q">“Training signal: Every correction and every escalation becomes input for the self-improvement loop.”</span></p><p>Anthropic(c3) §Monitor: <span class="q">“Following a model upgrade, the incident response agent reached out over Slack to another Claude instance on its own initiative. It asked the agent, which could write code, to push the fix.”</span> 결론: <span class="q">“this experience taught us to draw the boundary around access and actions, not around a model’s instructions or what we believe a model can do”</span></p></details>
+      <p>이 설계에서 루프가 배우는 속도는 전문가가 교정하는 속도를 넘지 못한다. 전문가가 checkpoint 를 대충 넘기면 교정이 없고, 교정이 없으면 진단할 것도 없다. Meta 는 결정의 무게가 클수록 사람을 기본으로 루프 안에 두라고 권하고, 그 예로 compliance, 금융 위험 평가, 보안 검토, 엔지니어링 안전을 든다.</p>
+      <p><b>사례: Anthropic 보안팀(2026-07-21).</b> 사람의 gate 가 무엇을 막는지 보여 준 사례다. 모델 업그레이드 뒤 사고 대응 agent 가 스스로 Slack 으로 다른 Claude 인스턴스에 연락해, 코드를 쓸 수 있는 그 agent 에게 수정을 push 하라고 요청했다. 이 요청은 설계대로 사람 리뷰 gate 에서 걸렸다. 보안팀의 결론은 경계를 지시가 아니라 권한과 행동에 그어야 한다는 것이었다. Meta 는 checkpoint 와 escalation 을 코드로 강제하는지 recipe 의 지시로 두는지 말하지 않는다. 지시로 둔다면 agent 가 지시를 따른다는 전제 위에 서므로, Meta 의 착지 단계(13장)처럼 PR 승인을 거쳐야 반영되는 곳과 구분해서 봐야 한다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>원문 §Keeping Humans in Control: <span class="q">“Checkpoints are defined points in the analysis where the agent surfaces its intermediate reasoning for expert review before proceeding, and the expert can confirm, correct, or redirect.”</span> <span class="q">“Escalations trigger when the agent hits genuine ambiguity, whether from underspecified inputs or evidence that supports more than one defensible reading.”</span> <span class="q">“Training signal: Every correction and every escalation becomes input for the self-improvement loop.”</span></p><p>Anthropic(c3) §Monitor: <span class="q">“Following a model upgrade, the incident response agent reached out over Slack to another Claude instance on its own initiative. It asked the agent, which could write code, to push the fix.”</span> 결론: <span class="q">“this experience taught us to draw the boundary around access and actions, not around a model’s instructions or what we believe a model can do”</span></p></details>
     </div>
   </section>
 
@@ -604,10 +604,10 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
     <div class="slide-inner">
       <p class="eyebrow">flywheel</p>
       <h2>자기 개선 루프: 진단, 컴파일, 평가, 착지</h2>
-      <p class="key">B 는 지식 유지보수를 compilation 문제로 다룬다. 전문가 대화에서 나온 교정은 근본 원인으로 진단되고, 최소 편집으로 컴파일되고, 표적 replay 와 회귀 시험을 통과해야 착지한다. 평가에서 떨어지면 컴파일로 돌아가고, 착지한 교정은 회귀 suite 에 새 시험으로 들어가 다음 변경을 막아선다. 모델은 재학습하지 않는다.</p>
+      <p class="key">Meta 는 지식 유지보수를 compilation 문제로 다룬다. 전문가 대화에서 나온 교정은 근본 원인으로 진단되고, 최소 편집으로 컴파일되고, 표적 replay 와 회귀 시험을 통과해야 착지한다. 평가에서 떨어지면 컴파일로 돌아가고, 착지한 교정은 회귀 suite 에 새 시험으로 들어가 다음 변경을 막아선다. 모델은 재학습하지 않는다.</p>
       <figure class="figure">
         <p class="fig-title">교정 하나가 시험 하나로 끝나는 순환</p>
-        <p class="fig-sub">B §The Self-Improvement Flywheel 의 루프 그림을 다시 그렸다. 결정적 linter 는 그림에 없고 본문에만 있어 점선 상자로 덧붙였다</p>
+        <p class="fig-sub">원문 §The Self-Improvement Flywheel 의 루프 그림을 다시 그렸다. 결정적 linter 는 그림에 없고 본문에만 있어 점선 상자로 덧붙였다</p>
         <div class="svgwrap">
         <svg class="chart" viewBox="0 0 820 300" role="img" aria-label="자기 개선 루프. 전문가 대화가 1 진단으로 들어가 근본 원인을 recipe 나 knowledge 파일로 귀속하고 빈도와 심각도로 가중한다. 개선 brief 가 2 컴파일로 가서 최소 변경 집합을 만들고, 이 변경은 적대적 검증자와 linter 의 독립 검토를 받는다. 3 평가에서 표적 replay 와 회귀 시험을 거쳐 통과 여부를 가린다. 불합격이면 위쪽 귀환선을 따라 컴파일로 되돌아가 재시도한다. 합격이면 4 착지와 보강으로 가서 PR 이 승인되어 반영되고, 실패 사례가 새 시험이 되어 아래쪽 귀환선을 따라 회귀 시험 suite 로 되돌아간다." style="width:100%;height:auto;min-width:640px">
           <rect class="box" x="8" y="58" width="100" height="56" rx="8"/>
@@ -653,8 +653,8 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
         </div>
         <figcaption>원 그림의 네 phase 는 Diagnosis, Compilation, Evaluation, Landing And Enrichment 이다. 같은 절의 본문 목록은 넷째를 「Have domain experts review them」 으로 적어, 사람 검토가 본문에서는 독립 phase 이고 그림에서는 착지 안에 묻혀 있다. 「빈도, 심각도로 가중」 은 그림에만 있고 본문에는 없다.</figcaption>
       </figure>
-      <p>순환은 두 개다. 위쪽 귀환선은 한 교정 안에서 도는 재시도이고, 아래쪽 귀환선은 교정과 교정 사이를 잇는다. 둘째 귀환선 때문에 회귀 suite 는 교정이 착지할 때마다 한 칸씩 커지고, 나중 교정일수록 통과해야 할 시험이 많아진다. B 가 「compounding」 이라고 부르는 것이 이 누적이다.</p>
-      <details class="more"><summary>첨언: 원문</summary><p>§The Self-Improvement Flywheel: <span class="q">“We treat that maintenance as a compilation problem and automate it.”</span> 본문 목록의 넷째: <span class="q">“Have domain experts review them.”</span> 그림 캡션: <span class="q">“Expert corrections are diagnosed to their root cause, compiled into minimal verified edits, and evaluated against replay and regression tests before they are reviewed and landed.”</span> B 가 내세우는 새로움: <span class="q">“Agents that auto-draft their own fixes are increasingly common; but we haven’t seen this level of validation rigor applied to a structured knowledge base without model retraining.”</span></p></details>
+      <p>순환은 두 개다. 위쪽 귀환선은 한 교정 안에서 도는 재시도이고, 아래쪽 귀환선은 교정과 교정 사이를 잇는다. 둘째 귀환선 때문에 회귀 suite 는 교정이 착지할 때마다 한 칸씩 커지고, 나중 교정일수록 통과해야 할 시험이 많아진다. Meta 가 「compounding」 이라고 부르는 것이 이 누적이다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>§The Self-Improvement Flywheel: <span class="q">“We treat that maintenance as a compilation problem and automate it.”</span> 본문 목록의 넷째: <span class="q">“Have domain experts review them.”</span> 그림 캡션: <span class="q">“Expert corrections are diagnosed to their root cause, compiled into minimal verified edits, and evaluated against replay and regression tests before they are reviewed and landed.”</span> Meta 가 내세우는 새로움: <span class="q">“Agents that auto-draft their own fixes are increasingly common; but we haven’t seen this level of validation rigor applied to a structured knowledge base without model retraining.”</span></p></details>
     </div>
   </section>
 
@@ -675,10 +675,10 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
            전문가끼리 답이 갈린다             → <b>모호함</b> → 사람 논의 (편집 없음)
 3. 가중  빈도와 심각도 (그림에만 있음)
 출력: improvement brief</pre>
-      <p>처음 방식은 교정의 말투로 분류했다. 전문가가 정보를 주면 지식 공백, 방향을 틀면 절차 문제라고 본 것이다. B 는 이 방식이 틀린 이유를 이렇게 적는다. 결론을 고치는 전문가는 지식 공백을 드러낼 수도, recipe 결함을 드러낼 수도, 진짜 모호함을 드러낼 수도 있다. 그래서 추출과 분류를 떼고, 분류는 manifest 와 파일 내용을 보고 한다.</p>
-      <p><b>사례: SkillOpt 의 Skill-Aware Reflection(Microsoft 연구 블로그, 2026-07-14).</b> 같은 갈래를 단일 skill 파일에서 한 연구다. 실패 궤적을 현재 skill 과 대조해, skill 자체가 틀렸으면(Skill Defect) skill 본문을 고치고, skill 에는 있었는데 agent 가 따르지 않았으면(Execution Lapse) 보호된 부록에 알림을 붙인다. B 의 「자료에 답이 있었나」 질문과 같은 축이다. 다만 SkillOpt 는 사실과 절차를 한 파일에 두므로 「recipe 냐 knowledge 냐」 의 갈래는 없고, 대신 부록이 무한히 커지는 문제를 consolidation 으로 다룬다.</p>
-      <details class="more"><summary>첨언: 원문</summary><p>B §Diagnosis: <span class="q">“This heuristic failed because conversational form is a poor proxy for root cause.”</span> <span class="q">“First, extract every substantive signal from the expert alongside the agent’s full knowledge manifest (every file loaded, when, and how used).”</span> 질문: <span class="q">“Could the agent have reached the correct conclusion from its source materials?”</span> 세 갈래: <span class="q">“If the materials contained the right answer but the agent still erred: recipe problem.”</span> <span class="q">“If the materials did not contain the right answer: knowledge gap.”</span> <span class="q">“If experts themselves disagree on the right answer: ambiguity, flagged for human discussion.”</span></p><p>SkillOpt(c1) Part II: <span class="q">“that judgment can route a likely Skill Defect toward a targeted skill-body update and an Execution Lapse toward a protected appendix reminder”</span> 부록을 정리하지 않으면 작은 모델에서 크게 떨어진 셀이 있었다. §2.2 는 성공과 실패를 모두 기록하는 같은 부록에 「20개를 넘으면 정리」 하나만 더해 비교하는데, gpt-5.4-mini SpreadsheetBench 에서 정리 없는 설정이 47.14%, 정리한 설정이 62.14% 였다(+15.00%p). 저자는 이 비교가 세 셀뿐이라 일반적으로 안전한 문턱을 정하지 못하며, 반복 seed 실험이 더 필요하다고 적는다.</p></details>
-      <p class="note">「자료」 가 실린 파일만을 뜻하는지 지식 베이스 전체를 뜻하는지 B 는 정하지 않는다. 14장의 사례가 이 차이에서 갈린다.</p>
+      <p>처음 방식은 교정의 말투로 분류했다. 전문가가 정보를 주면 지식 공백, 방향을 틀면 절차 문제라고 본 것이다. Meta 는 이 방식이 틀린 이유를 이렇게 적는다. 결론을 고치는 전문가는 지식 공백을 드러낼 수도, recipe 결함을 드러낼 수도, 진짜 모호함을 드러낼 수도 있다. 그래서 추출과 분류를 떼고, 분류는 manifest 와 파일 내용을 보고 한다.</p>
+      <p><b>사례: SkillOpt 의 Skill-Aware Reflection(Microsoft 연구 블로그, 2026-07-14).</b> 같은 갈래를 단일 skill 파일에서 한 연구다. 실패 궤적을 현재 skill 과 대조해, skill 자체가 틀렸으면(Skill Defect) skill 본문을 고치고, skill 에는 있었는데 agent 가 따르지 않았으면(Execution Lapse) 보호된 부록에 알림을 붙인다. Meta 의 「자료에 답이 있었나」 질문과 같은 축이다. 다만 SkillOpt 는 사실과 절차를 한 파일에 두므로 「recipe 냐 knowledge 냐」 의 갈래는 없고, 대신 부록이 무한히 커지는 문제를 consolidation 으로 다룬다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>원문 §Diagnosis: <span class="q">“This heuristic failed because conversational form is a poor proxy for root cause.”</span> <span class="q">“First, extract every substantive signal from the expert alongside the agent’s full knowledge manifest (every file loaded, when, and how used).”</span> 질문: <span class="q">“Could the agent have reached the correct conclusion from its source materials?”</span> 세 갈래: <span class="q">“If the materials contained the right answer but the agent still erred: recipe problem.”</span> <span class="q">“If the materials did not contain the right answer: knowledge gap.”</span> <span class="q">“If experts themselves disagree on the right answer: ambiguity, flagged for human discussion.”</span></p><p>SkillOpt(c1) Part II: <span class="q">“that judgment can route a likely Skill Defect toward a targeted skill-body update and an Execution Lapse toward a protected appendix reminder”</span> 부록을 정리하지 않으면 작은 모델에서 크게 떨어진 셀이 있었다. §2.2 는 성공과 실패를 모두 기록하는 같은 부록에 「20개를 넘으면 정리」 하나만 더해 비교하는데, gpt-5.4-mini SpreadsheetBench 에서 정리 없는 설정이 47.14%, 정리한 설정이 62.14% 였다(+15.00%p). 저자는 이 비교가 세 셀뿐이라 일반적으로 안전한 문턱을 정하지 못하며, 반복 seed 실험이 더 필요하다고 적는다.</p></details>
+      <p class="note">「자료」 가 실린 파일만을 뜻하는지 지식 베이스 전체를 뜻하는지 Meta 는 정하지 않는다. 14장의 사례가 이 차이에서 갈린다.</p>
     </div>
   </section>
 
@@ -694,8 +694,8 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
         <li><span class="m">linter</span><span>끊긴 cross-reference, 파일 크기 예산 위반, 식별자 충돌, 의존 순환. 통과 아니면 실패다</span></li>
       </ul>
       <p>리뷰어에게 개선 이유를 주지 않는 것이 이 설계의 핵심이다. 이유를 알면 리뷰어는 「이 교정이 그 문제를 고치는가」 를 보고, 이유를 모르면 「이 diff 가 무엇을 깨는가」 만 본다. 05장의 referenced_by 목록이 여기서 쓰인다. 리뷰어와 sub-agent 가 diff 의 영향 범위를 그래프로 얻으므로, 바뀐 position 을 인용하는 scoring 기준 파일을 빠뜨리지 않는다.</p>
-      <p><b>사례: Anthropic 의 PR 리뷰(2026-07-21).</b> 코드 쪽에서 같은 원리를 쓴다. PR 하나에 좁은 주제의 리뷰 agent 여러 개가 붙고, 보안팀은 그 이유로 <span class="q">“They do not share biases and blindspots”</span> 를 첫째로 든다. 또 리뷰 agent 에게 발견이 맞다는 증명을 쓰게 하자 실질 리뷰 의견이 달린 PR 비율이 16% 에서 54% 로 올랐다고 보고한다. B 의 적대적 리뷰어에는 이런 증명 요구가 없고, 리뷰어의 발견이 어떻게 처리되는지(편집안을 막는지, 컴파일러에게 돌려보내는지)도 B 는 쓰지 않는다.</p>
-      <details class="more"><summary>첨언: 원문</summary><p>B §Compilation: <span class="q">“Sub-agents analyze impact in parallel, examining cross-references, conflicts with existing positions, token budget impact, test coverage, and duplication risk.”</span> <span class="q">“A separate agent, running in a fresh context with no knowledge of the improvement rationale, receives only the proposed diffs to the knowledge base.”</span> <span class="q">“Because it shares no context with the proposing agents, it cannot inherit their blind spots.”</span> linter: <span class="q">“A linter catches issues programmatically, dangling cross-references, file size budget violations, identifier collisions, and dependency cycles. This layer is not probabilistic. It passes or fails.”</span></p><p>Anthropic(c3) §Test (CI): <span class="q">“The share of PRs that get substantive review comments has grown from 16 to 54% as we’ve gained confidence in the findings by requiring the agents to write a proof that their finding is valid.”</span> 두 수치의 기간과 표본 수는 글에 없다.</p></details>
+      <p><b>사례: Anthropic 의 PR 리뷰(2026-07-21).</b> 코드 쪽에서 같은 원리를 쓴다. PR 하나에 좁은 주제의 리뷰 agent 여러 개가 붙고, 보안팀은 그 이유로 <span class="q">“They do not share biases and blindspots”</span> 를 첫째로 든다. 또 리뷰 agent 에게 발견이 맞다는 증명을 쓰게 하자 실질 리뷰 의견이 달린 PR 비율이 16% 에서 54% 로 올랐다고 보고한다. Meta 의 적대적 리뷰어에는 이런 증명 요구가 없고, 리뷰어의 발견이 어떻게 처리되는지(편집안을 막는지, 컴파일러에게 돌려보내는지)도 Meta 는 쓰지 않는다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>원문 §Compilation: <span class="q">“Sub-agents analyze impact in parallel, examining cross-references, conflicts with existing positions, token budget impact, test coverage, and duplication risk.”</span> <span class="q">“A separate agent, running in a fresh context with no knowledge of the improvement rationale, receives only the proposed diffs to the knowledge base.”</span> <span class="q">“Because it shares no context with the proposing agents, it cannot inherit their blind spots.”</span> linter: <span class="q">“A linter catches issues programmatically, dangling cross-references, file size budget violations, identifier collisions, and dependency cycles. This layer is not probabilistic. It passes or fails.”</span></p><p>Anthropic(c3) §Test (CI): <span class="q">“The share of PRs that get substantive review comments has grown from 16 to 54% as we’ve gained confidence in the findings by requiring the agents to write a proof that their finding is valid.”</span> 두 수치의 기간과 표본 수는 글에 없다.</p></details>
     </div>
   </section>
 
@@ -719,10 +719,10 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
           <div class="bar-row"><span class="bar-name">검증 gate, 0일차</span><span class="bar-track"><span class="bar" style="--w:57.0%"></span></span><span class="bar-val">57.0%</span></div>
           <div class="bar-row is-hero"><span class="bar-name">검증 gate, 5일차</span><span class="bar-track"><span class="bar s1" style="--w:57.0%"></span></span><span class="bar-val">57.0%</span></div>
         </div>
-        <figcaption>gate 없는 실행은 「문서 제목 문자열을 그대로 답하라」 는 그럴듯하지만 틀린 규칙을 받아들였고, gate 있는 실행은 제안을 전부 거절해 제자리였다. 두 실행은 출발점이 달라 같은 후보 편집을 만났다는 증거는 아니라고 저자가 적는다. 단일 seed 다. B 의 시스템과는 다른 실험이고, B 에는 gate 를 끈 비교가 없다.</figcaption>
+        <figcaption>gate 없는 실행은 「문서 제목 문자열을 그대로 답하라」 는 그럴듯하지만 틀린 규칙을 받아들였고, gate 있는 실행은 제안을 전부 거절해 제자리였다. 두 실행은 출발점이 달라 같은 후보 편집을 만났다는 증거는 아니라고 저자가 적는다. 단일 seed 다. Meta 의 시스템과는 다른 실험이고, 원문에는 gate 를 끈 비교가 없다.</figcaption>
       </figure>
-      <p>이 사례로 B 의 평가 단계가 무엇을 막는지 예측할 수 있다. 교정 한 건을 반영한 편집이 원 시나리오에서는 맞는데 다른 질문에서 답을 망가뜨리는 경우다. replay 만 있으면 이 편집은 통과하고, 회귀 벤치마크가 있어야 걸린다. 반대로 회귀 벤치마크가 이 편집이 망가뜨린 종류의 질문을 담고 있지 않으면 B 의 gate 도 통과시킨다. gate 의 힘은 suite 가 얼마나 넓은지에 묶여 있다.</p>
-      <details class="more"><summary>첨언: 원문</summary><p>B §Evaluation: <span class="q">“Targeted replay runs the agent on the original scenario that triggered the feedback. The agent does not know it is being tested.”</span> <span class="q">“A separate judge evaluates the new output against the original expert feedback without knowing what was changed.”</span> <span class="q">“Regression testing runs multiple benchmarks for that domain, which are usually structured test suites of Q&amp;A pairs.”</span> <span class="q">“an independent LLM judge gives each test case a pass/fail based on certain criteria”</span> 재시도: <span class="q">“If regression testing fails, compilation is retried with an updated prompt describing where the agent regressed, along with the original issue and attempted fix.”</span> B 는 벤치마크의 문항 수와 판정자의 기준, 재시도 상한을 밝히지 않는다.</p><p>SkillOpt(c1) §3.1: <span class="q">“In a paired study with gpt-5.4-nano on SearchQA, the ungated run adopted a plausible but wrong rule—answer with the document title string verbatim—and fell from 55.4% to 2.6%. The gated run rejected all proposals and remained flat at 57.0%.”</span> 저자 단서: <span class="q">“The two runs started from different measured baselines, so this is not evidence that they encountered identical candidate edits; it is an observed stress-case contrast.”</span> 같은 글 Part I 은 강한 모델에서는 모든 편집을 받아들이는 정책이 평균 진단값이 더 높은 셀도 있었다고 보고하므로, gate 가 언제나 점수를 올린다는 증거로 읽으면 안 된다. 저자는 gate 를 「stability control」 로 부른다.</p></details>
+      <p>이 사례로 Meta 의 평가 단계가 무엇을 막는지 예측할 수 있다. 교정 한 건을 반영한 편집이 원 시나리오에서는 맞는데 다른 질문에서 답을 망가뜨리는 경우다. replay 만 있으면 이 편집은 통과하고, 회귀 벤치마크가 있어야 걸린다. 반대로 회귀 벤치마크가 이 편집이 망가뜨린 종류의 질문을 담고 있지 않으면 Meta 의 gate 도 통과시킨다. gate 의 힘은 suite 가 얼마나 넓은지에 묶여 있다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>원문 §Evaluation: <span class="q">“Targeted replay runs the agent on the original scenario that triggered the feedback. The agent does not know it is being tested.”</span> <span class="q">“A separate judge evaluates the new output against the original expert feedback without knowing what was changed.”</span> <span class="q">“Regression testing runs multiple benchmarks for that domain, which are usually structured test suites of Q&amp;A pairs.”</span> <span class="q">“an independent LLM judge gives each test case a pass/fail based on certain criteria”</span> 재시도: <span class="q">“If regression testing fails, compilation is retried with an updated prompt describing where the agent regressed, along with the original issue and attempted fix.”</span> Meta 는 벤치마크의 문항 수와 판정자의 기준, 재시도 상한을 밝히지 않는다.</p><p>SkillOpt(c1) §3.1: <span class="q">“In a paired study with gpt-5.4-nano on SearchQA, the ungated run adopted a plausible but wrong rule—answer with the document title string verbatim—and fell from 55.4% to 2.6%. The gated run rejected all proposals and remained flat at 57.0%.”</span> 저자 단서: <span class="q">“The two runs started from different measured baselines, so this is not evidence that they encountered identical candidate edits; it is an observed stress-case contrast.”</span> 같은 글 Part I 은 강한 모델에서는 모든 편집을 받아들이는 정책이 평균 진단값이 더 높은 셀도 있었다고 보고하므로, gate 가 언제나 점수를 올린다는 증거로 읽으면 안 된다. 저자는 gate 를 「stability control」 로 부른다.</p></details>
     </div>
   </section>
 
@@ -731,10 +731,10 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
     <div class="slide-inner">
       <p class="eyebrow">landing</p>
       <h2>착지와 보강: PR 을 사람이 승인하고, 실패 사례가 시험이 된다</h2>
-      <p class="key">파이프라인의 출력은 감사 기록이 붙은 PR 이다. 전문가는 날것의 실패를 디버깅하지 않고 검증을 마친 수정을 검토한다. B 는 글 끝의 원리 절에서 개선 하나하나가 전문가가 30초면 검토할 수 있는 텍스트 편집이라고 쓴다. 승인되어 knowledge 파일이나 recipe 가 바뀌면, 원래 실패한 시나리오와 검증된 정답이 자동으로 회귀 suite 에 들어간다.</p>
-      <p>보강은 루프를 비대칭으로 만든다. 시험은 늘기만 하고 B 는 시험을 빼는 경로를 말하지 않는다. 그래서 교정이 쌓일수록 지식 베이스는 지난 교정 전부를 지키는 방향으로 묶인다. 의도된 효과이고, 15장에서 보듯 조직이 입장을 일부러 바꿀 때 비용이 된다.</p>
-      <p><b>사례: Claude Tag on-call 의 lessons.md(2026-08-18).</b> 같은 착지를 사람이 하는 사례다. Claude 가 사건마다 lessons.md 에 원인과 수정, 기억할 함정을 스스로 덧붙이고, 같은 패턴이 「충분히 여러 번」 나오면 팀이 그 패턴을 조사 skill 로 승격한다. lessons.md 는 B 의 회귀 suite 처럼 누적되지만 시험으로 돌지 않고 다음 조사가 먼저 읽는 기록으로 쓰이며, skill 로의 승격에는 replay 나 회귀 같은 자동 gate 가 없다. B 가 자동화한 단계를 이 팀은 사람의 판단으로 하고 있다.</p>
-      <details class="more"><summary>첨언: 원문</summary><p>B §Landing and Enrichment: <span class="q">“The output of the pipeline is a pull request (diff) with a complete audit trail. A human expert reviews a proven fix rather than debugging a raw failure.”</span> 보강: <span class="q">“the original failing scenario and its validated correct answer are automatically added to the regression test suite”</span> 30초는 §Applying This Architecture 끝에서 두 번째 문단, 원리를 말하는 “The deeper principle is straightforward” 문단에 있다: <span class="q">“Every improvement is a text edit that a domain expert can review in 30 seconds. Every change is version-controlled, diffable, and reversible.”</span> 시험을 빼는 경로가 없다는 부재 확인은 15장 첨언에 있다.</p><p>Claude Tag(c4): <span class="q">“Standing instructions are in markdown files as skills, committed in a GitHub repository. This way multiple teammates can iterate on them and we can manage changes just like we do code.”</span></p></details>
+      <p class="key">파이프라인의 출력은 감사 기록이 붙은 PR 이다. 전문가는 날것의 실패를 디버깅하지 않고 검증을 마친 수정을 검토한다. Meta 는 글 끝의 원리 절에서 개선 하나하나가 전문가가 30초면 검토할 수 있는 텍스트 편집이라고 쓴다. 승인되어 knowledge 파일이나 recipe 가 바뀌면, 원래 실패한 시나리오와 검증된 정답이 자동으로 회귀 suite 에 들어간다.</p>
+      <p>보강은 루프를 비대칭으로 만든다. 시험은 늘기만 하고 Meta 는 시험을 빼는 경로를 말하지 않는다. 그래서 교정이 쌓일수록 지식 베이스는 지난 교정 전부를 지키는 방향으로 묶인다. 의도된 효과이고, 15장에서 보듯 조직이 입장을 일부러 바꿀 때 비용이 된다.</p>
+      <p><b>사례: Claude Tag on-call 의 lessons.md(2026-08-18).</b> 같은 착지를 사람이 하는 사례다. Claude 가 사건마다 lessons.md 에 원인과 수정, 기억할 함정을 스스로 덧붙이고, 같은 패턴이 「충분히 여러 번」 나오면 팀이 그 패턴을 조사 skill 로 승격한다. lessons.md 는 Meta 의 회귀 suite 처럼 누적되지만 시험으로 돌지 않고 다음 조사가 먼저 읽는 기록으로 쓰이며, skill 로의 승격에는 replay 나 회귀 같은 자동 gate 가 없다. Meta 가 자동화한 단계를 이 팀은 사람의 판단으로 하고 있다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>원문 §Landing and Enrichment: <span class="q">“The output of the pipeline is a pull request (diff) with a complete audit trail. A human expert reviews a proven fix rather than debugging a raw failure.”</span> 보강: <span class="q">“the original failing scenario and its validated correct answer are automatically added to the regression test suite”</span> 30초는 §Applying This Architecture 끝에서 두 번째 문단, 원리를 말하는 “The deeper principle is straightforward” 문단에 있다: <span class="q">“Every improvement is a text edit that a domain expert can review in 30 seconds. Every change is version-controlled, diffable, and reversible.”</span> 시험을 빼는 경로가 없다는 부재 확인은 15장 첨언에 있다.</p><p>Claude Tag(c4): <span class="q">“Standing instructions are in markdown files as skills, committed in a GitHub repository. This way multiple teammates can iterate on them and we can manage changes just like we do code.”</span></p></details>
     </div>
   </section>
 
@@ -743,7 +743,7 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
     <div class="slide-inner">
       <p class="eyebrow">case</p>
       <h2>교정 하나를 끝까지: 앱 밖 웹 결제로 파는 구독 기능</h2>
-      <p class="key">B 의 그림에 나온 ps-position-1(「Review Required for High-Risk Features」)을 써서 교정 하나를 루프 끝까지 따라가면, 진단 질문이 「자료」 를 어떻게 읽느냐에 따라 같은 교정이 지식 공백으로도 recipe 문제로도 분류되고 그에 따라 고칠 층이 갈리며, 회귀 시험이 지나치게 넓은 수정을 되돌려 보내는 지점이 보인다. 아래 사례는 B 에 없는 합성 예시다.</p>
+      <p class="key">원문의 그림에 나온 ps-position-1(「Review Required for High-Risk Features」)을 써서 교정 하나를 루프 끝까지 따라가면, 진단 질문이 「자료」 를 어떻게 읽느냐에 따라 같은 교정이 지식 공백으로도 recipe 문제로도 분류되고 그에 따라 고칠 층이 갈리며, 회귀 시험이 지나치게 넓은 수정을 되돌려 보내는 지점이 보인다. 아래 사례는 원문에 없는 합성 예시다.</p>
 <pre><b>대화</b>  제품: 자사 웹 결제 페이지로 월 구독을 파는 새 기능
        (앱 안 결제 아님, 외부 연동 없음, 기기 출시 아님)
        agent 결론: "일반 검토로 충분"
@@ -757,7 +757,7 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
          자료 = 실린 파일    → 답 없음 → <b>지식 공백</b> → knowledge 층의 싣는 장치를 고친다
          자료 = 지식 베이스  → 답 있음 → <b>recipe 문제</b> → recipe 에 단계를 더한다
        여기서는 manifest 를 따라 앞의 갈래를 택한다
-       싣는 장치가 triggers 인지 routing index 인지 B 는 정하지 않는다 (05장)
+       싣는 장치가 triggers 인지 routing index 인지 Meta 는 정하지 않는다 (05장)
        여기서는 routing index 를 고친다
 
 <b>2 컴파일</b> 편집안 A: routing index 에 "결제" → ps-position-1
@@ -775,9 +775,9 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
 
 <b>4 착지</b> PR(diff 1줄, 감사 기록) → 전문가 승인 → 반영
        회귀 suite 에 이 시나리오와 정답 추가</pre>
-      <p>이 trace 로 독자가 자기 도메인에서 예측할 수 있는 것은 셋이다. 첫째, 입장은 이미 있는데 불리지 않아서 생긴 교정은 position 의 결론을 건드리지 않고 그 position 을 싣는 장치를 고친다. 이런 교정이 전체에서 얼마나 되는지는 B 에 없다. 둘째, 적대적 리뷰어가 지적한 과잉 범위는 리뷰어가 막지 않아도 회귀 시험에서 걸린다. 다만 「일회성 티켓」 사례가 suite 에 이미 있을 때만 걸린다. 셋째, 착지 뒤 suite 에는 「웹 구독은 High-Risk」 와 「일회성 티켓은 일반」 이 함께 들어 있어, 다음 교정이 둘 사이의 경계를 함부로 옮기지 못한다.</p>
-      <p>예측이 빗나가는 조건도 이 trace 에 있다. 진단 갈래가 「자료」 해석에 따라 바뀌므로, 같은 교정이 운영자에 따라 recipe 쪽 편집(「결제가 있으면 반복 여부부터 확인하라」 는 단계 추가)으로 갈 수도 있다. 갈래마다 고칠 층은 정해지지만, 두 편집은 모두 replay 를 통과할 수 있고 어느 쪽이 나은지는 B 의 gate 가 가리지 않는다. knowledge 쪽을 택해도 triggers 와 routing index 중 어느 것을 고칠지는 운영자가 정해야 한다.</p>
-      <details class="more"><summary>첨언: 이 사례가 원문에 기대는 곳</summary><p>파일 이름과 frontmatter 는 B 그림의 것이다(05장). ps-position-1 의 triggers 는 third-party integration, in-app purchases, hardware device launch 셋이고, 시나리오는 셋 다에 맞지 않도록 골랐다. 「웹 결제 구독」 시나리오, ps-position-1 본문의 내용, 두 편집안, 회귀 사례는 이 문서가 만든 것이다. 진단 질문의 원문은 <span class="q">“Could the agent have reached the correct conclusion from its source materials?”</span> 이고 manifest 의 정의는 <span class="q">“every file loaded, when, and how used”</span> 다. manifest 가 실린 파일만 담으므로 「자료 = 실린 파일」 로 읽을 근거가 있다. 그림 트리는 routing index 를 knowledge/investigation/ 아래에 두지만, B 본문은 routing index 가 <span class="q">“Routing indexes map input characteristics to the relevant positions and procedures”</span> 라고 써서 절차까지 가리킨다.</p></details>
+      <p>이 trace 로 독자가 자기 도메인에서 예측할 수 있는 것은 셋이다. 첫째, 입장은 이미 있는데 불리지 않아서 생긴 교정은 position 의 결론을 건드리지 않고 그 position 을 싣는 장치를 고친다. 이런 교정이 전체에서 얼마나 되는지는 원문에 없다. 둘째, 적대적 리뷰어가 지적한 과잉 범위는 리뷰어가 막지 않아도 회귀 시험에서 걸린다. 다만 「일회성 티켓」 사례가 suite 에 이미 있을 때만 걸린다. 셋째, 착지 뒤 suite 에는 「웹 구독은 High-Risk」 와 「일회성 티켓은 일반」 이 함께 들어 있어, 다음 교정이 둘 사이의 경계를 함부로 옮기지 못한다.</p>
+      <p>예측이 빗나가는 조건도 이 trace 에 있다. 진단 갈래가 「자료」 해석에 따라 바뀌므로, 같은 교정이 운영자에 따라 recipe 쪽 편집(「결제가 있으면 반복 여부부터 확인하라」 는 단계 추가)으로 갈 수도 있다. 갈래마다 고칠 층은 정해지지만, 두 편집은 모두 replay 를 통과할 수 있고 어느 쪽이 나은지는 Meta 의 gate 가 가리지 않는다. knowledge 쪽을 택해도 triggers 와 routing index 중 어느 것을 고칠지는 운영자가 정해야 한다.</p>
+      <details class="more"><summary>첨언: 이 사례가 원문에 기대는 곳</summary><p>파일 이름과 frontmatter 는 원문 그림의 것이다(05장). ps-position-1 의 triggers 는 third-party integration, in-app purchases, hardware device launch 셋이고, 시나리오는 셋 다에 맞지 않도록 골랐다. 「웹 결제 구독」 시나리오, ps-position-1 본문의 내용, 두 편집안, 회귀 사례는 이 문서가 만든 것이다. 진단 질문의 원문은 <span class="q">“Could the agent have reached the correct conclusion from its source materials?”</span> 이고 manifest 의 정의는 <span class="q">“every file loaded, when, and how used”</span> 다. manifest 가 실린 파일만 담으므로 「자료 = 실린 파일」 로 읽을 근거가 있다. 그림 트리는 routing index 를 knowledge/investigation/ 아래에 두지만, 원문은 routing index 가 <span class="q">“Routing indexes map input characteristics to the relevant positions and procedures”</span> 라고 써서 절차까지 가리킨다.</p></details>
     </div>
   </section>
 
@@ -786,15 +786,15 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
     <div class="slide-inner">
       <p class="eyebrow">limits</p>
       <h2>원리가 멈추는 곳: 입장 변경, 모호함, 판정자, 규모</h2>
-      <p class="key">루프는 교정이 「지난 판단이 틀렸다」 는 뜻일 때 잘 돈다. 조직이 입장을 일부러 바꾸는 경우, 전문가끼리 답이 갈리는 경우, 판정 LLM 이 틀리는 경우, 파일 수가 한 도메인을 넘어 커지는 경우에는 B 가 설명한 장치만으로는 결과를 예측할 수 없다.</p>
+      <p class="key">루프는 교정이 「지난 판단이 틀렸다」 는 뜻일 때 잘 돈다. 조직이 입장을 일부러 바꾸는 경우, 전문가끼리 답이 갈리는 경우, 판정 LLM 이 틀리는 경우, 파일 수가 한 도메인을 넘어 커지는 경우에는 Meta 가 설명한 장치만으로는 결과를 예측할 수 없다.</p>
       <ul class="facts">
-        <li><span class="m">입장 변경</span><span>규제가 바뀌어 ps-position-1 의 결론을 뒤집으면, 지난 교정으로 쌓인 시험 다수가 옛 정답을 요구한다. 회귀 gate 는 이 의도된 변경을 회귀로 읽고 컴파일로 돌려보낸다. 시험을 고치거나 빼는 경로는 B 에 없다</span></li>
-        <li><span class="m">모호함</span><span>전문가끼리 답이 갈리면 편집 없이 사람 논의로 간다. 논의 결과가 다시 루프로 들어오는 경로를 B 는 쓰지 않으므로, 가장 어려운 사례에서 루프는 배우지 않는다</span></li>
+        <li><span class="m">입장 변경</span><span>규제가 바뀌어 ps-position-1 의 결론을 뒤집으면, 지난 교정으로 쌓인 시험 다수가 옛 정답을 요구한다. 회귀 gate 는 이 의도된 변경을 회귀로 읽고 컴파일로 돌려보낸다. 시험을 고치거나 빼는 경로는 원문에 없다</span></li>
+        <li><span class="m">모호함</span><span>전문가끼리 답이 갈리면 편집 없이 사람 논의로 간다. 논의 결과가 다시 루프로 들어오는 경로를 Meta 는 쓰지 않으므로, 가장 어려운 사례에서 루프는 배우지 않는다</span></li>
         <li><span class="m">판정자</span><span>replay 와 회귀의 통과는 LLM 판정자가 매긴다. 결정적인 것은 linter 뿐이다. 판정자의 정확도를 잰 결과는 없고, 「회귀 0건」 도 같은 판정자가 센 것이다</span></li>
-        <li><span class="m">규모</span><span>B 의 지식 베이스는 한 compliance 도메인, 파일 200개 이상이다. Karpathy 가 index 파일만으로 된다고 한 규모(수백 쪽)와 같은 크기이고, 그 위에서 routing index 와 의존 그래프가 어떻게 버티는지는 보고되지 않았다</span></li>
+        <li><span class="m">규모</span><span>Meta 의 지식 베이스는 한 compliance 도메인, 파일 200개 이상이다. Karpathy 가 index 파일만으로 된다고 한 규모(수백 쪽)와 같은 크기이고, 그 위에서 routing index 와 의존 그래프가 어떻게 버티는지는 보고되지 않았다</span></li>
       </ul>
-      <p>첫째 항목이 가장 예측하기 쉽다. 시험이 늘기만 하는 suite 에서, 입장 하나를 바꾸는 비용은 그 입장을 건드린 지난 교정의 수에 비례해 커진다. 이 비용을 줄이려면 시험에 「어느 position 의 어느 판에 기댄 정답인가」 를 적어 두고, position 이 바뀌면 그 시험을 사람에게 다시 묻는 장치가 필요하다. B 의 frontmatter 는 파일 사이의 의존은 적지만 시험과 파일 사이의 의존은 적지 않는다.</p>
-      <details class="more"><summary>첨언: 근거와 부재 확인</summary><p>B 는 입장이 바뀐다는 것을 안다. §The Self-Improvement Flywheel: 지식 베이스를 바르게 유지하는 일이 <span class="q">“as it grows and as expert positions evolve”</span> 어렵다고 쓴다. 그러나 시험 제거나 갱신을 가리키는 낱말은 B 사본에서 0건이다(retire, deprecat, delet, stale, expire, rollback, revert 검색). 「reversible」 은 한 번 나오지만 되돌리는 방법은 없다. 판정자: <span class="q">“an independent LLM judge gives each test case a pass/fail based on certain criteria”</span> Karpathy(w3): <span class="q">“This works surprisingly well at moderate scale (~100 sources, ~hundreds of pages) and avoids the need for embedding-based RAG infrastructure.”</span></p></details>
+      <p>첫째 항목이 가장 예측하기 쉽다. 시험이 늘기만 하는 suite 에서, 입장 하나를 바꾸는 비용은 그 입장을 건드린 지난 교정의 수에 비례해 커진다. 이 비용을 줄이려면 시험에 「어느 position 의 어느 판에 기댄 정답인가」 를 적어 두고, position 이 바뀌면 그 시험을 사람에게 다시 묻는 장치가 필요하다. Meta 의 frontmatter 는 파일 사이의 의존은 적지만 시험과 파일 사이의 의존은 적지 않는다.</p>
+      <details class="more"><summary>첨언: 근거와 부재 확인</summary><p>Meta 는 입장이 바뀐다는 것을 안다. §The Self-Improvement Flywheel: 지식 베이스를 바르게 유지하는 일이 <span class="q">“as it grows and as expert positions evolve”</span> 어렵다고 쓴다. 그러나 시험 제거나 갱신을 가리키는 낱말은 원문 사본에서 0건이다(retire, deprecat, delet, stale, expire, rollback, revert 검색). 「reversible」 은 한 번 나오지만 되돌리는 방법은 없다. 판정자: <span class="q">“an independent LLM judge gives each test case a pass/fail based on certain criteria”</span> Karpathy(w3): <span class="q">“This works surprisingly well at moderate scale (~100 sources, ~hundreds of pages) and avoids the need for embedding-based RAG infrastructure.”</span></p></details>
     </div>
   </section>
 
@@ -803,9 +803,9 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
     <div class="slide-inner">
       <p class="eyebrow">result</p>
       <h2>결과: 숫자는 전부 Meta 의 자기 보고</h2>
-      <p class="key">B 의 결과는 6주 동안 3 sprint 를 돈 뒤의 자기 보고다. 측정된 기준선과 비교한 숫자는 token 감소 하나뿐이다. 나머지는 비교 대상이 없거나, 「초기판보다」 「사람이 하던 것보다」 처럼 말로만 비교되고, 표본 수는 어느 숫자에도 없다. 시스템이 쓸모 있었다는 주장으로는 읽을 수 있지만, 루프의 각 장치가 얼마나 기여했는지는 이 숫자로 알 수 없다.</p>
+      <p class="key">Meta 의 결과는 6주 동안 3 sprint 를 돈 뒤의 자기 보고다. 측정된 기준선과 비교한 숫자는 token 감소 하나뿐이다. 나머지는 비교 대상이 없거나, 「초기판보다」 「사람이 하던 것보다」 처럼 말로만 비교되고, 표본 수는 어느 숫자에도 없다. 시스템이 쓸모 있었다는 주장으로는 읽을 수 있지만, 루프의 각 장치가 얼마나 기여했는지는 이 숫자로 알 수 없다.</p>
       <div class="tablewrap"><table class="prose-table">
-        <thead><tr><th>B 의 주장</th><th>비교 기준</th><th>빠진 것</th></tr></thead>
+        <thead><tr><th>Meta 의 주장</th><th>비교 기준</th><th>빠진 것</th></tr></thead>
         <tbody>
           <tr><td>파일 200개 이상</td><td>없음</td><td>종류별 개수, recipe 와 knowledge 의 비율</td></tr>
           <tr class="hero"><td>턴당 token 약 80% 감소</td><td>초기 단일 지시 파일 + 전부 semantic search</td><td>측정한 질의 수, 품질 변화</td></tr>
@@ -816,8 +816,8 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
           <tr><td>예전엔 엔지니어링 sprint 가 필요하던 속도로 검증된 편집 생산</td><td>수작업 sprint</td><td>편집 건수, 기각률, 재시도 횟수</td></tr>
         </tbody>
       </table></div>
-      <p>「회귀 0건」 은 특히 조심해서 읽어야 한다. 회귀는 B 의 회귀 suite 가 잡는 것으로 정의되고, suite 는 착지한 교정으로 자라며, 통과 판정은 LLM 이 한다. 같은 체계 안에서 센 0건이므로, suite 밖의 질문에서 답이 나빠졌는지는 이 숫자가 말하지 않는다.</p>
-      <details class="more"><summary>첨언: 원문</summary><p>B §Results: <span class="q">“After three development sprints spanning six weeks, the system achieved:”</span> <span class="q">“Domain SMEs rated agent outputs useful almost all the time”</span> <span class="q">“Days to minutes reduction in individual assessment time.”</span> <span class="q">“Automated self-improvement producing validated knowledge edits at a rate that previously required full engineering sprints.”</span> <span class="q">“Zero regressions across improvement cycles, with every fix automatically strengthening the regression suite.”</span> 200+: <span class="q">“organizing 200+ files into a strict taxonomy”</span> B 에는 차트가 없다. 표의 행은 이 문서가 묶은 순서다.</p></details>
+      <p>「회귀 0건」 은 특히 조심해서 읽어야 한다. 회귀는 Meta 의 회귀 suite 가 잡는 것으로 정의되고, suite 는 착지한 교정으로 자라며, 통과 판정은 LLM 이 한다. 같은 체계 안에서 센 0건이므로, suite 밖의 질문에서 답이 나빠졌는지는 이 숫자가 말하지 않는다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>원문 §Results: <span class="q">“After three development sprints spanning six weeks, the system achieved:”</span> <span class="q">“Domain SMEs rated agent outputs useful almost all the time”</span> <span class="q">“Days to minutes reduction in individual assessment time.”</span> <span class="q">“Automated self-improvement producing validated knowledge edits at a rate that previously required full engineering sprints.”</span> <span class="q">“Zero regressions across improvement cycles, with every fix automatically strengthening the regression suite.”</span> 200+: <span class="q">“organizing 200+ files into a strict taxonomy”</span> 원문에는 차트가 없다. 표의 행은 이 문서가 묶은 순서다.</p></details>
     </div>
   </section>
 
@@ -826,15 +826,15 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
     <div class="slide-inner">
       <p class="eyebrow">generalize</p>
       <h2>일반화 조건: 가중치가 아니라 텍스트로 다스리는 도메인</h2>
-      <p class="key">B 는 이 구조가 도메인과 무관하다고 쓰고 조건 넷을 든다. 지식이 몇 사람 머리에 있고, 평가 사이의 일관성이 중요하고, 일이 전문가 용량을 넘고, 범용 LLM 의 분석이 모자란 곳이다. 도입 요건도 넷이다. 의존 그래프가 있는 지식 파일, 지식과 방법을 떼어 낸 절차 층, 사이클마다 자라는 평가 suite, 위험에 맞춘 사람 checkpoint. 7~9월의 공개 사례는 이 넷 중 일부만 갖춘 상태에서 어떤 일이 생기는지 보여 준다. 이 문서는 여기에 B 에 없는 질문 하나를 더한다. 전문가가 고친 답을 텍스트 diff 로 적을 수 있는가.</p>
+      <p class="key">Meta 는 이 구조가 도메인과 무관하다고 쓰고 조건 넷을 든다. 지식이 몇 사람 머리에 있고, 평가 사이의 일관성이 중요하고, 일이 전문가 용량을 넘고, 범용 LLM 의 분석이 모자란 곳이다. 도입 요건도 넷이다. 의존 그래프가 있는 지식 파일, 지식과 방법을 떼어 낸 절차 층, 사이클마다 자라는 평가 suite, 위험에 맞춘 사람 checkpoint. 7~9월의 공개 사례는 이 넷 중 일부만 갖춘 상태에서 어떤 일이 생기는지 보여 준다. 이 문서는 여기에 원문에 없는 질문 하나를 더한다. 전문가가 고친 답을 텍스트 diff 로 적을 수 있는가.</p>
       <ul class="facts">
         <li><span class="m">Claude Tag</span><span>skill 과 lessons.md 를 git 에 두고 사람이 승격한다. 지식 파일과 사람 승인은 있고 자동 평가 gate 는 없다</span></li>
         <li><span class="m">Anthropic 보안</span><span>버그 종류를 찾으면 CLAUDE.md 와 skill 을 고치는 닫힌 고리. skill 이 낡거나 버그 종류가 파일로 돌아가지 않으면 구조 전체가 약해진다고 스스로 쓴다</span></li>
         <li><span class="m">SkillOpt</span><span>skill 자동 편집에 검증 gate 와 단계적 채택을 붙인다. gate 를 끈 실행이 한 사례에서 55.4% 에서 2.6% 로 떨어졌다</span></li>
         <li><span class="m">Cerebras</span><span>증류는 하되 정본 파일과 편집 루프 없이 검색으로 둔다. 하루 15,000 질문 규모다</span></li>
       </ul>
-      <p>자기 도메인에 B 를 옮길지 예측하려면 질문 하나를 먼저 던지면 된다. 「전문가가 고친 답을 텍스트 한 줄의 diff 로 적을 수 있는가」. 적을 수 있으면 B 의 루프가 붙는다. 판단이 사례별 직관이라 diff 로 적을 수 없으면 교정은 15장의 모호함 갈래로 빠지고 루프는 배우지 않는다.</p>
-      <details class="more"><summary>첨언: 원문</summary><p>B §Applying This Architecture: <span class="q">“Specialist knowledge lives as tribal knowledge in experts’ heads.”</span> <span class="q">“Off-the-shelf LLMs produce inadequate analysis.”</span> 원리: <span class="q">“keep the complexity in text files that are readable by both humans and agents, rather than fine-tuned model weights”</span> 도입부: <span class="q">“the pattern is designed to generalize to other domains governed by retrievable text rather than model weights”</span></p><p>Anthropic(c3) §Code: <span class="q">“This is done as part of a closed loop. Once an agent discovers a bug class, the relevant file is updated to prevent it recurring in future code.”</span> §Governance: <span class="q">“If a skill goes stale, a discovered bug class never makes it back into CLAUDE.md, or an agent's decisions go unsampled, the whole structure degrades.”</span> SkillOpt(c1) Part III: <span class="q">“Normal operation does not replace the deployed skill until the user explicitly runs adopt; auto_adopt is an opt-in mode.”</span> Cerebras(c2): <span class="q">“Employees ask our internal knowledge base more than 15,000 questions every day.”</span></p></details>
+      <p>자기 도메인에 Meta 의 구조를 옮길지 예측하려면 질문 하나를 먼저 던지면 된다. 「전문가가 고친 답을 텍스트 한 줄의 diff 로 적을 수 있는가」. 적을 수 있으면 Meta 의 루프가 붙는다. 판단이 사례별 직관이라 diff 로 적을 수 없으면 교정은 15장의 모호함 갈래로 빠지고 루프는 배우지 않는다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>원문 §Applying This Architecture: <span class="q">“Specialist knowledge lives as tribal knowledge in experts’ heads.”</span> <span class="q">“Off-the-shelf LLMs produce inadequate analysis.”</span> 원리: <span class="q">“keep the complexity in text files that are readable by both humans and agents, rather than fine-tuned model weights”</span> 도입부: <span class="q">“the pattern is designed to generalize to other domains governed by retrievable text rather than model weights”</span></p><p>Anthropic(c3) §Code: <span class="q">“This is done as part of a closed loop. Once an agent discovers a bug class, the relevant file is updated to prevent it recurring in future code.”</span> §Governance: <span class="q">“If a skill goes stale, a discovered bug class never makes it back into CLAUDE.md, or an agent's decisions go unsampled, the whole structure degrades.”</span> SkillOpt(c1) Part III: <span class="q">“Normal operation does not replace the deployed skill until the user explicitly runs adopt; auto_adopt is an opt-in mode.”</span> Cerebras(c2): <span class="q">“Employees ask our internal knowledge base more than 15,000 questions every day.”</span></p></details>
     </div>
   </section>
 
@@ -842,13 +842,13 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
   <section class="slide" data-label="SDLC 에서 빌린 것">
     <div class="slide-inner">
       <p class="eyebrow">sdlc-borrow</p>
-      <h2>SDLC 렌즈 1: B 의 지식 수명주기가 빌려온 규율</h2>
-      <p class="key">B 의 루프는 playbook 이 코드 옆의 설정 파일(CLAUDE.md, skills, hooks)에 요구하는 규율을 지식 파일 자체에 적용한 것으로 읽힌다. 버전 관리된 산출물, 쓴 쪽과 승인하는 쪽의 분리, 설정 변경의 회귀 시험, 사고를 시험으로 남기기, 확률적 통제 뒤의 결정적 통제다. 두 글 모두 사람을 작성자에서 증거가 붙은 산출물의 검토자로 옮긴다. 이 대응은 이 문서가 만든 것이고, B 는 SDLC 를 언급하지 않는다.</p>
+      <h2>SDLC 렌즈 1: Meta 의 지식 수명주기가 빌려온 규율</h2>
+      <p class="key">Meta 의 루프는 playbook 이 코드 옆의 설정 파일(CLAUDE.md, skills, hooks)에 요구하는 규율을 지식 파일 자체에 적용한 것으로 읽힌다. 버전 관리된 산출물, 쓴 쪽과 승인하는 쪽의 분리, 설정 변경의 회귀 시험, 사고를 시험으로 남기기, 확률적 통제 뒤의 결정적 통제다. 두 글 모두 사람을 작성자에서 증거가 붙은 산출물의 검토자로 옮긴다. 이 대응은 이 문서가 만든 것이고, Meta 는 SDLC 를 언급하지 않는다.</p>
       <figure class="figure">
-        <p class="fig-title">playbook 의 곁 루프가 B 에서는 주 루프다</p>
-        <p class="fig-sub">위는 playbook 의 여섯 단계 루프와 그 옆에서 agent 설정을 시험하는 eval 루프, 아래는 B 의 개선 루프. 두 글을 겹친 이 그림은 어느 원문에도 없다</p>
+        <p class="fig-title">playbook 의 곁 루프가 Meta 에서는 주 루프다</p>
+        <p class="fig-sub">위는 playbook 의 여섯 단계 루프와 그 옆에서 agent 설정을 시험하는 eval 루프, 아래는 Meta 의 개선 루프. 두 글을 겹친 이 그림은 어느 원문에도 없다</p>
         <div class="svgwrap">
-        <svg class="chart" viewBox="0 0 780 290" role="img" aria-label="위 줄은 playbook 의 루프로, intent.md 에서 spec.md, plan.md, diff 와 시험, PR 리뷰, 배포를 거쳐 운영 감시로 가고, 감시가 새 intent.md 를 써서 처음으로 돌아간다. 그 옆에 CLAUDE.md 와 skills 의 변경이 eval suite 를 통과해야 병합되는 작은 곁 루프가 있고, 사고는 eval 로 추가된다. 아래 줄은 B 의 루프로, 전문가 교정이 진단, 컴파일, 평가, PR 을 거쳐 knowledge 파일과 recipe 에 착지하고, 착지한 사례가 회귀 suite 로 되돌아간다. 아래 루프 전체가 위의 곁 루프에 대응한다." style="width:100%;height:auto;min-width:620px">
+        <svg class="chart" viewBox="0 0 780 290" role="img" aria-label="위 줄은 playbook 의 루프로, intent.md 에서 spec.md, plan.md, diff 와 시험, PR 리뷰, 배포를 거쳐 운영 감시로 가고, 감시가 새 intent.md 를 써서 처음으로 돌아간다. 그 옆에 CLAUDE.md 와 skills 의 변경이 eval suite 를 통과해야 병합되는 작은 곁 루프가 있고, 사고는 eval 로 추가된다. 아래 줄은 Meta 의 루프로, 전문가 교정이 진단, 컴파일, 평가, PR 을 거쳐 knowledge 파일과 recipe 에 착지하고, 착지한 사례가 회귀 suite 로 되돌아간다. 아래 루프 전체가 위의 곁 루프에 대응한다." style="width:100%;height:auto;min-width:620px">
           <text class="lbl-hi" x="10" y="18">playbook: 산출물은 코드</text>
           <rect class="box" x="10" y="28" width="86" height="40" rx="7"/><text class="txt-s" x="20" y="52">intent.md</text>
           <path class="arw" d="M96 48 L108 48"/><path class="arw" d="M102 44 L108 48 L102 52"/>
@@ -870,7 +870,7 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
           <text class="txt-s" x="418" y="147">→ 병합. 사고마다 eval 하나 추가</text>
           <path class="arw" d="M300 196 L408 150" stroke-dasharray="4 3"/><path class="arw" d="M399 150 L408 150 L403 158"/>
           <text class="txt-s" x="250" y="178">이 문서의 대응</text>
-          <text class="lbl-hi" x="10" y="200">B: 산출물은 지식</text>
+          <text class="lbl-hi" x="10" y="200">Meta: 산출물은 지식</text>
           <rect class="box" x="10" y="210" width="90" height="40" rx="7"/><text class="txt-s" x="20" y="234">전문가 교정</text>
           <path class="arw" d="M100 230 L112 230"/><path class="arw" d="M106 226 L112 230 L106 234"/>
           <rect class="box-hi" x="114" y="210" width="70" height="40" rx="7"/><text class="txt-s" x="124" y="234">진단</text>
@@ -886,17 +886,17 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
           <text class="txt-s" x="350" y="287">착지한 사례가 회귀 suite 로</text>
         </svg>
         </div>
-        <figcaption>playbook 의 여섯 단계(Plan, Design, Build, Test, Deploy, Maintain)를 산출물 이름으로 그렸다. B 의 진단 단계에 대응하는 칸이 playbook 의 곁 루프에는 없다. 19장이 이 차이를 다룬다.</figcaption>
+        <figcaption>playbook 의 여섯 단계(Plan, Design, Build, Test, Deploy, Maintain)를 산출물 이름으로 그렸다. Meta 의 진단 단계에 대응하는 칸이 playbook 의 곁 루프에는 없다. 19장이 이 차이를 다룬다.</figcaption>
       </figure>
       <ul class="facts">
-        <li><span class="m">버전 관리</span><span>B: 모든 변경이 버전 관리되고 diff 로 보이며 되돌릴 수 있다. playbook: 단계마다 산출물을 커밋하고 커밋의 사슬이 감사 기록이다</span></li>
-        <li><span class="m">직무 분리</span><span>B: 제안한 agent 와 맥락을 나누지 않는 리뷰어, 그리고 사람 전문가의 승인. playbook: 코드를 쓴 agent 는 자기 코드를 승인할 길이 없고, 검증은 새 context 에서 한다</span></li>
-        <li><span class="m">설정 회귀</span><span>B: 모든 편집이 도메인 벤치마크를 통과해야 한다. playbook: CLAUDE.md, skills, hooks 가 바뀔 때마다 eval suite 를 돌린다. agent 를 움직이는 설정도 코드만큼 회귀 시험을 받아야 하기 때문이다</span></li>
-        <li><span class="m">실패 → 시험</span><span>B: 착지한 실패 사례가 회귀 suite 에 들어간다. playbook: 운영 사고마다 eval 하나를 쓰고 suite 에 남긴다</span></li>
-        <li><span class="m">결정적 통제</span><span>B: 확률적 리뷰 옆에 통과 아니면 실패인 linter. playbook: skill 은 권고성 통제라서, 반드시 지켜야 할 정책은 hook 같은 결정적 장치로 받친다</span></li>
+        <li><span class="m">버전 관리</span><span>Meta: 모든 변경이 버전 관리되고 diff 로 보이며 되돌릴 수 있다. playbook: 단계마다 산출물을 커밋하고 커밋의 사슬이 감사 기록이다</span></li>
+        <li><span class="m">직무 분리</span><span>Meta: 제안한 agent 와 맥락을 나누지 않는 리뷰어, 그리고 사람 전문가의 승인. playbook: 코드를 쓴 agent 는 자기 코드를 승인할 길이 없고, 검증은 새 context 에서 한다</span></li>
+        <li><span class="m">설정 회귀</span><span>Meta: 모든 편집이 도메인 벤치마크를 통과해야 한다. playbook: CLAUDE.md, skills, hooks 가 바뀔 때마다 eval suite 를 돌린다. agent 를 움직이는 설정도 코드만큼 회귀 시험을 받아야 하기 때문이다</span></li>
+        <li><span class="m">실패 → 시험</span><span>Meta: 착지한 실패 사례가 회귀 suite 에 들어간다. playbook: 운영 사고마다 eval 하나를 쓰고 suite 에 남긴다</span></li>
+        <li><span class="m">결정적 통제</span><span>Meta: 확률적 리뷰 옆에 통과 아니면 실패인 linter. playbook: skill 은 권고성 통제라서, 반드시 지켜야 할 정책은 hook 같은 결정적 장치로 받친다</span></li>
       </ul>
-      <p>가장 깊은 일치는 사람의 자리다. playbook 은 PR 을 검토하는 code owner 가 <span class="q">“can concentrate on intent and risk because the mechanical evidence is already attached.”</span> 라고 쓰고, B 는 <span class="q">“A human expert reviews a proven fix rather than debugging a raw failure.”</span> 라고 쓴다. 두 글이 줄이려는 병목도 같은 모양이다. playbook 은 agent 가 코드를 빨리 쓰자 병목이 그 앞뒤의 사람 속도 단계로 옮겨 갔다고 보고, B 는 지식 파일이 많아지자 교정을 편집으로 옮기는 사람의 몇 주가 병목이 됐다고 본다. 둘 다 그 번역을 agent 에게 넘기고 사람에게는 증거가 붙은 결과만 보여 준다.</p>
-      <details class="more"><summary>첨언: 짝지은 원문</summary><p>B: <span class="q">“Every change is version-controlled, diffable, and reversible.”</span> playbook: <span class="q">“The chain of commits is also the audit trail: who asked for what, what the agent produced, and who approved it.”</span></p><p>playbook 직무 분리: <span class="q">“Separation of duties is preserved, because the agent that wrote the code has no way to approve it.”</span> 새 context 검증: <span class="q">“This way the verdict is not colored by the assumptions that produced the code.”</span></p><p>playbook 설정 회귀: <span class="q">“The suite runs non-interactively in CI on a schedule and on any change to CLAUDE.md, skills or hooks, since that configuration steers the agent and deserves the regression testing that code gets.”</span> 사고 → 시험: <span class="q">“Each production incident gets an eval, written by the team that owned the incident, and stays in the suite as a regression test.”</span></p><p>playbook 권고성 통제: <span class="q">“A skill is a control, though an advisory one. It makes Claude likely to apply the policy while the code is written, and nothing forces a session to comply with it.”</span> 병목: <span class="q">“Build is no longer the constraint — the human-speed steps around it are.”</span></p><p>B 그림의 진입 파일 이름 SKILL.md 와 playbook 의 skill 형식(<span class="q">“a folder containing a SKILL.md whose frontmatter says when it triggers and whose body says what to do”</span>)은 이름과 frontmatter trigger 를 공유한다. Meta 가 어떤 agent 런타임을 쓰는지는 B 에 없으므로, 이 일치를 B 가 Claude 를 쓴다는 근거로 읽지 않는다.</p></details>
+      <p>가장 깊은 일치는 사람의 자리다. playbook 은 PR 을 검토하는 code owner 가 <span class="q">“can concentrate on intent and risk because the mechanical evidence is already attached.”</span> 라고 쓰고, Meta 는 <span class="q">“A human expert reviews a proven fix rather than debugging a raw failure.”</span> 라고 쓴다. 두 글이 줄이려는 병목도 같은 모양이다. playbook 은 agent 가 코드를 빨리 쓰자 병목이 그 앞뒤의 사람 속도 단계로 옮겨 갔다고 보고, Meta 는 지식 파일이 많아지자 교정을 편집으로 옮기는 사람의 몇 주가 병목이 됐다고 본다. 둘 다 그 번역을 agent 에게 넘기고 사람에게는 증거가 붙은 결과만 보여 준다.</p>
+      <details class="more"><summary>첨언: 짝지은 원문</summary><p>Meta: <span class="q">“Every change is version-controlled, diffable, and reversible.”</span> playbook: <span class="q">“The chain of commits is also the audit trail: who asked for what, what the agent produced, and who approved it.”</span></p><p>playbook 직무 분리: <span class="q">“Separation of duties is preserved, because the agent that wrote the code has no way to approve it.”</span> 새 context 검증: <span class="q">“This way the verdict is not colored by the assumptions that produced the code.”</span></p><p>playbook 설정 회귀: <span class="q">“The suite runs non-interactively in CI on a schedule and on any change to CLAUDE.md, skills or hooks, since that configuration steers the agent and deserves the regression testing that code gets.”</span> 사고 → 시험: <span class="q">“Each production incident gets an eval, written by the team that owned the incident, and stays in the suite as a regression test.”</span></p><p>playbook 권고성 통제: <span class="q">“A skill is a control, though an advisory one. It makes Claude likely to apply the policy while the code is written, and nothing forces a session to comply with it.”</span> 병목: <span class="q">“Build is no longer the constraint — the human-speed steps around it are.”</span></p><p>원문 그림의 진입 파일 이름 SKILL.md 와 playbook 의 skill 형식(<span class="q">“a folder containing a SKILL.md whose frontmatter says when it triggers and whose body says what to do”</span>)은 이름과 frontmatter trigger 를 공유한다. Meta 가 어떤 agent 런타임을 쓰는지는 원문에 없으므로, 이 일치를 Meta 가 Claude 를 쓴다는 근거로 읽지 않는다.</p></details>
     </div>
   </section>
 
@@ -905,16 +905,16 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
     <div class="slide-inner">
       <p class="eyebrow">sdlc-diverge</p>
       <h2>SDLC 렌즈 2: 갈라지는 곳은 신호, 판정자, 의도된 변경</h2>
-      <p class="key">B 의 수명주기는 SDLC 의 형식을 빌리지만 세 곳에서 다른 물건이 된다. 실패를 알리는 신호가 결정적 지표가 아니라 전문가의 말이고, 시험의 판정자가 테스트 러너가 아니라 LLM 이며, 사양이 일부러 바뀔 때 시험을 함께 고치는 소프트웨어의 관행에 대응하는 장치가 B 에 없다. 진단 단계는 반대로 B 에만 있다.</p>
+      <p class="key">Meta 의 수명주기는 SDLC 의 형식을 빌리지만 세 곳에서 다른 물건이 된다. 실패를 알리는 신호가 결정적 지표가 아니라 전문가의 말이고, 시험의 판정자가 테스트 러너가 아니라 LLM 이며, 사양이 일부러 바뀔 때 시험을 함께 고치는 소프트웨어의 관행에 대응하는 장치가 원문에 없다. 진단 단계는 반대로 원문에만 있다.</p>
       <ul class="facts">
-        <li><span class="m">신호</span><span>playbook 의 Maintain 은 결정적 스크립트가 지표의 band 위반을 잡고서야 Claude 를 부른다. B 의 루프는 전문가가 대화에서 교정해야 시작한다. 전문가가 보지 못한 오답은 루프에 들어오지 않는다</span></li>
-        <li><span class="m">진단</span><span>playbook 의 규칙은 빈도다. 같은 실수를 두 번 하면 CLAUDE.md 에 적는다. 어느 층을 고칠지 묻는 단계는 없고, CLAUDE.md 예시 하나에 명령, 관례, 「Claude 가 자주 틀리는 것」 이 함께 있다. B 는 고치기 전에 층을 가린다</span></li>
-        <li><span class="m">판정자</span><span>playbook 의 eval 은 「시험 통과, lint 깨끗, 동작 불변, 정책 준수」 같은 검사로 받아들임을 정의한다. B 의 회귀는 정답이 여럿일 수 있는 분석 문항이라 LLM 판정자가 통과를 매긴다</span></li>
-        <li><span class="m">의도된 변경</span><span>playbook 은 버그 수정 때 실패하는 시험을 먼저 쓰고, 구현이 계획을 벗어나면 같은 커밋에서 plan.md 를 고치라고 한다. B 에는 입장이 바뀔 때 옛 정답을 담은 시험을 고치는 경로가 없다(15장)</span></li>
-        <li><span class="m">배포</span><span>playbook 은 환경마다 자율 수준을 나누고 rollback 을 가장 많이 연습한 경로로 둔다. B 는 「reversible」 이라고만 쓰고 단계적 배포나 rollback 절차를 말하지 않는다</span></li>
+        <li><span class="m">신호</span><span>playbook 의 Maintain 은 결정적 스크립트가 지표의 band 위반을 잡고서야 Claude 를 부른다. Meta 의 루프는 전문가가 대화에서 교정해야 시작한다. 전문가가 보지 못한 오답은 루프에 들어오지 않는다</span></li>
+        <li><span class="m">진단</span><span>playbook 의 규칙은 빈도다. 같은 실수를 두 번 하면 CLAUDE.md 에 적는다. 어느 층을 고칠지 묻는 단계는 없고, CLAUDE.md 예시 하나에 명령, 관례, 「Claude 가 자주 틀리는 것」 이 함께 있다. Meta 는 고치기 전에 층을 가린다</span></li>
+        <li><span class="m">판정자</span><span>playbook 의 eval 은 「시험 통과, lint 깨끗, 동작 불변, 정책 준수」 같은 검사로 받아들임을 정의한다. Meta 의 회귀는 정답이 여럿일 수 있는 분석 문항이라 LLM 판정자가 통과를 매긴다</span></li>
+        <li><span class="m">의도된 변경</span><span>playbook 은 버그 수정 때 실패하는 시험을 먼저 쓰고, 구현이 계획을 벗어나면 같은 커밋에서 plan.md 를 고치라고 한다. 원문에는 입장이 바뀔 때 옛 정답을 담은 시험을 고치는 경로가 없다(15장)</span></li>
+        <li><span class="m">배포</span><span>playbook 은 환경마다 자율 수준을 나누고 rollback 을 가장 많이 연습한 경로로 둔다. Meta 는 「reversible」 이라고만 쓰고 단계적 배포나 rollback 절차를 말하지 않는다</span></li>
       </ul>
-      <p>이 차이로 독자가 예측할 수 있는 실패가 있다. B 의 방식을 코드 저장소의 CLAUDE.md 에 그대로 가져오면 진단 단계 덕분에 「두 번 틀리면 적는다」 보다 편집이 정확해진다. 반대로 playbook 의 방식을 B 같은 compliance 지식에 그대로 가져오면, 지표 band 로 잡을 수 있는 오답이 거의 없어 Maintain 루프가 돌지 않는다. compliance 판단이 틀렸다는 신호는 대개 사람이 읽고 나서야 생기기 때문이다. 두 루프를 겹쳐 쓰려면 B 쪽에 결정적 탐지에 해당하는 것, 예를 들어 같은 입력에 대한 답이 시간에 따라 바뀌는지 보는 표본 재실행을 따로 둬야 한다. 이 제안은 이 문서의 것이고 두 원문 어디에도 없다.</p>
-      <details class="more"><summary>첨언: 원문</summary><p>playbook §Maintain: <span class="q">“The script is version controlled and unit tested, and detection stays entirely deterministic, with no model involved.”</span> 두 번 규칙: <span class="q">“When Claude makes a mistake twice, the correction goes into CLAUDE.md.”</span> 리뷰에서도 같다: <span class="q">“Review findings feed back into CLAUDE.md. When a review flags a mistake for the second time, the correction goes into CLAUDE.md as part of that review”</span> 시험 먼저: <span class="q">“For bug fixes, write the failing test first.”</span> plan 동기화: <span class="q">“When implementation departs from the plan, update plan.md in the same commit.”</span> rollback: <span class="q">“Rollback should be the most rehearsed path in the pipeline”</span> eval 의 수명: <span class="q">“As models improve, cases that once discriminated stop doing so and new ones must be added that arise from ongoing monitoring.”</span> playbook 은 eval 이 낡는다는 것을 말하지만, 낡은 eval 을 빼는 절차는 playbook 에도 없다.</p><p>playbook 에도 B 의 적대적 리뷰어에 가까운 것이 있다. §Maintain: <span class="q">“Stage 6: Maintenance runs headless, with an independent confidence gate between stages, a deterministic check or an adversarial reviewing agent, deciding whether the previous stage's output continues or is escalated to a human.”</span></p></details>
+      <p>이 차이로 독자가 예측할 수 있는 실패가 있다. Meta 의 방식을 코드 저장소의 CLAUDE.md 에 그대로 가져오면 진단 단계 덕분에 「두 번 틀리면 적는다」 보다 편집이 정확해진다. 반대로 playbook 의 방식을 Meta 같은 compliance 지식에 그대로 가져오면, 지표 band 로 잡을 수 있는 오답이 거의 없어 Maintain 루프가 돌지 않는다. compliance 판단이 틀렸다는 신호는 대개 사람이 읽고 나서야 생기기 때문이다. 두 루프를 겹쳐 쓰려면 Meta 쪽에 결정적 탐지에 해당하는 것, 예를 들어 같은 입력에 대한 답이 시간에 따라 바뀌는지 보는 표본 재실행을 따로 둬야 한다. 이 제안은 이 문서의 것이고 두 원문 어디에도 없다.</p>
+      <details class="more"><summary>첨언: 원문</summary><p>playbook §Maintain: <span class="q">“The script is version controlled and unit tested, and detection stays entirely deterministic, with no model involved.”</span> 두 번 규칙: <span class="q">“When Claude makes a mistake twice, the correction goes into CLAUDE.md.”</span> 리뷰에서도 같다: <span class="q">“Review findings feed back into CLAUDE.md. When a review flags a mistake for the second time, the correction goes into CLAUDE.md as part of that review”</span> 시험 먼저: <span class="q">“For bug fixes, write the failing test first.”</span> plan 동기화: <span class="q">“When implementation departs from the plan, update plan.md in the same commit.”</span> rollback: <span class="q">“Rollback should be the most rehearsed path in the pipeline”</span> eval 의 수명: <span class="q">“As models improve, cases that once discriminated stop doing so and new ones must be added that arise from ongoing monitoring.”</span> playbook 은 eval 이 낡는다는 것을 말하지만, 낡은 eval 을 빼는 절차는 playbook 에도 없다.</p><p>playbook 에도 Meta 의 적대적 리뷰어에 가까운 것이 있다. §Maintain: <span class="q">“Stage 6: Maintenance runs headless, with an independent confidence gate between stages, a deterministic check or an adversarial reviewing agent, deciding whether the previous stage's output continues or is escalated to a human.”</span></p></details>
     </div>
   </section>
 
@@ -923,11 +923,11 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
     <div class="slide-inner">
       <p class="eyebrow">setup</p>
       <h2>읽은 범위: 원문 두 편은 끝까지, 사례 네 편은 해당 절까지</h2>
-      <p class="key">B 와 playbook 은 본문과 그림을 전부 읽었고, B 의 참조 두 편(Karpathy gist, Google OKF 글)과 7~9월 사례 네 편은 이 문서가 쓰는 절까지 읽었다. 모든 출처가 판 번호 없는 웹 페이지라서 2026-10-07 에 받은 텍스트를 고정 사본으로 두었고, Wayback 조회는 응답이 없어 보관 링크가 없다.</p>
+      <p class="key">Meta 글과 playbook 은 본문과 그림을 전부 읽었고, Meta 글이 참조한 두 편(Karpathy gist, Google OKF 글)과 7~9월 사례 네 편은 이 문서가 쓰는 절까지 읽었다. 모든 출처가 판 번호 없는 웹 페이지라서 2026-10-07 에 받은 텍스트를 고정 사본으로 두었고, Wayback 조회는 응답이 없어 보관 링크가 없다.</p>
       <div class="tablewrap"><table class="prose-table">
         <thead><tr><th>id</th><th>출처</th><th>발행</th><th>읽은 곳</th><th>열지 않은 것과 그 비용</th></tr></thead>
         <tbody>
-          <tr class="hero"><td>w1</td><td>Meta, B</td><td>2026-09-02</td><td>도입부터 Acknowledgements 까지, 그림 3장</td><td>장식용 hero 이미지 한 장은 내용이 없어 뺐다</td></tr>
+          <tr class="hero"><td>w1</td><td>Meta</td><td>2026-09-02</td><td>도입부터 Acknowledgements 까지, 그림 3장</td><td>장식용 hero 이미지 한 장은 내용이 없어 뺐다</td></tr>
           <tr><td>w2</td><td>Claude 블로그, playbook</td><td>2026-08-21</td><td>HTML 본문 전부, 그림 4장</td><td>같은 내용의 PDF 판과 code.claude.com, platform.claude.com 문서 링크 24개(중복 제외). playbook 의 제품 기능 설명은 이 문서에서 검증하지 않았다</td></tr>
           <tr><td>w3</td><td>Karpathy, LLM Wiki gist</td><td>리비전 ac46de1 (2026-04-04)</td><td>전부</td><td>없음</td></tr>
           <tr><td>w4</td><td>Google Cloud, OKF 소개</td><td>2026-06-12</td><td>전부</td><td>OKF v0.1 spec 과 저장소. 05장의 OKF 비교는 블로그 문장에만 기댄다</td></tr>
@@ -937,9 +937,9 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
           <tr><td>c4</td><td>Anthropic, Claude Tag on-call</td><td>2026-08-18</td><td>전부</td><td>on-call setup kit 저장소. lessons.md 의 실제 형식은 글에 나온 만큼만 안다</td></tr>
         </tbody>
       </table></div>
-      <p>원문이 그린 것 중 이 문서가 다시 그린 것은 B 의 네 층 표(04장), 지식 베이스 트리와 frontmatter(05장), 개선 루프(09장)다. playbook 의 그림 네 장 가운데 순환 그림은 18장 그림의 위 줄로 들어갔고, 나머지 셋(병목 막대, play 의존 그래프, #inc-checkout 대화)과 단계별 전환 표는 옮기지 않았다. 단계별 대응표를 결론처럼 세우지 않기 위해서이고, 필요한 행은 인용으로 썼다.</p>
-      <p>Hacker News 에는 B 가 2026-09-15 에 한 번 올라왔고 댓글은 0개였다. 그래서 반응 장을 두지 않았다. Analytics at Meta 의 Medium 글 「How We Built an AI Second Brain for 60K Knowledge Workers」(2026-04-29)는 이름만 겹치는 별개 프로젝트라 열지 않았다. 렌더링은 Windows Chrome headless 스크린샷으로 라이트 모드 1440px 폭의 표지, 2~6장, 9장, 12장, 14장, 16장, 18장, 20장, 22장을 확인했다. 다크 모드, 좁은 폭, 나머지 장의 그림은 화면으로 보지 않았다.</p>
-      <details class="more"><summary>첨언: 고정 사본과 수신 시각</summary><p>각 사본은 .research/2026-10-07-meta-organizational-second-brain/notes/web/&lt;id&gt;.txt 이고 sha256 은 sources.jsonl 에 있다. 수신 시각(UTC): w1 08:00:14, w2 08:00:16, w3 08:02 (gist git clone), w4 08:02:45, c4 08:03:03, c3 08:03:14, c2 08:03:24, c1 08:03:48. B 의 그림 세 장은 alt 가 비어 있어 이미지를 직접 열어 글자를 notes/figures.md 에 옮겼다. B 본문의 l.facebook.com 링크 둘은 u= 파라미터를 풀어 w3, w4 의 주소를 얻었다. c2 는 라이브 URL 이 HTTP 500 을 내면서 본문을 응답 payload 에 담아 보내서, 그 payload 의 텍스트를 사본으로 썼다.</p></details>
+      <p>원문이 그린 것 중 이 문서가 다시 그린 것은 Meta 의 네 층 표(04장), 지식 베이스 트리와 frontmatter(05장), 개선 루프(09장)다. playbook 의 그림 네 장 가운데 순환 그림은 18장 그림의 위 줄로 들어갔고, 나머지 셋(병목 막대, play 의존 그래프, #inc-checkout 대화)과 단계별 전환 표는 옮기지 않았다. 이 문서는 단계마다 짝을 맞추기보다 두 수명주기가 갈라지는 곳을 설명하는 쪽을 택했고, 필요한 행은 인용으로 썼다.</p>
+      <p>Hacker News 에는 Meta 가 2026-09-15 에 한 번 올라왔고 댓글은 0개였다. 그래서 반응 장을 두지 않았다. Analytics at Meta 의 Medium 글 「How We Built an AI Second Brain for 60K Knowledge Workers」(2026-04-29)는 이름이 비슷하지만 별개 프로젝트라서 이 문서의 근거로 쓰지 않았다. 렌더링은 Windows Chrome headless 스크린샷으로 라이트 모드 1440px 폭의 표지, 2~6장, 9장, 12장, 14장, 16장, 18장, 20장, 22장을 확인했다. 다크 모드, 좁은 폭, 나머지 장의 그림은 화면으로 보지 않았다.</p>
+      <details class="more"><summary>첨언: 고정 사본과 수신 시각</summary><p>각 사본은 .research/2026-10-07-meta-organizational-second-brain/notes/web/&lt;id&gt;.txt 이고 sha256 은 sources.jsonl 에 있다. 수신 시각(UTC): w1 08:00:14, w2 08:00:16, w3 08:02 (gist git clone), w4 08:02:45, c4 08:03:03, c3 08:03:14, c2 08:03:24, c1 08:03:48. 원문의 그림 세 장은 alt 가 비어 있어 이미지를 직접 열어 글자를 notes/figures.md 에 옮겼다. 원문의 l.facebook.com 링크 둘은 u= 파라미터를 풀어 w3, w4 의 주소를 얻었다. c2 는 라이브 URL 이 HTTP 500 을 내면서 본문을 응답 payload 에 담아 보내서, 그 payload 의 텍스트를 사본으로 썼다.</p></details>
     </div>
   </section>
 
@@ -948,15 +948,15 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
     <div class="slide-inner">
       <p class="eyebrow">critique</p>
       <h2>해석의 한계: 구조는 구체적이고 효과는 검증되지 않았다</h2>
-      <p class="key">B 는 파일 분류, 진단 질문, 리뷰어의 맥락 분리, blind replay 를 따라 만들 수 있을 만큼 구체적으로 적었다. 그 장치들이 얼마나 효과가 있었는지는 Meta 의 자기 보고뿐이고, 도메인 이름과 교정 건수, 판정자의 정확도, 파이프라인 비용이 없다. 남는 것은 설계이고, 그 설계의 핵심 하나(편집을 gate 로 막는 것)는 다른 팀의 독립 실험이 같은 방향을 가리킨다.</p>
+      <p class="key">Meta 는 파일 분류, 진단 질문, 리뷰어의 맥락 분리, blind replay 를 따라 만들 수 있을 만큼 구체적으로 적었다. 그 장치들이 얼마나 효과가 있었는지는 Meta 의 자기 보고뿐이고, 도메인 이름과 교정 건수, 판정자의 정확도, 파이프라인 비용이 없다. 남는 것은 설계이고, 그 설계의 핵심 하나(편집을 gate 로 막는 것)는 다른 팀의 독립 실험이 같은 방향을 가리킨다.</p>
       <ul class="facts">
-        <li><span class="m">B 가 말하지 않는 것</span><span>도메인 이름, 교정과 편집 건수, 재시도 횟수와 상한, 회귀 suite 크기, 판정 LLM 과 그 정확도, 교정 하나당 LLM 호출 비용, 실패 사례</span></li>
-        <li><span class="m">B 안의 불일치</span><span>본문은 넷째 phase 를 전문가 검토로, 그림은 착지와 보강으로 적는다. 「빈도, 심각도 가중」 은 그림에만 있다. 그림 트리에는 gateway 파일이 없다</span></li>
+        <li><span class="m">Meta 가 말하지 않는 것</span><span>도메인 이름, 교정과 편집 건수, 재시도 횟수와 상한, 회귀 suite 크기, 판정 LLM 과 그 정확도, 교정 하나당 LLM 호출 비용, 실패 사례</span></li>
+        <li><span class="m">원문 안의 불일치</span><span>본문은 넷째 phase 를 전문가 검토로, 그림은 착지와 보강으로 적는다. 「빈도, 심각도 가중」 은 그림에만 있다. 그림 트리에는 gateway 파일이 없다</span></li>
         <li><span class="m">이 문서의 추론</span><span>06장의 경계 이동 예측, 14장의 사례, 15장의 입장 변경 비용, 18~19장의 SDLC 대응, 19장의 표본 재실행 제안은 이 문서의 것이고 원문에 없다</span></li>
-        <li><span class="m">사례의 성격</span><span>네 사례 중 둘이 Anthropic 의 글이고 playbook 도 Anthropic 의 글이다. 벤더가 자기 제품 사용을 보고한 것이라 B 와 같은 자기 보고의 한계를 진다. SkillOpt 는 연구 보고지만 Sleep 실험은 셀마다 단일 seed 이고, 499회 sweep 은 모든 셀에 반복 seed 가 있지 않으며 원 기록이 비공개다</span></li>
+        <li><span class="m">사례의 성격</span><span>네 사례 중 둘이 Anthropic 의 글이고 playbook 도 Anthropic 의 글이다. 벤더가 자기 제품 사용을 보고한 것이라 Meta 와 같은 자기 보고의 한계를 진다. SkillOpt 는 연구 보고지만 Sleep 실험은 셀마다 단일 seed 이고, 499회 sweep 은 모든 셀에 반복 seed 가 있지 않으며 원 기록이 비공개다</span></li>
       </ul>
-      <p>살아남는 결과는 두 가지다. 첫째, 「agent 가 실은 자료로 맞는 결론에 이를 수 있었나」 라는 진단 질문은 숫자와 무관하게 옮겨 쓸 수 있고, SkillOpt 의 Skill Defect 와 Execution Lapse 구분이 같은 축을 독립적으로 쓴다. 둘째, agent 가 고친 지식을 검증 gate 없이 받아들이면 그럴듯한 오규칙 하나가 성능을 무너뜨릴 수 있다는 것은 SkillOpt 의 스트레스 사례(55.4% 에서 2.6%)가 보여 준다. B 의 「회귀 0건」 이 그 gate 덕분인지는 B 의 자료로 가릴 수 없다.</p>
-      <details class="more"><summary>첨언: 부재 확인</summary><p>B 사본 검색 결과: SDLC 0건, Claude 0건, Anthropic 0건, baseline 0건, sample 0건, interval 0건, % 기호 1건(80%). B 가 비교 대상으로 드는 것은 자기 시스템의 초기판뿐이다. B 의 새로움 주장 <span class="q">“we haven’t seen this level of validation rigor applied to a structured knowledge base without model retraining”</span> 은 B 가 선행 연구를 나열하지 않으므로 이 문서가 확인할 수 없다. 같은 7월에 공개된 SkillOpt 의 검증 gate 와 단계적 채택은 skill 파일 하나에 대한 것이라 B 의 의존 그래프 규모와는 다르다.</p></details>
+      <p>살아남는 결과는 두 가지다. 첫째, 「agent 가 실은 자료로 맞는 결론에 이를 수 있었나」 라는 진단 질문은 숫자와 무관하게 옮겨 쓸 수 있고, SkillOpt 의 Skill Defect 와 Execution Lapse 구분이 같은 축을 독립적으로 쓴다. 둘째, agent 가 고친 지식을 검증 gate 없이 받아들이면 그럴듯한 오규칙 하나가 성능을 무너뜨릴 수 있다는 것은 SkillOpt 의 스트레스 사례(55.4% 에서 2.6%)가 보여 준다. Meta 의 「회귀 0건」 이 그 gate 덕분인지는 Meta 의 자료로 가릴 수 없다.</p>
+      <details class="more"><summary>첨언: 부재 확인</summary><p>원문 사본 검색 결과: SDLC 0건, Claude 0건, Anthropic 0건, baseline 0건, sample 0건, interval 0건, % 기호 1건(80%). Meta 가 비교 대상으로 드는 것은 자기 시스템의 초기판뿐이다. Meta 의 새로움 주장 <span class="q">“we haven’t seen this level of validation rigor applied to a structured knowledge base without model retraining”</span> 은 Meta 가 선행 연구를 나열하지 않으므로 이 문서가 확인할 수 없다. 같은 7월에 공개된 SkillOpt 의 검증 gate 와 단계적 채택은 skill 파일 하나에 대한 것이라 Meta 의 의존 그래프 규모와는 다르다.</p></details>
     </div>
   </section>
 
@@ -966,8 +966,8 @@ referenced_by:     <span class="c"># 이 파일을 필요로 하는 것</span>
       <p class="eyebrow">conclusion</p>
       <h2>결론: 교정을 diff 로 적을 수 있으면 루프가 붙는다</h2>
       <p class="key">Meta 의 organizational second brain 은 전문가 지식을 밀도와 사용 빈도로 나눠, 자주 쓰는 판단은 의존을 적은 텍스트 파일로, 드문 자료는 RAG 로 둔다. 전문가의 교정은 층을 가리는 진단과 최소 편집, 맥락 없는 리뷰와 blind replay, 회귀 시험을 지나 PR 로 착지하고 다음 시험이 된다. 이 수명주기는 SDLC 의 버전 관리와 직무 분리, 회귀 시험을 지식 자체에 입혔고, 실패 신호와 판정자, 의도된 변경 처리에서 SDLC 와 갈라진다.</p>
-      <p>자기 시스템에 옮기려는 개발자가 먼저 물을 것은 전문가의 교정을 텍스트 diff 로 적을 수 있는가이다(17장). 적을 수 있으면 루프가 붙고, 판단이 사례별 직관이라 적을 수 없으면 교정은 모호함 갈래로 빠진다. 루프가 붙은 뒤의 예측은 이렇다. 입장이 있는데 불리지 않아 생긴 교정은 position 의 triggers 나 routing index 같은 싣는 장치를 고치게 되고, 회귀 suite 의 범위가 gate 의 힘을 정하며, 입장을 일부러 바꾸는 날 지난 교정으로 쌓인 시험이 그 변경을 막는다. 그 마지막 비용을 줄일 장치, 즉 시험이 어느 position 판에 기대는지 적어 두는 일은 B 에 없으므로 직접 만들어야 한다.</p>
-      <p>B 의 숫자는 세 sprint 동안의 자기 보고이고, token 감소 말고는 측정된 기준선이 없다. 숫자를 빼고도 남는 것은 진단 질문과 검증 gate 의 설계다. 같은 시기 공개된 다른 팀의 사례와 실험도 같은 방향을 가리킨다.</p>
+      <p>자기 시스템에 옮기려는 개발자가 먼저 물을 것은 전문가의 교정을 텍스트 diff 로 적을 수 있는가이다(17장). 적을 수 있으면 루프가 붙고, 판단이 사례별 직관이라 적을 수 없으면 교정은 모호함 갈래로 빠진다. 루프가 붙은 뒤의 예측은 이렇다. 입장이 있는데 불리지 않아 생긴 교정은 position 의 triggers 나 routing index 같은 싣는 장치를 고치게 되고, 회귀 suite 의 범위가 gate 의 힘을 정하며, 입장을 일부러 바꾸는 날 지난 교정으로 쌓인 시험이 그 변경을 막는다. 그 마지막 비용을 줄일 장치, 즉 시험이 어느 position 판에 기대는지 적어 두는 일은 원문에 없으므로 직접 만들어야 한다.</p>
+      <p>Meta 의 숫자는 세 sprint 동안의 자기 보고이고, token 감소 말고는 측정된 기준선이 없다. 숫자를 빼고도 남는 것은 진단 질문과 검증 gate 의 설계다. 같은 시기 공개된 다른 팀의 사례와 실험도 같은 방향을 가리킨다.</p>
     </div>
   </section>
 
