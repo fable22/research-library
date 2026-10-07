@@ -1,6 +1,6 @@
 # 원문이 그리거나 표로 적은 것
 
-w1(B) 의 그림 세 장은 alt 가 비어 있어 이미지를 직접 열어 글자를 옮겼다. 2026-10-07T08:00Z 수신. sha256 은 sources.jsonl 의 figures_sha256.
+w1 의 그림 세 장은 alt 가 비어 있어 이미지를 직접 열어 글자를 옮겼다. 2026-10-07T08:00Z 수신. sha256 은 sources.jsonl 의 figures_sha256.
 처리: 그림 = 문서가 다시 그렸다 / 이름 = setup 에 이름과 빠진 이유를 적었다.
 
 | 식별자 | 무엇을 보이나 | 어디서 | 처리 |
@@ -10,8 +10,8 @@ w1(B) 의 그림 세 장은 alt 가 비어 있어 이미지를 직접 열어 글
 | w1 Domain_Expert_AI_Graph1-FINAL | 자기 개선 루프 4 phase 흐름도, 재시도 귀환선과 test suite 보강 귀환선 | w1 §The Self-Improvement Flywheel | 그림: flywheel 장 SVG |
 | w1 Domain-Expert-AI-Hero-1.png | 장식용 뇌 일러스트 | w1 머리 | 이름: setup 에 장식이라 뺐다고 적음 |
 | w2 bottleneck 그림 (90fb4ed0…png) | Before/After agents 막대: Build 가 줄고 나머지 단계는 같은 길이 | w2 §Code is no longer the bottleneck | 이름: setup. 본문 문장 "Human-speed stages keep their length while build collapses to hours" 로 대신함 |
-| w2 line vs loop 그림 (75c8e050…png) | 전통 SDLC 직선 6단계 대 Claude 를 가운데 둔 6단계 순환 | w2 §What is an AI-native SDLC? | 그림: sdlc-lens 장의 두 루프 비교 SVG 안에 순환 쪽만 |
-| w2 shift 표 | Stage × Traditional SDLC × AI-native SDLC 6행 | w2 §The shifts across the six stages | 이름: setup. 단계별 대응표를 결론으로 쓰지 말라는 과제 조건 때문에 표를 옮기지 않고 필요한 행만 인용 |
+| w2 line vs loop 그림 (75c8e050…png) | 전통 SDLC 직선 6단계 대 Claude 를 가운데 둔 6단계 순환 | w2 §What is an AI-native SDLC? | 그림: sdlc-borrow 장의 두 루프 비교 SVG 안에 순환 쪽만 |
+| w2 shift 표 | Stage × Traditional SDLC × AI-native SDLC 6행 | w2 §The shifts across the six stages | 이름: setup. 이 문서는 단계마다 짝을 맞추는 대신 두 수명주기가 갈라지는 곳을 설명하므로 표를 옮기지 않고 필요한 행만 인용 |
 | w2 play 의존 그래프 (4c40f7b7…png) | 5개 시작 play 에서 Closing the loop 까지의 채택 순서 화살표 | w2 §Plays | 이름: setup |
 | w2 #inc-checkout 대화 그림 (c84d8383…png) | Claude Tag 가 롤백하고 lessons 파일에 post-mortem 을 쓰는 가상 대화 | w2 §Claude on call with Claude Tag | 이름: setup |
 
@@ -97,3 +97,21 @@ bottleneck: "Before agents — every stage runs at human speed" / "After agents 
 line vs loop: "Traditional — the line. One slow loop back is a new release cycle." / "AI-native — the loop. Hours, not weeks, with humans above the loop instigating, directing and governing."
 play 그래프: 1 · START ANYWHERE — PLAN Capture intent, BUILD CLAUDE.md, TEST Feedback loop, DEPLOY Hooks, BUILD Plan mode / 2 — BUILD Skills, BUILD Subagents, TEST Evals / 3 — DESIGN Requirements & design, DEPLOY PR review / 4 — DEPLOY CI/CD / 5 — MAINTAIN Closing the loop
 #inc-checkout: "Rolled back. The 5xx rate is back inside its band, and the post-mortem is written to lessons/2026-06-checkout-cache.md."
+
+## 2026-10-07 개정에서 더한 출처의 표와 그림
+
+| 식별자 | 무엇을 보이나 | 어디서 | 처리 |
+|---|---|---|---|
+| c5 아키텍처 비교 표 | Rule-based LLM workflow / Single agent reviewer / Orchestrator agent with subagents × Quality, Latency, Complexity | c5 §The Multi-Agent System | 이름: 사례 본문에 결과만 인용 |
+| c5 Eval Results 표 | Risk classification 59%→77% (+18%), Redline rubric 53%→87% (+34%), Average latency 2.6→3.8분 (+47%) | c5 §Eval Results | 인용: 07장 사례 1 문장과 첨언. 막대는 그리지 않았다 |
+| c6 (그림 없음) | 본문에 차트가 없다. 수치는 문장 안에만 있다 | c6 | 해당 없음 |
+| p1 Figure fig_evolution | R0~R12 non-correct 비율 곡선, 승격과 퇴역 표시 | p1 §5.4 | 이름: setup. 곡선은 옮기지 않았다 |
+| p1 R0–R12 ledger 표 | 라운드별 제안/채택, Dev 300 중 / Final 200 중 non-correct 수: R0 90/40, R12 55/25. 제안 33, 승격 6 | p1 부록 Twelve-Round Evolution Record | 인용: 14장 그림 설명(제안 33, 승격 6, 감시 세트 20.0% → 12.5%) |
+| p1 Lifecycle 표 | 승격된 6개 버전의 대체, 퇴역 이력 | p1 부록 | 그림: 14장 표. 인용: 21장 |
+| p1 Conflict handling 표 | Conflict-C1~C6, 정적 검사 거절, 우선순위 규칙, 범위 축소 | p1 부록 | 그림: 충돌 장 표 |
+| p1 Judge–Human Agreement 표 | A–B 82.0/.687, 92.7/.853; Qwen3-Max–A 90.7/.820, 91.3/.827 등 | p1 부록 | 인용: 판정자 장 |
+| p2 Table failure→guardrail, telemetry, cost | 11가지 실패와 다섯 층 대응, 거절 기록, gate 비용 | p2 §5 | 이름: setup. 본문 문장의 수치만 썼다 |
+| p3 main results 표 | 방법별 일반화, 유지, 규칙 수정 지표 | p3 §4.2 | 이름: setup. 저자의 결론 문장만 썼다 |
+| p4 Ablation 2 표 | Full Exploration 96/83/67, Passive 90/33/62 (Op Acc / KB Op Acc / Recovery), 60 traces | p4 부록 Ablation 2 | 그림: 진단 장 막대 |
+| p4 Component Type 표 | Skill 100%, Knowledge Base 83.3%, Tool 66.7%, System Prompt 100% | p4 부록 | 인용: 진단 장 첨언 |
+| w5 (그림 없음) | OKF v0.2 명세는 YAML 예시뿐이다 | w5 | 해당 없음 |

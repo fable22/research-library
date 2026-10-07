@@ -1,8 +1,8 @@
 {
   "slug": "2026-10-07-meta-organizational-second-brain",
   "question": "Meta가 말하는 'organizational second brain'은 어떤 구조로 전문가 지식을 담고, 전문가의 교정을 재학습 없이 검증된 개선으로 바꾸는가 — 그리고 그 knowledge base의 수명주기는 AI-native SDLC의 규율을 어디서 빌려오고 어디서 갈라지는가?",
-  "slides": 23,
-  "evidenceCount": 149,
+  "slides": 25,
+  "evidenceCount": 272,
   "lensesReported": [
     "B",
     "C",
@@ -12,31 +12,31 @@
   "fixRounds": [
     {
       "round": 1,
-      "applied": 17,
-      "rejected": 2,
-      "touched": 13,
+      "applied": 16,
+      "rejected": 3,
+      "touched": 12,
       "recheck": {
-        "hard": 1,
+        "hard": 3,
         "wording": 0,
         "badRejections": 0
       }
     },
     {
       "round": 2,
-      "applied": 2,
+      "applied": 6,
       "rejected": 0,
-      "touched": 1,
+      "touched": 2,
       "recheck": {
-        "hard": 0,
+        "hard": 1,
         "wording": 0,
         "badRejections": 0
       }
     }
   ],
-  "stoppedBecause": "dry",
-  "openFindings": 0,
-  "needsJudgment": 4,
-  "unverified": 11,
+  "stoppedBecause": "cap",
+  "openFindings": 1,
+  "needsJudgment": 6,
+  "unverified": 13,
   "wordingRecorded": [],
-  "finishedAt": "2026-10-07T17:34:31+09:00"
+  "finishedAt": "2026-10-07T13:50:48Z"
 }
