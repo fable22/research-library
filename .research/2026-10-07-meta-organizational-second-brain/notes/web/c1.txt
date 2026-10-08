@@ -1,0 +1,846 @@
+# Expanded SkillOpt Ablations, Skill-Aware Reflection, and SkillOpt-Sleep
+
+A three-part report with expanded analysis of SkillOpt's update policies,
+a skill-aware reflection design for directing updates and consolidating memory,
+and a controlled study of the SkillOpt-Sleep plugin.
+
+Ziwei Zhou, Ziyang Gong, and Yifan Yang
+July 14, 2026
+Expanded ablations · Skill-Aware Reflection · SkillOpt-Sleep
+
+SkillOpt improves an agent by iteratively editing a natural-language skill file.
+This report extends the earlier project materials in three directions:
+deeper ablations of update-policy design, Skill-Aware Reflection (SAR) with
+memory consolidation, and a deployment-oriented SkillOpt-Sleep plugin.
+
+We analyze 358 completed gating and skill-aware reflection run summaries, plus
+141 completed consolidation summaries, for 499 included results. The target model is
+the model being improved and evaluated; the optimizer model writes the skill
+edits. The targets cover strong
+proprietary models and a smaller open model: gpt-5.5,
+gpt-5.4-mini, gpt-5.4-nano, and
+Qwen3.5-4B. The optimizer model is held fixed at
+gpt-5.5.
+
+Part I · Expanded SkillOpt ablations
+Additional analyses surface conclusions that earlier reporting did not: combined update-policy trade-offs, denser test-case feedback, and the distinction between validation-selected and final checkpoints.
+
+Part II · Skill-Aware Reflection and consolidation
+SAR adds a useful design principle: interpret a trajectory against the current skill before deciding the update direction, then keep durable reflection memory focused through selective routing and consolidation. The design is inspired by EmbodiSkill [1].
+
+Part III · SkillOpt-Sleep plugin
+The preview plugin turns offline experience replay, validation-gated improvement, and staged adoption into a practical overnight workflow for coding agents.
+
+499
+
+completed run summaries included in the descriptive analysis
+
+3
+
+benchmarks: SearchQA, LiveMathematicianBench, SpreadsheetBench
+
+4
+
+target models spanning GPT and Qwen
+
+Reading best-on-val vs final.
+We report the test score of the validation-selected checkpoint
+(best-on-val) and the final checkpoint test score. Some exploratory
+summaries also show max(best-on-val, final). That maximum is an
+oracle diagnostic computed after seeing both test endpoints; it is not a
+deployable selection rule and does not support choosing a production
+checkpoint. We return to this distinction in the stability analysis below. Scores are shown
+on a 0–100% scale. A delta such as +0.9% denotes an absolute
+0.9-percentage-point change, not a 0.9% relative change; relative gains are
+explicitly labeled.
+
+## Experimental setup
+
+The report studies three layers of the system. Part I varies candidate gates,
+slow-update policies, and score signals. Part II studies how reflection uses the
+current skill to direct an update and how consolidation controls reflection
+memory. Part III evaluates SkillOpt-Sleep as a deployment-oriented plugin.
+
+Evidence and reproducibility boundary.
+The 499-run section is a descriptive aggregation from an extended SkillOpt
+sweep. Its raw per-run artifacts are not included in the public repository,
+so this post is not a reproduction package for those ablations. Independent
+repeated seeds and confidence intervals are not available for every cell, and
+provider-connection all-zero cells are excluded where noted. The aggregate
+figures support qualitative hypotheses for follow-up; they do not establish
+statistically reliable rankings, especially when differences are small.
+The configuration names, defaults, and code paths described below were checked
+against SkillOpt commit a49d0eb.
+This code review does not independently reproduce the reported ablation
+results, and provider behavior can change outside the repository.
+
+### Key terms
+
+- Gate: the rule that decides whether a proposed skill edit should become the current skill.
+
+- Hard score: exact task success, such as answering a question correctly or producing a fully correct spreadsheet output.
+
+- Soft score: partial credit, useful when a task has meaningful intermediate progress even if the final answer is not fully correct.
+
+- Slow update: a periodic rewrite or merge step that incorporates broader training evidence into the skill.
+
+- Skill-aware reflection (SAR): a reflection policy that interprets trajectory evidence in light of what the current skill already contains before deciding the direction of an update. This design is inspired by EmbodiSkill [1].
+
+- Consolidation: a compression step for SAR notes. It removes duplicate or overlapping advice before the skill appendix becomes too long.
+
+## Part I · Expanded SkillOpt ablations
+
+This section adds analyses that were not developed in the earlier project
+materials: how combined update policies trade exploration for stability, when
+denser test-case feedback is informative, and why validation-selected and
+final checkpoints answer different questions.
+
+| Base update policy
+| Gate
+| Slow-update gate
+| What it tests
+
+| Paper-Style Fully Gated Baseline
+| Hard validation gate
+| Validation-selected
+| The paper-style stability-first baseline; this is not the current main default.
+
+| Accept Every Edit
+| Disabled
+| Unconditional
+| The combined behavior when candidate edits and slow updates are both accepted unconditionally.
+
+| Hard Gate + Always-On Slow Updates
+| Hard validation gate
+| Unconditional
+| Changes only the slow-update policy relative to the paper-style fully gated baseline.
+
+| Soft-Score Gate + Always-On Slow Updates
+| Soft score gate
+| Unconditional
+| Uses partial test-case success as the candidate signal while keeping slow updates unconditional.
+
+| Hard/Soft Hybrid Gate + Always-On Slow Updates
+| Mixed hard/soft
+| Unconditional
+| Combines exact correctness and partial test-case success while keeping slow updates unconditional.
+
+The base settings use mechanism-based names throughout this post.
+Paper-Style Fully Gated Baseline is the paper-style
+stability-first policy: it hard-gates candidate edits and validation-selects
+slow updates. It is not the current main default, which leaves
+slow_update_gate_with_selection=false. Accept Every
+Edit force-accepts candidates while slow updates remain unconditional.
+The other three settings keep slow updates
+always on while changing the candidate gate to hard, soft-score, or hybrid
+hard/soft evidence.
+
+In configuration terms, the key controls are
+evaluation.use_gate, evaluation.gate_metric, and
+optimizer.slow_update_gate_with_selection. Several named arms
+change more than one control. Comparisons against the paper-style baseline are
+therefore combined-policy comparisons unless a common always-on-slow-update
+baseline is stated explicitly.
+
+We evaluate on three task families with different reward landscapes.
+SearchQA has a high baseline and limited headroom. LiveMathematicianBench is small and high
+variance. SpreadsheetBench is a code-execution benchmark with sparse hard
+correctness and more room for partial progress signals.
+
+### 1.1 Combined update policies trade exploration for stability
+
+The Paper-Style Fully Gated Baseline is a useful
+stability-first reference, but it is not the highest-scoring policy in every
+cell. In this exploratory sweep, Accept Every Edit is associated
+with a higher average oracle diagnostic for gpt-5.5 on all three
+benchmarks. The observed differences are smaller for
+gpt-5.4-mini.
+
+The table below reports Accept Every Edit -
+Paper-Style Fully Gated Baseline,
+averaged over the hyperparameter sweep, using
+max(best-on-val, final) as the per-run score. Each value is the
+absolute difference after expressing the score on a 0–100% scale, displayed
+with a percent sign. This test-aware maximum is an exploratory oracle
+diagnostic, not a checkpoint-selection rule. Positive values mean the
+accept-every-edit policy has the higher diagnostic; negative values favor the
+paper-style policy. The comparison changes both the candidate gate and the
+slow-update policy, so it cannot identify the effect of either mechanism by
+itself.
+
+| Model
+| SearchQA change
+| LiveMathematicianBench change
+| SpreadsheetBench change
+| Interpretation
+
+| gpt-5.5
+| +0.9%
+| +3.2%
+| +1.4%
+| Consistent with the stronger target tolerating the combined exploratory policy.
+
+| gpt-5.4-mini
+| +1.0%
+| +0.2%
+| +1.1%
+| Small positive differences that require repeated-seed follow-up.
+
+| gpt-5.4-nano
+| -0.7%
+| +2.6%
+| -1.1%
+| Mixed signs are consistent with greater sensitivity to the combined policy.
+
+| Qwen3.5-4B
+| +0.7%
+| +3.6%
+| not included
+| Positive diagnostic differences on the included tasks; SpreadsheetBench is outside this Qwen analysis.
+
+Across matched hyperparameters, Accept Every Edit beats
+Paper-Style Fully Gated Baseline in 3 of 3 non-tied SearchQA comparisons and 3
+of 4 LiveMathematicianBench comparisons for gpt-5.5. For
+gpt-5.4-nano on SearchQA, it wins only 1 of 4. The observed pattern
+is therefore broad for the strongest target, but not universal.
+
+The completed Qwen SearchQA soft and mixed gate runs reinforce the same
+close-setting result. Across four hyperparameter choices,
+Soft-Score Gate + Always-On Slow Updates averages
+72.38%/72.77% and
+Hard/Soft Hybrid Gate + Always-On Slow Updates averages
+72.73%/72.77% in best-on-val/final, compared with
+72.71%/72.25% for Accept Every Edit and
+72.43%/72.43% for Paper-Style Fully Gated Baseline. These
+differences are small;
+no gate policy clearly dominates for Qwen on SearchQA.
+
+These observations motivate treating hard gating as a stability control rather
+than assuming one policy dominates every target and task. By construction, a
+hard gate can reject candidate edits; establishing its isolated performance
+effect requires comparing policies that share the same slow-update behavior,
+such as using Hard Gate + Always-On Slow Updates as the common
+baseline.
+
+### 1.2 Combined soft and hybrid policies use denser test-case feedback
+
+An acceptance gate does more than find a promising candidate: it determines
+which edits survive into the final skill. Hard correctness is a useful anchor,
+but by itself it can be too sparse to distinguish partial progress from a
+useless update. A soft score supplies denser supervision, while a hard/soft
+hybrid gate incorporates exact correctness into the weighted gate signal; it
+does not impose a hard veto. The key evidence is
+therefore the final score, not only best-on-val.
+
+In this SpreadsheetBench adapter, the soft score is the fraction of a task's
+test cases that pass, while the hard score is 1 only when every test case
+passes. Workbook formatting and style are not evaluated. This makes the soft
+score denser than all-or-nothing task success. For gpt-5.5, the
+combined soft-gate and always-on-slow-update policy is associated with an
+average best-on-val/final change from 72.5%/72.5% to
+76.3%/74.2%. For gpt-5.4-mini, the pure soft gate finds
+a better checkpoint but ends lower (65.9%/59.0%); the hard/soft
+hybrid instead finishes at 66.3%, +5.4% above the fully
+gated final score. This pattern is consistent with including hard correctness
+in the weighted signal being useful alongside denser feedback, but the
+comparison against the paper-style baseline also changes slow-update behavior
+and therefore is not a single-factor gate-metric ablation.
+
+| Model
+| Paper-Style Fully Gated Baseline
+mean bov / fin
+| Strong alternatives
+mean bov / fin
+| Takeaway
+
+| gpt-5.5
+| 72.5% / 72.5%
+|
+Soft-Score Gate + Always-On Slow Updates: 76.3% / 74.2%
+
+| The combined soft/always-on policy has higher checkpoint and final averages in this sweep.
+
+| gpt-5.4-mini
+| 60.9% / 60.9%
+|
+Soft-Score Gate + Always-On Slow Updates: 65.9% / 59.0%
+
+Hard/Soft Hybrid Gate + Always-On Slow Updates: 64.3% / 66.3%
+
+| The hybrid/always-on policy has the strongest final average among the displayed alternatives.
+
+| gpt-5.4-nano
+| 52.1% / 52.1%
+|
+Hard/Soft Hybrid Gate + Always-On Slow Updates: 53.1% / 51.7%
+
+| The signal is useful but not universally better for the weakest target.
+
+Note: these SpreadsheetBench numbers follow the adapter and split used in this
+ablation study. They are intended for comparing SkillOpt settings under the
+same harness, not for cross-harness leaderboard comparison. A direct isolation
+of the gate metric should compare soft or hybrid gating with
+Hard Gate + Always-On Slow Updates, which shares the same
+slow-update policy.
+
+### 1.3 Best-on-val and final expose different failure modes
+
+The pair bov/fin is more useful than a single score because it
+separates search ability from training stability. bov asks whether
+SkillOpt ever found a good skill according to validation selection.
+fin asks whether the skill left at the end of training is still
+good. Some exploratory summaries above use max(bov, fin) to
+describe observed reachability, but that test-aware maximum can inflate what a
+deployable policy would achieve. The two endpoints must remain separate when
+diagnosing drift, selection on a small validation set, or steady improvement.
+
+| Example
+| Benchmark
+| Mean bov / fin
+| Diagnostic
+
+| gpt-5.4-mini, Accept Every Edit + Success-and-Failure SAR
+| SearchQA
+| 70.87% / 56.60%
+| Large endpoint gap, consistent with end-of-run drift under broad reflection.
+
+| gpt-5.4-nano, Accept Every Edit + Success-and-Failure SAR
+| SearchQA
+| 72.04% / 64.62%
+| Same pattern at smaller scale: the final skill is worse than the selected checkpoint.
+
+| gpt-5.5, Accept Every Edit
+| SpreadsheetBench
+| 73.49% / 70.36%
+| The endpoint gap is consistent with later ungated updates eroding the final skill.
+
+| gpt-5.4-mini, Hard/Soft Hybrid Gate + Always-On Slow Updates
+| SpreadsheetBench
+| 64.29% / 66.25%
+| Final exceeds best-on-val; the run continued to improve beyond the validation-selected checkpoint.
+
+| gpt-5.5, Accept Every Edit + Success-and-Failure SAR
+| SearchQA
+| 86.53% / 86.52%
+| No measurable endpoint gap in this aggregate cell.
+
+A high oracle maximum shows that one of two retrospectively inspected
+endpoints scored well; it does not tell an operator which checkpoint could
+have been selected without test awareness. A high fin is more
+directly relevant to an automatic training policy. The observed
+bov-fin gaps under Accept Every Edit motivate retaining
+validation checkpointing and rollback. The hybrid policy's final-score pattern
+makes it a candidate for repeated-seed evaluation when the target is smaller or
+the validation signal is noisy, not a universal default.
+
+## Part II · Skill-Aware Reflection and Memory Consolidation
+
+### Reflection grounded in the current skill
+
+Skill-Aware Reflection (SAR) makes the current skill part of
+the reflection context. When summarizing a trajectory and deciding the
+direction of the next update, the reflector interprets the evidence in light
+of what the skill already contains. This design is inspired by EmbodiSkill
+[1].
+
+In the tested SkillOpt implementation, that judgment can route a likely
+Skill Defect toward a targeted skill-body update and an
+Execution Lapse toward a protected appendix reminder. The routing is
+one implementation of the broader SAR principle, not the definition of SAR
+itself. Consolidation is the companion memory-control mechanism: it
+periodically merges duplicate or overlapping reminders to help keep reflection
+memory compact.
+
+EmbodiSkill formalizes a related skill-conditioned attribution with
+Discovery, Optimization, Skill Defect, and
+Execution Lapse categories. SkillOpt adapts the failure-attribution
+idea to general-domain skill optimization. In EmbodiSkill's ALFWorld ablation,
+skill-aware revision raises success from 78.36% to
+93.28%, an absolute increase of 14.92 percentage points
+(a 19.04% relative improvement) over skill-unaware evolution. That
+result provides context for the design; it is not part of the 499-run SkillOpt
+sweep reported here.
+
+| SAR add-on
+| Durable reflection memory
+| Consolidation
+| Scope
+
+| Failure-Only SAR + Consolidation (40)
+| Appendix reminders sourced from failed trajectories
+| After 40 notes
+| An add-on to the base update policy; the normal body-edit path remains active.
+
+| Success-and-Failure SAR
+| Successful and failed trajectories can re-emphasize existing rules
+| None in the main comparison below
+| An add-on to the base update policy; separate cells add consolidation.
+
+SAR can be added to any base setting. In the comparison below, both SAR
+configurations use Accept Every Edit. The failure-only recipe
+changes appendix-source selection and consolidation together, so its result
+supports the combined compact-memory recipe rather than either mechanism in
+isolation.
+
+### 2.1 Selective reflection and consolidation keep skill memory compact
+
+The key question for skill-aware reflection is not simply whether to reflect,
+but how much history should remain in the skill. Broad, unconsolidated
+Success-and-Failure SAR is associated with gains for the strongest
+target in some cells, yet with large regressions for smaller models in others.
+Appendix-source selection limits which experiences become durable reminders;
+consolidation removes duplicate or overlapping notes after they accumulate.
+Both reflection configurations
+below use Accept Every Edit as their base policy.
+
+| Model
+| Benchmark
+| Accept Every Edit + Success-and-Failure SAR
+no consolidation
+| Accept Every Edit + Failure-Only SAR + Consolidation (40)
+| Interpretation
+
+| gpt-5.5
+| SearchQA
+| +1.2%
+| +0.2%
+| Consistent with the stronger model making use of broad experience notes.
+
+| gpt-5.5
+| Spreadsheet
+| +0.5%
+| +3.2%
+| The compact-memory recipe has the higher diagnostic on this code task.
+
+| gpt-5.4-mini
+| SearchQA
+| -11.4%
+| +0.2%
+| Consistent with broad notes being difficult for the smaller target to use.
+
+| gpt-5.4-mini
+| Spreadsheet
+| -13.8%
+| +4.7%
+| The compact-memory recipe avoids the large regression.
+
+| Qwen3.5-4B
+| LiveMathematicianBench
+| -3.8%
+| +10.1%
+| The combined compact-memory recipe is associated with a gain on this low-baseline MCQ task.
+
+Causal scope: the two SAR columns share the same accept-every-edit base, but the
+compact recipe changes two controls together—it draws appendix reminders only
+from failures and consolidates after the appendix grows past 40 notes. Their contrast therefore
+supports the combined recipe, not either mechanism in isolation. Because the
+displayed changes use Paper-Style Fully Gated Baseline as the reference, they
+also include the base-policy change. Values are absolute percentage-point
+differences, displayed with a percent sign.
+
+### 2.2 Consolidation recovers broad-memory regressions in three matched cells
+
+The next comparison holds the reflection source fixed at successes and failures
+and adds consolidation after the appendix grows past 20 notes. This more
+directly isolates compression. Relative to the same unconsolidated SAR memory,
+the absolute score changes are +9.65% on mini SearchQA,
++15.00% on mini SpreadsheetBench, and +2.32% on nano
+SpreadsheetBench.
+
+| Model
+| Benchmark
+| Paper-Style Fully Gated Baseline
+| Accept Every Edit + Success-and-Failure SAR
+no consolidation
+| Accept Every Edit + Success-and-Failure SAR + Consolidation (20)
+| What changed
+
+| gpt-5.4-mini
+| SearchQA
+| 82.30%
+| 70.87%
+| 80.52%
+| Most of the broad-memory regression is recovered.
+
+| gpt-5.4-mini
+| Spreadsheet
+| 60.89%
+| 47.14%
+| 62.14%
+| Consolidation turns a large regression into a small gain.
+
+| gpt-5.4-nano
+| Spreadsheet
+| 52.14%
+| 51.07%
+| 53.39%
+| The consolidated setting has the higher diagnostic for the weakest GPT target.
+
+Across these three direct-comparison cells, consolidation at threshold
+20 recovers some or all of the unconsolidated regression. This
+limited subset suggests that earlier compression may help smaller targets, but
+it does not establish a generally safest threshold. Broader repeated-seed
+sweeps are needed before choosing a threshold by model size.
+
+### 2.3 Compact-memory patterns across hyperparameters
+
+Averages can hide whether a result is broad or driven by one lucky run. We also
+compare settings against Paper-Style Fully Gated Baseline across four
+hyperparameter choices. The counts below are wins/losses over paired settings,
+with ties omitted.
+
+| Comparison
+| Examples
+| What this adds
+
+| Accept Every Edit + Failure-Only SAR + Consolidation (40) vs Paper-Style Fully Gated Baseline
+|
+Qwen3.5-4B: 3 / 1 on LiveMathematicianBench.
+
+gpt-5.4-mini: 3 / 1 on SpreadsheetBench.
+
+| The combined compact-memory recipe has gains in multiple matched settings, not only in the mean.
+
+| Accept Every Edit + Success-and-Failure SAR vs Paper-Style Fully Gated Baseline
+|
+gpt-5.4-mini: 0 / 4 on SearchQA and 0 / 4 on SpreadsheetBench.
+
+gpt-5.5: 3 / 1 on SearchQA.
+
+| The pattern is consistent with model-capacity sensitivity, but does not establish a general capacity threshold.
+
+## Part III · SkillOpt-Sleep: an overnight optimization plugin
+
+Parts I and II study update and reflection policies under a training harness.
+SkillOpt-Sleep brings the same discipline to a deployment-oriented workflow:
+if an agent sees new real tasks today, can it improve a skill proposal
+overnight and come back better tomorrow? The preview plugin runs an offline
+sleep cycle rather than an in-session edit: it replays recent experience,
+proposes a consolidated skill update, validates it against a held-out gate,
+and stages it for review.
+Normal operation does not replace the deployed skill until the user explicitly
+runs adopt; auto_adopt is an opt-in mode.
+
+The sleep study uses a study recipe built from shipped components, including
+skillopt_sleep.dream.dream_consolidate.
+Unless stated otherwise, each cell runs five nights; each night adds 10 new
+real "today" tasks, and the skill carries over night to night. The full
+held-out test split is scored before night 1 and after the configured final
+night, with delta = after - baseline in percentage points. The
+optimizer is gpt-5.5, the seed is 42, and the targets are
+gpt-5.5, gpt-5.4-mini, and
+gpt-5.4-nano. The five-night recipe is an experiment-harness
+protocol, not normal CLI behavior or a shipping default.
+
+Preview and data boundary.
+SkillOpt-Sleep is a preview. Harvesting is local and read-only, and the
+mock backend makes no provider calls. A real backend sends
+truncated session excerpts and derived task content to the selected provider
+for mining, replay, judging, and reflection. Depending on the stage, provider
+prompts can also contain the current skill or memory document, configured user
+preferences, and generated responses being judged or reflected on. Review and
+redact sensitive material across these inputs, and check the provider's data
+policy, before using a real backend. Accepted proposals are staged for manual
+review by default; adoption is a separate, backed-up operation unless the user
+explicitly enables auto_adopt.
+
+| Benchmark
+| Held-out test
+| Scoring
+| Why it matters for sleep
+
+| SearchQA
+| 1,400 items
+| SQuAD exact-match vs gold
+| High-baseline QA task where a bad rule can silently spread.
+
+| LiveMathematicianBench
+| 125 items
+| Multiple-choice label with choices shuffled per item
+| Small, high-variance reasoning set that tests whether gains survive noise.
+
+| SpreadsheetBench
+| 280 items
+| Generated openpyxl code is executed and compared cell-by-cell to a golden workbook
+| Code-execution task where partial-looking progress must still produce a correct file.
+
+### 3.1 The default validation gate bounded downside in a paired stress case
+
+In a paired study with gpt-5.4-nano on SearchQA, the ungated run
+adopted a plausible but wrong rule—answer with the document title string
+verbatim—and fell from 55.4% to 2.6%. The gated run
+rejected all proposals and remained flat at 57.0%. The two runs
+started from different measured baselines, so this is not evidence that they
+encountered identical candidate edits; it is an observed stress-case contrast.
+
+| SearchQA, gpt-5.4-nano
+| Night 0
+| Night 5
+| Delta
+| Interpretation
+
+| No gate
+| 55.4%
+| 2.6%
+| -52.8%
+| The ungated study run propagated a wrong lesson across nights.
+
+| Validation gate, default
+| 57.0%
+| 57.0%
+| 0.0%
+| The run rejected all proposals and its measured score remained flat.
+
+This motivates a more conservative deployment posture than the broad ablation
+headline. Accept Every Edit can be useful for offline exploration,
+but automated proposal generation should retain validation, checkpointing, and
+rollback—and should stage changes for review before adoption.
+
+### 3.2 Replay and recall give the overnight cycle useful context
+
+In the study recipe, diverse rollouts and relevant recalled experience are
+associated with larger gains where the target model has headroom. One practical
+pattern worth testing is a cheaper target model paired with a stronger overnight
+optimizer. On SearchQA with gpt-5.4-nano, the gated five-night cell
+shows roughly twice the best measured gpt-5.5 gain on the same
+benchmark.
+
+| Config
+| Baseline
+| After sleep
+| Delta
+| Night-by-night shape
+
+| gpt-5.4-nano, cumulative replay, nights=5
+| 56.0%
+| 67.9%
+| +11.9%
+| 56.0% → 62.6% → 66.5% → 66.5% → 66.5% → 67.9%
+
+| gpt-5.4-nano, recall_k=20, nights=5
+| 56.6%
+| 68.1%
+| +11.5%
+| 56.6% → 65.9% → 68.5% → 68.5% → 68.1% → 68.1%
+
+| gpt-5.4-nano, cumulative replay, nights=8
+| 56.2%
+| 65.7%
+| +9.5%
+| Most of the gain arrives by night 5.
+
+| gpt-5.5, best gated SearchQA sleep cell
+| 79.8%
+| 85.8%
+| +6.0%
+| Separate gated scaling cell with less measured headroom.
+
+Recall captures much of the measured full-history gain at lower per-night cost.
+In one SearchQA comparison with gpt-5.5,
+recall_k=10 gives +3.1%,
+recall_k=20 gives +4.5%, and a full-history reference
+cell reports 79.6% → 85.1% (+5.6%). A separate gated scaling
+cell reports +6.0% and the night-by-night curve
+79.8% → 81.4% → 85.4% → 85.4% → 85.4% → 85.8%.
+These cells have different baselines and should not be treated as the same run.
+All deltas here are percentage points.
+
+### 3.3 Diverse dream rollouts improve the study's robustness profile
+
+Sleep only learns useful contrastive lessons if the dream rollouts are
+independent samples. An early engine configuration collapsed the rollouts to a
+single cached sample, which made reflection brittle. In the measured study
+configurations, diverse rollouts plus recall improve the grid mean and reduce
+the worst observed downside. These are experiment-recipe settings, not shipping
+defaults.
+
+| Engine configuration
+| Mean delta
+| Worst-cell delta
+| Cells > +0.5%
+| Cells < -0.5%
+
+| Single-sample reflection, degraded
+| -2.66%
+| -52.8%
+| 7 / 18
+| 5 / 18
+
+| Diverse rollouts, K=5, no recall
+| +0.24%
+| -4.0%
+| 6 / 18
+| 7 / 18
+
+| Diverse rollouts + recall, experiment recipe
+| +0.53%
+| -2.4%
+| 7 / 18
+| 7 / 18
+
+### 3.4 Sensitivity around the study recipe
+
+On one gated nano SearchQA cell, every tested change away from the study recipe
+(dream_factor=2, dream_rollouts=5, 10 tasks per night,
+and five nights) reduces the measured gain. This supports the recipe only for
+that subset; it does not establish a universal optimum. The plugin itself ships
+replay off: dream_factor=0, dream_rollouts=1, and
+recall_k=0.
+
+| Variant
+| Delta
+| Vs study-recipe baseline +11.9%
+| Reading
+
+| dream_factor=4 instead of 2
+| +8.8%
+| -3.1%
+| More synthetic breadth did not beat the study recipe in this cell.
+
+| rollouts=10 instead of 5
+| +9.5%
+| -2.4%
+| More rollouts added cost without improving this cell's final score.
+
+| per_night=15 instead of 10
+| +2.7%
+| -9.2%
+| This larger nightly batch has a lower measured gain in the tested cell.
+
+| nights=8 instead of 5
+| +9.5%
+| -2.4%
+| Extra nights mostly ran past the useful part of the curve.
+
+End-to-end agent check.
+In the public
+gbrain-evals
+skillopt-v1 report, four deliberately deficient, small,
+single-flaw skills improve from 0% to 100% on held-out
+tasks under its Claude-model setup. On the easy ablation fixture, a one-shot
+rewrite ties the full validation-gated loop at 100%. This is a
+useful mechanism check, not evidence of broad production coding-agent gains or
+proof that the full loop always outperforms a single rewrite.
+
+Source for the Sleep numbers:
+SkillOpt-Sleep results and analysis.
+The Sleep study is single-seed per cell; treat differences below 1.5 percentage points as
+noise, and keep the validation gate on unless there is no held-out validation
+signal.
+
+## Settings worth follow-up evaluation
+
+The table below summarizes exploratory candidates from this sweep, not
+production defaults. Re-evaluate them on your own held-out data with repeated
+seeds. For deployed workflows, retain validation checkpointing, review staged
+changes, and keep a rollback path.
+
+| Target model
+| Candidate settings from this sweep
+| Use caution with
+| Reason
+
+| gpt-5.5
+| Accept Every Edit, Accept Every Edit + Failure-Only SAR + Consolidation (40), or Accept Every Edit + Success-and-Failure SAR; for Spreadsheet try Soft-Score Gate + Always-On Slow Updates or Hard Gate + Always-On Slow Updates + Failure-Only SAR + Consolidation (40)
+| Consolidation is optional
+| The aggregate cells are consistent with tolerance for exploratory updates and broader reflection.
+
+| gpt-5.4-mini
+| Accept Every Edit, Hard/Soft Hybrid Gate + Always-On Slow Updates, Accept Every Edit + Failure-Only SAR + Consolidation (40), or Accept Every Edit + Success-and-Failure SAR + Consolidation (20)
+| Accept Every Edit + Success-and-Failure SAR without consolidation
+| The displayed cells associate more updates with gains and long unconsolidated memory with regressions.
+
+| gpt-5.4-nano
+| Paper-Style Fully Gated Baseline or Hard Gate + Always-On Slow Updates for SearchQA; Hard/Soft Hybrid Gate + Always-On Slow Updates or Accept Every Edit + Success-and-Failure SAR + Consolidation (20) for Spreadsheet
+| Pure soft-score gates and Accept Every Edit + Success-and-Failure SAR without consolidation
+| The displayed cells are consistent with greater sensitivity to prompt length and noisy rules.
+
+| Qwen3.5-4B
+| Accept Every Edit + Failure-Only SAR + Consolidation (40) or Hard Gate + Always-On Slow Updates on LiveMathematicianBench; SearchQA settings are close
+| SpreadsheetBench is outside the Qwen scope of this post
+| On the included tasks, the compact repair-memory setting has its largest gain on the lower-baseline task.
+
+Promising exploratory setting, not a safe default.
+For strong and medium GPT targets,
+Accept Every Edit + Failure-Only SAR + Consolidation (40) is worth
+testing because its reflection memory stays focused and periodically
+compressed. It force-accepts body edits, however, and SAR appendix reminders
+are not separately governed by the validation gate. A production workflow
+should retain a validation gate, checkpoint before adoption, review the staged
+diff, and keep rollback available.
+
+## Limitations
+
+These results should be read as an ablation study, not as a benchmark
+leaderboard. LiveMathematicianBench has high variance because the evaluation set is small.
+Qwen3.5-4B is discussed only on SearchQA and LiveMathematicianBench in this post. Its
+SpreadsheetBench Hard/Soft Hybrid Gate + Always-On Slow Updates result has only two valid hyperparameter cells, and the
+consolidation sweep has three per threshold; failed all-zero connection runs
+are excluded. SpreadsheetBench conclusions are therefore drawn from the
+GPT-family target models.
+
+SpreadsheetBench scores are sensitive to the spreadsheet execution adapter and
+prompt format. The numbers here should be compared within this ablation
+protocol rather than mixed with results from a different harness.
+
+The tested failure-only SAR cells also consolidate once the appendix grows past
+40 notes.
+Consequently, this study supports the combined compact-memory recipe but does
+not separately identify the effect of failure-only appendix sourcing. The raw
+per-run artifacts for the 499-run ablation are not public, so those aggregate
+results cannot currently be independently reproduced from this repository.
+
+## Conclusion
+
+Expanded ablations. SkillOpt's update controls should be
+evaluated as a policy, not inferred from one switch in a confounded comparison.
+The exploratory sweep is consistent with stronger targets tolerating more
+candidate updates, and with test-case pass rates providing useful signal on
+SpreadsheetBench. Validation-selected and final checkpoints must remain
+separate when judging deployability.
+
+Skill-Aware Reflection. SAR contributes a useful design
+principle: reflection should interpret a trajectory against the current skill
+before deciding the direction of an update. The observed cells make SAR a
+promising direction, while the large regressions observed with broad,
+unconsolidated memory motivate selective routing and consolidation as companion
+controls.
+
+SkillOpt-Sleep. The preview plugin turns these ideas into an
+offline workflow that replays experience, validates a proposed update, and
+stages it for review. The controlled study motivates further evaluation of
+replay, recall, and diverse rollouts, while shipping defaults remain
+conservative and adoption remains explicit by default.
+
+Across all three parts, choose settings with the target model, task, validation
+signal, provider data boundary, and deployment risk in mind. Treat the reported
+settings as hypotheses to validate locally, and preserve checkpointing, staged
+review, and rollback when updates can affect a deployed agent.
+
+## References
+
+[1] Ju, Ruofei, Xinrui Wang, Xin Ding, Yifan Yang, Hao Wu, Shiqi Jiang, Qianxi
+Zhang, Hao Wen, Xiangyu Li, Weijun Wang, Kun Li, Yunxin Liu, Haipeng Dai, Wei
+Wang, and Ting Cao. 2026. “EmbodiSkill: Skill-Aware Reflection for
+Self-Evolving Embodied Agents.” arXiv preprint arXiv:2605.10332
+[cs.AI]. https://doi.org/10.48550/arXiv.2605.10332.
+
+## Citation
+
+### Cite SkillOpt
+Copy SkillOpt BibTeX
+
+If you find this report useful, please cite the main SkillOpt paper using the
+citation maintained in the
+SkillOpt repository:
+
+@article{yang2026skillopt,
+title={Skillopt: Executive strategy for self-evolving agent skills},
+author={Yang, Yifan and Gong, Ziyang and Huang, Weiquan and Yang, Qihao and Zhou, Ziwei and Huang, Zisu and Li, Yan and Gao, Xuemei and Dai, Qi and Liu, Bei and others},
+journal={arXiv preprint arXiv:2605.23904},
+year={2026}
+}
+
+This three-part report presents expanded SkillOpt ablations, Skill-Aware
+Reflection with memory consolidation, and a controlled study of the
+SkillOpt-Sleep plugin.
