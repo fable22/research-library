@@ -1,6 +1,7 @@
 # Lens B — the number checker
 
-Hand this file's content to a subagent, filling in the `{...}` slots.
+The text below the rule is the lens prompt. In `research-chain` the lens reads this file and
+the prompt supplies the `{...}` values; run by hand, give it to a subagent with them filled.
 
 ---
 

@@ -4,8 +4,7 @@ description: Adversarially reviews a finished research document draft. Three len
   it in separate contexts (the number checker and the structure auditor in parallel, then
   the reader, who also reads their reports), claims are extracted from the sentences that
   shipped, and check-claims.mjs verifies them against the pinned corpus. Usually a phase
-  of the /research-chain workflow; invoke it directly when a draft already exists. Losing
-  the separation reduces the review rather than cancelling it.
+  of the /research-chain workflow; invoke it directly when a draft already exists.
 when_to_use: After finishing or editing a draft under research/<slug>/, before committing
   or publishing, and when asked to review, fact-check, or confirm a document is correct.
 ---
@@ -188,10 +187,11 @@ not there stays a needs-judgment item even when it would fit in one line, becaus
 with no chapter behind it is what the next round finds. Do not wait for every lens before
 fixing, since a lens that returns first has must-fix items that are already actionable.
 
-Re-run the machine checks after fixing, and re-run a lens over the chapters it touched. Stop
+Re-run the machine checks after fixing, and have a context that did not make the edits
+re-read the chapters they touched; in the chain that is a re-check agent, not a lens. Stop
 when a round turns up no new must-fix item with one correct answer: a number, a quote, a
 direction, a dead reference. Two rounds at most. What the last re-check still finds is
-handled by kind: an item with one correct answer (a number, a reference, a quote) is fixed
+handled by kind: an item with one correct answer (a number, a quote, a direction, a reference) is fixed
 once more without another round and recorded in `run.json` under `after_last_recheck`;
 anything else is reported as found-and-unfixed. Fixes introduce their own errors and the second round finds
 them. Wording is different: each pass rewrites the document toward the gate and away from

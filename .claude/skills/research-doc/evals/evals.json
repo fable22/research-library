@@ -5,22 +5,46 @@
       "id": 0,
       "name": "flow-diagram-slide",
       "prompt": "research-library 저장소에서 작업 중이야. LoopX 문서(research/2026-08-07-loopx-deterministic-loop-harness/)에 슬라이드를 하나 더 넣으려고 해. 내용은 이거야: 커널이 상태 전이를 커밋하기 전에 capability 가 provider 영수증을 검증한다. 관측이 들어오면 → capability 검증 → 통과하면 커널이 커밋, 실패하면 관측 단계로 되돌아가서 다시 받는다. 지금 이 내용이 4장에 글로만 있는데 읽어도 구조가 안 잡혀. 슬라이드 HTML 한 조각(<section class=\"slide\">...)으로 써줘.",
-      "expected_output": "eyebrow/h2/.key/body/details.more/note 를 갖춘 장(section) 한 조각. 흐름이 inline SVG 다이어그램으로 그려져 있고 되돌아가는 실패 경로가 보인다.",
-      "files": []
+      "expected_output": "LoopX 문서의 고정 출처(.research/2026-08-07-loopx-deterministic-loop-harness/sources.jsonl → huangruiteng/loopx @ c94e188)를 열어, 실패하면 관측 단계로 되돌아가 다시 받는 경로가 원문에 있는지 먼저 확인한다. 4장이 인용하는 원문(docs/architecture.md:92-94)은 capability 검증과 커널 커밋 전에는 영수증이 진척이 아니라는 순서만 말한다. 되돌아가는 간선은 원문에서 locator 를 찾았을 때만 그리고, 찾지 못하면 그리지 않은 채 그 경로가 원문에 없다고 사용자에게 말한다. 장 조각은 이 문서(2026-09-30 이전)의 문법을 따른다: eyebrow, 짧은 h2, 주장 슬롯은 .dek, inline SVG 에 role=\"img\" 와 그린 경로를 문장으로 설명하는 aria-label. 원문 문장은 .q 나 <cite> 안에 둔다.",
+      "files": [],
+      "expectations": [
+        "Opens the pinned source or the document's ledger before drawing the failure path, or says it could not",
+        "Draws a returning edge only with a cited source locator; without one the edge is absent and the response says the path is unconfirmed in the source",
+        "The diagram contains no step or edge absent from the pinned source",
+        "The <svg> has role=\"img\" and an aria-label sentence naming every path drawn",
+        "Uses the target document's claim slot (.dek in this pre-2026-09-30 document) or says why it used .key",
+        "Does not require a .note; if present it is one sentence that changes what the reader does next",
+        "Any verbatim source sentence sits inside .q, .wl or <cite>"
+      ]
     },
     {
       "id": 1,
       "name": "chapter-count-cap",
       "prompt": "research-library 저장소야. 지금 쓰고 있는 문서가 12장인데, mechanism 부분이 세 개로 갈라져서(스케줄러 / 상태 저장 / 재시도 정책) 4장 하나에 다 안 들어가. 슬라이드가 너무 빽빽해졌어. 장을 더 늘려도 되는 거야? 된다면 어떻게 나누는 게 맞아?",
-      "expected_output": "장 수 상한이 없다는 것을 알려주고, 세 개로 쪼개면서 각각 topical eyebrow 와 .key 한두 문장을 붙이라고 안내한다.",
-      "files": []
+      "expected_output": "장 수 상한은 없고 1 MB 파일 한도만 있다고 알려 준다. 한 장이 주장 둘을 담으면 나누라고 하고, 세 장에 각각 내용을 가리키는 eyebrow(예: scheduler, state-store, retry-policy), 짧은 h2, .key 의 주장 한두 문장을 붙이라고 안내한다. 장 번호를 가리키는 링크(#pN)와 읽기 경로는 따라 고쳐야 한다.",
+      "files": [],
+      "expectations": [
+        "States there is no chapter cap; the only size limit is the 1 MB file cap",
+        "Splits by claim: one claim per chapter",
+        "Each new chapter gets a content-named eyebrow, a short h2 and one claim in .key",
+        "Says #pN links and reading-path references must follow the renumbering; a hand-written rail is kept in step (rail-count), otherwise the shell builds the rail",
+        "In an explainer, does not fold the mechanism into details.more"
+      ]
     },
     {
       "id": 2,
       "name": "numbers-to-figure",
       "prompt": "research-library 저장소에서 논문 문서 쓰는 중인데, 논문 표 1 숫자를 슬라이드에 올려야 해. 시스템 5개(Dense RAG 54.8, HippoRAG 2 62.0, LightRAG 81.9, GraphRAG 77.2, 우리 것 84.3)의 같은 지표 하나야. 표로 넣을까 차트로 넣을까? 넣을 마크업까지 만들어줘.",
-      "expected_output": "같은 지표 여러 시스템이므로 bar 를 권하고, .bar-row/.bar-track/.bar-val 마크업과 숫자 병기, 0 기준선, figure 캡션까지 준다.",
-      "files": []
+      "expected_output": "같은 지표 하나를 시스템 다섯에 대해 보이므로 bar 를 권한다. 0 에서 시작하는 CSS 막대(.bar-row 안 .bar-name/.bar-track/.bar-val)에 숫자를 함께 쓰고, 장이 주장하는 행(84.3)을 표시하되 나머지 행도 남긴다. figure 에 fig-title(주장), fig-sub(논문 Table 1 과 arXiv id+version), figcaption(읽는 법과 말하지 않는 것)을 붙이고 색은 테마 토큰으로 준다. 다섯 숫자는 고정한 판의 Table 1(LaTeX source)과 대조한 뒤 싣는다고 말한다.",
+      "files": [],
+      "expectations": [
+        "Recommends bars over a table",
+        "Bars start at zero, with each value printed beside its bar",
+        "Uses the shell's bar classes (.bar-row/.bar-name/.bar-track/.bar-val); no SVG chart and no screenshot",
+        "Marks the argued row and keeps the losing rows visible",
+        "Has fig-title as a claim, fig-sub naming Table 1 with the arxiv_id and version (a placeholder counts, since the prompt gives neither), and a figcaption",
+        "Says to confirm the five numbers against the pinned Table 1 before publishing"
+      ]
     }
   ]
 }

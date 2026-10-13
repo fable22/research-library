@@ -7,43 +7,43 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | Rule | Lives in | Basis |
 |---|---|---|
 | Extract claims from the shipped draft, one sentence one claim, and drop a sentence too ambiguous to pin down | `research-verify` | Claimify, [arXiv:2502.10855](https://arxiv.org/abs/2502.10855) — selection, disambiguation, decomposition, with extraction only at high confidence |
-| Do not sweep for doc/code mismatch; name what adoption rests on and check only that | `research-doc`, `references/oss.md` | DocPrism, [arXiv:2511.00215](https://arxiv.org/abs/2511.00215) — unfiltered LLM flag rate 98%, 14% with local categorization and external filtering |
+| Do not sweep for doc/code mismatch; name what adoption rests on and check only that | `references/oss.md` | DocPrism, [arXiv:2511.00215](https://arxiv.org/abs/2511.00215) — unfiltered LLM flag rate 98%, 14% with local categorization and external filtering |
 | Check quotes mechanically against a pinned commit instead of by judgment | `check-claims.mjs` | Cited but Not Verified, [arXiv:2605.06635](https://arxiv.org/html/2605.06635v1) — link checks pass 94–100% while fact checks land at 39–77%, and fall about 42% as search depth grows |
 | `kind:"code"` may not cite a documentation file | `check-claims.mjs` | same DocPrism distinction: what the maintainers wrote and what the code does are different claims |
-| Three lenses in separate fresh contexts that cannot see each other | `research-verify` | multi-judge panels reduce single-model bias only when the error sources stay independent |
-| The last fix round is re-verified like any other, and what it turns up ships as found-and-unfixed | `research-verify`, `research-chain.js` | a loop that ends before its own check leaves the freshest edits as the only unread ones. See the revision note below |
-| Give a compression subagent extraction and quotes, never a conclusion | `research-doc` | CaMeL-style separation between the model that reads untrusted material and the model that decides. See the scale probe below |
-| Read an analyzed repository's `AGENTS.md` / `CLAUDE.md` directly as data, and keep the checkout outside the working directory | `research-source` | repository instruction files are a documented prompt-injection route, but the step that executes them is harness auto-discovery, not reading. See the revision note below |
+| Three lenses in separate fresh contexts; B and C cannot see each other, and A reads their reports | `research-verify`, `research-chain.js` | multi-judge panels reduce single-model bias only when the error sources stay independent |
+| The last fix round is re-verified like any other, and what it turns up ships as found-and-unfixed | `research-verify`, `research-chain.js` | a loop that ends before its own check leaves the freshest edits as the only unread ones. See §Why the fix loop re-verifies the round that ends it |
+| Give a compression subagent extraction and quotes, never a conclusion | `references/oss.md` | CaMeL-style separation between the model that reads untrusted material and the model that decides. See §What the compression-subagent rules were measured against |
+| Read an analyzed repository's `AGENTS.md` / `CLAUDE.md` directly as data, and keep the checkout outside the working directory | `research-source` | repository instruction files are a documented prompt-injection route, but the step that executes them is harness auto-discovery, not reading. See §Why the isolated-subagent read was dropped |
 | Frame the question and scale the reading before opening files | `research-source` | orchestrator-worker deep research; explicit effort-scaling rules are what stop both over- and under-investigation |
 | Name the ways a reader could disagree before reading | `research-source` | STORM perspective-guided question asking, which measured most of its coverage gain at the pre-writing stage |
 | `swhid` alongside `repo`+`commit` | `research-source` | SWHID, ISO 18670 — an intrinsic hash stays verifiable after the origin is gone |
-| The document title names the subject and says what it is; the finding goes in `summary` | `research-doc` | the listing gives a title no context, and a verdict placed ahead of its evidence cannot be qualified. See the revision note below |
+| The document title names the subject and says what it is; the finding goes in `summary` | `research-doc` | the listing gives a title no context, and a verdict placed ahead of its evidence cannot be qualified. See §Why the title asks what the subject is, not what the shape is |
 | No chapter count; six required eyebrows | `research-doc`, `check-doc.mjs` | the gate, which checks nothing else about structure |
 | The lineage bar only where succession is documented | `research-doc` | the arrow reads as a slot to fill, and filling it chained unrelated projects and ended at work nobody built |
-| Slide density, figure anatomy, aria-label first | `references/visual.md` | see the eval below |
-| Every rule carries the reason its ✗ fails; rule count is a cost | `AUTHORING.md` | instruction-shape ablations. See the note below |
-| Plain, not simplified. Over-compression eats the mechanism before the conclusion | `research-doc`, `references/prose-ko.md` | simplification measured as deletion. See the note below |
-| No sentence-length rule | `references/prose-ko.md`, by omission | the numbers everyone quotes have no source, and the Korean evidence runs the other way. See the note below |
-| Technical terms stay in English | `references/prose-ko.md` | asserted, not measured. See the note below |
-| Connective tissue stays; the deck's rail is why elaboration is cheap here | `references/prose-ko.md` | expertise reversal, and the cell this reader is in. See the note below |
-| Count the prose rules that carry a number; leave the rest to the lens | `check-prose.mjs` | the rules were enforced in proportion to how greppable they were. See the count below |
-| `~가 아니라 ~다` is reported, not blocked | `check-prose.mjs` | the count that looked like a violation was mostly quotes and attribution. See the note below |
-| `~를 통해` is not translationese; `~들` is not noise; a comma after a connective ending is a rate to hold in the human band, not a defect | `references/prose-ko.md`, `check-prose.mjs` | corpus measurement, against the prescriptive list the rules were built from. See the audit below, and the 2026-09-29 note |
-| Noun chains, disclaimer sentences and abstract-noun parallelism are the failure that replaced translationese; lens C no longer judges how sentences read | `references/prose-ko.md`, `lens-prose.md`, `research-chain.js` | measured against 86 human tech-blog posts. See the 2026-09-29 note |
+| Slide density, figure anatomy, aria-label first | `references/visual.md` | See §What the visualization rules were measured against |
+| Every rule carries the reason its ✗ fails; rule count is a cost | `AUTHORING.md` | instruction-shape ablations. See §Why a rule has to carry its reason |
+| Plain, not simplified. Over-compression eats the mechanism before the conclusion | `research-doc`, `references/prose-ko.md` | simplification measured as deletion. See §Why the documents are plain and not simplified |
+| No sentence-length rule | `references/prose-ko.md`, by omission | the numbers everyone quotes have no source, and the Korean evidence runs the other way. See §Why there is no sentence-length rule |
+| Technical terms stay in English | `references/prose-ko.md` | asserted, not measured. See §What the English-term rule rests on |
+| Connective tissue stays; the deck's rail is why elaboration is cheap here | `references/prose-ko.md` | expertise reversal, and the cell this reader is in. See §Where "experts need less explanation" stops applying |
+| Count the prose rules that carry a number; leave the rest to the lens | `check-prose.mjs` | the rules were enforced in proportion to how greppable they were. See §Why the prose rules got a counter |
+| `~가 아니라 ~다` is reported, not blocked | `check-prose.mjs` | the count that looked like a violation was mostly quotes and attribution. See §Why the contrast frame is counted and not blocked |
+| `~를 통해` is not translationese; `~들` is not noise; a comma after a connective ending is a rate to hold in the human band, not a defect | `references/prose-ko.md`, `check-prose.mjs` | corpus measurement, against the prescriptive list the rules were built from. See §What the translationese rules survive on and §What the 2026-09-29 readability diagnosis changed |
+| Noun chains, disclaimer sentences and abstract-noun parallelism are the failure that replaced translationese; lens C no longer judges how sentences read | `references/prose-ko.md`, `lens-prose.md`, `research-chain.js` | measured against 86 human tech-blog posts. See §What the 2026-09-29 readability diagnosis changed |
 | Quotes leave the prose the gate reads, in every container the documents actually use | `check-prose.mjs`, `check-doc.mjs` | both gates said quotes were excluded and stripped only `blockquote` / `pre`+`code`. See the 2026-08-30 audit |
 | The polite register is blocked at zero | `check-prose.mjs`, `references/prose-ko.md` | the register rule had no counter, and all 13 occurrences in the corpus are quotes. See the 2026-08-30 audit |
 | No rule against ending a sentence on a noun phrase | `references/prose-ko.md`, by omission | an outside guide proposed it; measured here, the 9.8% are captions and labels. See the outside-style-guide note |
 | One rule for the doubled passive, not two | `check-prose.mjs` | `passive-stack` and `double-passive` both matched `되어지·되어진·불려진`. See the 2026-08-30 audit |
-| An empty ledger fails rather than passes | `check-claims.mjs` | a scaffold with 0 claims printed the same 통과 as a document whose every quote was checked. See the note below |
-| LaTeX thousands separators are normalized before matching | `check-claims.mjs` | `2{,}000` became `2 , 000`, so a number the paper prints was reported missing. See the note below |
-| A Roman table number is resolved, not silently widened | `check-claims.mjs` | `Table II` passed the format check and failed to scope, so five claims were matched against a whole paper. See the note below |
-| Uncompiled LaTeX is stripped before environments are counted | `check-claims.mjs` | a commented-out template shifted every table number by four, so a correct locator resolved to the wrong table. See the note below |
-| A missing ledger is reconstructed only where the sources are immutable | `AGENTS.md` | a HEAD eight days past the publication date would have pinned bytes the document never saw. See the note below |
-| The reader is a developer, and a symbol has to resolve here | `research-doc/SKILL.md`, `references/visual.md` | one document of twenty carried notation, and its `식 (10)` resolved only in the paper. See the note below |
-| The reader travels the whole chain, not just the writing step | `research-source`, `lens-completeness`, the ⑩ rows | stage 1 framed the question with no reader named, and the lens asking what is missing did not know for whom. See the note below |
-| Eight of eleven prose rules are a floor, not coverage | `check-prose.mjs`, `references/prose-ko.md` | the listed forms are caught 8 of 8; the same sentence in other words passes 10 of 10. See the note below |
-| The chain's args shape is stated where a caller reads it before launching, and a launch that misses it stops at second 0 with the shape | `research-chain.js`, `docs/workflow-authoring.md` | the shape lived only in a comment, and the launcher's template hands over the request text. See the note below |
-| Lens reports carry every finding with a confidence; the fix round does the filtering | `research-chain.js` | Opus 5 / Sonnet 5 guidance, carried into 5.5: a review prompt that says to drop uncertain findings is followed literally and recall falls. See the note below |
+| An empty ledger fails rather than passes | `check-claims.mjs` | a scaffold with 0 claims printed the same 통과 as a document whose every quote was checked. See §Why an empty ledger is not a pass |
+| LaTeX thousands separators are normalized before matching | `check-claims.mjs` | `2{,}000` became `2 , 000`, so a number the paper prints was reported missing. See §The number the paper printed and the gate could not find |
+| A Roman table number is resolved, not silently widened | `check-claims.mjs` | `Table II` passed the format check and failed to scope, so five claims were matched against a whole paper. See §The table number that passed its own format check |
+| Uncompiled LaTeX is stripped before environments are counted | `check-claims.mjs` | a commented-out template shifted every table number by four, so a correct locator resolved to the wrong table. See §The table numbers that came from text nobody sees |
+| A missing ledger is reconstructed only where the sources are immutable | `AGENTS.md` | a HEAD eight days past the publication date would have pinned bytes the document never saw. See §Why a missing ledger is only sometimes recoverable |
+| The reader is a developer, and a symbol has to resolve here | `research-doc/SKILL.md`, `references/visual.md` | one document of twenty carried notation, and its `식 (10)` resolved only in the paper. See §The reader was named once, far from where form is chosen |
+| The reader travels the whole chain, not just the writing step | `research-source`, `research-doc/SKILL.md`, `lens-reader.md` | stage 1 framed the question with no reader named, and the lens asking what is missing did not know for whom. See §Enumerating the cases was the wrong repair |
+| Eight of eleven prose rules are a floor, not coverage | `check-prose.mjs`, `references/prose-ko.md` | the listed forms are caught 8 of 8; the same sentence in other words passes 10 of 10. See §The word lists were called a fixed list, and are not one |
+| The chain's args shape is stated where a caller reads it before launching, and a launch that misses it stops at second 0 with the shape | `research-chain.js`, `docs/workflow-authoring.md` | the shape lived only in a comment, and the launcher's template hands over the request text. See §Why the chain states its args where the caller looks |
+| Lens reports carry every finding with a confidence; the fix round does the filtering | `research-chain.js` | Opus 5 / Sonnet 5 guidance, carried into 5.5: a review prompt that says to drop uncertain findings is followed literally and recall falls. See §What the 2026-10-13 prompt audit decided for the chain |
 
 ## What the visualization rules were measured against
 
@@ -297,7 +297,7 @@ the mechanism.
 In [InfoLossQA](https://arxiv.org/abs/2401.16475), three linguists marked information loss in
 104 GPT-4 simplifications of medical abstracts. **41.7% of the losses fell in the Methods
 section against 3.5% in the Conclusion.** The conclusion survives and the mechanism does not,
-which for a document whose ⑥ chapter is a traced mechanism is the whole document.
+which for a document built around a traced mechanism is the whole document.
 
 [Ellinger et al.](https://arxiv.org/abs/2507.11981) measured whether a definition still
 covered a word's senses under three prompts. GPT-4o mini: 78.43% normal, 22.22% under "in
@@ -925,9 +925,11 @@ have to guess the slug, and the slug names two directories. A guessed slug costs
 plus a `rename`; a rejection costs one relaunch. The error lists every problem at once and
 carries an example, so that relaunch is the only one needed.
 
-`kind` came out of the shape. The script never read it and no prompt passed it on; the kind of
-document is chosen in `research-source`, not at launch. Validating a field nothing consumes
-adds a way to fail and protects nothing. Unknown keys are rejected for the same reason the
+`kind` came out of the shape at first, because the script never read it. That missed
+`research-source`, which has no default for the kind and tells the agent to ask, and an agent
+inside a workflow cannot. The second audit the same day caught it, and `kind` came back as a
+required field: checked against comparison, explainer and walkthrough, and handed to phase 1.
+A wrong kind costs a full run, the same argument that makes the slug a launch-time field. Unknown keys are rejected for the same reason the
 error lists everything: in an unattended run, a misspelled `question` would otherwise vanish
 without anyone seeing it.
 
@@ -935,7 +937,7 @@ without anyone seeing it.
 
 An agent with no history in the session ran the `claude-api` prompt-audit procedure over
 everything reachable from `CLAUDE.md`, against Opus 5.5 for the main session and workflow
-agents and Sonnet 5.5 for the lens the chain pins to `sonnet`. It found no dated patterns. It
+agents. (It also assumed a lens pinned to Sonnet 5.5; that pin had gone with 7fc7b57.) It found no dated patterns. It
 found contradictions, and the owner decided the ones in the chain and `AGENTS.md`:
 
 - The ship phase keeps the conditional draft from c31fc2e. "Do not mark it ready for review"
@@ -949,4 +951,50 @@ found contradictions, and the owner decided the ones in the chain and `AGENTS.md
 The audit's skill-side findings were made against skills that `main` had rewritten in the
 meantime, so they were dropped rather than ported, and the audit runs again on the current
 skills.
+
+## What the second 2026-10-13 audit changed in the chain
+
+The audit ran again on the skills `main` had rewritten. It found no dated patterns. Most of what
+it found was the workflow lagging behind decisions the skills had already recorded on
+2026-09-30.
+
+**Lens A reads the corrected draft.**
+- `research-verify` has A read the draft after B and C's must-fix items are applied, so what A
+  finds is what they could not see.
+- The chain ran A on the unfixed draft. A pass now applies the items B and C tagged 고쳐야
+  before A reads.
+- A is told what that pass changed. The first fix round is told not to reapply it.
+
+**`after_last_recheck` is implemented.**
+- The skill says a one-answer item found by the last re-check is fixed once more, without a
+  further round, and recorded in `run.json`.
+- The chain had shipped those items as known defects. It now runs that one fix and records
+  them.
+- What stays open is what the re-check named as a wrong rejection.
+
+**The lens file owns the report format.**
+- Each lens received two formats, its file's and the chain's.
+- The chain now adds only what the fix passes sort on: a 고쳐야 / 판단 tag and a confidence
+  on each item, plus a 검증하지 못한 것 heading that is never empty.
+- Lens A's "report only what blocks the task" went the same way as the earlier filter.
+
+The skill-side edits were smaller:
+- duplicates of rules `AGENTS.md` already owns;
+- a `history_available` sentence that said more than `check-claims.mjs` enforces;
+- lens files that told the chain's lens to hand itself to a subagent;
+- trigger text that left out the web corpus most recent documents use;
+- one place for the rule that a subagent's quote is a pointer, not a span.
+
+research-doc's evals were rewritten too. The flow-diagram eval had rewarded drawing a failure
+loop the pinned source does not contain, and the other two had no expectations.
+
+The new evals ran once each against the skill before and after the revision, scored by a
+separate grader: 15 of 18 expectations before, 16 of 18 after. On the flow-diagram eval both
+versions reopened the pinned source and declined the loop, and only the revised one cited a
+locator for every edge it drew. The revised run missed one thing that both versions' text
+shared: it told the reader to delete a hand-written contents rail so the shell would rebuild
+it. Twenty-nine of the thirty-one published documents carry a hand-written rail under a
+shell that cannot build one, so deleting it empties the rail. research-doc now says so, and
+a rerun of that eval passed all five expectations. One run per eval tells you a revision
+did not break what these evals check, and nothing about the rest.
 

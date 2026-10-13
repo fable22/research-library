@@ -1,10 +1,10 @@
 export const meta = {
   name: 'research-chain',
   description: 'Pin a corpus, write the document, verify it with three separated lenses, fix until a round comes back clean, and open a PR, as a draft while anything waits on a person',
-  whenToUse: 'One research target, already resolved to a concrete identity, that should go all the way to a reviewable PR without stopping to ask. Launch with args as a JSON object, never the request text: {"slug":"YYYY-MM-DD-slug","target":"<URL or arXiv ID+version>","question":"...","angle":"..."}, slug and target required. Resolve a free-text request into that object in the main session first.',
+  whenToUse: 'One research target, already resolved to a concrete identity, that should go all the way to a reviewable PR without stopping to ask. Launch with args as a JSON object, never the request text: {"slug":"YYYY-MM-DD-slug","kind":"comparison|explainer|walkthrough","target":"<URL or arXiv ID+version>","question":"...","angle":"..."}, slug, kind and target required. Resolve a free-text request into that object in the main session first.',
   phases: [
     { title: 'Source and draft', detail: 'one agent, one context: pin the corpus and write the document' },
-    { title: 'Verify', detail: 'lenses B/C in parallel, then A over their reports' },
+    { title: 'Verify', detail: 'lenses B/C in parallel, apply their must-fix items, then A over the corrected draft' },
     { title: 'Fix', detail: 'apply, re-verify what changed, repeat until a round is clean' },
     { title: 'Ship', detail: 'branch, commit, push, draft PR' },
   ],
@@ -22,13 +22,15 @@ export const meta = {
 const ARGS_SHAPE = `args must be a JSON object (a JSON-encoded string of one also works):
   slug      required. YYYY-MM-DD-slug: a date, then lowercase letters, digits and hyphens.
             Names both research/<slug>/ and .research/<slug>/.
+  kind      required. comparison | explainer | walkthrough: what the document is for.
+            research-source has no default for it, and a workflow cannot ask.
   target    required. The resolved identity: a GitHub URL, an arXiv ID with its version,
             or a page URL.
   question  optional. The question the document has to settle.
   angle     optional. An angle the document is required to take.
 Example:
-  {"slug":"2026-10-07-example-topic","target":"https://github.com/owner/name","question":"...","angle":"..."}
-Free text is not read into these fields. The slug would have to be guessed, and a workflow
+  {"slug":"2026-10-07-example-topic","kind":"explainer","target":"https://github.com/owner/name","question":"...","angle":"..."}
+Free text is not read into these fields. The slug and kind would have to be guessed, and a workflow
 cannot ask, so resolve them in the main session and launch again.`
 
 // Launches through this path have delivered args JSON-encoded, and also as the raw request
@@ -47,11 +49,15 @@ if (!a || typeof a !== 'object' || Array.isArray(a)) {
 }
 {
   const problems = []
-  const unknown = Object.keys(a).filter((k) => !['slug', 'target', 'question', 'angle'].includes(k))
+  const unknown = Object.keys(a).filter((k) => !['slug', 'kind', 'target', 'question', 'angle'].includes(k))
   if (unknown.length) problems.push(`keys this workflow does not read: ${unknown.join(', ')}`)
   // The same pattern scripts/new-doc.mjs enforces.
   if (typeof a.slug !== 'string' || !/^\d{4}-\d{2}-\d{2}-[a-z0-9-]+$/.test(a.slug)) {
     problems.push(a.slug === undefined ? 'slug is missing' : `slug is not YYYY-MM-DD-slug: ${JSON.stringify(a.slug)}`)
+  }
+  // The values research-source and scripts/new-doc.mjs take as the document's purpose.
+  if (!['comparison', 'explainer', 'walkthrough'].includes(a.kind)) {
+    problems.push(a.kind === undefined ? 'kind is missing' : `kind is not comparison, explainer or walkthrough: ${JSON.stringify(a.kind)}`)
   }
   if (typeof a.target !== 'string' || !a.target.trim()) problems.push('target is missing or empty')
   for (const k of ['question', 'angle']) {
@@ -83,16 +89,15 @@ const draft = await agent(`${HOUSE}
 Objective: produce a publishable research document at ${DOC}/.
 
 Target: ${a.target}
+Document kind: ${a.kind}. It was settled before launch; do not ask for it.
 ${a.question ? `The question the document has to settle: ${a.question}` : ''}
 ${a.angle ? `Required angle: ${a.angle}` : ''}
 
 Read .claude/skills/research-source/SKILL.md and follow it, then, in this same context,
 .claude/skills/research-doc/SKILL.md, and write ${DOC}/index.html. Enumerate what the
-corpus contains before writing; the setup chapter and notRead are built from it. Fill
-${EVID}/evidence.jsonl while each source is open, and do not begin a chapter with it empty.
-Extract the evidence spans yourself even where research-doc lets a compression subagent read
-for you. Pass node scripts/check-doc.mjs ${DOC} and node scripts/check-prose.mjs ${DOC},
-run node scripts/build-index.mjs, and stop.
+corpus contains before writing; the setup chapter and notRead are built from it. Pass
+node scripts/check-doc.mjs ${DOC} and node scripts/check-prose.mjs ${DOC}, run
+node scripts/build-index.mjs, and stop.
 
 Output: JSON matching the schema.
 Boundaries: do not commit, do not create a branch, do not touch claims.jsonl. Do not start
@@ -147,19 +152,43 @@ Do not edit the document. You find, the author fixes.
 Do not delegate: a subagent reading for you reports what it concluded, not what it saw,
 and that separation is the only reason you exist as a separate context.`
 
+// The lens file owns the report's format; this adds only what the fix passes sort on.
 const REPORT_SHAPE = `
 Write your report in Korean, plain declarative, following
-.claude/skills/research-doc/references/prose-ko.md:
+.claude/skills/research-doc/references/prose-ko.md, in the format your lens file gives.
+Tag every item 고쳐야 (one correct answer exists: give the slide and the document's
+sentence, plus the source value and the locator where a source applies) or 판단 (it changes
+the document's conclusion or its size), and give your confidence. What you could not settle
+goes under the heading your lens file uses for it, or 검증하지 못한 것 if it names none,
+rather than being dropped. That heading is
+never empty, because a report listing only findings reads as "everything else checked out". The fix passes check each item against
+the source. Do not list what passed; give a count.`
 
-  ## 고쳐야 하는 것      one correct answer exists. slide number, the document's sentence,
-                        the source value, the locator
-  ## 판단이 필요한 것    changes the document's conclusion or its size
-  ## 검증하지 못한 것    never empty. A report listing only findings reads as
-                        "everything else checked out"
+const CHECKS = `    node scripts/check-doc.mjs ${DOC}
+    node scripts/check-prose.mjs ${DOC}
+    node .claude/skills/research-verify/scripts/check-claims.mjs ${DOC}${draft.checkoutPath ? ` --repo <owner/name>=${draft.checkoutPath}` : ' --repo <owner/name>=<path>'}
+    node scripts/build-index.mjs`
 
-Report every finding with your confidence. What you could not settle goes under
-검증하지 못한 것 rather than being dropped; the fix round checks each item against the
-source. Do not list what passed; give a count.`
+const FIX_SCHEMA = {
+  type: 'object',
+  required: ['fixed', 'gatesPassed', 'rendered', 'touchedSlides'],
+  properties: {
+    fixed: { type: 'array', items: { type: 'string' } },
+    rejected: { type: 'array', items: { type: 'string' } },
+    needsJudgment: { type: 'array', items: { type: 'string' } },
+    unverified: { type: 'array', items: { type: 'string' } },
+    touchedSlides: { type: 'array', items: { type: 'integer' } },
+    gatesPassed: { type: 'boolean' },
+    rendered: { type: 'boolean' },
+  },
+}
+
+// Round results accumulate. A later round is handed only the re-check's new findings, so
+// what it returns under needsJudgment or rejected cannot include round 1's, and reading the
+// last round alone dropped them from the PR and opened it ready for review.
+const acc = { fixed: [], rejected: [], needsJudgment: [], unverified: [], wording: [] }
+const take = (r) => { for (const k of ['fixed', 'rejected', 'needsJudgment', 'unverified']) acc[k].push(...(r[k] || [])) }
+const list = (xs, none) => xs.map((x) => `- ${x}`).join('\n') || `- ${none}`
 
 // B and C first, in parallel and blind to each other. A runs last and reads their reports,
 // because part of what it looks for is what the other two could not have seen: a pinned
@@ -186,13 +215,57 @@ ${L.extra || ''}`, { label: L.label, phase: 'Verify' })
 const got = reports.filter(Boolean).filter((r) => r.report)
 log(`${got.length}/${LENSES.length} lenses reported`)
 
+// research-verify has A read the draft after B and C's must-fix items are applied, so what A
+// finds is what they could not see rather than what they already reported.
+const rounds = []
+let beforeReader = null
+if (got.length) {
+  beforeReader = await agent(`${HOUSE}
+
+Read the "Fix, then re-verify what changed" section of
+.claude/skills/research-verify/SKILL.md for how to apply a finding. This pass runs before
+lens A reads the draft: act only on the items tagged 고쳐야 in the reports below. Leave 판단
+items and anything untagged alone and do not list them; the fix round gets the reports
+whole.
+
+Document: ${DOC}/index.html
+
+${got.map((r) => `### Lens ${r.key} (${r.label})\n${r.report}`).join('\n\n')}
+
+Confirm each item against the pinned source before you change anything. Lenses are wrong
+often enough that acting on one unchecked can delete a correctly sourced claim. Record the
+ones you rejected and why. research-verify extracts claims while the lenses run, and this is
+that point in the chain: extract ${EVID}/claims.jsonl from the sentences as they now stand.
+Then run:
+${CHECKS}
+Render the changed slides and read them after the fixes.
+
+Output: JSON matching the schema.
+Boundaries: do not commit. A 고쳐야 item that turns out to change the document's conclusion
+or its size is not yours to decide; put it in needsJudgment and leave the document alone.`,
+    { label: 'fix:before-reader', phase: 'Verify', schema: FIX_SCHEMA })
+  if (!beforeReader || !beforeReader.gatesPassed) {
+    return { stoppedAt: 'fix-before-reader', reason: 'gates did not pass', draft, beforeReader, reports: got }
+  }
+  take(beforeReader)
+  rounds.push({ round: 'before-reader', applied: (beforeReader.fixed || []).length, rejected: (beforeReader.rejected || []).length, touched: (beforeReader.touchedSlides || []).length })
+}
+
 const aReport = await agent(`Read .claude/skills/research-verify/references/${READER.file} and review through that lens.
 
 ${NOT_THE_AUTHOR}
 ${REPORT_SHAPE}
 
 The reports from lenses B and C:
-${got.map((r) => `### Lens ${r.key} (${r.label})\n${r.report}`).join('\n\n') || '(none arrived)'}`,
+${got.map((r) => `### Lens ${r.key} (${r.label})\n${r.report}`).join('\n\n') || '(none arrived)'}
+${beforeReader ? `
+Their 고쳐야 items were applied before you read, changing slides ${(beforeReader.touchedSlides || []).join(', ') || '(none)'}.
+Applied:
+${list(beforeReader.fixed || [], '(nothing recorded)')}
+Rejected rather than applied:
+${list(beforeReader.rejected || [], '(none)')}
+Read those slides too: an edit can break what was sound. Check the rejections as well: if one
+was in fact correct, report it as 고쳐야.` : ''}`,
   { label: READER.label, phase: 'Verify' })
 if (aReport) got.push({ key: READER.key, label: READER.label, report: aReport })
 
@@ -207,17 +280,17 @@ phase('Fix')
 // correct answer (a number, a quote, a direction, a dead reference); a second round spent on
 // wording rewrites the document toward the gate and away from the reader.
 const MAX_ROUNDS = 2
-let findings = got.map((r) => `### Lens ${r.key}\n${r.report}`).join('\n\n')
+let findings = got.map((r) => `### Lens ${r.key}\n${r.report}`).join('\n\n') +
+  (beforeReader ? `\n\nLens B and C's 고쳐야 items were handled before lens A read the draft; do not reapply them.\nApplied:\n${list(beforeReader.fixed || [], '(nothing recorded)')}\nRejected:\n${list(beforeReader.rejected || [], '(none)')}` +
+    ((beforeReader.needsJudgment || []).length || (beforeReader.unverified || []).length
+      ? `\nAlready recorded for a person or as unverified; do not re-list them:\n${list([...(beforeReader.needsJudgment || []), ...(beforeReader.unverified || [])], '(none)')}` : '') : '')
 let fixed = null
-const rounds = []
 let stoppedBecause = 'cap'
 // Must-fix items the last round confirmed but had no round left to act on. Empty unless the
 // loop ends on the cap.
 let openFindings = []
-// Round results accumulate. A later round is handed only the re-check's new findings, so
-// what it returns under needsJudgment or rejected cannot include round 1's, and reading the
-// last round alone dropped them from the PR and opened it ready for review.
-const acc = { fixed: [], rejected: [], needsJudgment: [], unverified: [], wording: [] }
+// One-answer items the last re-check found, fixed once more without a further round.
+let afterLastRecheck = []
 // A lens that returned nothing is a perspective nobody applied. It goes under unverified,
 // which also forces the PR to open as a draft.
 const deadLenses = [...LENSES, READER].map((L) => L.key).filter((k) => !got.some((r) => r.key === k))
@@ -240,32 +313,14 @@ Confirm each finding against the pinned source before you change anything. Lense
 wrong often enough that acting on one unchecked can delete a correctly sourced claim.
 Record the ones you rejected and why.
 
-Extract ${EVID}/claims.jsonl from the sentences that shipped. Then run:
-    node scripts/check-doc.mjs ${DOC}
-    node scripts/check-prose.mjs ${DOC}
-    node .claude/skills/research-verify/scripts/check-claims.mjs ${DOC}${draft.checkoutPath ? ` --repo <owner/name>=${draft.checkoutPath}` : ' --repo <owner/name>=<path>'}
-    node scripts/build-index.mjs
+${beforeReader ? `Update ${EVID}/claims.jsonl for the sentences you change.` : `Extract ${EVID}/claims.jsonl from the sentences as they now stand; no earlier pass did.`} Then run:
+${CHECKS}
 Render the changed slides and read them after the fixes, not before.
 
 Output: JSON matching the schema. touchedSlides decides what gets re-verified.
 Boundaries: do not commit. Anything that changes the document's conclusion or its size is
 not yours to decide; put it in needsJudgment and leave the document alone.`,
-    {
-      label: `fix:round-${round}`,
-      schema: {
-        type: 'object',
-        required: ['fixed', 'gatesPassed', 'rendered', 'touchedSlides'],
-        properties: {
-          fixed: { type: 'array', items: { type: 'string' } },
-          rejected: { type: 'array', items: { type: 'string' } },
-          needsJudgment: { type: 'array', items: { type: 'string' } },
-          unverified: { type: 'array', items: { type: 'string' } },
-          touchedSlides: { type: 'array', items: { type: 'integer' } },
-          gatesPassed: { type: 'boolean' },
-          rendered: { type: 'boolean' },
-        },
-      },
-    })
+    { label: `fix:round-${round}`, schema: FIX_SCHEMA })
 
   if (!fixed || !fixed.gatesPassed) { stoppedBecause = 'gates'; break }
   rounds.push({
@@ -274,7 +329,7 @@ not yours to decide; put it in needsJudgment and leave the document alone.`,
     rejected: (fixed.rejected || []).length,
     touched: (fixed.touchedSlides || []).length,
   })
-  for (const k of ['fixed', 'rejected', 'needsJudgment', 'unverified']) acc[k].push(...(fixed[k] || []))
+  take(fixed)
 
   if (!fixed.touchedSlides || fixed.touchedSlides.length === 0) {
     stoppedBecause = 'nothing-changed'
@@ -342,11 +397,46 @@ Output: JSON matching the schema. No prose report this round.`,
     break
   }
   if (round === MAX_ROUNDS) {
-    // Read, confirmed, and out of budget to fix. That is a different thing from unverified,
-    // and phase 4 carries it to the PR under its own heading so it is not read as clean.
+    // research-verify: what the last re-check finds is handled by kind. An item with one
+    // correct answer is fixed once more without a further round and recorded under
+    // after_last_recheck; anything else is a confirmed defect out of budget, which phase 4
+    // carries to the PR under its own heading so it is not read as clean.
     stoppedBecause = 'cap'
-    openFindings = fresh
-    log(`round ${round}: cap reached with ${fresh.length} must-fix confirmed and unfixed`)
+    if (hard.length) {
+      const last = await agent(`${HOUSE}
+
+Read the "Fix, then re-verify what changed" section of
+.claude/skills/research-verify/SKILL.md for how to apply a finding. This is the fix after the
+last re-check: act only on the items below, each of which has one correct answer. No
+re-check follows, so change nothing else.
+
+Document: ${DOC}/index.html
+${list(hard, '(none)')}
+
+Confirm each against the pinned source before you change it. Every item goes under fixed,
+rejected (with the reason) or needsJudgment. Update the claims for the sentences you change,
+then run:
+${CHECKS}
+Render the changed slides and read them after the fixes.
+
+Output: JSON matching the schema.
+Boundaries: do not commit. An item that turns out to change the document's conclusion or
+its size goes in needsJudgment, and the document stays as it is.`,
+        { label: 'fix:after-last-recheck', phase: 'Fix', schema: FIX_SCHEMA })
+      if (!last) {
+        return { stoppedAt: 'fix', reason: 'the fix after the last re-check returned nothing', draft, fixed, rounds, reports: got }
+      }
+      if (!last.gatesPassed) { fixed = last; break }
+      take(last)
+      afterLastRecheck = last.fixed || []
+      // A rejection here has no re-check behind it, so it ships as open rather than as settled.
+      openFindings.push(...(last.rejected || []))
+      if ((last.fixed || []).length + (last.rejected || []).length + (last.needsJudgment || []).length < hard.length) {
+        openFindings.push(`마지막 재검증 뒤 수정에 넘긴 정답 하나짜리 항목 ${hard.length}개 중 일부가 고침도 기각도 기록되지 않았다.`)
+      }
+    }
+    openFindings.push(...(recheck.badRejections || []))
+    log(`round ${round}: cap reached; ${afterLastRecheck.length} one-answer items fixed after the last re-check, ${openFindings.length} left open`)
     break
   }
   log(`round ${round}: ${fresh.length} new must-fix, going again`)
@@ -366,10 +456,15 @@ const shipped = await agent(`${HOUSE}
 
 Objective: put the document on a branch and open a PR.
 
-Branch doc/${a.slug} off main. Stage ${DOC}/ plus the README.md and index.html that
-build-index.mjs rewrote. Write the message per the Commits section of AGENTS.md, which also
-says what the PR is titled with and the preview link its body carries, then push and open
-the PR.
+First write ${EVID}/run.json (committed with the ledgers, a few KB) with this run's
+record, so the next decision about the chain rests on numbers rather than memory. Add
+finishedAt with the current time:
+${JSON.stringify({ slug: a.slug, question: a.question || null, slides: draft.slides, evidenceCount: draft.evidenceCount, lensesReported: got.map((r) => r.key), deadLenses, fixRounds: rounds, stoppedBecause, after_last_recheck: afterLastRecheck, openFindings: openFindings.length, needsJudgment: acc.needsJudgment.length, unverified: acc.unverified.length, wordingRecorded: acc.wording })}
+
+Branch doc/${a.slug} off main. Stage ${DOC}/, ${EVID}/ (.gitignore decides which of its
+files go in), and the README.md and index.html that build-index.mjs rewrote. Write the
+message per the Commits section of AGENTS.md, which also says what the PR is titled with
+and the preview link its body carries, then push and open the PR.
 
 Open it as a draft when any list below has anything in it, because the document really is
 waiting on a decision then; open it ready for review when all of them are empty.
@@ -377,11 +472,6 @@ waiting on a decision then; open it ready for review when all of them are empty.
 Then open ${DOC}/index.html locally so the person can look at the rendering before deciding
 anything. Most of what is wrong with a document is only visible once it is on screen. Use whatever opens a browser on this machine; if nothing does, say so and put
 the path in your result rather than treating it as a failure.
-
-First write ${EVID}/run.json (committed with the ledgers, a few KB) with this run's
-record, so the next decision about the chain rests on numbers rather than memory. Add
-finishedAt with the current time:
-${JSON.stringify({ slug: a.slug, question: a.question || null, slides: draft.slides, evidenceCount: draft.evidenceCount, lensesReported: got.map((r) => r.key), deadLenses, fixRounds: rounds, stoppedBecause, openFindings: openFindings.length, needsJudgment: acc.needsJudgment.length, unverified: acc.unverified.length, wordingRecorded: acc.wording })}
 
 Put these in the PR body, under headings of their own:
 
@@ -399,9 +489,10 @@ Found and not fixed:
 ${openFindings.map((x) => `- ${x}`).join('\n') || '- (none)'}
 ${openFindings.length ? `
 Say in the PR body that the fix loop stopped at its round cap of ${MAX_ROUNDS} rather than
-on a clean round, and that the items above were confirmed by a re-verification that ran
-after the last fix round. They are known defects, not open questions — do not file them
-under either of the other two headings.` : ''}
+on a clean round. The items above were confirmed by the round-${MAX_ROUNDS} re-verification${afterLastRecheck.length ? `, and
+${afterLastRecheck.length} one-answer item${afterLastRecheck.length === 1 ? '' : 's'} it found ${afterLastRecheck.length === 1 ? 'was' : 'were'} fixed afterwards without being re-read (after_last_recheck in run.json)` : ''}.
+They are known defects, not open questions — do not file them under either of the other two
+headings.` : ''}
 
 Output: JSON matching the schema.
 Boundaries: do not merge, do not change the draft state after opening, do not push to main.`,
@@ -430,5 +521,6 @@ return {
   needsJudgment: acc.needsJudgment,
   unverified: acc.unverified,
   wordingRecorded: acc.wording,
+  afterLastRecheck,
   openFindings,
 }

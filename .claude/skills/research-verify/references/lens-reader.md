@@ -1,7 +1,8 @@
 # Lens A — the reader
 
-Hand this file's content to a subagent, filling in the `{...}` slots. Run it after B and C
-have reported, and hand it their reports.
+The text below the rule is the lens prompt. In `research-chain` the lens reads this file and
+the prompt supplies the `{...}` values; run by hand, give it to a subagent with them filled.
+Run it after B and C have reported, and hand it their reports.
 
 ---
 
@@ -76,8 +77,8 @@ Then look for what B and C could not have seen, because it was never in front of
 
 ## Report format
 
-Write in Korean, leading with the finding, then the evidence, then the qualifier. Report only
-what blocks the task, and keep technical terms in English.
+Write in Korean, leading with the finding, then the evidence, then the qualifier. Report every
+finding under the headings below with your confidence, and keep technical terms in English.
 
 ```
 과업: <purpose>. 할 수 있는가: 예 / 일부 / 아니오

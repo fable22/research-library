@@ -85,7 +85,7 @@ new Function(`return (async () => {${src.replace('export const meta', 'const met
 // from the guard's first line to the first line after it; research-chain.js shown
 const guard = src.slice(src.indexOf('const ARGS_SHAPE'), src.indexOf('const DOC ='))
 const run = new Function('args', `${guard}; return { passed: a }`)
-console.log(run('Target: free text'), run({ slug: '2026-10-07-x', target: 'https://x' }))
+console.log(run('Target: free text'), run({ slug: '2026-10-07-x', kind: 'explainer', target: 'https://x' }))
 ```
 
 Run it against free text, a correct object, the same object JSON-encoded, and one with an
