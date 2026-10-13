@@ -121,11 +121,10 @@ flag nearly everything, and a report that flags everything says nothing.
 ## The `setup` chapter for a repository
 
 ```
-커밋 <sha> 기준. <N>개 파일 중 <M>개를 열었다.
-<디렉터리> 와 <디렉터리> 는 열지 않았다. 그래서 <몇 장>이 얕다.
-shallow clone 이라 커밋 이력은 확인할 수 없다.
+커밋 <sha> 의 코드를 읽었다. <N>개 파일 중 <M>개를 열었고, <디렉터리> 는 열지 않아서 <몇 장>의 설명은 그 경로를 빼고 한 것이다.
+shallow clone 이라 커밋 이력은 보지 않고 코드만 읽었다.
 ```
 
-The last clause of the second line carries the information; an unread directory named
-without its cost to the document is filler. `../../research-source/SKILL.md` §8 has the rules
+The clause naming the chapter carries the information; an unread directory named without
+its cost to the document is filler. `../../research-source/SKILL.md` §8 has the rules
 for what the numbers must add up to.

@@ -2,22 +2,22 @@
 // 발행물의 한국어 산문이 prose-ko.md 의 규칙 중 셀 수 있는 것들을 지키는지 검사한다.
 //   node scripts/check-prose.mjs research/2026-08-05-llm-wiki-retrieval-as-reasoning
 //   node scripts/check-prose.mjs            # 인자가 없으면 전체 검사
-//   node scripts/check-prose.mjs --counts   # 막지 않는 밀도표. 렌즈 C 가 읽는다
+//   node scripts/check-prose.mjs --counts   # 막지 않는 밀도표. 진단용이고 쓰는 목표가 아니다
 //   node scripts/check-prose.mjs --help     # 규칙 목록
 //
 // 통과 아니면 차단이다. 경고 등급은 없다. 예외는 --allow=<rule-id>.
 //
-// 여기 있는 규칙은 전부 prose-ko.md 에 이미 숫자가 붙어 있던 것들이다. 이 파일이
-// 새로 정하는 한도는 없다.
+// 여기 있는 규칙은 닫힌 형태만 막는다. 문장이 어떻게 읽혀야 하는지는 prose-ko.md 가 예문으로
+// 보여 주고, 이 파일이 새로 정하는 한도는 없다.
 //
 // 열한 규칙 중 여덟은 열린 부류의 흔한 형태만 잡는다. 반응어는 흥미롭게도 말고도 얼마든지
 // 있고, 실측하면 목록에 있는 여덟은 다 잡고 같은 문장을 다른 말로 쓴 열은 다 통과한다.
-// 통과가 그 부류의 부재를 뜻하지 않는다는 말이고, 그 부류를 실제로 보는 것은 렌즈 C 다.
+// 통과가 그 부류의 부재를 뜻하지 않는다는 말이고, 그 부류는 저자의 읽기 패스와 렌즈 A 가 본다.
 // 닫힌 것은 이중 피동·~에 의해 피동·합쇼체 종결 셋뿐이다. 문법 형태라 셀 수 있다. 숫자가 없는 규칙 — 지시대명사 반복, ~들, 문단머리 접속사,
 // 문장 길이 — 은 --counts 로만 나온다. 세는 것과 판단하는 것은 다른 일이고, 뒤쪽은
-// 렌즈 C 의 몫이다.
+// 사람의 읽기 몫이다. 2026-10-13 진단 뒤로 밴드는 진단에만 쓴다.
 //
-// 판단은 저자의 읽기 패스가 한다 (research-doc/SKILL.md 「Hand off」). 렌즈 C 는 구조만 본다.
+// 판단은 저자의 읽기 패스가 한다 (research-doc/SKILL.md 「Gates, then the read pass」). 구조는 check-doc.mjs 가 본다.
 //
 // 검사 대상은 문서가 스스로 쓴 산문뿐이다. 코드와 인용은 뺀다. 무엇을 빼는지는
 // visibleProse 에 있다.
@@ -73,13 +73,13 @@ const DENSITY = [
   ['~에 대한/대해', /에\s*(대한|대해|대하여)/g],
   ['~를 통해', /[을를]\s*통(해|한|하여)/g],
   // `~에 있어서` 는 막지 않는다. 존재의 `있다+어서` 와 같은 꼴이고, 이 코퍼스에서
-  // 걸린 2건이 모두 그쪽이었다. 어느 쪽인지는 문장을 읽어야 갈리므로 렌즈 C 몫이다.
+  // 걸린 2건이 모두 그쪽이었다. 어느 쪽인지는 문장을 읽어야 갈리므로 읽는 사람의 몫이다.
   ['~에 있어서 (동형이의 주의)', /에\s*있어서/g],
   ['문단머리 접속사', /^\s*(또한|그러나|따라서|하지만|그리고)[\s,]/gm],
   // `~가 아니라 ~다` 는 막지 않는다. AI 한국어와 사람 한국어를 가르는 강한 신호이지만
   // (AI 5.8 대 사람 0.6/1k, G²=41.7), 이 코퍼스에서 걸리는 것 대부분이 정당한 쓰임이다:
   // 원문 직접 인용, 귀속 정정, 그리고 prose-ko.md 가 허용한 "독자가 쥔 틀린 답을 고치는
-  // 자리". 장식적 반복과 그 셋을 정규식이 못 가른다. 세되, 판단은 렌즈 C 가 한다.
+  // 자리". 장식적 반복과 그 셋을 정규식이 못 가른다. 세되, 판단은 읽는 사람이 한다.
   ['`~가 아니라 ~다`', /(?<=[가-힣])(?<![만뿐])[이가]\s*아니라/g],
   // 2026-09-29 진단에서 추가. 게이트가 세는 항목이 0 으로 내려가는 동안 세지 않던 이 셋이
   // 10~30배 늘었다. 사람이 쓴 기술 산문에는 셋 다 거의 없다. docs/readability-diagnosis-2026-09-29.md
@@ -211,7 +211,7 @@ const argv = process.argv.slice(2);
 if (argv.includes('--help') || argv.includes('-h')) {
   console.log('사용법: node scripts/check-prose.mjs [research/<slug>] [--counts] [--allow=rule,rule]\n');
   console.log('통과 아니면 차단이다. 경고 등급은 없다.');
-  console.log('규칙의 한도는 전부 prose-ko.md 에서 온 것이고, 이 파일이 새로 정하지 않는다.\n');
+  console.log('막는 것은 닫힌 형태뿐이다. 어떻게 읽혀야 하는지는 prose-ko.md 의 예문이 보여 준다.\n');
   console.log('규칙:');
   const w = Math.max(...PATTERNS.map(([id]) => id.length));
   for (const [id, desc] of PATTERNS) {
@@ -260,8 +260,8 @@ if (argv.includes('--counts')) {
     console.log(`${HUMAN_BAND.label[i].padEnd(32)}${'-'.padStart(7)}${row}${HUMAN_BAND.conn[i].toFixed(1).padStart(15)}${HUMAN_BAND.comma[i].toFixed(2).padStart(7)}`);
   }
   console.log('\n아래 두 줄이 사람이 쓴 기술 블로그의 중앙값이다. 같은 방법으로 잰 것이라 위와 나란히 놓을 수 있다.');
-  console.log('밴드는 양방향이다. 사람 값보다 한참 낮은 열도 사람 글이 아니다. 어느 열이 밖인지 보고 prose-ko.md 로 간다.');
-  console.log('마지막 세 열은 슬라이드마다 첨언(details)을 접은 채 보이는 한글 수의 중앙값·최대와, 첨언으로 접힌 비율이다. 종류별 기준은 .claude/skills/research-doc/references/specimens/ 의 견본이다.');
+  console.log('밴드는 양방향이다. 사람 값보다 한참 낮은 열도 사람 글이 아니다. 밴드는 진단용이고 쓰는 목표가 아니다.');
+  console.log('마지막 세 열은 슬라이드마다 첨언(details)을 접은 채 보이는 한글 수의 중앙값·최대와, 첨언으로 접힌 비율이다. 견본(.claude/skills/research-doc/references/specimens/)은 예시이고 기준이 아니다.');
   process.exit(0);
 }
 
@@ -281,6 +281,6 @@ if (failed) {
   console.log(`\n${failed}개 문서가 막혔다. 고치거나 --allow= 로 명시적으로 넘길 것.`);
   process.exit(1);
 }
-console.log('\n통과. 셀 수 있는 규칙만 본 것이다. 읽히는지는 저자가 --counts 를 열어 놓고 읽어서 판단한다.');
+console.log('\n통과. 셀 수 있는 규칙만 본 것이다. 읽히는지는 첫 화면부터 독자처럼 읽어서 판단한다 (prose-ko.md 의 예문과 견준다).');
 
 }

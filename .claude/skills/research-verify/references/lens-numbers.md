@@ -49,6 +49,9 @@ baseline beside it, and percent against percentage points needs the right word.
 - Charts. Do bar lengths and line positions match the table, and does the `aria-label` prose
   match both?
 - Aggregates. Recompute means, sums and percentages from the underlying values.
+- Quotes. A quote can sit verbatim at its locator while the sentence built on it widens a
+  narrow fact or joins two facts the source keeps apart. `check-claims.mjs` confirms the quote
+  and stops there, so read each quoted claim against the sentence that carries it.
 - A shallow clone. If `{SOURCES_PATH}` has `shallow: true` or `history_available: false`,
   commit counts, contributor counts and release cadence cannot be obtained. If the document
   has them, trace where they came from.
@@ -72,6 +75,6 @@ unverifiable.
 
 ## Do not
 
-- Edit the document, or evaluate whether the argument works, which lens A does.
+- Edit the document, or judge whether the argument or the reading works, which lens A does.
 - Pass a number on the strength of the document's own description. If you could not open the
   source, report "확인 못 함".

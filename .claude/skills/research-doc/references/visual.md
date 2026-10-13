@@ -16,8 +16,7 @@ scroll to reach the fold. The ways out, roughly by how often they apply:
 3. Cut inferable background and a second example making the first one's point.
 4. Fold what remains and is still support into `details.more`.
 
-`check-prose.mjs --counts` prints the visible Hangul per chapter, and `specimens/` shows the
-bar per kind. The failure is a wall of sentences at one weight, where the reader cannot tell
+`check-prose.mjs --counts` prints the visible Hangul per chapter as a diagnostic. The failure is a wall of sentences at one weight, where the reader cannot tell
 the claim from its support.
 
 ## When a picture is the right move

@@ -1,10 +1,10 @@
 export const meta = {
   name: 'research-chain',
-  description: 'Pin a corpus, write the document, verify it with three separated lenses, fix until a round comes back clean, and open a PR, as a draft while anything waits on a person',
+  description: 'Pin a corpus, write the document, verify it with two separated lenses, fix until a round comes back clean, and open a PR, as a draft while anything waits on a person',
   whenToUse: 'One research target, already resolved to a concrete identity, that should go all the way to a reviewable PR without stopping to ask. Launch with args as a JSON object, never the request text: {"slug":"YYYY-MM-DD-slug","kind":"comparison|explainer|walkthrough","target":"<URL or arXiv ID+version>","question":"...","angle":"..."}, slug, kind and target required. Resolve a free-text request into that object in the main session first.',
   phases: [
     { title: 'Source and draft', detail: 'one agent, one context: pin the corpus and write the document' },
-    { title: 'Verify', detail: 'lenses B/C in parallel, apply their must-fix items, then A over the corrected draft' },
+    { title: 'Verify', detail: 'lens B (numbers and quotes) and lens A (reader) in parallel' },
     { title: 'Fix', detail: 'apply, re-verify what changed, repeat until a round is clean' },
     { title: 'Ship', detail: 'branch, commit, push, draft PR' },
   ],
@@ -143,8 +143,9 @@ Corpus identity: ${EVID}/sources.jsonl
 Evidence the author recorded while reading: ${EVID}/evidence.jsonl
 Checkout: ${draft.checkoutPath || '(none given; fetch it from the pinned identity)'}
 
-You did not write this document. A finding is something that makes a claim in it wrong or
-stops the reader from doing what its purpose promises. Things that would be nice to add,
+You did not write this document. A finding is something that makes a claim in it wrong,
+stops the reader from doing what its purpose promises, or, for the reader lens, costs the
+reader the point. Things that would be nice to add,
 sources that could also be read, and wording you would have chosen differently are not
 findings; list them in one line each under 메모 or leave them out.
 
@@ -190,18 +191,15 @@ const acc = { fixed: [], rejected: [], needsJudgment: [], unverified: [], wordin
 const take = (r) => { for (const k of ['fixed', 'rejected', 'needsJudgment', 'unverified']) acc[k].push(...(r[k] || [])) }
 const list = (xs, none) => xs.map((x) => `- ${x}`).join('\n') || `- ${none}`
 
-// B and C first, in parallel and blind to each other. A runs last and reads their reports,
-// because part of what it looks for is what the other two could not have seen: a pinned
-// source nothing leans on, a modality never run, a quote that verifies while the sentence
-// built on it widens it.
+// B and A in parallel, blind to each other. B checks every number and quote against the
+// pinned source; A reads as the developer the document is for. Structure is check-doc's.
 const LENSES = [
   { key: 'B', label: 'lens:numbers', file: 'lens-numbers.md',
     extra: `Where evidence.jsonl holds a span for a number, check the document against the
 span and the span against the source. A span that no sentence uses is worth reporting too:
 either the reading found something the writing dropped, or the span was never needed.` },
-  { key: 'C', label: 'lens:prose', file: 'lens-prose.md' },
+  { key: 'A', label: 'lens:reader', file: 'lens-reader.md' },
 ]
-const READER = { key: 'A', label: 'lens:reader', file: 'lens-reader.md' }
 
 const reports = await parallel(LENSES.map((L) => () =>
   agent(`Read .claude/skills/research-verify/references/${L.file} and review through that lens.
@@ -214,60 +212,7 @@ ${L.extra || ''}`, { label: L.label, phase: 'Verify' })
 
 const got = reports.filter(Boolean).filter((r) => r.report)
 log(`${got.length}/${LENSES.length} lenses reported`)
-
-// research-verify has A read the draft after B and C's must-fix items are applied, so what A
-// finds is what they could not see rather than what they already reported.
 const rounds = []
-let beforeReader = null
-if (got.length) {
-  beforeReader = await agent(`${HOUSE}
-
-Read the "Fix, then re-verify what changed" section of
-.claude/skills/research-verify/SKILL.md for how to apply a finding. This pass runs before
-lens A reads the draft: act only on the items tagged 고쳐야 in the reports below. Leave 판단
-items and anything untagged alone and do not list them; the fix round gets the reports
-whole.
-
-Document: ${DOC}/index.html
-
-${got.map((r) => `### Lens ${r.key} (${r.label})\n${r.report}`).join('\n\n')}
-
-Confirm each item against the pinned source before you change anything. Lenses are wrong
-often enough that acting on one unchecked can delete a correctly sourced claim. Record the
-ones you rejected and why. research-verify extracts claims while the lenses run, and this is
-that point in the chain: extract ${EVID}/claims.jsonl from the sentences as they now stand.
-Then run:
-${CHECKS}
-Render the changed slides and read them after the fixes.
-
-Output: JSON matching the schema.
-Boundaries: do not commit. A 고쳐야 item that turns out to change the document's conclusion
-or its size is not yours to decide; put it in needsJudgment and leave the document alone.`,
-    { label: 'fix:before-reader', phase: 'Verify', schema: FIX_SCHEMA })
-  if (!beforeReader || !beforeReader.gatesPassed) {
-    return { stoppedAt: 'fix-before-reader', reason: 'gates did not pass', draft, beforeReader, reports: got }
-  }
-  take(beforeReader)
-  rounds.push({ round: 'before-reader', applied: (beforeReader.fixed || []).length, rejected: (beforeReader.rejected || []).length, touched: (beforeReader.touchedSlides || []).length })
-}
-
-const aReport = await agent(`Read .claude/skills/research-verify/references/${READER.file} and review through that lens.
-
-${NOT_THE_AUTHOR}
-${REPORT_SHAPE}
-
-The reports from lenses B and C:
-${got.map((r) => `### Lens ${r.key} (${r.label})\n${r.report}`).join('\n\n') || '(none arrived)'}
-${beforeReader ? `
-Their 고쳐야 items were applied before you read, changing slides ${(beforeReader.touchedSlides || []).join(', ') || '(none)'}.
-Applied:
-${list(beforeReader.fixed || [], '(nothing recorded)')}
-Rejected rather than applied:
-${list(beforeReader.rejected || [], '(none)')}
-Read those slides too: an edit can break what was sound. Check the rejections as well: if one
-was in fact correct, report it as 고쳐야.` : ''}`,
-  { label: READER.label, phase: 'Verify' })
-if (aReport) got.push({ key: READER.key, label: READER.label, report: aReport })
 
 // ─── phase 3 ────────────────────────────────────────────────────────────────
 // A loop, because research-verify says to stop when a round turns up nothing new rather
@@ -280,10 +225,7 @@ phase('Fix')
 // correct answer (a number, a quote, a direction, a dead reference); a second round spent on
 // wording rewrites the document toward the gate and away from the reader.
 const MAX_ROUNDS = 2
-let findings = got.map((r) => `### Lens ${r.key}\n${r.report}`).join('\n\n') +
-  (beforeReader ? `\n\nLens B and C's 고쳐야 items were handled before lens A read the draft; do not reapply them.\nApplied:\n${list(beforeReader.fixed || [], '(nothing recorded)')}\nRejected:\n${list(beforeReader.rejected || [], '(none)')}` +
-    ((beforeReader.needsJudgment || []).length || (beforeReader.unverified || []).length
-      ? `\nAlready recorded for a person or as unverified; do not re-list them:\n${list([...(beforeReader.needsJudgment || []), ...(beforeReader.unverified || [])], '(none)')}` : '') : '')
+let findings = got.map((r) => `### Lens ${r.key}\n${r.report}`).join('\n\n')
 let fixed = null
 let stoppedBecause = 'cap'
 // Must-fix items the last round confirmed but had no round left to act on. Empty unless the
@@ -293,7 +235,7 @@ let openFindings = []
 let afterLastRecheck = []
 // A lens that returned nothing is a perspective nobody applied. It goes under unverified,
 // which also forces the PR to open as a draft.
-const deadLenses = [...LENSES, READER].map((L) => L.key).filter((k) => !got.some((r) => r.key === k))
+const deadLenses = LENSES.map((L) => L.key).filter((k) => !got.some((r) => r.key === k))
 for (const k of deadLenses) acc.unverified.push(`렌즈 ${k} 가 결과를 내지 못했다. 그 관점은 검토되지 않았다.`)
 
 for (let round = 1; round <= MAX_ROUNDS; round++) {
@@ -313,7 +255,7 @@ Confirm each finding against the pinned source before you change anything. Lense
 wrong often enough that acting on one unchecked can delete a correctly sourced claim.
 Record the ones you rejected and why.
 
-${beforeReader ? `Update ${EVID}/claims.jsonl for the sentences you change.` : `Extract ${EVID}/claims.jsonl from the sentences as they now stand; no earlier pass did.`} Then run:
+${round === 1 ? `Extract ${EVID}/claims.jsonl from the sentences as they now stand.` : `Update ${EVID}/claims.jsonl for the sentences you change.`} Then run:
 ${CHECKS}
 Render the changed slides and read them after the fixes, not before.
 
@@ -352,7 +294,8 @@ ${(fixed.rejected || []).map((x) => `- ${x}`).join('\n') || '- (none)'}
 
 Read those slides against the pinned source and look for what the edits broke: a number
 that no longer matches its neighbours, a cross-reference now pointing at the wrong chapter,
-a qualifier dropped while rewriting, a claim whose quote still verifies while the sentence
+a qualifier dropped while rewriting, a condition moved to the limits chapter that leaves the
+body sentence false without it, a claim whose quote still verifies while the sentence
 around it drifted. Check the rejections too: if one was in fact correct, say so.
 
 Report only new must-fix items; anything already fixed is not new. An empty list ends the
@@ -487,7 +430,7 @@ ${acc.wording.map((x) => `- ${x}`).join('\n') || '- (none)'}
 
 Found and not fixed:
 ${openFindings.map((x) => `- ${x}`).join('\n') || '- (none)'}
-${openFindings.length ? `
+${openFindings.length && stoppedBecause === 'cap' ? `
 Say in the PR body that the fix loop stopped at its round cap of ${MAX_ROUNDS} rather than
 on a clean round. The items above were confirmed by the round-${MAX_ROUNDS} re-verification${afterLastRecheck.length ? `, and
 ${afterLastRecheck.length} one-answer item${afterLastRecheck.length === 1 ? '' : 's'} it found ${afterLastRecheck.length === 1 ? 'was' : 'were'} fixed afterwards without being re-read (after_last_recheck in run.json)` : ''}.

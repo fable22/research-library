@@ -42,7 +42,7 @@ the prose rules all live inside them. Restating any of it here means two copies 
 |---|---|---|
 | `research-source` | Starting research. Choosing the document kind, pinning the corpus to a portable identity | author's |
 | `research-doc` | Writing the document | the same author context |
-| `research-verify` | After the draft is finished | two lenses in separate contexts, then the reader lens, which also reads their reports |
+| `research-verify` | After the draft is finished | two lenses in separate contexts, run in parallel: numbers and quotes, and a reader |
 
 Do not break context between `research-source` and `research-doc`. When a claim starts to
 feel shaky mid-sentence you have to be able to reopen the source, and across a context

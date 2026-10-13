@@ -35,10 +35,10 @@ const ROOT = findRoot(dirname(fileURLToPath(import.meta.url)));
 // ---- 장 구성 ----
 //
 // 출발용 골격이다. 장은 두 축으로 정해진다. corpus (paper|oss) 는 setup·result·critique 의
-// 힌트를, purpose (comparison|explainer|walkthrough) 는 가운데 세 장을 정한다. 도입 판단은
+// 힌트를, purpose (comparison|explainer|walkthrough) 는 가운데 장을 정한다. 도입 판단은
 // comparison 에만 있다. 다른 종류에도 넣으면 아무도 묻지 않은 질문에 답하는 장이 생긴다.
-// eyebrow 중 index/tl-dr/problem/critique/conclusion/sources 만 check-doc.mjs 가 검사한다.
-// 나머지는 내용을 가리키는 이름으로 바꿔 쓰고, 필요하면 장을 더 넣는다.
+// eyebrow 중 index/tl-dr/critique/sources 만 check-doc.mjs 가 검사한다. 나머지는 내용을
+// 가리키는 이름으로 바꿔 쓰고, 합치거나 빼거나 더한다. 장은 20개 안쪽이다.
 
 const CORPORA = ['paper', 'oss', 'web'];
 const PURPOSES = ['comparison', 'explainer', 'walkthrough'];
@@ -46,24 +46,24 @@ const PURPOSES = ['comparison', 'explainer', 'walkthrough'];
 // corpus 별 힌트. web 은 안내서·소개 글·블로그처럼 커밋도 arXiv 판도 없는 페이지다.
 const H = {
   paper: {
-    tldr: '무엇을 밝혔는지 두 문장 안에', problem: '기존 방식이 무엇에서 실패하는가',
+    tldr: '독자가 할 일이나 기억할 점 몇 개', problem: '기존 방식이 무엇에서 실패하는가',
     compare: '논문이 실제로 돌린 baseline 을 이름으로', case: '예시 하나가 원리를 끝까지 통과하는 경로',
     map: '구성 요소와 그 사이의 데이터 흐름', trace: '예시 하나가 처리되는 경로를 끝까지',
     setup: '읽은 절과 부록, 맞춘 조건과 맞추지 않은 조건', result: '표와 그림에서 직접. 원문 차트는 다시 그린다',
     critique: '논문이 인정한 것과 내가 주장하는 것을 구분',
   },
   oss: {
-    tldr: '무엇을 하는 프로젝트인지 두 문장 안에', problem: '이 프로젝트가 없앤 수작업',
+    tldr: '독자가 할 일이나 기억할 점 몇 개', problem: '이 프로젝트가 없앤 수작업',
     compare: '이게 없으면 무엇을 쓰게 되는가', case: '요청 하나가 코드를 끝까지 통과하는 경로',
     map: '패키지 경계, 무엇이 무엇과 통신하는가, 상태가 어디 있는가', trace: '한 요청의 모든 홉을 quote 와 file:line 으로',
-    setup: '커밋 SHA, 읽은 파일 수, 열지 않은 디렉터리, shallow 여부', result: '코드가 무엇을 하는가. 자체 벤치마크는 그렇게 표시',
+    setup: '읽은 커밋과 범위, 열지 않은 디렉터리와 그 때문에 얕아진 장', result: '코드가 무엇을 하는가. 자체 벤치마크는 그렇게 표시',
     critique: '읽지 않은 코드, README 와 코드의 차이',
   },
   web: {
-    tldr: '이 자료가 개발자에게 무엇을 바꾸라고 하는지 두 문장 안에', problem: '이 자료가 답하는 질문과, 답이 없을 때 개발자가 겪는 것',
+    tldr: '독자가 할 일이나 기억할 점 몇 개', problem: '이 자료가 답하는 질문과, 답이 없을 때 개발자가 겪는 것',
     compare: '원문이 견주는 대안을 이름으로', case: '원문의 예시 하나가 끝까지 가는 경로',
     map: '요청·응답·기록처럼 바뀌는 층과 그 사이의 관계', trace: '한 경로를 원문의 절 제목과 인용으로 끝까지',
-    setup: '읽은 URL 과 절, retrieved_at, 고정 사본(notes/web/<id>.txt), 열지 않은 하위 문서', result: '원문의 표와 차트를 다시 그린 것. 값은 원문의 aria-label 이나 표에서',
+    setup: '읽은 페이지와 절, 열지 않은 하위 문서와 그 때문에 얕아진 장', result: '원문의 표와 차트를 다시 그린 것. 값은 원문의 aria-label 이나 표에서',
     critique: '원문이 말하지 않는 것과 내가 추론한 것을 구분',
   },
 };
@@ -71,13 +71,12 @@ const H = {
 const MIDDLE = {
   comparison: (h) => [
     ['compare', '대안과의 비교', h.compare],
-    ['cost', '유지 비용', '도입 뒤에도 계속 드는 것: 운영, 의존성, 되돌리기'],
+    ['cost', '유지 비용', '도입 뒤에도 계속 드는 운영, 의존성, 되돌리기 비용'],
     ['adopt', '도입 판단', 'adopt / trial / assess / hold 와 그 근거'],
   ],
   explainer: (h) => [
     ['mechanism', '원리', '독자가 원 자료에 없는 사례의 동작을 예측할 수 있을 만큼'],
     ['case', '사례 하나', h.case],
-    ['limits', '원리가 멈추는 곳', '어떤 조건에서 예측이 빗나가는가'],
   ],
   walkthrough: (h) => [
     ['map', '구조', h.map],
@@ -93,10 +92,9 @@ function chaptersFor(corpus, purpose) {
     ['tl-dr', '요약', h.tldr],
     ['problem', '문제 정의', h.problem],
     ...MIDDLE[purpose](h),
-    ['setup', '읽은 범위', h.setup],
     ['result', '결과', h.result],
     ['critique', '해석의 한계', h.critique],
-    ['conclusion', '결론', null],
+    ['setup', '읽은 범위', h.setup],
     ['sources', '출처', null],
   ];
 }
@@ -123,7 +121,7 @@ function buildSlides(chapters, { title, summary }) {
       ? `      <h1>${esc(title)}</h1>\n      <p class="dek">${esc(summary)}</p>`
       : eyebrow === 'sources'
         ? `      <h2>${esc(label)}</h2>`
-        : `      <h2>${esc(label)}: TODO 짧은 제목</h2>\n      <p class="key">TODO 이 장의 주장 한두 문장, 성립 조건과 함께. ${esc(hint || '')}</p>`;
+        : `      <h2>TODO ${esc(label)} 장이 담은 것을 가리키는 짧은 제목</h2>\n      <p class="key">TODO 훑는 독자가 가져갈 주장 한두 문장. ${esc(hint || '')}</p>`;
     const body = eyebrow === 'sources'
       ? ['      <p>TODO 출처 목록. sources.jsonl 의 id 마다 한 줄</p>']
       : [
@@ -243,7 +241,7 @@ async function create(slug, corpus, purpose, opts) {
 
   console.log(`research/${slug}/          index.html, meta.json (seq ${seq})`);
   console.log(`.research/${slug}/         sources.jsonl, evidence.jsonl, claims.jsonl, notes/`);
-  console.log(`\n출발용 ${chapters.length}장 (${corpus}, ${purpose}). eyebrow 는 내용을 가리키는 이름으로 바꾸고, 장은 필요한 만큼 늘린다.`);
+  console.log(`\n출발용 ${chapters.length}장 (${corpus}, ${purpose}). eyebrow 는 내용을 가리키는 이름으로 바꾸고, 장은 합치거나 빼서 20개 안쪽으로 둔다.`);
   console.log(`읽은 범위는 조사를 마친 뒤 ${chapters.findIndex((c) => c[0] === 'setup') + 1}장에 직접 적는다.`);
 }
 

@@ -25,7 +25,7 @@ const VOID = new Set([
 const SIZE_LIMIT = 1024 * 1024;
 
 // 모든 문서에 있어야 하는 eyebrow. 문서 골격의 최소 뼈대다.
-const REQUIRED_EYEBROWS = ['index', 'tl-dr', 'problem', 'critique', 'conclusion', 'sources'];
+const REQUIRED_EYEBROWS = ['index', 'tl-dr', 'critique', 'sources'];
 
 // 제작 과정 서술. 독자에게 정보를 주지 않는다.
 // 원문에 없는 계산을 캡션에 표시하는 것은 예외이므로 여기 넣지 않는다.
@@ -68,11 +68,36 @@ const RULES = {
   'process-narration': '문서를 어떻게 만들었는지 쓰지 않았는가',
   'meta-purpose': `meta.json 의 purpose 가 ${'comparison / explainer / walkthrough'} 중 하나인가 (${'2026-09-30'} 이후 문서)`,
   'section-grammar': '표지 뒤 모든 장에 h2 와 .key 가 있는가 (sources 장은 .key 없이 된다. 2026-09-30 이후 문서. .dek 는 그 전 문서의 이름)',
+  'heading-form': '제목, h2, .key 가 라벨과 콜론·마침표, 쉼표 목록, 개수 세기, 문서의 자기 언급으로 시작하거나 이뤄지지 않았는가 (2026-10-14 이후 문서)',
+  'title-copies': 'meta.json title, <title>, og:title, 표지 h1 이 같은 문자열인가 (2026-10-14 이후 문서)',
+  'chapter-count': '장이 20개 이하인가 (2026-10-14 이후 문서)',
 };
 
 // 장 문법과 purpose 는 2026-09-30 부터 쓴 문서에만 요구한다. 그 전 28편은 .dek 와 무목적으로
 // 발행됐고, 다시 쓰지 않는 한 그대로 둔다.
 const NEW_GRAMMAR_FROM = '2026-09-30';
+// 제목 형태와 장 수는 2026-10-13 인터뷰에서 정한 것이라 그 뒤 문서에만 요구한다
+// (docs/harness-doctor-2026-10-13.md). 그 전 문서의 장 제목은 29% 가 라벨 꼴이다.
+const NEW_FORM_FROM = '2026-10-14';
+const MAX_CHAPTERS = 20;
+
+// 제목 자리에서 독자가 기계가 쓴 글로 읽는 형태. 본문은 막지 않고 검토자가 본다.
+const decode = (t) => t.replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+  .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+const textOf = (h) => decode(h.replace(/<[^>]+>/g, '')).replace(/\s+/g, ' ').trim();
+// 코드 안의 콜론과 쉼표는 형태가 아니다. 코드 조각은 자리표시 하나로 바꿔 놓고 본다.
+const formTextOf = (h) => textOf(h.replace(/<code\b[^>]*>[\s\S]*?<\/code>/g, 'X'));
+function headingForms(text, { heading }) {
+  const found = [];
+  const label = /^([^:：]{1,40})[:：]\s/.exec(text);
+  if (label && !/^\d+$/.test(label[1].trim())) found.push('라벨과 콜론');
+  if (heading && /^[가-힣A-Za-z]{1,8}( ?\d+)?\.\s/.test(text)) found.push('라벨과 마침표');
+  if (heading && (text.match(/(?<!\d)[,，](?!\d)|·/g) || []).length >= 2) found.push('쉼표 목록');
+  if (/(\d+|두|세|네|다섯)\s?가지/.test(text) || /(은|는|이|가)\s(둘|셋|넷|다섯)(이다|뿐이다|이\s있다|\.|$)/.test(text)
+    || /(은|는|이|가)\s(\d+|두|세|네|다섯)\s?(개|곳)(이다|다|뿐이다)/.test(text)) found.push('개수 세기');
+  if (/(^|[^가-힣])(이|본)\s(문서|글|보고서|장)(은|는|이|가|에서는|의)\s/.test(text)) found.push('자기 언급');
+  return found;
+}
 const PURPOSES = ['comparison', 'explainer', 'walkthrough'];
 
 // 제목은 목록에서 한 줄로 읽힌다. 라이브러리나 시스템 이름이 없으면 무엇에 관한
@@ -299,6 +324,27 @@ function checkDoc(doc, byslug) {
       if (!isSources && !/class="key"/.test(s)) lacks.push('.key');
       if (lacks.length) add('section-grammar', `${k + 2}장에 ${lacks.join(', ')} 가 없다. 제목 아래 핵심 한두 문장이 있어야 훑는 독자가 주장을 만난다`);
     });
+  }
+
+  if (meta?.date >= NEW_FORM_FROM) {
+    const h1 = /<h1\b[^>]*>([\s\S]*?)<\/h1>/.exec(html);
+    const title = /<title>([\s\S]*?)<\/title>/.exec(html);
+    const og = /<meta\s+property="og:title"\s+content="([^"]*)"/.exec(html);
+    const copies = [meta.title, h1 && textOf(h1[1]), title && textOf(title[1]), og && decode(og[1])].filter((x) => x != null);
+    if (new Set(copies.map((x) => x.trim())).size > 1) {
+      add('title-copies', `제목 사본이 서로 다르다: ${[...new Set(copies)].map((x) => `「${x}」`).join(' / ')}`);
+    }
+    const spots = [];
+    if (meta.title) spots.push(['문서 제목', meta.title, true]);
+    for (const m of html.matchAll(/<h2\b[^>]*>([\s\S]*?)<\/h2>/g)) spots.push([`${lineOf(html, m.index)}행 h2`, formTextOf(m[1]), true]);
+    for (const m of html.matchAll(/<p class="key"[^>]*>([\s\S]*?)<\/p>/g)) spots.push([`${lineOf(html, m.index)}행 .key`, formTextOf(m[1]), false]);
+    for (const [where, text, heading] of spots) {
+      const forms = headingForms(text, { heading });
+      if (forms.length) add('heading-form', `${where} 「${text.slice(0, 60)}」 이 ${forms.join(', ')} 꼴이다. 제목은 장이 담은 것을 가리키는 짧은 말로, 주장은 .key 에 쓴다 (prose-ko.md)`);
+    }
+    if (doc.slideCount > MAX_CHAPTERS) {
+      add('chapter-count', `장이 ${doc.slideCount}개다 (상한 ${MAX_CHAPTERS}). 독자가 한 장으로 읽을 장은 합친다`);
+    }
   }
 
   for (const m of html.matchAll(/<svg\b[^>]*>/gi)) {
