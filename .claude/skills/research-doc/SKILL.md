@@ -5,7 +5,7 @@ description: Writes a single-file HTML research document in Korean from a corpus
   explainer, walkthrough), the chapter spine, the chapter grammar with a specimen per
   kind, figures and charts, quoting, and Korean prose that is not translated English.
 when_to_use: Writing or substantially rewriting research/<slug>/index.html, turning a
-  paper or an open-source project into a document, adding chapters to an existing one, or
+  paper, an open-source project or a web page into a document, adding chapters to an existing one, or
   adding a diagram, chart, figure, or trace to one.
 ---
 
@@ -149,7 +149,10 @@ so a reader who looks for it in the original does not come up empty.
 `new-doc.mjs` stamps the shell from `assets/deck-shell.html`; assembling one by hand,
 confirm the shell script appears once, since a duplicate breaks navigation silently. The
 contents rail is built by the shell from the chapters (`data-label` on a section names
-it), so adding or renaming a chapter needs no rail edit. Write chapter by chapter. Define colors as CSS custom properties that components reference, or
+it), so adding or renaming a chapter needs no rail edit. A document stamped before that
+shell carries its own hand-written `.rail-item` list and a script that cannot build one;
+there, add and renumber the items with the chapters (`rail-count` blocks a mismatch), and
+do not delete them, or the rail goes empty. Write chapter by chapter. Define colors as CSS custom properties that components reference, or
 dark mode becomes a second copy of every component, and give anything wide
 `overflow-x: auto`. Draw rather than embed, except where redrawing would invent what the
 source shows; `check-doc.mjs --help` lists the rest, including the ban on external
@@ -178,6 +181,5 @@ has the fix. This read is the one place prose is judged for its own sake.
 
 ## Do not
 
-- Edit `index.html` at the repo root or the docs table in `README.md`; both are generated.
-- Force a shared template across documents; tables, charts and diagrams differ enough that
-  a common stylesheet becomes a constraint.
+- Force shared components across documents beyond the shell `new-doc.mjs` stamps; tables,
+  charts and diagrams differ enough that a common component set becomes a constraint.

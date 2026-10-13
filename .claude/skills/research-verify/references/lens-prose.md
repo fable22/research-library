@@ -1,7 +1,8 @@
 # Lens C — the structure auditor
 
-Hand this file's content to a subagent, filling in the `{...}` slots. The file keeps its
-`lens-prose` name for the workflow that loads it; the lens itself audits structure.
+The text below the rule is the lens prompt. In `research-chain` the lens reads this file and
+the prompt supplies the `{...}` values; run by hand, give it to a subagent with them filled.
+The file keeps its `lens-prose` name for the workflow that loads it; the lens audits structure.
 
 ---
 

@@ -40,6 +40,8 @@ out   notes/mechanism.md, roughly 4K
 "the README contradicts the code" hands you a finding you did not verify and will probably
 ship; one that reports quotes and locators hands you material you can check. Write the trace
 chapter from the notes and reopen the file whenever a sentence needs more than they hold.
+A quote from the notes goes into `evidence.jsonl` only after you reopen it at its locator:
+the span is yours to take, and the note is a pointer to it.
 
 ## The trace carries the walkthrough
 
