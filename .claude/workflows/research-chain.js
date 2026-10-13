@@ -159,7 +159,8 @@ Write your report in Korean, plain declarative, following
 Tag every item 고쳐야 (one correct answer exists: give the slide and the document's
 sentence, plus the source value and the locator where a source applies) or 판단 (it changes
 the document's conclusion or its size), and give your confidence. What you could not settle
-goes under the heading your lens file uses for it rather than being dropped. That heading is
+goes under the heading your lens file uses for it, or 검증하지 못한 것 if it names none,
+rather than being dropped. That heading is
 never empty, because a report listing only findings reads as "everything else checked out". The fix passes check each item against
 the source. Do not list what passed; give a count.`
 
@@ -312,7 +313,7 @@ Confirm each finding against the pinned source before you change anything. Lense
 wrong often enough that acting on one unchecked can delete a correctly sourced claim.
 Record the ones you rejected and why.
 
-Update ${EVID}/claims.jsonl for the sentences you change. Then run:
+${beforeReader ? `Update ${EVID}/claims.jsonl for the sentences you change.` : `Extract ${EVID}/claims.jsonl from the sentences as they now stand; no earlier pass did.`} Then run:
 ${CHECKS}
 Render the changed slides and read them after the fixes, not before.
 
@@ -412,8 +413,8 @@ re-check follows, so change nothing else.
 Document: ${DOC}/index.html
 ${list(hard, '(none)')}
 
-Confirm each against the pinned source before you change it. Every item goes under fixed or
-rejected, with the reason for a rejection. Update the claims for the sentences you change,
+Confirm each against the pinned source before you change it. Every item goes under fixed,
+rejected (with the reason) or needsJudgment. Update the claims for the sentences you change,
 then run:
 ${CHECKS}
 Render the changed slides and read them after the fixes.
@@ -430,7 +431,7 @@ its size goes in needsJudgment, and the document stays as it is.`,
       afterLastRecheck = last.fixed || []
       // A rejection here has no re-check behind it, so it ships as open rather than as settled.
       openFindings.push(...(last.rejected || []))
-      if ((last.fixed || []).length + (last.rejected || []).length < hard.length) {
+      if ((last.fixed || []).length + (last.rejected || []).length + (last.needsJudgment || []).length < hard.length) {
         openFindings.push(`마지막 재검증 뒤 수정에 넘긴 정답 하나짜리 항목 ${hard.length}개 중 일부가 고침도 기각도 기록되지 않았다.`)
       }
     }
@@ -489,7 +490,7 @@ ${openFindings.map((x) => `- ${x}`).join('\n') || '- (none)'}
 ${openFindings.length ? `
 Say in the PR body that the fix loop stopped at its round cap of ${MAX_ROUNDS} rather than
 on a clean round. The items above were confirmed by the round-${MAX_ROUNDS} re-verification${afterLastRecheck.length ? `, and
-${afterLastRecheck.length} one-answer items it found were fixed afterwards without being re-read (after_last_recheck in run.json)` : ''}.
+${afterLastRecheck.length} one-answer item${afterLastRecheck.length === 1 ? '' : 's'} it found ${afterLastRecheck.length === 1 ? 'was' : 'were'} fixed afterwards without being re-read (after_last_recheck in run.json)` : ''}.
 They are known defects, not open questions — do not file them under either of the other two
 headings.` : ''}
 
