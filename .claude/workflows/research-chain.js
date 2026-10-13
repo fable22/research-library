@@ -1,7 +1,7 @@
 export const meta = {
   name: 'research-chain',
-  description: 'Pin a corpus, write the document, verify it with three separated lenses, fix until a round comes back clean, and open a draft PR',
-  whenToUse: 'One research target, already resolved to a concrete identity, that should go all the way to a reviewable PR without stopping to ask.',
+  description: 'Pin a corpus, write the document, verify it with three separated lenses, fix until a round comes back clean, and open a PR, as a draft while anything waits on a person',
+  whenToUse: 'One research target, already resolved to a concrete identity, that should go all the way to a reviewable PR without stopping to ask. Launch with args as a JSON object, never the request text: {"slug":"YYYY-MM-DD-slug","target":"<URL or arXiv ID+version>","question":"...","angle":"..."}, slug and target required. Resolve a free-text request into that object in the main session first.',
   phases: [
     { title: 'Source and draft', detail: 'one agent, one context: pin the corpus and write the document' },
     { title: 'Verify', detail: 'lenses B/C in parallel, then A over their reports' },
@@ -12,22 +12,54 @@ export const meta = {
 
 // The script holds the sequence; the skills hold the procedure. Where a prompt below and a
 // skill disagree, the skill wins, so prompts point at skill files rather than restating
-// them. Two copies drift.
+// them. Two copies drift. Before editing, read docs/workflow-authoring.md.
 //
 // args is resolved in the main session, where questions can still be asked. A workflow
-// cannot ask, so it has to arrive fully formed:
-//   { slug, kind, target, question, angle }
-let a = args || {}
-// Every launch observed through this path delivered args JSON-encoded rather than as an
-// object, so parse it back before the guard runs. Failing on "slug is required" while the
-// slug sits inside the string sends the next person looking in the wrong place.
+// cannot ask, so it has to arrive fully formed. meta.whenToUse names the shape because it is
+// the only part of this file a caller sees before launching; ARGS_SHAPE is what a launch that
+// got it wrong is handed back. meta must be a literal, so the two cannot share a constant:
+// change them together.
+const ARGS_SHAPE = `args must be a JSON object (a JSON-encoded string of one also works):
+  slug      required. YYYY-MM-DD-slug: a date, then lowercase letters, digits and hyphens.
+            Names both research/<slug>/ and .research/<slug>/.
+  target    required. The resolved identity: a GitHub URL, an arXiv ID with its version,
+            or a page URL.
+  question  optional. The question the document has to settle.
+  angle     optional. An angle the document is required to take.
+Example:
+  {"slug":"2026-10-07-example-topic","target":"https://github.com/owner/name","question":"...","angle":"..."}
+Free text is not read into these fields. The slug would have to be guessed, and a workflow
+cannot ask, so resolve them in the main session and launch again.`
+
+// Launches through this path have delivered args JSON-encoded, and also as the raw request
+// text, so parse a string back before the guard runs. Every problem is reported in one pass, so
+// one relaunch fixes them all. An unknown key is a problem rather than noise: a misspelled
+// question would otherwise drop out of an unattended run without anyone seeing it.
+let a = args
 if (typeof a === 'string') {
   try { a = JSON.parse(a) } catch (e) {
-    return { error: `args arrived as a string and did not parse as JSON: ${e.message}` }
+    return { error: `args arrived as free text, not JSON (${e.message}).\n\n${ARGS_SHAPE}` }
   }
 }
-if (!a.slug || !a.target) {
-  return { error: 'args.slug and args.target are required. Resolve the target before launching.' }
+if (!a || typeof a !== 'object' || Array.isArray(a)) {
+  const got = a === undefined ? 'nothing' : Array.isArray(a) ? 'an array' : JSON.stringify(a)
+  return { error: `args must be an object; got ${got}.\n\n${ARGS_SHAPE}` }
+}
+{
+  const problems = []
+  const unknown = Object.keys(a).filter((k) => !['slug', 'target', 'question', 'angle'].includes(k))
+  if (unknown.length) problems.push(`keys this workflow does not read: ${unknown.join(', ')}`)
+  // The same pattern scripts/new-doc.mjs enforces.
+  if (typeof a.slug !== 'string' || !/^\d{4}-\d{2}-\d{2}-[a-z0-9-]+$/.test(a.slug)) {
+    problems.push(a.slug === undefined ? 'slug is missing' : `slug is not YYYY-MM-DD-slug: ${JSON.stringify(a.slug)}`)
+  }
+  if (typeof a.target !== 'string' || !a.target.trim()) problems.push('target is missing or empty')
+  for (const k of ['question', 'angle']) {
+    if (a[k] != null && typeof a[k] !== 'string') problems.push(`${k} must be a string when given`)
+  }
+  if (problems.length) {
+    return { error: `args did not pass: ${problems.join('; ')}.\n\n${ARGS_SHAPE}` }
+  }
 }
 
 const DOC = `research/${a.slug}`
@@ -125,7 +157,9 @@ Write your report in Korean, plain declarative, following
   ## 검증하지 못한 것    never empty. A report listing only findings reads as
                         "everything else checked out"
 
-Do not report what you are unsure of. Do not list what passed; give a count.`
+Report every finding with your confidence. What you could not settle goes under
+검증하지 못한 것 rather than being dropped; the fix round checks each item against the
+source. Do not list what passed; give a count.`
 
 // B and C first, in parallel and blind to each other. A runs last and reads their reports,
 // because part of what it looks for is what the other two could not have seen: a pinned
@@ -324,16 +358,18 @@ if (!fixed || !fixed.gatesPassed) {
 }
 
 // ─── phase 4 ────────────────────────────────────────────────────────────────
-// Draft, not ready for review. This can reach a PR unattended; it cannot judge that the
+// Draft while anything waits on a person, ready otherwise. Merging is the publishing call
+// and stays manual either way, so this can reach a PR unattended without judging that the
 // document is worth publishing.
 phase('Ship')
 const shipped = await agent(`${HOUSE}
 
-Objective: put the document on a branch and open a draft PR.
+Objective: put the document on a branch and open a PR.
 
 Branch doc/${a.slug} off main. Stage ${DOC}/ plus the README.md and index.html that
 build-index.mjs rewrote. Write the message per the Commits section of AGENTS.md, which also
-says what the PR is titled with, then push and open the PR.
+says what the PR is titled with and the preview link its body carries, then push and open
+the PR.
 
 Open it as a draft when any list below has anything in it, because the document really is
 waiting on a decision then; open it ready for review when all of them are empty.
@@ -368,7 +404,7 @@ after the last fix round. They are known defects, not open questions — do not 
 under either of the other two headings.` : ''}
 
 Output: JSON matching the schema.
-Boundaries: do not merge, do not mark it ready for review, do not push to main.`,
+Boundaries: do not merge, do not change the draft state after opening, do not push to main.`,
   {
     label: 'ship',
     schema: {
