@@ -191,7 +191,7 @@ Re-run the machine checks after fixing, and have a context that did not make the
 re-read the chapters they touched; in the chain that is a re-check agent, not a lens. Stop
 when a round turns up no new must-fix item with one correct answer: a number, a quote, a
 direction, a dead reference. Two rounds at most. What the last re-check still finds is
-handled by kind: an item with one correct answer (a number, a reference, a quote) is fixed
+handled by kind: an item with one correct answer (a number, a quote, a direction, a reference) is fixed
 once more without another round and recorded in `run.json` under `after_last_recheck`;
 anything else is reported as found-and-unfixed. Fixes introduce their own errors and the second round finds
 them. Wording is different: each pass rewrites the document toward the gate and away from

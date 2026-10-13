@@ -95,8 +95,9 @@ ${a.angle ? `Required angle: ${a.angle}` : ''}
 
 Read .claude/skills/research-source/SKILL.md and follow it, then, in this same context,
 .claude/skills/research-doc/SKILL.md, and write ${DOC}/index.html. Enumerate what the
-corpus contains before writing; the setup chapter and notRead are built from it. Pass node scripts/check-doc.mjs ${DOC} and node scripts/check-prose.mjs ${DOC},
-run node scripts/build-index.mjs, and stop.
+corpus contains before writing; the setup chapter and notRead are built from it. Pass
+node scripts/check-doc.mjs ${DOC} and node scripts/check-prose.mjs ${DOC}, run
+node scripts/build-index.mjs, and stop.
 
 Output: JSON matching the schema.
 Boundaries: do not commit, do not create a branch, do not touch claims.jsonl. Do not start
@@ -155,11 +156,11 @@ and that separation is the only reason you exist as a separate context.`
 const REPORT_SHAPE = `
 Write your report in Korean, plain declarative, following
 .claude/skills/research-doc/references/prose-ko.md, in the format your lens file gives.
-Tag every item 고쳐야 (one correct answer exists: give the slide, the document's sentence,
-the source value and the locator) or 판단 (it changes the document's conclusion or its
-size), and give your confidence. What you could not settle goes under a 검증하지 못한 것
-heading rather than being dropped. That heading is never empty, because a report listing only
-findings reads as "everything else checked out". The fix passes check each item against
+Tag every item 고쳐야 (one correct answer exists: give the slide and the document's
+sentence, plus the source value and the locator where a source applies) or 판단 (it changes
+the document's conclusion or its size), and give your confidence. What you could not settle
+goes under the heading your lens file uses for it rather than being dropped. That heading is
+never empty, because a report listing only findings reads as "everything else checked out". The fix passes check each item against
 the source. Do not list what passed; give a count.`
 
 const CHECKS = `    node scripts/check-doc.mjs ${DOC}
@@ -222,8 +223,9 @@ if (got.length) {
 
 Read the "Fix, then re-verify what changed" section of
 .claude/skills/research-verify/SKILL.md for how to apply a finding. This pass runs before
-lens A reads the draft: act only on the items tagged 고쳐야 in the reports below, and leave
-판단 items and anything untagged for the fix round.
+lens A reads the draft: act only on the items tagged 고쳐야 in the reports below. Leave 판단
+items and anything untagged alone and do not list them; the fix round gets the reports
+whole.
 
 Document: ${DOC}/index.html
 
@@ -231,13 +233,15 @@ ${got.map((r) => `### Lens ${r.key} (${r.label})\n${r.report}`).join('\n\n')}
 
 Confirm each item against the pinned source before you change anything. Lenses are wrong
 often enough that acting on one unchecked can delete a correctly sourced claim. Record the
-ones you rejected and why. Then run:
+ones you rejected and why. research-verify extracts claims while the lenses run, and this is
+that point in the chain: extract ${EVID}/claims.jsonl from the sentences as they now stand.
+Then run:
 ${CHECKS}
 Render the changed slides and read them after the fixes.
 
 Output: JSON matching the schema.
-Boundaries: do not commit. Anything that changes the document's conclusion or its size is
-not yours to decide; put it in needsJudgment and leave the document alone.`,
+Boundaries: do not commit. A 고쳐야 item that turns out to change the document's conclusion
+or its size is not yours to decide; put it in needsJudgment and leave the document alone.`,
     { label: 'fix:before-reader', phase: 'Verify', schema: FIX_SCHEMA })
   if (!beforeReader || !beforeReader.gatesPassed) {
     return { stoppedAt: 'fix-before-reader', reason: 'gates did not pass', draft, beforeReader, reports: got }
@@ -259,7 +263,8 @@ Applied:
 ${list(beforeReader.fixed || [], '(nothing recorded)')}
 Rejected rather than applied:
 ${list(beforeReader.rejected || [], '(none)')}
-Read those slides too: an edit can break what was sound.` : ''}`,
+Read those slides too: an edit can break what was sound. Check the rejections as well: if one
+was in fact correct, report it as 고쳐야.` : ''}`,
   { label: READER.label, phase: 'Verify' })
 if (aReport) got.push({ key: READER.key, label: READER.label, report: aReport })
 
@@ -275,7 +280,9 @@ phase('Fix')
 // wording rewrites the document toward the gate and away from the reader.
 const MAX_ROUNDS = 2
 let findings = got.map((r) => `### Lens ${r.key}\n${r.report}`).join('\n\n') +
-  (beforeReader ? `\n\nLens B and C's 고쳐야 items were handled before lens A read the draft; do not reapply them.\nApplied:\n${list(beforeReader.fixed || [], '(nothing recorded)')}\nRejected:\n${list(beforeReader.rejected || [], '(none)')}` : '')
+  (beforeReader ? `\n\nLens B and C's 고쳐야 items were handled before lens A read the draft; do not reapply them.\nApplied:\n${list(beforeReader.fixed || [], '(nothing recorded)')}\nRejected:\n${list(beforeReader.rejected || [], '(none)')}` +
+    ((beforeReader.needsJudgment || []).length || (beforeReader.unverified || []).length
+      ? `\nAlready recorded for a person or as unverified; do not re-list them:\n${list([...(beforeReader.needsJudgment || []), ...(beforeReader.unverified || [])], '(none)')}` : '') : '')
 let fixed = null
 let stoppedBecause = 'cap'
 // Must-fix items the last round confirmed but had no round left to act on. Empty unless the
@@ -305,7 +312,7 @@ Confirm each finding against the pinned source before you change anything. Lense
 wrong often enough that acting on one unchecked can delete a correctly sourced claim.
 Record the ones you rejected and why.
 
-Extract ${EVID}/claims.jsonl from the sentences that shipped. Then run:
+Update ${EVID}/claims.jsonl for the sentences you change. Then run:
 ${CHECKS}
 Render the changed slides and read them after the fixes, not before.
 
@@ -405,18 +412,29 @@ re-check follows, so change nothing else.
 Document: ${DOC}/index.html
 ${list(hard, '(none)')}
 
-Confirm each against the pinned source before you change it, and record the ones you
-rejected and why. Re-extract the claims for the sentences you change, then run:
+Confirm each against the pinned source before you change it. Every item goes under fixed or
+rejected, with the reason for a rejection. Update the claims for the sentences you change,
+then run:
 ${CHECKS}
+Render the changed slides and read them after the fixes.
 
 Output: JSON matching the schema.
-Boundaries: do not commit.`,
+Boundaries: do not commit. An item that turns out to change the document's conclusion or
+its size goes in needsJudgment, and the document stays as it is.`,
         { label: 'fix:after-last-recheck', phase: 'Fix', schema: FIX_SCHEMA })
-      if (!last || !last.gatesPassed) { fixed = last; break }
+      if (!last) {
+        return { stoppedAt: 'fix', reason: 'the fix after the last re-check returned nothing', draft, fixed, rounds, reports: got }
+      }
+      if (!last.gatesPassed) { fixed = last; break }
       take(last)
       afterLastRecheck = last.fixed || []
+      // A rejection here has no re-check behind it, so it ships as open rather than as settled.
+      openFindings.push(...(last.rejected || []))
+      if ((last.fixed || []).length + (last.rejected || []).length < hard.length) {
+        openFindings.push(`마지막 재검증 뒤 수정에 넘긴 정답 하나짜리 항목 ${hard.length}개 중 일부가 고침도 기각도 기록되지 않았다.`)
+      }
     }
-    openFindings = recheck.badRejections || []
+    openFindings.push(...(recheck.badRejections || []))
     log(`round ${round}: cap reached; ${afterLastRecheck.length} one-answer items fixed after the last re-check, ${openFindings.length} left open`)
     break
   }
@@ -470,9 +488,10 @@ Found and not fixed:
 ${openFindings.map((x) => `- ${x}`).join('\n') || '- (none)'}
 ${openFindings.length ? `
 Say in the PR body that the fix loop stopped at its round cap of ${MAX_ROUNDS} rather than
-on a clean round, and that the items above were confirmed by a re-verification that ran
-after the last fix round. They are known defects, not open questions — do not file them
-under either of the other two headings.` : ''}
+on a clean round. The items above were confirmed by the round-${MAX_ROUNDS} re-verification${afterLastRecheck.length ? `, and
+${afterLastRecheck.length} one-answer items it found were fixed afterwards without being re-read (after_last_recheck in run.json)` : ''}.
+They are known defects, not open questions — do not file them under either of the other two
+headings.` : ''}
 
 Output: JSON matching the schema.
 Boundaries: do not merge, do not change the draft state after opening, do not push to main.`,
