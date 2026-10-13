@@ -42,6 +42,8 @@ audited. See `.claude/skills/AUTHORING.md` for why they are separated.
 | The reader is a developer, and a symbol has to resolve here | `research-doc/SKILL.md`, `references/visual.md` | one document of twenty carried notation, and its `식 (10)` resolved only in the paper. See the note below |
 | The reader travels the whole chain, not just the writing step | `research-source`, `lens-completeness`, the ⑩ rows | stage 1 framed the question with no reader named, and the lens asking what is missing did not know for whom. See the note below |
 | Eight of eleven prose rules are a floor, not coverage | `check-prose.mjs`, `references/prose-ko.md` | the listed forms are caught 8 of 8; the same sentence in other words passes 10 of 10. See the note below |
+| The chain's args shape is stated where a caller reads it before launching, and a launch that misses it stops at second 0 with the shape | `research-chain.js`, `docs/workflow-authoring.md` | the shape lived only in a comment, and the launcher's template hands over the request text. See the note below |
+| Lens reports carry every finding with a confidence; the fix round does the filtering | `research-chain.js` | Opus 5 / Sonnet 5 guidance, carried into 5.5: a review prompt that says to drop uncertain findings is followed literally and recall falls. See the note below |
 
 ## What the visualization rules were measured against
 
@@ -900,3 +902,51 @@ from HN comments fetched through the Algolia API. Three things changed in the ha
 Not changed: `check-prose.mjs` does not count `그래서` as a paragraph-initial connective.
 Adding it would shift the column away from the human band it was measured against, so the
 regex and the band move together or not at all.
+
+## Why the chain states its args where the caller looks
+
+`research-chain` failed on its first launch repeatedly, with zero agents run each time. The
+2026-10-07 launch is a typical case. The launcher told the main session to call
+`Workflow({ name: "research-chain", args: "<the free-text args>" })`, so the request text went
+through as given (`Target: Engineering at Meta, ...`), and the guard returned
+`args arrived as a string and did not parse as JSON` with zero agents run. Only reading the
+script showed the required shape. It was in a comment, and nothing the caller sees before
+launching (the workflow listing, the skills, `AGENTS.md`) mentioned it. The launcher's
+template points the other way.
+
+The official workflow docs give `meta` no args schema and no `argument-hint`, and do not
+describe the launcher's text. The listing shows `meta.description` and `meta.whenToUse`, and
+`meta` must be a pure literal, so the shape is written into `whenToUse` and again in the error
+the guard returns. Both copies sit in one file with a comment tying them together; a third in
+`AGENTS.md` or a skill would drift the way the comment already had.
+
+Free text is rejected rather than read into fields. A workflow cannot ask, so a parser would
+have to guess the slug, and the slug names two directories. A guessed slug costs a full run
+plus a `rename`; a rejection costs one relaunch. The error lists every problem at once and
+carries an example, so that relaunch is the only one needed.
+
+`kind` came out of the shape. The script never read it and no prompt passed it on; the kind of
+document is chosen in `research-source`, not at launch. Validating a field nothing consumes
+adds a way to fail and protects nothing. Unknown keys are rejected for the same reason the
+error lists everything: in an unattended run, a misspelled `question` would otherwise vanish
+without anyone seeing it.
+
+## What the 2026-10-13 prompt audit decided for the chain
+
+An agent with no history in the session ran the `claude-api` prompt-audit procedure over
+everything reachable from `CLAUDE.md`, against Opus 5.5 for the main session and workflow
+agents and Sonnet 5.5 for the lens the chain pins to `sonnet`. It found no dated patterns. It
+found contradictions, and the owner decided the ones in the chain and `AGENTS.md`:
+
+- The ship phase keeps the conditional draft from c31fc2e. "Do not mark it ready for review"
+  predated that change and contradicted it, and it is gone.
+- Lens reports no longer drop what the lens is unsure of.
+- Launching the chain counts as the request to push, so the ship agent does not stall on
+  "commit and push only when asked".
+- A PR that adds a document links a rendered preview, because Pages serves only `main`.
+  The preview pins a commit SHA, so it keeps showing what was reviewed.
+
+The audit's skill-side findings were made against skills that `main` had rewritten in the
+meantime, so they were dropped rather than ported, and the audit runs again on the current
+skills.
+

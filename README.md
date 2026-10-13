@@ -65,14 +65,22 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 │   ├── check-prose.mjs             # 한국어 산문 규칙 중 셀 수 있는 것을 검사
 │   ├── new-doc.mjs                 # 문서 골격과 작업 공간을 함께 생성·이동
 │   └── test/                       # 게이트 자신의 시험
-├── docs/method-provenance.md       # 규칙이 어디서 왔는가 (skill 은 읽지 않는다)
+├── docs/
+│   ├── method-provenance.md        # 규칙이 어디서 왔는가 (skill 은 읽지 않는다)
+│   └── workflow-authoring.md       # workflow 스크립트를 고칠 때 읽는 규칙
+├── .claude/workflows/
+│   └── research-chain.js           # 세 skill 을 이어 PR 까지 가는 workflow
 ├── .claude/skills/                 # 조사와 문서화 skill
+│   ├── AUTHORING.md                # skill 을 고칠 때 읽는 규칙
 │   ├── research-source/            # 코퍼스를 이식 가능한 신원으로 고정
 │   ├── research-doc/               # 문서 작성
-│   │   └── references/             # prose-ko.md, visual.md, paper.md, oss.md
+│   │   ├── references/             # prose-ko.md, visual.md, paper.md, oss.md, web.md, specimens/
+│   │   └── evals/                  # skill-creator 평가 프롬프트
 │   └── research-verify/            # 초고 적대적 검토
 │       ├── references/             # 렌즈 3개
-│       └── scripts/check-claims.mjs    # 주장이 고정된 원문에 근거하는지 검사
+│       └── scripts/
+│           ├── check-claims.mjs    # 주장이 고정된 원문에 근거하는지 검사
+│           └── pin-paper.mjs       # 논문 본문의 text_sha256 을 낸다
 ├── research/                       # 발행물만
 │   └── 2026-08-05-llm-wiki-retrieval-as-reasoning/
 │       ├── index.html              # 문서 본문 (자체 완결)
@@ -91,12 +99,12 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 
 스크립트가 두 곳에 나뉜 기준은 **누가 돌리는가**입니다. `scripts/` 는 발행물을 검사하고 목록을 만드는 저장소 게이트라서 skill 이 없어도 사람이 그대로 돌립니다. skill 안의 스크립트는 `.research/` 의 작업 산출물만 다루므로 그 skill 의 절차 밖에서는 쓸 일이 없습니다.
 
-세 파일의 역할이 다릅니다.
+네 곳의 역할이 다릅니다.
 
 | 파일 | 대상 | 내용 |
 |---|---|---|
 | `README.md` | GitHub 에 들어온 사람 | 저장소가 무엇인지, 구조, 추가 절차, `meta.json` 필드 |
-| `AGENTS.md` | 에이전트 세션 | 어디에 무엇을 두는지, 어떤 skill 을 쓰는지, 명령, 함정. `CLAUDE.md` 가 이걸 import 한다 |
+| `AGENTS.md` | 에이전트 세션 | 어디에 무엇을 두는지, 어떤 skill 을 쓰는지, 명령, 규칙, 커밋. `CLAUDE.md` 가 이걸 import 한다 |
 | `.claude/skills/` | 에이전트 세션 | 조사 방법, 장 골격, 시각화, 문안 규칙, 검토 절차 |
 | `index.html` | Pages 방문자 | 발행된 문서 목록 |
 
@@ -204,7 +212,7 @@ node scripts/check-prose.mjs --help             # 규칙 목록
 
 한국어 산문을 봅니다. 반응어, 과장 형용사, 출처 없는 귀속, 이중 피동, 합쇼체 종결처럼 **낱말 목록으로 셀 수 있는 것만** 막습니다. 인용은 검사 대상이 아니라서 인용 그릇과 따옴표 안은 먼저 걷어냅니다. 셀 수 없는 것은 `--counts` 가 밀도만 내고 판단은 저자의 읽기 패스가 합니다. 검토 렌즈는 문장이 읽히는지를 판정하지 않습니다.
 
-**경고 등급은 없습니다.** 걸리면 종료 코드 1 입니다. 예외가 필요하면 `--allow=size` 처럼 규칙 id 를 명시해야 하고, 넘긴 항목은 출력에 남습니다. 경고 등급을 두면 전부 경고로 흘러가고 아무도 고치지 않기 때문입니다.
+**경고 등급은 없습니다.** 걸리면 종료 코드 1 입니다. 예외가 필요하면 `check-doc.mjs --allow=size` 처럼 그 스크립트의 규칙 id 를 명시해야 하고, 넘긴 항목은 출력에 남습니다. 경고 등급을 두면 전부 경고로 흘러가고 아무도 고치지 않기 때문입니다.
 
 정적 검사이므로 통과했더라도 브라우저에서 화면을 한 번 열어보는 편이 좋습니다.
 
