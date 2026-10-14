@@ -1043,3 +1043,10 @@ like it condemned lists. `prose-ko.md` now picks the form by the shape of the co
 cover answer is three or four sentences with `cover-length` blocking more than five, and lens A
 reports parallel items set as prose and content said twice in a chapter.
 
+The sentence cap did what counted caps do here. The second rewrite kept its cover to four
+sentences by packing the whole correction path into one of them, and the cover still read as
+the mechanism told end to end, overlapping the `tl-dr` points beneath it. `cover-length` now
+counts characters without spaces (280; English terms count too) instead of sentences, and `research-doc` says what the cover is for: the
+subject, the one thing to understand, the one difference that matters, with the steps left to
+the points.
+
