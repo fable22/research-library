@@ -1,0 +1,721 @@
+Footer
+Your go-to destination for discovering trending open-source projects and uncovering the insights that matter
+Legal
+Terms and conditions
+Privacy policy
+More
+Pricing
+Advertise
+onedump
+gosnakego
+Contact us
+Social
+X (Twitter)
+GitHub
+What they build speaks louder than words
+©
+2026
+Trendshift, created by
+Julian Li
+with ❤️
+Signal
+Advertise
+Signal
+Advertise
+Sign in
+Submit
+Discover trends that matter
+Trending repositories
+Daily
+Weekly
+Monthly
+Yearly
+Live mentions
+Topics
+GitHub trending
+Repositories
+Developers
+Insights
+Stats
+Log in
+morluto/rea — GitHub trending stats & insights | Trendshift
+Bifrost
+Busbar
+Kane CLI
+NobodyWho
+Omnigraph
+morluto/rea
+Reverse engineer anything with agents, from app behavior down to native binaries.
+Visit GitHub
+Like morluto/rea, 57 likes
+57
+Bookmark morluto/rea, 51 bookmarks
+51
+TypeScript
+225.2k
+53k
+3
+contributors
+MIT License
+Achievements
+View all →
+Featured
+Advertise to
+180K+
+monthly visitors
+Bifrost
+Enterprise AI Gateway Built For Scale: Route, Govern, and Secure All Your AI Traffic
+Busbar
+Control what AI can do before it acts
+Kane CLI
+Your agents build it. Kane verifies it. Writes the tests, runs them, and maintains them
+NobodyWho
+Run LLMs locally in Flutter, React Native, Swift, Kotlin, Python and Godot
+Omnigraph
+Versioned graph database on object storage. Git-style workflows and multimodal retrieval
+Momentum
+How fast morluto/rea is gaining stars, and where it lands on Trendshift and GitHub Trending
+Activity and trending
+Stars, forks and merged pull requests each day or month, lined up with the repository's rank on Trendshift Trending
+Aug 15 – Oct 14, 2026
+Daily
+Monthly
+Stars
++225,471
+in 61 days
+0
+20K
+40K
+60K
+52,186
+Forks
++52,946
+in 61 days
+0
+5K
+10K
+15K
+14,473
+Merged PRs
+1,234
+in 61 days
+0
+100
+200
+300
+260
+Trendshift Trending
+where the repository ranked each day it made the top 25
+Top 25 overall
+2
+1
+2
+3
+2
+1
+1
+1
+Top 25 in TypeScript
+2
+1
+1
+1
+1
+1
+1
+1
+Aug 15
+Aug 23
+Aug 31
+Sep 8
+Sep 16
+Sep 24
+Oct 2
+Oct 10
+The left and right arrow keys step from day to day; Home and End go to the first and the last
+Stars, forks, merged pull requests and Trendshift Trending rank, by day
+Day
+Stars gained
+Forks gained
+Merged PRs
+All languages
+TypeScript
+Sat, Aug 15, 2026
++17
++0
+0
+Not trending
+Not trending
+Sun, Aug 16, 2026
++5
++0
+0
+Not trending
+Not trending
+Mon, Aug 17, 2026
++13
++0
+0
+Not trending
+Not trending
+Tue, Aug 18, 2026
++2
++0
+0
+Not trending
+Not trending
+Wed, Aug 19, 2026
++9
++1
+0
+Not trending
+Not trending
+Thu, Aug 20, 2026
++3
++3
+0
+Not trending
+Not trending
+Fri, Aug 21, 2026
++4
++0
+0
+Not trending
+Not trending
+Sat, Aug 22, 2026
++2
++0
+0
+Not trending
+Not trending
+Sun, Aug 23, 2026
++3
++0
+0
+Not trending
+Not trending
+Mon, Aug 24, 2026
+No figure
+No figure
+No figure
+Not trending
+Not trending
+Tue, Aug 25, 2026
++3
++0
+0
+Not trending
+Not trending
+Wed, Aug 26, 2026
++3
++0
+0
+Not trending
+Not trending
+Thu, Aug 27, 2026
++3
++0
+0
+Not trending
+Not trending
+Fri, Aug 28, 2026
++5
++0
+0
+Not trending
+Not trending
+Sat, Aug 29, 2026
++2
++0
+0
+Not trending
+Not trending
+Sun, Aug 30, 2026
+No figure
+No figure
+No figure
+Not trending
+Not trending
+Mon, Aug 31, 2026
++1
++0
+0
+Not trending
+Not trending
+Tue, Sep 1, 2026
++2
++1
+0
+Not trending
+Not trending
+Wed, Sep 2, 2026
++3
++0
+0
+Not trending
+Not trending
+Thu, Sep 3, 2026
++1
++0
+0
+Not trending
+Not trending
+Fri, Sep 4, 2026
++2
++1
+0
+Not trending
+Not trending
+Sat, Sep 5, 2026
++1
++0
+0
+Not trending
+Not trending
+Sun, Sep 6, 2026
++1
++0
+0
+Not trending
+Not trending
+Mon, Sep 7, 2026
++1
++0
+0
+Not trending
+Not trending
+Tue, Sep 8, 2026
++2
++0
+1
+Not trending
+Not trending
+Wed, Sep 9, 2026
++0
++2
+0
+Not trending
+Not trending
+Thu, Sep 10, 2026
+No figure
+No figure
+No figure
+Not trending
+Not trending
+Fri, Sep 11, 2026
++1
++1
+0
+Not trending
+Not trending
+Sat, Sep 12, 2026
+No figure
+No figure
+No figure
+Not trending
+Not trending
+Sun, Sep 13, 2026
++1
++0
+0
+Not trending
+Not trending
+Mon, Sep 14, 2026
++4
++0
+0
+Not trending
+Not trending
+Tue, Sep 15, 2026
++2
++1
+0
+Not trending
+Not trending
+Wed, Sep 16, 2026
++1
++0
+0
+Not trending
+Not trending
+Thu, Sep 17, 2026
++2
++0
+0
+Not trending
+Not trending
+Fri, Sep 18, 2026
++1
++1
+0
+Not trending
+Not trending
+Sat, Sep 19, 2026
++0
++1
+0
+Not trending
+Not trending
+Sun, Sep 20, 2026
++1
++1
+0
+Not trending
+Not trending
+Mon, Sep 21, 2026
+No figure
+No figure
+No figure
+Not trending
+Not trending
+Tue, Sep 22, 2026
++0
++0
+0
+Not trending
+Not trending
+Wed, Sep 23, 2026
++2
++0
+0
+Not trending
+Not trending
+Thu, Sep 24, 2026
++1
++0
+0
+Not trending
+Not trending
+Fri, Sep 25, 2026
+No figure
+No figure
+No figure
+Not trending
+Not trending
+Sat, Sep 26, 2026
+No figure
+No figure
+No figure
+Not trending
+Not trending
+Sun, Sep 27, 2026
++1
++0
+0
+Not trending
+Not trending
+Mon, Sep 28, 2026
++1
++0
+0
+Not trending
+Not trending
+Tue, Sep 29, 2026
++4
++0
+2
+Not trending
+Not trending
+Wed, Sep 30, 2026
++0
++0
+1
+Not trending
+Not trending
+Thu, Oct 1, 2026
++0
++0
+1
+Not trending
+Not trending
+Fri, Oct 2, 2026
++6
++0
+0
+Not trending
+Not trending
+Sat, Oct 3, 2026
++81
++16
+3
+Not trending
+Not trending
+Sun, Oct 4, 2026
++1,373
++145
+2
+#2
+#2
+Mon, Oct 5, 2026
++3,625
++386
+100
+#1
+#1
+Tue, Oct 6, 2026
++3,723
++438
+77
+#2
+#1
+Wed, Oct 7, 2026
++5,602
++533
+177
+#3
+#1
+Thu, Oct 8, 2026
++10,788
++1,287
+76
+#2
+#1
+Fri, Oct 9, 2026
++19,375
++4,244
+126
+#1
+#1
+Sat, Oct 10, 2026
++26,572
++7,895
+142
+#1
+#1
+Sun, Oct 11, 2026
++31,255
++7,578
+144
+#1
+#1
+Mon, Oct 12, 2026
++52,186
++13,219
+102
+Not trending
+Not trending
+Tue, Oct 13, 2026
++50,912
++14,473
+260
+Not trending
+Not trending
+Wed, Oct 14, 2026
++19,863
++2,719
+20
+Not trending
+Not trending
+Total
++225,471
++52,946
+1,234
+1
+#1 on the list
+7
+Rank that day
+Not trending
+1
+GitHub trending history
+Where the repository ranked on GitHub Trending, one dot for each day it was on a list
+All languages
+TypeScript
+Oct 6 – Oct 14, 2026
+#1 on 7 days
+#1
+#5
+#10
+#15
+#20
+#25
+Top 10
+Oct 6, 2026
+Oct 14, 2026
+The left and right arrow keys step from day to day; Home and End go to the first and the last
+Mentions and achievements
+Where people are talking about morluto/rea, and every badge it has earned
+Social mentions
+Achievements
+5
+Oct 14
+5 posts
+8 posts
+rea 把 agent 接到从应用行为到原生二进制的整条链上，反汇编和反编译只作为中间产物进入工作流。过去 24 小时 54,706 个 Star，累计 186,683。
+Read full on
+X
+, posted by
+@Moon_Space__
+@Moon_Space__
+·
+x.com
+安装只需三步： 1、确保已安装 Node.js 2、运行： npx rea-agents setup 3、自动注册到你的 Agent （支持 Claude Code / Codex / Cursor / Gemini CLI） 之后直接问：「这个 .exe 是怎么工作的？」
+Read full on
+X
+, posted by
+@maga_musk
+@maga_musk
+·
+x.com
+REA 的 GitHub Star 增长曲线，惊为天人 AI 大逆向时代已经到来，一切皆可逆向 以前靠闭源作为护城河的产品现在瑟瑟发抖 要么选择主动开源，要么被 AI 强制开源
+Read full on
+X
+, posted by
+@justwasm
+@justwasm
+·
+x.com
+GitHub 今日热门，几个值得关注的项目 👇 rea：让 AI agent 做逆向工程，一天暴涨 5.4 万 star，日榜第一 AnyPS5：把 PS5 程序移植到 PC 上跑，本周 +2.8 万 star hyperframes：HeyGen 开源，用 HTML 直接渲染视频，专为 agent 设计 VoiceStudio：本地运行的开源版 ElevenLabs，声音克隆、配音一站搞定…
+Read full on
+X
+, posted by
+@wanmeiyinshen
+@wanmeiyinshen
+·
+x.com
+GitHub's #1 trending repo today: REA (Reverse Engineer Anything) 54,000+ stars in ONE day. It gives your AI agent a real disassembler — any app, down to native binaries. Closed source software is…
+Read full on
+X
+, posted by
+@maga_musk
+@maga_musk
+·
+x.com
+一个 MCP，让 AI agent 逆向任何软件，从 App 行为一路拆到二进制。 → 看中别家 App 的功能？让 agent 查清怎么实现、附证据，再帮你做一版 → 能拆原生二进制、Electron、.NET、APK、网站 → 本地跑，支持 Claude Code、Codex、Cursor 21.3 万星，今天 +5.4 万，MIT。
+Read full on
+X
+, posted by
+@limuvibecoding
+@limuvibecoding
+·
+x.com
+🔥今日 GitHub Trending 第一：REA（Reverse Engineer Anything） 一个 MCP 服务，让 AI 智能体逆向分析任意应用：原生二进制、JS/Electron、.NET 和网站。本地运行，每个结论都附证据，支持 Claude Code、Codex、Cursor 等。 ⭐ 20.8 万（今日 +5.4 万）
+Read full on
+X
+, posted by
+@jonemarkazzt
+@jonemarkazzt
+·
+x.com
+morluto/rea lets agents reverse-engineer software without source code. Inspects native binaries, JavaScript/Electron apps, .NET assemblies, and websites. Runs locally and reports evidence and…
+Read full on
+X
+, posted by
+@theairelay
+@theairelay
+·
+x.com
+Oct 13
+2 posts
+GitHub 本周最热 AI 项目： morluto/rea 用智能体逆向工程任何东西——从 App 行为到底层二进制 单日新增 2,956 星，总星数 9,658+ 逆向工程进化路径：Ghidra 框架 → reverse-skill 技能包 → rea 纯智能体。现在连逆向也全自动了。
+Read full on
+X
+, posted by
+@maga_musk
+@maga_musk
+·
+x.com
+Estão usando o REA: Reverse Engineer Anything pra fazer engenharia reversa e clonar/recriar apps e softwares.
+Read full on
+X
+, posted by
+@Gabolonhez
+@Gabolonhez
+·
+x.com
+Load more
+Load more
+You might also like
+Repositories close to morluto/rea
+Featured
+Advertise to
+180K+
+monthly visitors
+Omnigraph
+Versioned graph database on object storage. Git-style workflows and multimodal retrieval
+Bifrost
+Enterprise AI Gateway Built For Scale: Route, Govern, and Secure All Your AI Traffic
+Busbar
+Control what AI can do before it acts
+NobodyWho
+Run LLMs locally in Flutter, React Native, Swift, Kotlin, Python and Godot
+Kane CLI
+Your agents build it. Kane verifies it. Writes the tests, runs them, and maintains them
+shijianzhong/rea
+Reverse engineer anything with agents, from app behavior down to native binaries.
+702
+132
+Like shijianzhong/rea, 0 likes
+0
+Bookmark shijianzhong/rea, 0 bookmarks
+0
+darbra/awesome-ai-reverse
+ai reverse 一把梭
+959
+99
+Like darbra/awesome-ai-reverse, 0 likes
+0
+Bookmark darbra/awesome-ai-reverse, 0 bookmarks
+0
+LING71671/open-reverselab
+Python
+Open-source AI reverse-engineering agent platform and MCP server for Ghidra, Frida, x64dbg and Rizin — automated PE/APK/binary analysis, CTF and malware research, with 100+ MCP tools and a 194-article runnable knowledge base.
+1.3k
+301
+Like LING71671/open-reverselab, 0 likes
+0
+Bookmark LING71671/open-reverselab, 0 bookmarks
+0
+Jakiboy/ReVens
+JavaScript
+Windows-based AI-powered Reverse Engineering Toolkit "AIO", Built for Security (Malware analysis, Pentesting) & Educational purposes.
+370
+60
+Like Jakiboy/ReVens, 0 likes
+0
+Bookmark Jakiboy/ReVens, 0 bookmarks
+0
+llnl/OGhidra
+Python
+OGhidra bridges Large Language Models (LLMs) via Ollama with the Ghidra reverse engineering platform, enabling AI-driven binary analysis through natural language. Interact with Ghidra using conversational queries and automate complex reverse engineering workflows.
+454
+50
+Like llnl/OGhidra, 0 likes
+0
+Bookmark llnl/OGhidra, 0 bookmarks
+0
+clearbluejar/pyghidra-mcp
+Python
+Python Command-Line Ghidra MCP
+444
+70
+Like clearbluejar/pyghidra-mcp, 0 likes
+0
+Bookmark clearbluejar/pyghidra-mcp, 0 bookmarks
+0
+2akouwu/reverify
+Python
+Stop your AI from making things up — it proposes, deterministic tools decide, every claim checked against ground truth with evidence. Grounded facts and context survive resets. Reverse engineering is the proving ground. MCP server + CLI.
+1.3k
+229
+Like 2akouwu/reverify, 0 likes
+0
+Bookmark 2akouwu/reverify, 0 bookmarks
+0
+radareorg/r2ai
+C
+LLM-based reversing for radare2
+488
+60
+Like radareorg/r2ai, 0 likes
+0
+Bookmark radareorg/r2ai, 0 bookmarks
+0
+cyberkaida/reverse-engineering-assistant
+Java
+MCP server for reverse engineering tasks in Ghidra 👩‍💻
+873
+80
+Like cyberkaida/reverse-engineering-assistant, 0 likes
+0
+Bookmark cyberkaida/reverse-engineering-assistant, 0 bookmarks
+0

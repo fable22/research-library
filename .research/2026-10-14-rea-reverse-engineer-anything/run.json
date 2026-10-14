@@ -1,0 +1,47 @@
+{
+  "slug": "2026-10-14-rea-reverse-engineer-anything",
+  "question": "rea는 에이전트에게 reverse engineering을 어떻게 맡기며, 기존 RE 도구와 방법론에 비해 무엇이 달라서 이만큼 주목받는가?",
+  "slides": 15,
+  "evidenceCount": 116,
+  "lensesReported": [
+    "B",
+    "A"
+  ],
+  "deadLenses": [],
+  "fixRounds": [
+    {
+      "round": 1,
+      "applied": 18,
+      "rejected": 3,
+      "touched": 11,
+      "recheck": {
+        "hard": 3,
+        "wording": 2,
+        "badRejections": 0
+      }
+    },
+    {
+      "round": 2,
+      "applied": 4,
+      "rejected": 0,
+      "touched": 4,
+      "recheck": {
+        "hard": 1,
+        "wording": 0,
+        "badRejections": 0
+      }
+    }
+  ],
+  "stoppedBecause": "cap",
+  "after_last_recheck": [
+    "Ch15 출처, r2 line (research/2026-10-14-rea-reverse-engineer-anything/index.html:781): the line now reads 'commit 1e98025, README.md, src/ghidra_mcp/server.py'. I checked the file against the pinned clone /tmp/ghmcp-r2/GhidraMCP, whose HEAD is 1e980252087b2479a21b9ca6d82d5829538651a7, and against raw.githubusercontent at that commit. src/ghidra_mcp/server.py is there, and lines 16-21 hold the INSTRUCTIONS text that Ch11 quotes. sources.jsonl r2 files_read already listed the file. No claims.jsonl entry changed: the source line is not a claim, and the claims that rely on server.py (c67, c77) already give it as the locator."
+  ],
+  "openFindings": 0,
+  "needsJudgment": 5,
+  "unverified": 12,
+  "wordingRecorded": [
+    "Ch05 body: round 1 inserted the provider_unavailable/target_unsupported sentence between the ambiguous-selection rule and '그래서 Hopper와 Ghidra를 둘 다 깔아 둔 Mac에서 ... 선택을 돌려보낸다'. The '그래서' now appears to follow from the no-deep-provider sentence rather than from the two-or-more → ambiguous rule it illustrates. Move the Mac example up next to the ambiguous rule, or drop '그래서'.",
+    "Ch06 note, rewritten in round 1 to remove '세 곳에서 온다': '5단계에서 붙는 한계 문장에는 A, B, 그리고 C이다' mixes '~에는' with '~이다' and does not close grammatically. Either '…에는 A, B, C가 있다' or '…은 A, B, C이다'."
+  ],
+  "finishedAt": "2026-10-14T12:28:10.429Z"
+}
