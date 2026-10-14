@@ -407,7 +407,7 @@ ${JSON.stringify({ slug: a.slug, question: a.question || null, slides: draft.sli
 Branch doc/${a.slug} off main. Stage ${DOC}/, ${EVID}/ (.gitignore decides which of its
 files go in), and the README.md and index.html that build-index.mjs rewrote. Write the
 message per the Commits section of AGENTS.md, which also says what the PR is titled with
-and the preview link its body carries, then push and open the PR.
+and the file link its body carries, then push and open the PR.
 
 Open it as a draft when any list below has anything in it, because the document really is
 waiting on a decision then; open it ready for review when all of them are empty.

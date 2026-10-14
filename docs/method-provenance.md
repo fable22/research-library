@@ -945,8 +945,9 @@ found contradictions, and the owner decided the ones in the chain and `AGENTS.md
 - Lens reports no longer drop what the lens is unsure of.
 - Launching the chain counts as the request to push, so the ship agent does not stall on
   "commit and push only when asked".
-- A PR that adds a document links a rendered preview, because Pages serves only `main`.
-  The preview pins a commit SHA, so it keeps showing what was reviewed.
+- A PR that adds a document links the file at its commit SHA on GitHub and gives the `og:url`
+  for after merge. (A third-party renderer was used for a day and dropped on 2026-10-14 at the
+  owner's request: a link should not depend on a service the repository does not control.)
 
 The audit's skill-side findings were made against skills that `main` had rewritten in the
 meantime, so they were dropped rather than ported, and the audit runs again on the current

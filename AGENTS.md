@@ -117,8 +117,8 @@ A PR takes that subject as its title. What the repository gained is what a PR li
 for; a document's own title says what the document is on, so pasting it there leaves the
 reader looking at a claim with no action attached.
 
-A PR that adds or changes a document links a rendered preview at the top of its body,
-because the rendered page is what gets reviewed and Pages serves only `main`:
-`https://raw.githack.com/<owner>/<repo>/<commit-sha>/research/<slug>/index.html`. Use the
-commit SHA rather than the branch, so the link keeps showing what was reviewed. Give the
-document's `og:url` beside it as the address after merge.
+A PR that adds or changes a document links the file at its commit at the top of its body
+(`https://github.com/<owner>/<repo>/blob/<commit-sha>/research/<slug>/index.html`), so the
+link keeps pointing at what was reviewed, and gives the document's `og:url` as the address
+after merge. Pages serves only `main`; to read the rendered page before merge, check the
+branch out and open the file. Do not route a link through a third-party service.
