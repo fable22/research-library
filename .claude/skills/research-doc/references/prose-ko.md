@@ -75,6 +75,30 @@ or `의` hands the reader the particles to fill in. Metaphor and emphasis words 
 전환점`, `~을 시사한다`) tell the reader how to feel instead of what changed. Repeat a term
 rather than varying it.
 
+## Choose the form by the shape of the content
+
+The passages above are prose, and prose is one form among several. Pick the form from what
+the content is:
+
+- A chain where each step leads to the next: sentences joined by their reasons, as in the
+  explanatory passage above.
+- Three or more items of the same kind side by side (differences, conditions, settings,
+  things to do): a list, one short sentence per item. Strung into a paragraph they read as an
+  enumeration the reader has to count and hold.
+- Several things compared on the same attributes: a table.
+- A flow, a loop, or two requirements that cannot both be met: a figure, or numbered steps
+  when the reader follows them in order (`visual.md`).
+
+Say a thing once in a chapter. When a table holds the cases, the paragraphs around it explain
+what the table cannot show; they do not walk through the same cases again.
+
+- ✓ 두 CI 설정이 갈라지는 곳
+  - 실패를 잡는 쪽: A 는 사람이 리뷰에서, B 는 매 PR 의 자동 검사가 잡는다.
+  - 실패를 설정에 옮기는 규칙: A 는 같은 실패가 두 번 나와야, B 는 한 번이면 옮긴다.
+  - 마지막 판정: A 는 테스트 통과, B 는 담당자 승인이다.
+  ✗ 두 설정은 실패를 사람이 잡는지 자동 검사가 잡는지가 다르고, 옮기는 규칙도 두 번과 한 번으로 다르며, 마지막 판정도 테스트와 승인으로 갈린다.
+  Three parallel differences in one sentence make the reader count them; a list shows them.
+
 ## Pairs
 
 The ✗ side is short on purpose; write toward the ✓ side.
@@ -102,7 +126,7 @@ The ✗ side is short on purpose; write toward the ✓ side.
   Developers search for and say the English term.
 - ✓ 외부 API가 가끔 503을 돌려주면 바로 다시 부르기보다 간격을 두고 재시도하는 편이 낫다. 재시도 자체는 흔한 기능인데, 핵심은 실패한 클라이언트들이 같은 순간에 다시 몰리지 않게 하는 것이다.
   ✗ Retry 정책: 지수 backoff. 최대 5회. jitter.
-  Fragments leave the reader to rebuild the causes.
+  Fragments leave the reader to rebuild the causes. A list suits parallel items; a chain of causes needs sentences.
 - ✓ (chapter title) Navigator가 비용을 계산하는 시점
   ✗ Navigator: 증거를 다 모으기 전에는 비용을 묻지 않는다
   A heading is for finding a chapter; the claim goes in `.key`.
