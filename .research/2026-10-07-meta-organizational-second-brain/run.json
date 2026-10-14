@@ -1,8 +1,8 @@
 {
   "slug": "2026-10-07-meta-organizational-second-brain",
   "question": "Meta가 말하는 'organizational second brain'은 어떤 구조로 전문가 지식을 담고, 전문가의 교정을 재학습 없이 검증된 개선으로 바꾸는가 — 그리고 그 knowledge base의 수명주기는 AI-native SDLC의 규율을 어디서 빌려오고 어디서 갈라지는가?",
-  "slides": 25,
-  "evidenceCount": 272,
+  "slides": 19,
+  "evidenceCount": 286,
   "lensesReported": [
     "B",
     "C",
@@ -37,6 +37,30 @@
   "openFindings": 1,
   "needsJudgment": 6,
   "unverified": 13,
-  "wordingRecorded": [],
-  "finishedAt": "2026-10-07T13:50:48Z"
+  "wordingRecorded": [
+    "장 15 '고침을 편집으로 옮기는 일' playbook 칸의 '바로 CLAUDE.md에 적는다'는 편집이 PR 리뷰를 거친다는 w2 352·383행과 어긋난다",
+    "장 15 '파일을 나누고 잇는 방식' playbook 칸이 Meta에도 있는 frontmatter+본문 구조를 적었다. 사실과 절차가 한 SKILL.md에 섞이고 선언된 링크가 없다는 점을 써야 한다",
+    "장 2 tl;dr 5의 '교정 하나마다 고치고'는 교정마다 편집이 된다는 뜻으로 읽힌다. 모든 교정이 루프에 들어간다고 써야 한다"
+  ],
+  "finishedAt": "2026-10-07T13:50:48Z",
+  "after_last_recheck": [
+    "장 2 tl;dr 5와 장 15 문턱 행: '두 번 해야'라는 하한과 리뷰 경로의 Claude 귀속을 w2 353·337·697에 맞춰 '같은 실수가 두 번 보이면 CLAUDE.md에 넣는 작업 규칙을 권한다'로 고침 (k15 갱신)"
+  ],
+  "firstScreenRewrite": {
+    "date": "2026-10-14",
+    "reason": "cover-length now counts characters (280 without spaces); cover re-scoped to subject, one thing, one difference",
+    "rounds": 2,
+    "recheckFindings": {
+      "round1": [
+        "direction: tl-dr 7 cause",
+        "quote: git attributed to both",
+        "quote: '건드릴 파일' overstated",
+        "wording: cover symmetric pair (acted on at owner request)"
+      ],
+      "final": [
+        "wording: tl-dr 7 repeated the cover's playbook gate (acted on: repetition cut)"
+      ]
+    },
+    "coverChars": 278
+  }
 }
