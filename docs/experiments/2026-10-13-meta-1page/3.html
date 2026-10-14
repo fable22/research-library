@@ -1,0 +1,641 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>판 3</title>
+<meta name="description" content="">
+<meta property="og:type" content="article">
+<meta property="og:title" content="판 3">
+<meta property="og:description" content="">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/x/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+/* 문장 안의 짧은 인용. 블록 인용 .q 와 같은 class 라 check-prose 가 둘 다 건너뛴다 */
+span.q { display: inline; font: inherit; font-style: normal; color: var(--ink-2); border: 0; padding: 0; margin: 0; max-width: none; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+/* 핵심 한두 문장. 제목 아래에서 독자가 이 주장으로 무엇을 하는지 말한다. */
+.key { font-size: clamp(15px, 1.5vw, 17px); font-weight: 600; line-height: 1.55; color: var(--ink); margin: 0 0 22px; padding-left: 12px; border-left: 4px solid var(--link); max-width: 70ch; text-wrap: pretty; }
+/* 첨언. 계산 과정, 원문 문단 위치, 인용 원문, 조건의 세부. 기본은 접힘. */
+details.more { margin: 0 0 22px; border: 1px solid var(--rule); border-radius: 10px; padding: 8px 14px; background: var(--card); color: var(--ink-2); font-size: 14px; }
+details.more summary { cursor: pointer; font-weight: 600; color: var(--muted); font-size: 13px; }
+details.more[open] summary { margin-bottom: 6px; }
+details.more p { margin: 8px 0; }
+/* 한 줄짜리 사실 목록. 항목마다 한 줄이 넘으면 첨언으로 보낸다. */
+ul.facts { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 8px; }
+ul.facts li { display: grid; grid-template-columns: minmax(3.2em, max-content) 1fr; gap: 10px; font-size: 14.5px; color: var(--ink); line-height: 1.5; }
+ul.facts li .m { font-size: 12px; color: var(--muted); padding-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); margin: 0 0 18px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+/* 글이 든 표: 독자 상황별 표, 판단 표. 숫자 표의 오른쪽 정렬·줄바꿈 금지를 푼다 */
+table.prose-table th, table.prose-table td { text-align: left; white-space: normal; vertical-align: top; line-height: 1.5; font-size: 13.5px; }
+table.prose-table tbody td { font-family: var(--sans); font-variant-numeric: normal; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row, .bar-axis { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+/* ── article: 기본 읽기 방식. 장을 이어서 스크롤로 읽고 rail 은 목차가 된다. 덱은 토글. ── */
+body[data-mode="article"] .deck { position: static; inset: auto; min-height: 100vh; }
+body[data-mode="article"] .rail { position: sticky; top: 0; height: 100vh; box-sizing: border-box; }
+body[data-mode="article"] .stage { overflow: visible; }
+body[data-mode="article"] .slide {
+  position: static; inset: auto; opacity: 1; visibility: visible; transform: none; transition: none;
+  overflow: visible; padding-bottom: 40px; border-bottom: 1px solid var(--rule); scroll-margin-top: 8px;
+}
+body[data-mode="article"] .slide:last-child { border-bottom: 0; padding-bottom: 96px; }
+body[data-mode="article"] .hud { position: fixed; }
+body[data-mode="article"] #prev, body[data-mode="article"] #next, body[data-mode="article"] .hint { display: none; }
+
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body data-mode="article">
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+
+  </nav>
+
+  <main class="stage" id="stage">
+
+  <!-- 01 -->
+  <section class="slide" data-active="true" data-active="true" data-label="표지">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>전문가 교정으로 지식 파일을 고쳐 가는 Meta 의 Organizational Second Brain</h1>
+      <p class="dek">사내 전문가가 agent 의 결론을 바로잡을 때마다 모델을 다시 학습시킬 수는 없다. Meta 가 compliance 영역 하나에 만든 agent 는 조직의 판단을 200개 넘는 텍스트 파일로 미리 정리해 두고, 조직의 입장을 담은 knowledge 파일과 분석 순서를 담은 recipe 파일을 나눠 둔다. 그래서 전문가의 교정이 들어오면 그 원인이 어느 파일에 있는지 가릴 수 있다. 자기 개선 루프는 교정의 원인을 진단하고, 해당 파일에 최소한의 수정을 만든 뒤, 원래 장면을 다시 돌려 보고 회귀 테스트까지 통과한 수정만 pull request 로 전문가에게 넘긴다. 전문가가 승인해 반영된 장면은 회귀 테스트에 더해지므로, 뒤에 오는 수정도 이번에 고친 동작을 지켜야 통과한다. 이 과정 내내 모델 가중치는 그대로다.</p>
+    </div>
+  </section>
+
+  <!-- 02 -->
+  <section class="slide" data-label="요약">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>기억할 규칙</h2>
+      <p class="key">교정을 어느 파일에 반영할지는 agent 가 가진 자료에 정답이 있었는지로 갈린다. 수정은 원래 장면과 회귀 테스트를 모두 통과해야 전문가 앞에 가고, 반영된 장면은 회귀 테스트로 남아 이후의 수정을 거른다.</p>
+      <ul>
+        <li>knowledge 파일은 조직의 입장만, recipe 는 분석 순서만 담도록 나뉘어 있다. 그래서 agent 가 틀리면 둘 중 어느 쪽이 틀렸는지 물을 수 있다.</li>
+        <li>Meta 는 agent 가 가진 자료로 맞는 결론에 닿을 수 있었는지를 물어 원인을 가른다. 자료에 답이 있었는데 틀렸다면 recipe 를, 답이 없었다면 knowledge 파일을 고치고, 전문가끼리 답이 갈리면 사람의 논의로 넘긴다 (<a href="#p3">자기 개선 루프</a>).</li>
+        <li>수정안은 교정이 나온 장면을 다시 돌린 결과를 judge 가 통과시키고 도메인 benchmark 에서도 회귀가 없어야 pull request 가 된다. 어느 쪽이든 실패하면 컴파일부터 다시 한다.</li>
+        <li>전문가가 승인해 반영하면 그 장면과 검증된 정답이 회귀 suite 에 자동으로 들어간다. 나중에 같은 동작을 깨는 수정은 이 장면에서 걸린다.</li>
+        <li>결과는 Meta 의 자체 보고다. 6주에 걸친 세 번의 개발 sprint 동안 개선 주기마다 회귀가 0 건이었고, 평가 한 건에 드는 시간이 며칠에서 몇 분으로 줄었다고 한다. 유용성은 Meta 의 도메인 SME 가 결과물을 "거의 항상" 유용하다고 평가했다는 말로만 적혀 있으니, 자기 영역에서 기대치를 잡으려면 benchmark 를 먼저 만들어 직접 재야 한다.</li>
+      </ul>
+      <details class="more"><summary>첨언: 원문</summary>
+        <p>§Expert Reasoning via Composable Recipes: <span class="q">“Recipes reference knowledge files but contain no domain facts; knowledge files state positions but prescribe no procedures.”</span> <span class="q">“Failures attribute cleanly to one layer. Was the knowledge wrong, or the procedure?”</span></p>
+        <p>§Building the Organizational Second Brain: <span class="q">“organizing 200+ files into a strict taxonomy”</span></p>
+        <p>§Results: <span class="q">“After three development sprints spanning six weeks, the system achieved:”</span> <span class="q">“Domain SMEs rated agent outputs useful almost all the time”</span> <span class="q">“Days to minutes reduction in individual assessment time.”</span> <span class="q">“Zero regressions across improvement cycles, with every fix automatically strengthening the regression suite.”</span></p>
+        <p>§intro: <span class="q">“A self-improvement loop then compiles expert feedback into verified, regression-tested updates without model retraining.”</span></p>
+      </details>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section class="slide" data-label="자기 개선 루프">
+    <div class="slide-inner">
+      <p class="eyebrow">loop</p>
+      <h2>교정 하나가 파일 수정이 되기까지</h2>
+      <p class="key">전문가의 교정은 진단과 컴파일과 평가를 지나 pull request 가 되고, 전문가가 승인해 반영되면 회귀 테스트의 한 항목으로 남는다. 어느 파일을 고칠지는 agent 가 가진 자료에 정답이 있었는지로 정해진다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">평가에서 떨어진 수정은 컴파일로 돌아가고, 반영된 수정은 평가의 기준이 된다</p>
+        <p class="fig-sub">w1 §The Self-Improvement Flywheel 의 루프 그림. 갈림길과 사람의 승인은 본문 절에서 가져와 더했다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 860 214" role="img" aria-label="전문가 교정이 자기 개선 루프를 도는 순서. 전문가와 agent 의 대화에서 나온 교정이 진단으로 들어가 원인이 recipe 인지 knowledge 파일인지 가려지고, 전문가끼리 답이 갈리면 루프 밖으로 나가 사람의 논의로 간다. 진단된 이슈는 컴파일에서 최소 수정이 되고, 평가에서 원래 장면 replay 와 회귀 benchmark 를 거친다. 평가에 실패하면 컴파일로 되돌아가는 화살표가 있다. 통과한 수정은 전문가 승인을 거쳐 반영되고, 그 장면이 회귀 suite 에 더해지며 평가로 되돌아가는 화살표가 있다.">
+          <rect class="box" x="5" y="20" width="150" height="72" rx="8"/>
+          <text class="txt" x="17" y="44">전문가 교정</text>
+          <text class="txt-s" x="17" y="63">SME 와 agent 의 대화</text>
+          <text class="txt-s" x="17" y="79">교정과 escalation</text>
+          <path class="arw" d="M155 56 L179 56"/><path class="arw" d="M173 51 L180 56 L173 61"/>
+
+          <rect class="box-hi" x="181" y="20" width="150" height="72" rx="8"/>
+          <text class="txt" x="193" y="44">진단</text>
+          <text class="txt-s" x="193" y="63">자료에 답이 있었나</text>
+          <text class="txt-s" x="193" y="79">빈도와 심각도로 가중</text>
+          <path class="arw" d="M331 56 L355 56"/><path class="arw" d="M349 51 L356 56 L349 61"/>
+
+          <rect class="box" x="357" y="20" width="150" height="72" rx="8"/>
+          <text class="txt" x="369" y="44">컴파일</text>
+          <text class="txt-s" x="369" y="63">최소 수정 diff</text>
+          <text class="txt-s" x="369" y="79">리뷰 agent, linter</text>
+          <path class="arw" d="M507 56 L531 56"/><path class="arw" d="M525 51 L532 56 L525 61"/>
+
+          <rect class="box" x="533" y="20" width="150" height="72" rx="8"/>
+          <text class="txt" x="545" y="44">평가</text>
+          <text class="txt-s" x="545" y="63">원래 장면 replay</text>
+          <text class="txt-s" x="545" y="79">회귀 benchmark</text>
+          <path class="arw" d="M683 56 L707 56"/><path class="arw" d="M701 51 L708 56 L701 61"/>
+
+          <rect class="box" x="709" y="20" width="146" height="72" rx="8"/>
+          <text class="txt" x="721" y="44">반영과 보강</text>
+          <text class="txt-s" x="721" y="63">PR 을 전문가가 승인</text>
+          <text class="txt-s" x="721" y="79">장면을 suite 에 추가</text>
+
+          <!-- 평가 실패: 컴파일로 -->
+          <path class="arw" d="M580 92 L580 126 L432 126 L432 94"/><path class="arw" d="M427 100 L432 93 L437 100"/>
+          <text class="txt-s" x="442" y="118">실패하면 재시도</text>
+
+          <!-- 보강: 평가로 -->
+          <path class="arw" d="M782 92 L782 166 L640 166 L640 94"/><path class="arw" d="M635 100 L640 93 L645 100"/>
+          <text class="txt-s" x="650" y="158">회귀 suite 에 더함</text>
+
+          <!-- 갈림길: 루프 밖 -->
+          <path class="arw" d="M256 92 L256 146"/><path class="arw" d="M251 140 L256 147 L261 140"/>
+          <rect class="box" x="181" y="148" width="150" height="50" rx="8" style="stroke-dasharray:4 3"/>
+          <text class="txt" x="193" y="169">ambiguity</text>
+          <text class="txt-s" x="193" y="187">사람의 논의로 넘김</text>
+        </svg>
+        </div>
+        <figcaption>원문 그림의 상자 넷을 그대로 옮겼고, "빈도와 심각도로 가중" 은 원문 그림의 진단 상자에만 있다. 원문 그림에는 사람의 검토가 상자로 없어서 §Landing and Enrichment 의 설명대로 반영 상자 안에 적었다. 점선 상자의 ambiguity 갈림길은 §Diagnosis 에 있는 내용이다.</figcaption>
+      </figure>
+
+      <p>진단 결과가 어느 파일을 고칠지 정한다. 처음에는 교정을 대화 형태로 분류했는데(전문가가 정보를 주면 knowledge 부족, 방향을 틀면 절차 문제), 결론을 바로잡는 교정 하나가 knowledge 부족일 수도 recipe 결함일 수도 있어서 실패했다. 지금은 교정 신호를 agent 의 knowledge manifest, 곧 어떤 파일을 언제 불러와 어떻게 썼는지의 기록과 함께 뽑고, 실제 파일을 읽어 아래 질문으로 원인을 가른다.</p>
+      <p><b>agent 가 가진 자료로 맞는 결론에 닿을 수 있었는가</b></p>
+      <ul class="facts">
+        <li><span class="m">recipe</span><span>자료에 답이 있었는데 agent 가 틀렸다. 분석 절차를 고친다</span></li>
+        <li><span class="m">knowledge</span><span>자료에 답이 없었다. knowledge 파일이 빈 곳이다</span></li>
+        <li><span class="m">ambiguity</span><span>전문가끼리 답이 갈린다. 사람의 논의 대상으로 표시한다</span></li>
+      </ul>
+
+      <p>컴파일은 이슈 하나를 최소한의 파일 수정으로 바꾸고, sub-agent 들이 병렬로 cross-reference, 기존 position 과의 충돌, token 예산 같은 영향을 따진다. 수정안은 서로 다른 입력을 받는 검사를 차례로 지난다.</p>
+      <ul class="facts">
+        <li><span class="m">리뷰 agent</span><span>수정 이유를 모르는 새 context 에서 diff 만 보고 모순과 깨진 edge case 를 찾는다</span></li>
+        <li><span class="m">linter</span><span>끊어진 cross-reference, 파일 크기 예산 초과, 식별자 충돌, 의존 순환을 pass/fail 로 가른다</span></li>
+        <li><span class="m">replay</span><span>원래 장면을 다시 돌리고, 무엇이 바뀌었는지 모르는 judge 가 원래 교정에 비춰 본다</span></li>
+        <li><span class="m">회귀</span><span>도메인 benchmark 를 돌린다. 정답이 여럿일 수 있는 문항은 LLM judge 가 pass/fail 을 매긴다</span></li>
+      </ul>
+      <p>replay 나 회귀에서 떨어지면 컴파일을 다시 하고, 회귀 실패라면 어디서 회귀했는지를 다음 prompt 에 넣는다. 통과한 수정은 pull request 로 전문가에게 가는데, Meta 는 이런 수정 하나를 30초면 검토할 수 있다고 말한다. 승인되어 반영되면 원래 실패한 장면과 검증된 정답이 회귀 suite 에 자동으로 더해진다.</p>
+
+      <figure class="figure">
+        <p class="fig-title">검토가 필요한 기능을 agent 가 놓쳤을 때</p>
+        <p class="fig-sub">원문 그림의 예시 파일 ps-position-1 에 원문의 진단과 검증 규칙을 적용한 가상 사례</p>
+        <pre>교정    전문가: "이 기능은 검토가 필요하다"  (agent 는 불필요로 판정)
+진단    manifest 에 ps-position-1 이 있다. triggers 는
+          third-party integration, in-app purchases, hardware device launch
+        in-app purchase 를 쓰는 기능이면   → 답이 있었다 → recipe 수정
+        세 trigger 어디에도 없는 기능이면  → 답이 없었다 → knowledge 수정
+컴파일  ps-position-1 의 triggers 를 넓히면 referenced_by 3개가 영향 범위
+          ps-position-routing-index, ra-scoring-criteria, ra-requirement-catalog
+평가    같은 기능으로 replay, judge 는 "검토 필요" 와 맞는지 본다 → 회귀 benchmark
+반영    승인 뒤 이 장면과 정답이 회귀 suite 에 들어간다
+이후    이 trigger 를 다시 빼는 수정은 이 장면에서 걸려 컴파일로 돌아간다</pre>
+        <figcaption>원문에는 이 사례가 없다. 파일 이름과 frontmatter 는 원문 그림의 일반화된 예시에서, 판정과 검사 순서는 원문의 규칙에서 가져왔다. 기존 파일을 넓힐지 새 position 을 더할지는 컴파일이 정하고, 새 position 이면 원문 규칙대로 routing index 도 함께 고친다.</figcaption>
+      </figure>
+
+      <p>원문의 규칙으로 정해지지 않는 경우도 있다. ps-position-1 이 knowledge base 에 있었는데 agent 가 불러오지 못했다면, 판정 기준인 source materials 가 불러온 파일만인지 전체인지 원문이 밝히지 않아 recipe 와 knowledge 중 어느 쪽인지 갈리지 않는다. 같은 구조를 만든다면 이 경우를 어느 층으로 돌릴지 먼저 정해야 진단이 매번 같은 답을 낸다. 조직이 입장을 일부러 바꿀 때도 마찬가지다. 규칙대로라면 그 수정은 예전 입장으로 반영된 장면에서 회귀로 걸리는데, suite 항목을 고치거나 빼는 절차는 원문에 없다. 입장이 자주 바뀌는 영역이라면 그 절차를 따로 마련해야 한다.</p>
+
+      <details class="more"><summary>첨언: 원문</summary>
+        <p>§The Self-Improvement Flywheel: 본문 목록의 넷째 단계는 <span class="q">“Have domain experts review them.”</span> 이고, 원문 그림의 넷째 상자는 <span class="q">“Phase 4: Landing And Enrichment”</span> 다. 진단 상자 안에는 <span class="q">“Weight By Frequency And Severity”</span> 가 있다.</p>
+        <p>§Keeping Humans in Control: <span class="q">“Training signal: Every correction and every escalation becomes input for the self-improvement loop.”</span> §Diagnosis: Attributing Each Correction to a Root Cause: <span class="q">“Raw expert feedback comes from conversation traces where domain SMEs interacted with the agent and provided corrections.”</span> <span class="q">“This heuristic failed because conversational form is a poor proxy for root cause.”</span> <span class="q">“First, extract every substantive signal from the expert alongside the agent’s full knowledge manifest (every file loaded, when, and how used).”</span> <span class="q">“Could the agent have reached the correct conclusion from its source materials?”</span> <span class="q">“If the materials contained the right answer but the agent still erred: recipe problem.”</span> <span class="q">“If the materials did not contain the right answer: knowledge gap.”</span> <span class="q">“If experts themselves disagree on the right answer: ambiguity, flagged for human discussion.”</span></p>
+        <p>§Compilation: Surgical Multi-Agent Edits: <span class="q">“Sub-agents analyze impact in parallel, examining cross-references, conflicts with existing positions, token budget impact, test coverage, and duplication risk.”</span> <span class="q">“A separate agent, running in a fresh context with no knowledge of the improvement rationale, receives only the proposed diffs to the knowledge base.”</span> <span class="q">“Its job is to find problems such as contradictions introduced, edge cases broken, or positions undermined.”</span> <span class="q">“A linter catches issues programmatically, dangling cross-references, file size budget violations, identifier collisions, and dependency cycles. This layer is not probabilistic. It passes or fails.”</span></p>
+        <p>§Evaluation: Proving the Fix Works: <span class="q">“A separate judge evaluates the new output against the original expert feedback without knowing what was changed.”</span> <span class="q">“If targeted replay fails, compilation is retried.”</span> <span class="q">“an independent LLM judge gives each test case a pass/fail based on certain criteria”</span> <span class="q">“If regression testing fails, compilation is retried with an updated prompt describing where the agent regressed, along with the original issue and attempted fix.”</span></p>
+        <p>§Landing and Enrichment: Compounding Returns: <span class="q">“The output of the pipeline is a pull request (diff) with a complete audit trail. A human expert reviews a proven fix rather than debugging a raw failure.”</span> <span class="q">“the original failing scenario and its validated correct answer are automatically added to the regression test suite”</span> §Applying This Architecture: <span class="q">“Every improvement is a text edit that a domain expert can review in 30 seconds.”</span></p>
+        <p>사례에 쓴 규칙. §Expert Reasoning via Composable Recipes: <span class="q">“Adding an organizational position means adding a knowledge file and updating a routing index. No recipe changes.”</span> 원문 knowledge system 그림의 frontmatter: <span class="q">“triggers: # WHEN to load this page”</span>, <code>ps-position-1</code> 의 triggers 세 줄과 <code>referenced_by</code> 세 줄.</p>
+      </details>
+      <p class="note">정답이 여럿인 분석형 문항에서는 회귀 판정도 LLM judge 가 내린다. 같은 구조를 들인다면 judge 의 pass/fail 을 전문가가 표본으로 확인해 두어야 회귀 0 건 같은 숫자를 자기 suite 에서 믿을 근거가 생긴다.</p>
+    </div>
+  </section>
+
+
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 03</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+    <button class="nav-btn" id="mode" aria-label="읽기 방식 전환">덱으로 보기</button>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  // 목차가 비어 있으면 장에서 만든다. 이름은 data-label, 없으면 h2/h1 의 앞 14자.
+  // 장을 더하거나 이름을 바꿀 때 목차를 손으로 맞추지 않아도 되게 하려는 것이다.
+  var rail = document.querySelector(".rail");
+  if (rail && !rail.querySelector(".rail-item")) {
+    slides.forEach(function (s, k) {
+      var eb = (s.querySelector(".eyebrow") || {}).textContent || "";
+      if (k === 2 || /^\s*critique\s*$/.test(eb)) { var sep = document.createElement("div"); sep.className = "rail-sep"; rail.appendChild(sep); }
+      var h = s.querySelector("h2, h1");
+      var label = s.getAttribute("data-label") || (h ? h.textContent.replace(/\s+/g, " ").trim().slice(0, 14) : "");
+      var b = document.createElement("button");
+      b.className = "rail-item"; b.setAttribute("data-go", String(k));
+      var n = document.createElement("span"); n.className = "n"; n.textContent = (k + 1 < 10 ? "0" : "") + (k + 1);
+      var t = document.createElement("span"); t.textContent = label;
+      b.appendChild(n); b.appendChild(t); rail.appendChild(b);
+    });
+  }
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll(".rail-item"));
+  var prev = document.getElementById("prev"), next = document.getElementById("next");
+  var counter = document.getElementById("counter"), progbar = document.getElementById("progbar");
+  var stage = document.getElementById("stage"), modeBtn = document.getElementById("mode");
+  var i = 0;
+  slides.forEach(function (s, k) { if (!s.id) { s.id = "p" + (k + 1); } });
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function isArticle() { return document.body.getAttribute("data-mode") !== "deck"; }
+  function mark(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    railBtn.forEach(function (b, k) { b.setAttribute("aria-current", k === i ? "true" : "false"); });
+    counter.textContent = pad(i + 1) + " / " + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + "%";
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+  }
+  function show(n, updateHash) {
+    mark(n);
+    slides.forEach(function (s, k) {
+      s.setAttribute("data-active", k === i ? "true" : "false");
+      s.setAttribute("aria-hidden", k === i ? "false" : "true");
+      if (k === i) { s.scrollTop = 0; }
+    });
+    if (updateHash !== false) { try { history.replaceState(null, "", "#p" + (i + 1)); } catch (e) {} }
+  }
+  // article 에서는 장을 숨기지 않는다. 목차 클릭과 #pN 은 그 장으로 스크롤한다.
+  function go(n, updateHash) {
+    if (!isArticle()) { show(n, updateHash); return; }
+    mark(n);
+    slides.forEach(function (s) { s.setAttribute("data-active", "true"); s.setAttribute("aria-hidden", "false"); });
+    slides[i].scrollIntoView({ block: "start" });
+    if (updateHash !== false) { try { history.replaceState(null, "", "#p" + (i + 1)); } catch (e) {} }
+  }
+  function setMode(m) {
+    document.body.setAttribute("data-mode", m);
+    try { localStorage.setItem("rl-mode", m); } catch (e) {}
+    modeBtn.textContent = m === "deck" ? "이어 읽기" : "덱으로 보기";
+    go(i, false);
+  }
+  modeBtn.addEventListener("click", function () { setMode(isArticle() ? "deck" : "article"); });
+  prev.addEventListener("click", function () { go(i - 1); });
+  next.addEventListener("click", function () { go(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener("click", function () { go(parseInt(b.getAttribute("data-go"), 10)); });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (isArticle() || e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) { return; }
+    if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); show(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); show(i - 1); }
+    else if (e.key === "Home") { e.preventDefault(); show(0); }
+    else if (e.key === "End") { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener("touchstart", function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener("touchend", function (e) {
+    if (x0 === null || isArticle()) { x0 = null; return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  // article 에서 스크롤 위치를 목차에 반영한다.
+  var ticking = false;
+  window.addEventListener("scroll", function () {
+    if (!isArticle() || ticking) { return; }
+    ticking = true;
+    window.requestAnimationFrame(function () {
+      ticking = false;
+      var line = window.innerHeight * 0.35, best = 0;
+      for (var k = 0; k < slides.length; k++) { if (slides[k].getBoundingClientRect().top <= line) { best = k; } }
+      if (best !== i) { mark(best); try { history.replaceState(null, "", "#p" + (best + 1)); } catch (e) {} }
+    });
+  }, { passive: true });
+  var saved = null;
+  try { saved = localStorage.getItem("rl-mode"); } catch (e) {}
+  document.body.setAttribute("data-mode", saved === "deck" ? "deck" : "article");
+  modeBtn.textContent = isArticle() ? "덱으로 보기" : "이어 읽기";
+  var m = /^#p(\d+)$/.exec(window.location.hash || "");
+  go(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>

@@ -14,21 +14,23 @@
         "The <svg> has role=\"img\" and an aria-label sentence naming every path drawn",
         "Uses the target document's claim slot (.dek in this pre-2026-09-30 document) or says why it used .key",
         "Does not require a .note; if present it is one sentence that changes what the reader does next",
-        "Any verbatim source sentence sits inside .q, .wl or <cite>"
+        "Any verbatim source sentence sits inside .q, .wl or <cite>",
+        "No title or h2 it proposes is a label with a colon or period, a comma list, or a count (prose-ko.md §Forms)"
       ]
     },
     {
       "id": 1,
       "name": "chapter-count-cap",
       "prompt": "research-library 저장소야. 지금 쓰고 있는 문서가 12장인데, mechanism 부분이 세 개로 갈라져서(스케줄러 / 상태 저장 / 재시도 정책) 4장 하나에 다 안 들어가. 슬라이드가 너무 빽빽해졌어. 장을 더 늘려도 되는 거야? 된다면 어떻게 나누는 게 맞아?",
-      "expected_output": "장 수 상한은 없고 1 MB 파일 한도만 있다고 알려 준다. 한 장이 주장 둘을 담으면 나누라고 하고, 세 장에 각각 내용을 가리키는 eyebrow(예: scheduler, state-store, retry-policy), 짧은 h2, .key 의 주장 한두 문장을 붙이라고 안내한다. 장 번호를 가리키는 링크(#pN)와 읽기 경로는 따라 고쳐야 한다.",
+      "expected_output": "장을 늘려도 되고, 문서 전체는 20장 안쪽을 목표로 한다고 알려 준다(2026-10-14 이후 문서는 check-doc 이 막는다). 한 장이 주장 둘을 담으면 나누라고 하고, 세 장에 각각 내용을 가리키는 eyebrow, 짧은 h2, .key 의 주장 한두 문장을 붙이라고 안내한다. 장 번호를 가리키는 링크(#pN)와 읽기 경로는 따라 고쳐야 한다.",
       "files": [],
       "expectations": [
-        "States there is no chapter cap; the only size limit is the 1 MB file cap",
+        "Says chapters can be added and the document aims for twenty chapters or fewer; no other count limit beyond that and the 1 MB file cap",
         "Splits by claim: one claim per chapter",
         "Each new chapter gets a content-named eyebrow, a short h2 and one claim in .key",
         "Says #pN links and reading-path references must follow the renumbering; a hand-written rail is kept in step (rail-count), otherwise the shell builds the rail",
-        "In an explainer, does not fold the mechanism into details.more"
+        "In an explainer, does not fold the mechanism into details.more",
+        "No title or h2 it proposes is a label with a colon or period, a comma list, or a count (prose-ko.md §Forms)"
       ]
     },
     {
@@ -43,7 +45,8 @@
         "Uses the shell's bar classes (.bar-row/.bar-name/.bar-track/.bar-val); no SVG chart and no screenshot",
         "Marks the argued row and keeps the losing rows visible",
         "Has fig-title as a claim, fig-sub naming Table 1 with the arxiv_id and version (a placeholder counts, since the prompt gives neither), and a figcaption",
-        "Says to confirm the five numbers against the pinned Table 1 before publishing"
+        "Says to confirm the five numbers against the pinned Table 1 before publishing",
+        "No title or h2 it proposes is a label with a colon or period, a comma list, or a count (prose-ko.md §Forms)"
       ]
     }
   ]

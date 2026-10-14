@@ -1,10 +1,11 @@
 ---
 name: research-verify
-description: Adversarially reviews a finished research document draft. Three lenses read
-  it in separate contexts (the number checker and the structure auditor in parallel, then
-  the reader, who also reads their reports), claims are extracted from the sentences that
-  shipped, and check-claims.mjs verifies them against the pinned corpus. Usually a phase
-  of the /research-chain workflow; invoke it directly when a draft already exists.
+description: Adversarially reviews a finished research document draft. Two lenses read
+  it in separate contexts and in parallel (the number and quote checker, and a reader who
+  tests whether the document answers its question), claims are extracted from the
+  sentences that shipped, check-claims.mjs verifies them against the pinned corpus, and
+  check-doc.mjs carries the structural checks. Usually a phase of the /research-chain
+  workflow; invoke it directly when a draft already exists.
 when_to_use: After finishing or editing a draft under research/<slug>/, before committing
   or publishing, and when asked to review, fact-check, or confirm a document is correct.
 ---
@@ -22,11 +23,11 @@ and the verifier reads the text the reader will.
 
 **Run the lenses as separate subagents that cannot see the author's context.** A context
 that wrote a sentence re-reads it by the same route and reaches the same conclusion. B and
-C run in parallel, blind to each other; A runs last and reads their reports, because part
-of what it looks for is what the other two could not have seen.
+A run in parallel, blind to each other and to the author.
 
-**A finding makes a claim in the document wrong, or stops the reader from doing what its
-`purpose` promises.** Things that would be nice to add, sources that could also be read,
+**A finding makes a claim in the document wrong, stops the reader from doing what its
+`purpose` promises, or, for the reader lens, costs the reader the point: a title or `.key`
+that misleads a scanning reader, or material the reader could skip.** Things that would be nice to add, sources that could also be read,
 and wording you would have chosen differently are not findings: one line each under 메모,
 or leave them out.
 
@@ -59,7 +60,7 @@ that rule, and here a path that leaked in is a finding.
 **If `sources.jsonl` is missing, run a reduced review instead of stopping.** Documents
 written before this harness existed do not have one.
 
-- Lens C (structure) runs unchanged, since it needs only the document.
+- `check-doc.mjs` runs unchanged, since it needs only the document.
 - Lens A (reader) runs. That the sources exist only inside the document is itself worth
   reporting.
 - Lens B (numbers) cannot run, because there is nothing to check against. If `meta.json` has
@@ -71,22 +72,20 @@ Say what was skipped at the top of the report, before the findings.
 
 ### 2. Launch the lenses
 
-Read B and C from `references/` and hand each to a separate subagent in the same message.
-When both have reported, apply their must-fix items, then hand A its file, their reports
-and the document as it now stands; A reads the corrected draft, and what it finds is what
-B and C could not see. Spawning them is the step;
-asking permission for it is not. If they cannot be spawned, run what you can and declare
-the gap at the top of the report, as a missing `sources.jsonl` is declared.
+Read B and A from `references/` and hand each to a separate subagent in the same message.
+Spawning them is the step; asking permission for it is not. If they cannot be spawned, run
+what you can and declare the gap at the top of the report, as a missing `sources.jsonl` is
+declared.
 
 | Lens | File | Looks at |
 |---|---|---|
-| B | `references/lens-numbers.md` | Every number against the pinned source: value, direction, unit, range, base |
-| C | `references/lens-prose.md` | Structure: repetition, references, headings, chapter grammar against the kind's specimen, a claim only in the fold, accessibility |
-| A | `references/lens-reader.md` | Can the reader do what `purpose` promises, and what is missing, including what B and C could not see: a pinned source nothing leans on, a modality never run, a quote that is verbatim while the sentence around it widens it |
+| B | `references/lens-numbers.md` | Every number and quote against the pinned source: value, direction, unit, range, base, and a sentence that widens the quote it rests on |
+| A | `references/lens-reader.md` | Whether a reader who sees only the first screen, the chapter titles and the `.key` lines gets the document's answer; what the reader needed and did not find; what they could skip |
 
-Each lens needs the document path, `sources.jsonl` and the corpus checkout, and reviews the
-whole document; the `setup` chapter is where the document says what it read. B reopens the source itself, so without a checkout or a retrievable paper it
-cannot work. Each lens writes its findings in Korean.
+B needs the document path, `sources.jsonl` and the corpus checkout, and reopens the source
+itself, so without a checkout or a retrievable paper it cannot work. A needs only the
+document and `meta.json`. Each lens writes its findings in Korean. Structure (headings, the
+chapter grammar, references, the title copies) is `check-doc.mjs`'s job.
 
 ### 3. Extract claims from the shipped sentences, while the lenses run
 
@@ -206,7 +205,14 @@ that turned up as found-and-unfixed, a category of its own.
 **A fact lens A reports missing goes into the chapter whose `.key` it supports**, as a
 fact-list line or in the fold; that is support, not a second claim. When no chapter's claim
 covers it, it needs a chapter, and that is a needs-judgment item rather than a line squeezed
-into the nearest one.
+into the nearest one. What lens A reports the reader could skip is the author's to cut or fold
+when it is a paragraph, a caveat or process talk, unless a claim in `claims.jsonl` rests on
+it; cutting a whole chapter is a needs-judgment item.
+
+**A caveat moved out of the body keeps its claim honest.** When a fix moves a condition to the
+limits chapter, the claim's `scope` in `claims.jsonl` still carries it, and the sentence
+left in the body is one the source supports without it. Rewrites tend to drop qualifiers
+and raise certainty, so the re-check after each round reads for it.
 
 **Lenses find and the author fixes.** When the finder is also the fixer, the review ends at
 "close enough". Split findings into must-fix and needs-judgment only; a warning tier drains

@@ -177,8 +177,8 @@ multi-row headers often enough that a table read only through HTML is unconfirme
 a web page's chart heading), one sentence on what it shows, where it is retrievable, and
 for a chart the data points read from its `aria-label`, `alt` or SVG text. For a paper the
 `e-print` tarball holds the figure files, and going back for them later means re-deriving
-which figure went with which claim. The writing step redraws or names every entry; a chart
-the source drew and the document only paraphrases is a finding for the lenses.
+which figure went with which claim. The writing step redraws what the reader needs; a chart
+the source drew and the document turns into a number in a sentence is a finding for lens B.
 
 A repository's equivalent lives in `docs/`, the README, and the `*.svg` and `*.png` beside
 them. A diagram a maintainer drew shows what they think the system is, which beats any
@@ -225,13 +225,13 @@ Before writing, list what the corpus contains and compare it with what you opene
 git -C <checkout> ls-tree -r --name-only <commit> | awk -F/ '{print $1"/"$2}' | sort | uniq -c | sort -rn
 ```
 
-The `setup` chapter then states the commit, roughly how much you read, and **which
-directories you did not open and what that costs the document**. "I did not read
-`references/`, so the comparison is shallower than it looks" tells a reader something; a
-bare ratio does not. A long unread list is fine: reading 12 of 65 files and writing an
-accurate document beats reading 200 and writing a vague one, so leave unneeded files
-closed. Files read plus files in the listed unread directories have to add up to the
-total, or the gap hides files nobody will look for.
+The short `setup` chapter near the end then states the commit, roughly how much you read,
+and **which directories you left unopened and what that costs the document**, in the form
+`../research-doc/references/oss.md` shows. A long unread list is fine: reading 12 of 65
+files and writing an accurate document beats reading 200 and writing a vague one, so leave
+unneeded files closed. Before writing that line, check that files read plus files in the
+unopened directories add up to the total, so no directory goes unnamed; the arithmetic
+itself stays out of the document.
 
 ## Hand off
 

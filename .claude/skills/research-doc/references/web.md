@@ -13,7 +13,7 @@ the vendor's order; pick the chapters by the kind and let that order go.
 | map | The layers that change (request, response, conversation history, account), and what each change does | walkthrough, explainer |
 | trace | One path through the page: each hop with a verbatim quote and its `§Heading` | walkthrough |
 | comparison | The alternative the page itself sets against its subject | comparison |
-| `setup` | Each URL with `retrieved_at`, the archive link, the sections read, the linked sub-pages not opened and which chapter is thinner for it | all |
+| `setup` | The pages and sections read, and in one line the linked sub-pages left unopened with the chapter they would deepen. `retrieved_at` and archive links stay in `sources.jsonl` | all |
 | `result-*` | The page's own charts and tables, redrawn; values from the chart's `aria-label`, the SVG text or the table, never estimated from bar length | all |
 | `critique` | What the page does not say, separated from what you inferred; a vendor's numbers marked as the vendor's | all |
 | reception | What practitioners contested or confirmed, as who said what when, each re-fetched from its API and pinned; only reactions that change how a claim of the page reads, with the chapter they change | all, for an announcement |
