@@ -4,10 +4,10 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Meta의 organizational second brain이 전문가 교정을 지식 파일 편집으로 바꾸는 방식과 AI-native SDLC와 다른 점</title>
-<meta name="description" content="Meta가 한 compliance 분야 agent에 만든 organizational second brain은 조직의 입장을 지식 파일에, 분석 절차를 recipe에 나눠 담고, 전문가의 교정을 원인 진단과 최소 편집, 재현 시험과 회귀 시험, 전문가 승인을 거쳐 모델 재학습 없이 텍스트 파일 편집으로 반영한다. 지시를 git에 두고 eval로 회귀를 막는 규율은 Claude의 AI-native SDLC playbook과 같다. playbook에서는 pass rate를 떨어뜨린 변경이 merge 전에 검토를 받는데, Meta에서는 회귀 시험에서 떨어진 편집이 사람이 보기 전에 자동으로 다시 컴파일된다. 그래서 조직의 입장이 바뀌면 예전 정답을 지키는 회귀 시험이 올바른 편집을 예전 입장 쪽으로 밀 수 있다.">
+<meta name="description" content="Meta는 한 compliance 분야의 agent에 조직의 입장과 분석 절차를 텍스트 파일로 나눠 담고, 전문가가 고친 답을 모델 재학습 없이 그 파일의 작은 편집으로 반영한다. Claude의 AI-native SDLC playbook도 지시를 버전 관리되는 텍스트 파일로 두고 eval로 회귀를 막는다. 거기서는 pass rate를 떨어뜨린 skill 변경이 merge 전에 검토를 받으니, Meta에서도 회귀한 편집은 사람이 먼저 보리라고 예상하기 쉽다. 그런데 Meta에서 회귀 시험에 떨어진 편집은 사람이 보기 전에 다시 컴파일된다. 그래서 입장이 바뀌면 예전 정답을 지키는 회귀 시험이 올바른 편집을 예전 입장 쪽으로 밀 수 있다.">
 <meta property="og:type" content="article">
 <meta property="og:title" content="Meta의 organizational second brain이 전문가 교정을 지식 파일 편집으로 바꾸는 방식과 AI-native SDLC와 다른 점">
-<meta property="og:description" content="Meta가 한 compliance 분야 agent에 만든 organizational second brain은 조직의 입장을 지식 파일에, 분석 절차를 recipe에 나눠 담고, 전문가의 교정을 원인 진단과 최소 편집, 재현 시험과 회귀 시험, 전문가 승인을 거쳐 모델 재학습 없이 텍스트 파일 편집으로 반영한다. 지시를 git에 두고 eval로 회귀를 막는 규율은 Claude의 AI-native SDLC playbook과 같다. playbook에서는 pass rate를 떨어뜨린 변경이 merge 전에 검토를 받는데, Meta에서는 회귀 시험에서 떨어진 편집이 사람이 보기 전에 자동으로 다시 컴파일된다. 그래서 조직의 입장이 바뀌면 예전 정답을 지키는 회귀 시험이 올바른 편집을 예전 입장 쪽으로 밀 수 있다.">
+<meta property="og:description" content="Meta는 한 compliance 분야의 agent에 조직의 입장과 분석 절차를 텍스트 파일로 나눠 담고, 전문가가 고친 답을 모델 재학습 없이 그 파일의 작은 편집으로 반영한다. Claude의 AI-native SDLC playbook도 지시를 버전 관리되는 텍스트 파일로 두고 eval로 회귀를 막는다. 거기서는 pass rate를 떨어뜨린 skill 변경이 merge 전에 검토를 받으니, Meta에서도 회귀한 편집은 사람이 먼저 보리라고 예상하기 쉽다. 그런데 Meta에서 회귀 시험에 떨어진 편집은 사람이 보기 전에 다시 컴파일된다. 그래서 입장이 바뀌면 예전 정답을 지키는 회귀 시험이 올바른 편집을 예전 입장 쪽으로 밀 수 있다.">
 <meta property="og:url" content="https://fable22.github.io/research-library/research/2026-10-07-meta-organizational-second-brain/">
 <meta name="twitter:card" content="summary">
 <style>
@@ -392,7 +392,7 @@ a.xref { color: var(--link); }
     <div class="slide-inner">
       <p class="eyebrow">index</p>
       <h1>Meta의 organizational second brain이 전문가 교정을 지식 파일 편집으로 바꾸는 방식과 AI-native SDLC와 다른 점</h1>
-      <p class="dek">Meta는 한 compliance 분야의 agent에 조직의 입장과 용어를 200개가 넘는 지식 파일로, 분석 절차를 recipe로 나눠 담았다. 전문가가 checkpoint에서 고치거나 escalation에서 고른 답은 원인 진단과 최소 편집, 원래 장면의 재현 시험과 회귀 시험을 거쳐 PR이 되고, 전문가가 승인하면 모델을 다시 학습시키지 않고 텍스트 파일만 바뀐 채 그 장면이 회귀 시험에 들어간다. 지시를 텍스트 파일로 git에 두고 바꿀 때마다 eval로 회귀를 막는 규율은 Claude의 AI-native SDLC playbook과 같은데, playbook에서는 pass rate를 떨어뜨린 변경이 merge 전에 검토를 받는다. Meta에서는 회귀 시험에서 떨어진 편집이 사람이 보기 전에 자동으로 다시 컴파일되므로, 조직의 입장이 바뀌면 예전 정답을 지키는 회귀 시험이 올바른 편집을 예전 입장 쪽으로 밀 수 있다.</p>
+      <p class="dek">Meta는 한 compliance 분야의 agent에 조직의 입장과 분석 절차를 텍스트 파일로 나눠 담고, 전문가가 고친 답을 모델 재학습 없이 그 파일의 작은 편집으로 반영한다. Claude의 AI-native SDLC playbook도 지시를 버전 관리되는 텍스트 파일로 두고 eval로 회귀를 막는다. 거기서는 pass rate를 떨어뜨린 skill 변경이 merge 전에 검토를 받으니, Meta에서도 회귀한 편집은 사람이 먼저 보리라고 예상하기 쉽다. 그런데 Meta에서 회귀 시험에 떨어진 편집은 사람이 보기 전에 다시 컴파일된다. 그래서 입장이 바뀌면 예전 정답을 지키는 회귀 시험이 올바른 편집을 예전 입장 쪽으로 밀 수 있다.</p>
       <p class="src">Shaurya Sengar 외, Engineering at Meta, 2026-09-02 · 대조 기준 Louis Claxton, The AI-native SDLC playbook, Claude blog, 2026-08-21</p>
     </div>
   </section>
@@ -404,12 +404,13 @@ a.xref { color: var(--link); }
       <h2>기억할 것</h2>
       <p class="key">지식과 절차를 다른 파일에 나눠 두었기 때문에 교정의 원인을 한쪽으로 돌릴 수 있고, 그 덕에 교정마다 작은 편집을 만들어 시험에 통과시키는 루프가 돈다.</p>
       <ul class="clean">
-        <li><span class="m">→</span><span>지식 파일은 position, 용어, routing index 같은 역할로 나뉜다. frontmatter의 <code>depends_on</code>과 <code>referenced_by</code>가 양방향 그래프를 만들어, 편집 하나가 건드릴 파일을 파일만 읽고 찾는다. (<a class="xref" href="#p4">04</a>)</span></li>
-        <li><span class="m">→</span><span>recipe는 지식 파일을 가리킬 뿐 사실을 담지 않는다. 단일 instruction 파일을 recipe 단계로 바꾼 뒤 턴당 토큰이 약 80% 줄었다고 Meta는 쓴다. (<a class="xref" href="#p6">06</a>)</span></li>
-        <li><span class="m">→</span><span>교정의 원인은 "agent가 받은 자료로 맞는 결론에 닿을 수 있었나" 한 질문으로 가른다. 닿을 수 있었으면 recipe를, 아니면 지식 파일을 고치고, 전문가끼리 답이 갈리면 사람이 논의한다. (<a class="xref" href="#p9">09</a>)</span></li>
-        <li><span class="m">→</span><span>편집은 diff만 보는 검토 agent와 linter, 원래 장면 replay, 회귀 시험을 통과해야 PR이 되고, 반영된 장면은 회귀 시험에 계속 남는다. (<a class="xref" href="#p10">10</a>–<a class="xref" href="#p12">12</a>)</span></li>
-        <li><span class="m">→</span><span>지시 파일끼리 견주면 playbook은 같은 실수가 두 번 보이면 CLAUDE.md에 고침을 넣는 작업 규칙을 권한다. Claude가 되풀이한 실수든 PR 리뷰가 두 번째로 짚은 실수든 그 규칙을 따른다. Meta는 그에 해당하는 지식 파일과 recipe를 교정 하나마다 고치고, 그 낮은 문턱을 진단과 시험이 받친다. (<a class="xref" href="#p15">15</a>)</span></li>
-        <li><span class="m">→</span><span>회귀 시험에서 떨어진 편집은 Meta에서 사람이 보기 전에 다시 컴파일된다. 따라 만든다면 입장이 바뀔 때 회귀 시험의 예전 정답을 전문가가 다시 확인하는 절차부터 정한다. (<a class="xref" href="#p16">16</a>)</span></li>
+        <li><span class="m">→</span><span>지식 파일은 frontmatter의 <code>depends_on</code>과 <code>referenced_by</code>로 서로를 가리켜 양방향 그래프를 이루므로, 편집 하나로 영향받을 수 있는 파일을 frontmatter만 읽고 찾는다. (<a class="xref" href="#p4">04</a>)</span></li>
+        <li><span class="m">→</span><span>instruction 파일 하나와 semantic search로 모든 자료를 부르던 구성을 recipe 단계로 바꾼 뒤로는 질의 하나가 작은 부분집합만 건드려서, 턴당 토큰이 약 80% 줄었다고 Meta는 쓴다. (<a class="xref" href="#p6">06</a>)</span></li>
+        <li><span class="m">→</span><span>진단은 "agent가 받은 자료로 맞는 결론에 닿을 수 있었나" 한 질문으로 recipe와 지식 파일 가운데 고칠 쪽을 정한다. 전문가끼리 답이 갈리는 교정은 편집 없이 사람의 논의로 넘어간다. (<a class="xref" href="#p9">09</a>)</span></li>
+        <li><span class="m">→</span><span>편집은 diff만 받는 검토 agent와 linter를 거친 뒤 원래 장면의 replay와 분야 benchmark의 회귀 시험을 통과해야 감사 기록이 붙은 PR로 전문가에게 간다. 반영된 장면과 검증된 정답은 회귀 시험에 더해진다. (<a class="xref" href="#p10">10</a>–<a class="xref" href="#p12">12</a>)</span></li>
+        <li><span class="m">→</span><span>세 sprint, 여섯 주 뒤 Meta는 평가 한 건이 며칠에서 몇 분으로 줄고 개선 주기 내내 회귀가 0건이었다고 적는다. 사례 수와 거절된 편집 수가 붙어 있지 않으니, 따라 만든다면 거절과 재시도 수도 함께 잰다. (<a class="xref" href="#p14">14</a>, <a class="xref" href="#p17">17</a>)</span></li>
+        <li><span class="m">→</span><span>Meta에서는 checkpoint의 교정과 escalation의 선택이 하나하나 루프에 들어가고, 진단과 시험이 그 하나하나를 거른다. playbook에서 이 자리에 해당하는 것은 같은 실수가 두 번 보이면 CLAUDE.md에 고침을 넣으라고 권하는 작업 규칙이다. (<a class="xref" href="#p15">15</a>)</span></li>
+        <li><span class="m">→</span><span>playbook은 정책이 바뀌어 skill을 고칠 때 정책 담당자의 승인도 받게 한다. Meta 구조를 따라 만든다면 입장을 바꾸는 편집에 전문가가 회귀 시험의 예전 정답을 다시 확인하는 절차를 붙인다. (<a class="xref" href="#p16">16</a>)</span></li>
       </ul>
     </div>
   </section>
@@ -765,7 +766,7 @@ a.xref { color: var(--link); }
     <div class="slide-inner">
       <p class="eyebrow">sdlc</p>
       <h2>AI-native SDLC playbook과 견준 수명주기</h2>
-      <p class="key">지시를 텍스트 파일로 git에 두고 바꿀 때마다 eval로 회귀를 막으며 고친 사례를 영구 시험으로 남기는 규율은 Claude의 AI-native SDLC playbook에도 있다. Meta는 교정 하나마다 편집을 만들고, 회귀 시험에서 떨어진 편집을 사람이 보기 전에 자동으로 다시 컴파일하는 데서 갈라진다.</p>
+      <p class="key">지시를 버전 관리되는 텍스트 파일로 두고 바꿀 때마다 eval로 회귀를 막으며 고친 사례를 영구 시험으로 남기는 규율은 Claude의 AI-native SDLC playbook에도 있다. Meta는 교정 하나마다 편집을 만들고, 회귀 시험에서 떨어진 편집을 사람이 보기 전에 자동으로 다시 컴파일하는 데서 갈라진다.</p>
       <p>playbook은 Anthropic의 Applied AI 팀이 SDLC 각 단계에 Claude를 넣는 방법을 정리한 글이다. 거기서 Meta의 지식 파일과 recipe에 해당하는 것은 CLAUDE.md와 skill이라, 아래 표는 이 지시 파일 층끼리 견준다.</p>
       <div class="tablewrap">
         <table class="prose-table">

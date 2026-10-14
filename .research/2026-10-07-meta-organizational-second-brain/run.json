@@ -45,5 +45,22 @@
   "finishedAt": "2026-10-07T13:50:48Z",
   "after_last_recheck": [
     "장 2 tl;dr 5와 장 15 문턱 행: '두 번 해야'라는 하한과 리뷰 경로의 Claude 귀속을 w2 353·337·697에 맞춰 '같은 실수가 두 번 보이면 CLAUDE.md에 넣는 작업 규칙을 권한다'로 고침 (k15 갱신)"
-  ]
+  ],
+  "firstScreenRewrite": {
+    "date": "2026-10-14",
+    "reason": "cover-length now counts characters (280 without spaces); cover re-scoped to subject, one thing, one difference",
+    "rounds": 2,
+    "recheckFindings": {
+      "round1": [
+        "direction: tl-dr 7 cause",
+        "quote: git attributed to both",
+        "quote: '건드릴 파일' overstated",
+        "wording: cover symmetric pair (acted on at owner request)"
+      ],
+      "final": [
+        "wording: tl-dr 7 repeated the cover's playbook gate (acted on: repetition cut)"
+      ]
+    },
+    "coverChars": 278
+  }
 }
