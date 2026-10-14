@@ -52,8 +52,10 @@ what stopped you, and the sentence that should have let you.
 
 Name the chapters, paragraphs and caveats you read without needing them for the task: process
 talk, repeated qualifiers, outside material nobody asked for, a chapter that says what another
-already said. Say for each whether it can go or belongs in a fold. Report too a claim that
-appears only inside a fold, and the forms listed in
+already said, a paragraph that strings parallel items together as sentences where a list or
+table would show them, a chapter that says the same thing in a paragraph, a table and a
+paragraph again. Say for each whether it can go, belongs in a fold, or needs another form.
+Report too a claim that appears only inside a fold, and the forms listed in
 `../../research-doc/references/prose-ko.md` §Forms readers take as machine-written where
 they cost you the point, by location.
 

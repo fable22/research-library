@@ -71,6 +71,7 @@ const RULES = {
   'heading-form': '제목, h2, .key 가 라벨과 콜론·마침표, 쉼표 목록, 개수 세기, 문서의 자기 언급으로 시작하거나 이뤄지지 않았는가 (2026-10-14 이후 문서)',
   'title-copies': 'meta.json title, <title>, og:title, 표지 h1 이 같은 문자열인가 (2026-10-14 이후 문서)',
   'chapter-count': '장이 20개 이하인가 (2026-10-14 이후 문서)',
+  'cover-length': '표지의 답 문단이 다섯 문장 이하인가. 나머지는 tl-dr 포인트로 간다 (2026-10-14 이후 문서)',
 };
 
 // 장 문법과 purpose 는 2026-09-30 부터 쓴 문서에만 요구한다. 그 전 28편은 .dek 와 무목적으로
@@ -80,6 +81,7 @@ const NEW_GRAMMAR_FROM = '2026-09-30';
 // (docs/harness-doctor-2026-10-13.md). 그 전 문서의 장 제목은 29% 가 라벨 꼴이다.
 const NEW_FORM_FROM = '2026-10-14';
 const MAX_CHAPTERS = 20;
+const MAX_COVER_SENTENCES = 5;
 
 // 제목 자리에서 독자가 기계가 쓴 글로 읽는 형태. 본문은 막지 않고 검토자가 본다.
 const decode = (t) => t.replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
@@ -341,6 +343,13 @@ function checkDoc(doc, byslug) {
     for (const [where, text, heading] of spots) {
       const forms = headingForms(text, { heading });
       if (forms.length) add('heading-form', `${where} 「${text.slice(0, 60)}」 이 ${forms.join(', ')} 꼴이다. 제목은 장이 담은 것을 가리키는 짧은 말로, 주장은 .key 에 쓴다 (prose-ko.md)`);
+    }
+    const cover = html.split(/<section\s+class="slide\b/)[1] || '';
+    const coverProse = textOf(cover.replace(/<details\b[\s\S]*?<\/details>/g, '').replace(/<h1\b[\s\S]*?<\/h1>/g, '')
+      .replace(/<p class="eyebrow">[\s\S]*?<\/p>/g, '').replace(/<[^>]*class="[^"]*\b(sub|src|meta)\b[^"]*"[^>]*>[\s\S]*?<\/[a-z]+>/g, ''));
+    const coverSentences = (coverProse.match(/[가-힣)]다\.(\s|$)/g) || []).length;
+    if (coverSentences > MAX_COVER_SENTENCES) {
+      add('cover-length', `표지 문단이 ${coverSentences}문장이다 (상한 ${MAX_COVER_SENTENCES}). 답은 서너 문장으로 쓰고 나머지는 tl-dr 포인트로 보낸다`);
     }
     if (doc.slideCount > MAX_CHAPTERS) {
       add('chapter-count', `장이 ${doc.slideCount}개다 (상한 ${MAX_CHAPTERS}). 독자가 한 장으로 읽을 장은 합친다`);

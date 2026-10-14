@@ -1033,3 +1033,13 @@ took away, then reads the whole and reports where the first pass went wrong and 
 have skipped. The fix pass before lens A, added earlier the same day for consistency with the
 2026-09-30 notes, is gone with it; the two lenses now run in parallel.
 
+The first rewrite of the Meta document under these rules (PR #54) showed the next failure. Its
+cover answer ran to fourteen sentences, and a limits chapter walked through the same cases in a
+paragraph, a table and paragraphs again. The owner read it as enumeration and pointed at form
+rather than wording: parallel items belong in a list, comparisons in a table, a deadlock in a
+figure. The interview's preference for unpacked sentences had been about a chain of causes, and
+`prose-ko.md` had let it read as a rule for every paragraph, helped by a ✗ example that looked
+like it condemned lists. `prose-ko.md` now picks the form by the shape of the content, the
+cover answer is three or four sentences with `cover-length` blocking more than five, and lens A
+reports parallel items set as prose and content said twice in a chapter.
+
