@@ -54,10 +54,13 @@ compression subagent is the exception.
 ## The first screen and the length
 
 The first screen decides whether the document gets read. The cover's title says what the
-whole document is about, one paragraph of three or four sentences under it answers the
-question, and the `tl-dr` chapter right after gives the few points to do or remember. What the
-paragraph cannot hold goes to those points, not into a longer paragraph. How the document was
-made has no place there: no source-to-chapter mapping table, no reading method.
+whole document is about. One short paragraph under it answers the question: what the subject
+is, the one thing to understand about it, and the one difference or consequence that matters
+most, in about 280 characters without spaces (`cover-length`). The steps of the mechanism are not the
+answer; they go to the `tl-dr` chapter right after, whose points each take a sentence or two
+and do not restate the cover. A long answer packed into fewer, longer sentences is still long.
+How the document was made has no place there: no source-to-chapter mapping table, no reading
+method.
 
 A chapter's body takes its form from its content: sentences for a chain of causes, a list for
 parallel items, a table for a comparison, a figure for a flow (`references/prose-ko.md`

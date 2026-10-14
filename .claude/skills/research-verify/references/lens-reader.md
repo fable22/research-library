@@ -35,7 +35,9 @@ Then write down, in Korean:
 
 Now read the document end to end, as the reader would, and compare with what you wrote. Each
 place where the first pass got the point wrong or missed it is a finding, located at the
-title, `h2` or `.key` that misled you.
+title, `h2` or `.key` that misled you. A cover that walks through the mechanism's steps, or
+says what the `tl-dr` points say again, is a finding too: the cover answers, the points
+detail.
 
 ## 3. Can you do the task from this?
 
