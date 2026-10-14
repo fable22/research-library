@@ -1,0 +1,1388 @@
+[50028275] modinfo 2026-10-10T00:37:07.000Z pts=802
+REA Reverse – Engineer Anything
+
+  [50028418] OsrsNeedsf2P 2026-10-10T00:59:47.000Z pts=None
+  Oh I'll be trying this out for the OpenBFME project!
+
+    [50030653] bob1029 2026-10-10T07:43:52.000Z pts=None
+    At some point I think it would be better to just redo the thing from zero like was done with Beyond All Reason.
+    The mechanics of BFME are the important part, not the intellectual property of the films. The way the units move, the resource system and power points are what make it special. Gandalf and Lurtz are simply wallpaper on top of something that is already very competent.
+
+  [50028433] mb7733 2026-10-10T01:01:41.000Z pts=None
+  > Copy this into your coding agent:
+  > Install REA and connect it to this coding agent using npx rea-agents@latest setup. Show me the setup plan for approval, then verify the installation.
+  We have achieved the next evolution of installation by `curl | bash`!
+
+    [50028449] Neywiny 2026-10-10T01:04:44.000Z pts=None
+    I mean to be fair right under it they give you the command if you want to run it on your own. But yeah
+
+    [50028496] sergiotapia 2026-10-10T01:11:42.000Z pts=None
+    You're right it's much safer to click next > next > next > next > finish.
+
+      [50028819] carsoon 2026-10-10T02:07:36.000Z pts=None
+      Yeah installation has always been such a security issue. So many programs are just random links that download a file. You have to trust that the host has not been compromised all packages that were used to build it were not compromised etc.
+      With ai models getting better we may be able to do analysis on the actual underlying bytes of the files we download to properly scan them for malicious code patterns and build systems which sandbox programs and watch inbound and outbound traffic/ system level actions from them and flag suspicious requests for further analysis by smarter models.
+      REA shows that ai are very good at understanding low level code and reverse engineering it so this could potentially be applied to application level security aswell.
+
+        [50029587] mehackernewsacc 2026-10-10T04:33:48.000Z pts=None
+        Or we could just use Nix.
+
+      [50028884] t-writescode 2026-10-10T02:18:41.000Z pts=None
+      A big difference between the safety of "next > next > next > finish" and "curl | bash" is one of them is dynamically loaded from an external source that could change between runs, and the other can be fully downloaded and vetted in a single check, and then once it's safe, it's probably safe 10 years from now.
+
+        [50029002] nailer 2026-10-10T02:41:19.000Z pts=None
+        Every download of a piece of software could be unique.
+
+          [50029894] t-writescode 2026-10-10T05:32:26.000Z pts=None
+          Which is why we have sha1, md5 and sha256 hashes on display, so you can validate with a very high level of certainty, especially for sha256 at least for now, that the file is the same one.
+          We have existing paradigms for this.
+          Additionally, installers are signed with certificates on Windows.
+          All of these are strictly more trustworthy than curl | bashing.
+
+            [50037700] nailer 2026-10-10T22:09:03.000Z pts=None
+            If they’ve compromised the download link they’ll probably adjust the hashes too.
+
+              [50040232] t-writescode 2026-10-11T06:11:32.000Z pts=None
+              The nice thing about hashes is you can just put them into Google or wherever and see if they’ve been independently validated and how many times. Repositories like Chocolatey and even just Virus Total or message boards often have a history of “someone has seen it as this hash in the past”.
+              Perfect? No; but “time with this hash” and “what others have seen and for how long” does increase trust, at least for me
+
+  [50028470] ethin 2026-10-10T01:08:05.000Z pts=None
+  I might be missing something but... How exactly is this better than telling Claude for example to "install and set up a full RE environment including Ghidra" on my local system and get to work? Like what does this do that my current RE methodology doesn't?
+
+    [50028484] tptacek 2026-10-10T01:09:08.000Z pts=None
+    Everybody has their own set of skills and specific scripts and tools to do this stuff. You might use Ghidra as the the kernel of those workflows, but you still want something more than just Claude freestyling, at least for now.
+    (Who knows if this'll be true 6 months from now.)
+
+    [50028619] djmips 2026-10-10T01:32:36.000Z pts=None
+    I don't think it is better than just doing it yourself in Claude Code (in fact worse) but some people like cute UI for everything I guess.
+
+    [50028840] fwlr 2026-10-10T02:11:04.000Z pts=None
+    Probably it is not better. I think this is aimed at people who do not have a “current RE methodology”, do not know enough to specify things like Ghidra, etc., but who do have a desire to feel like they reverse-engineered and can reliably predict that a conversation with a chatbot will make them feel that way.
+
+      [50029045] garyfirestorm 2026-10-10T02:49:23.000Z pts=None
+      Vibe-reverse-engineering
+
+        [50031254] 7bit 2026-10-10T09:48:56.000Z pts=None
+        Reverse Vibeneering
+
+      [50029257] XorNot 2026-10-10T03:27:07.000Z pts=None
+      I mean thats not why I have Claude decompile things. I have it so it because my software should work exactly how I want it to.
+
+    [50029182] echelon 2026-10-10T03:13:35.000Z pts=None
+    We're using vanilla Claude Code for ArtCraft apps [1], but we are especially careful not to touch Ghidra. We don't want decompilations or reverse engineering to spoil the work we're doing and expose us to copyright infringement.
+    [1] https://github.com/storytold
+
+    [50029405] leidenfrost 2026-10-10T03:58:28.000Z pts=None
+    Why not just, like, ask Claude about it?
+    "Hey Claude I want to create a fanmade Game Boy game, give me recommendation of tools, libraries and workflows for it" and boom.
+    You can use AI to learn stuff, instead of just using it as a Pokemon.
+
+    [50029426] ambicapter 2026-10-10T04:00:29.000Z pts=None
+    Because it's already been done for you? Sure, you can spend your own tokens on it, but it's probably cheaper and more time-effective to use something that already exists and does the job.
+
+    [50029525] xpct 2026-10-10T04:20:08.000Z pts=None
+    I don't know either. My only guess is that this has some helpful context for less powerful models, maybe.
+    We're kinda far into this LLM thing, maybe it's time to start selling harnesses by leading with how some examples were solved faster with this and how it saved tokens, or similar?
+
+    [50029660] none_to_remain 2026-10-10T04:46:22.000Z pts=None
+    I don't have reverse engineering experience, though I have all the prereqs to learn it. Anecdotally a few days ago I told my slow local Qwen3.8 in Pi harness to use Ghidra CLI to decompile a certain executable and it got entirely lost. Today I was linked to this, have it chugging along now, and it's making some sort of progress towards unpacking this thing. I don't know if it will nail it this run but it's a real improvement; I definitely have some useful info I could bring to another prompt or for myself if I cared to try manually.
+    But I just found an even easier way I should have thought of first - someone already dropped a reimplementation a couple weeks ago.
+
+    [50030959] nicman23 2026-10-10T08:45:40.000Z pts=None
+    i just tell it to use radare2
+
+  [50028478] areoform 2026-10-10T01:08:52.000Z pts=None
+  I love such work. I hope to roll it into a package that anyone can use in the future. This work is only going to get more important because frontier models getting locked down will make this a lot harder over time.
+  For example, I use Claude as a bouncing wall for my thoughts and I pointed out that,
+      > GLM 5.2 was the only thing that helped HF while the agents were trying to access them. The "guardrails" stopped them from doing good. The Computer Fraud and Abuse Act exists. Courts exist. And computers and an internet connection have existed for a long time. There's also 17 USC 1201 provisions with the 1201 a 1 exemptions [Image #31] so in this case, a farmer should be able to work with you to access the tractor they own. Or... IDK... a kindle that's out of date? :) What is lawful and what isn't is rooted not within the act but within intent, purpose and mens rea. And this is something the law has been deciding for centuries now. At one end, your maker can't say that governments should decide while at the other end explicitly refusing to allow governments to be the ones who decide.
+  
+  This was rejected for "Safety,"
+      > Opus 5.5's safeguards flagged this session. You may be seeing this for the first time on an Opus model: Opus 5.5 is more capable and has stronger safeguards as a result, which can sometimes flag non-cybersecurity work. We're improving these safeguards to reduce the amount of incorrectly flagged messages. Edit and retry, or continue with Opus 4.8. Send feedback with /feedback or learn more: https://support.claude.com/en/articles/8106465 
+      >
+      > Details: "[cyber]'
+  
+  Note, the image here was the Library of Congress' page on DMCA exceptions.
+  Fundamentally, the idea that you can't reverse engineer things, make things, learn about biology or physics without permission is strange to me. These machines have been trained on the sum intellectual output of humanity, the global intellectual commons, and are being used to close off that commons?
+  I would be OK with their right to create such restrictions if they weren't lobbying the Government to restrict others, thereby ensuring that they control humanity's intellectual commons well into the future.
+  Perhaps I'm naive, but I think it's better for humans and the machines if we can all think, learn and build. But then again, I'm the kind of person who rejects the doomer pill.
+
+    [50028831] TheSamFischer 2026-10-10T02:09:49.000Z pts=None
+    Yay, all software will be open…Except the models.
+
+      [50030956] nicman23 2026-10-10T08:44:48.000Z pts=None
+      use open models and abliterate them
+
+    [50028987] LoganDark 2026-10-10T02:39:33.000Z pts=None
+    I wanted to see if CVP approval changed this response, but it appears that with the release of Opus 5.5, Anthropic silently dropped me from the program, and has some strict new criteria in place to apply again, such as being credited for a CVE! I was only approved last month, too -- sad!
+
+      [50029095] areoform 2026-10-10T02:58:42.000Z pts=None
+      This kills the talent pipeline, and it'll create a spam problem for the other folks because now people will try to github PR spam their way to getting on a CVE.
+      It's worth talking about the fact that you can't even talk about DMCA to a model trained on the Library of Congress unless you're one of the approved people. And that's before reverse engineering something or writing code.
+      So in this future, it sucks to be you if you're someone trying to make your small app more secure, someone trying to upskill, a tinkerer trying to bypass corporate lockdowns for a device they own (a recognized DMCA exception, btw), a teenager trying to learn about security...
+      It locks away much of the richness that produced hacker culture behind glass. You can look at their press announcements and PR pieces, but you can't touch.
+      And as they're lobbying the government for "sensible regulation," this inevitably leads to a future where computing is controlled.
+      It's the direction their existing reports are taking. They recently released one in September that talked about how they stopped "bioweapons." What were said bioweapons efforts? Oh, it was scientists using Claude for grant writing, paperwork and grammar. At national labs.
+      These people are basically proud of impeding real research to make better painkillers and study a neglected tropical disease, 
+      https://news.ycombinator.com/item?id=49651727
+      And this is being used to lobby against "dangerous" open-weight models because gasp a scientist might use them to write a grant! To make better antidepressants.
+      At what point do they start reporting someone taking apart an iPhone and trying to DIY a repair with a schematic as a thwarted "cyber security incident?"
+
+        [50029520] jasomill 2026-10-10T04:19:11.000Z pts=None
+        A funny, but slightly chilling safety violation I once got was ChatGPT being unwilling to recite the full text of Article I Section 2 of the US Constitution, aborting as soon as it hit the passage about "three fifths of all other persons".
+        Another funny one was Claude's refusal to provide the original untranslated text of a passage from Dante's Inferno on copyright grounds, though in this case pointing out that no 14th century literature was subject to copyright anywhere in the world was sufficient to override its objection.
+
+        [50029569] LoganDark 2026-10-10T04:29:14.000Z pts=None
+        Agree on the talent pipeline. It can take a long time for someone to obtain a CVE that has their name on it. You don't start being a security researcher only once that happens.
+        Several years back, I was working on generating AVB2 hashes on top of modified Android distributions, to increase the security after an owner has made their desired changes. I was doing this before the age of LLMs. Among other things, this would've enabled the secure features to work again, and potentially reduce the risk of root access being usable by malware. But apparently I'm not a security researcher because I didn't get a CVE about it.
+
+      [50029134] papascrubs 2026-10-10T03:04:52.000Z pts=None
+      I have CVP with the new program (including mythos access) and still get constant denials for silly situations. Most recently I fed a URL to my agent from a security blog and asked if to add it to my obsidian vault with appropriate tags-- cyber flagged. You're not missing much. OpenAI and/or most Chinese models are much more lax in their restrictions.
+
+  [50028552] MiroslavPokorny 2026-10-10T01:21:46.000Z pts=None
+  Thanks for sharing and making this open source. Starred and followed
+
+  [50028743] cedws 2026-10-10T01:55:09.000Z pts=None
+  What makes this better than just giving an agent radare2?
+
+    [50029275] charcircuit 2026-10-10T03:30:04.000Z pts=None
+    My agent usually goes and installs capstone itself.
+
+      [50029464] rasz 2026-10-10T04:06:46.000Z pts=None
+      >installs capstone
+      hello fellow Claude user
+
+  [50028861] epsteingpt 2026-10-10T02:14:25.000Z pts=None
+  Morluto is a legend.
+  Started in the repoprompt (https://repoprompt.com/) community.
+  Good stuff.
+
+    [50032862] cromka 2026-10-10T13:38:22.000Z pts=None
+    I tried but can't figure out what's this tool's purpose?
+
+  [50028933] rvz 2026-10-10T02:27:00.000Z pts=None
+  Now there are no excuses to reverse engineer the most notorious closed source binaries out there including from Nintendo's system software to CUDA, and nvcc from Nvidia and make it all "open source".
+  The only problem is the lawyers at all those companies will be readying their lawsuits, and given they have tons of money; they do not care and will come after anyone.
+
+    [50029327] echelon 2026-10-10T03:41:59.000Z pts=None
+    > CUDA
+    That's insanely meta.
+    I guess everything is going to become recursive. RSI on models. Everything feeding back into its own hill climbing optimization.
+    Humans nudging it up the hill further and further by using new geometric guidance.
+
+    [50030204] saagarjha 2026-10-10T06:22:33.000Z pts=None
+    What do you plan to do with a reverse engineered nvcc?
+
+      [50030335] rvz 2026-10-10T06:43:24.000Z pts=None
+      Why wait months for Nvidia to fix their compiler bugs when its far more faster to do it in the open? Libraries that invoke nvcc don't want to wait either.
+      So really closed-source compilers are a hindrance and you're subject to unspecified time-frames to even get to fix your issue rather than doing it yourself.
+      Intel and AMD have already open up theirs without question. Nvidia is the one who claims to be supporting openness in AI but can't even open up nvcc let alone CUDA.
+
+        [50030381] saagarjha 2026-10-10T06:49:52.000Z pts=None
+        I think you will spend far longer trying to fix all the bugs introduced by your AI decompilation.
+
+          [50032883] docjay 2026-10-10T13:41:30.000Z pts=None
+          And then you can use Claude-Magnum to fix the issues.
+          And then you can use Claude-Oeuvre to fix the issues.
+          And then you can use GPT-Cosmos to fix the issues.
+          And then you can use Claude-Omnibus to fix the issues.
+          And then you can use Claude-Logos to fix the issues.
+
+    [50033329] patrickk 2026-10-10T14:23:55.000Z pts=None
+    The sheer irony of this would be a thing to behold
+
+  [50028966] nirav72 2026-10-10T02:34:20.000Z pts=None
+  I wonder if this is why I've seen a lot videos popping up on my youtube feed related to vibe coded clones of various commercial apps in the past few days. Everything from clones of flagship products from Adob to Microsoft Office.
+  Adobe product clones like Photoshop and Illustrator:
+  https://www.youtube.com/watch?v=eFB79TYI-Vw
+  Adobe after effects clone:
+  https://www.youtube.com/watch?v=5mi_tYSdkWQ
+  MS Office suite clone:
+  https://www.youtube.com/watch?v=U_jTYMOlXio
+
+    [50029009] socializer 2026-10-10T02:42:43.000Z pts=None
+    Probably not, there's relatively little secret sauce to something like Photoshop. It's just a lot of grungy work that, I guess, you can now delegate to an agent if you have enough money and time.
+    As an aside, I've heard a lot of hot takes about how this is the end of Adobe, but I'm pretty sure it misses the point. The main reason people pay Adobe is because it's a familiar line of stable, well-supported, interoperable, and actively-developed products. There's already plenty of cheaper or free alternatives (Davinci Resolve for video, Capture One / Darktable for raw, Affinity for photo editing and vector drawing, etc), and if Adobe survived that, I sincerely doubt they're going to lose pro customers to a vibecoded app where half the stuff is probably subtly broken or left as a TODO, and that will be abandoned in a week, because the whole point was to get that 1M YouTube views.
+
+      [50029146] echelon 2026-10-10T03:07:45.000Z pts=None
+      > that will be abandoned in a week, because the whole point was to get that 1M YouTube views.
+      Longbets 1 week, haha.
+      We're working our asses off on this.
+      Most of the team are artists who use these tools actively and we want the replacements for ourselves. I'm a filmmaker, so you can imagine my frustration of being bitten by the "unsubscribe fee".
+
+        [50029289] lewelove 2026-10-10T03:32:51.000Z pts=None
+        You're doing God's work. Keep it up! PhotoCraft is really cool, and the pace of stabilizing progress is incredible! Don't listen to people who dismiss your work without getting their hands on it.
+
+        [50029438] beepbooptheory 2026-10-10T04:02:08.000Z pts=None
+        No ethical qualms here but you guys should save your money and just use Gimp!  It's already free, really capable, and comes from a good and pure place of making software for its own sake.  That's the kind of thing that gets you users for decade, beyond any egui rust doo dads.
+
+          [50029556] skeaker 2026-10-10T04:25:46.000Z pts=None
+          They are covering the entire Adobe suite, not just Photoshop.
+
+        [50029812] namrog84 2026-10-10T05:20:33.000Z pts=None
+        I am definitely interested in alternatives, but I am not interested in an alternative that isn't supported and maintained.  Though I suppose at some point I can ask my own agents to support/maintain it?
+
+        [50029823] geraneum 2026-10-10T05:21:46.000Z pts=None
+        > being bitten by the "unsubscribe fee"
+        I’m curious how much is your LLM bill. I’m assuming the idea is that LLMs will maintain the software? I’d be surprised, given the token economy, that you’d have to pay less than those subscriptions to LLM providers.
+
+          [50031255] m00dy 2026-10-10T09:48:57.000Z pts=None
+          great question
+
+            [50034723] echelon 2026-10-10T16:52:19.000Z pts=None
+            The very notion that there is an "unsubscribe fee" multiplies the cost 1,000,000x. And not just for me - for everyone.
+
+              [50035206] geraneum 2026-10-10T17:37:57.000Z pts=None
+              Please make this make sense with some napkin math. At the end of the day, you can’t do business based on feelings when you have to pay hard earned cash.
+
+          [50033429] baby_souffle 2026-10-10T14:35:17.000Z pts=None
+          I know a few creatives that would be fine with the insane adobe fees if they felt that the fee actually paid for anything to get better. Instead it’s just a new version and rate hike every year but the same paper cut bugs and broken UI still ship.
+          Crashes don’t get less frequent… etc.
+          These guys have a shot now.
+
+            [50035194] geraneum 2026-10-10T17:36:56.000Z pts=None
+            Doesn’t answer my question, does it?
+
+              [50035628] baby_souffle 2026-10-10T18:19:40.000Z pts=None
+              > Doesn’t answer my question, does it?
+              You can't compare _cost_ here; apples vs oranges. How much _value_ per unit money is what matters here.
+              Comparisons should be done against the status quo: ~$60/user/month to adobe for years at a time only to see the product get more bloated, less stable and any bugs/feature-requests you file go to /dev/null.
+
+                [50037426] geraneum 2026-10-10T21:36:28.000Z pts=None
+                Value and cost are quantifiable in business, down to the time you put on something. Otherwise it’s just feelings and good vibes. No matter how you calculate the vibe coded model is more expensive for the user without charity.
+                The vibe coded one will be garbage if you don’t put careful consideration and effort into both developing and maintaining it. That’s all _cost_ that come on top of the exorbitant token price you’ve to pay in perpetuity.
+                Btw, this is not a defense of Adobe’s software. It’s just that what you’re promoting is even worse than theirs.
+
+        [50029907] woggy 2026-10-10T05:35:28.000Z pts=None
+        Have you guys done any talks or written any articles on how you are developing this software?
+        Scaling up to this kind of complexity even with AI is still a challenge, at least for me.
+
+        [50030702] no-name-here 2026-10-10T07:50:51.000Z pts=None
+        > I'm a filmmaker, so you can imagine my frustration of being bitten by the "unsubscribe fee"
+        What's the 'unsubscribe fee'? Are you referring to choosing something like an annual plan instead of 'Monthly' and only getting 50% back if you cancel partway through?
+        As you said you're a filmmaker, if someone chooses to obtain the rights to your film for a longer period instead of a shorter period and then changes their mind halfway through, do you similarly give them 50% back?
+        From what I can see, Adobe prominently and clearly displays from the first public checkout page the differences between 'monthly' and 'annual' options?
+
+          [50032085] paulsen 2026-10-10T12:06:52.000Z pts=None
+          > From what I can see, Adobe prominently and clearly displays from the first public checkout page the differences between 'monthly' and 'annual' options?
+          It does now, because the FTC sued in 2024 and Adobe then corrected this, while settling in March 2026
+
+      [50030965] wg0 2026-10-10T08:46:34.000Z pts=None
+      Not really. Someone using Adobe Suite of products cannot easily switch to Davinci Resolve or Dark Table.
+      These are NOT the same thing whereas this one particular suite of clone products is exactly menu by menu, keyboard shortcut by keyboard shortcut and feature by feature a pure clone of corresponding products to that extent that they even have a separate dashboard just to track feature parity: https://github.com/storytold/craft-repo-status-app
+      It is NOT there yet of course but it won't be there in a year? That's an absurd claim to make. I have checked the repos multiple times and every new release keeps fixing something that wasn't working before.
+
+        [50031785] flyinglizard 2026-10-10T11:19:13.000Z pts=None
+        At some point Adobe will go after the clones, copyright their interfaces, close standards, patent stuff etc. The barrier for software used to be implementation effort, but now that it's out of the window, it will be more like other forms of IP (music, physical products, etc).
+
+          [50033614] wg0 2026-10-10T14:57:47.000Z pts=None
+          Do the have legal grounds? Much of their own algorithms would come from open academic papers I suppose?
+
+          [50042289] joquarky 2026-10-11T11:55:17.000Z pts=None
+          You can't copyright a user interface any more than you can copyright recipes, perfume, or fashion.
+
+    [50029047] rchase 2026-10-10T02:49:50.000Z pts=None
+    yep. it is unexpectedly everywhere. like, overnight.
+
+    [50029110] echelon 2026-10-10T03:01:14.000Z pts=None
+    No, we explicitly do not use reverse engineering. We do not decompile binaries, we do everything 100% clean room:
+    https://github.com/storytold/photocraft (inspired by Photoshop)
+    https://github.com/storytold/wordcraft (inspired by Word)
+    https://github.com/storytold/pdfcraft (one of the more mature apps)
+    https://github.com/storytold/vectorcraft (another app close to 1:1 parity)
+    (etc.)
+    Using REA for something as high profile as what we're doing is likely to result in lawsuits. We're doing everything we can by the books.
+    We cannot look at Adobe sources. Use of Ghidra is disallowed.
+    REA is probably great for personal apps and for abandonware, but I think if you publish the results and it's found to have decompiled the original proprietary sources in discovery, you might be in for a bad time.
+
+      [50029253] nico 2026-10-10T03:26:28.000Z pts=None
+      The AI labs already figured it out:
+      1) reverse engineer the code
+      2) train a model on the code
+      3) use the model to write the clean code
+      Step 2 is the key “cleaning” process
+      So maybe a good strategy would be to use something like REA, put it on GitHub, wait for the LLMs to train on it, then just use the frontier models
+      /s
+
+        [50029269] lifeisloving 2026-10-10T03:29:25.000Z pts=None
+        I prefer the word *laundering
+
+        [50029382] Iolaum 2026-10-10T03:53:36.000Z pts=None
+        LLM's have already trained on similar enough code
+
+          [50029662] nico 2026-10-10T04:46:46.000Z pts=None
+          Even better, 1 and 2 done, just move to 3 and profit
+
+      [50029264] lifeisloving 2026-10-10T03:28:56.000Z pts=None
+      Using an LLM is not a clean room, imo. Its just IP laundering. Which is fine I guess if everyone is doing it, including the companies you're stealing from. I just dont know what the implications will be for progress.
+      Licensing/copyrighting encouraged people to think up of new things, and new ways of doing something. Now we're just all copying eachother.
+
+        [50029282] echelon 2026-10-10T03:31:22.000Z pts=None
+        This is novel Rust/egui code that I imagine looks nothing like Adobe code. I've never seen their code, but it must be a mess of old C++, right?
+        It's considerably faster than their apps (at startup) too.
+
+          [50031551] ares623 2026-10-10T10:41:37.000Z pts=None
+          Well I hope they trust their LLMs completely, because I'm sure Adobe is currently going over their source code with a very fine comb to build a case. And they have LLMs to help with comparing too.
+
+            [50056541] hiccuphippo 2026-10-12T13:55:36.000Z pts=None
+            If the code is in a completely different language, what can Adobe do it's not gonna be copyright infringement? Derived work if the algorithm is the same? But at that point it's math.
+            I guess they can always sue over infringed patents?
+
+        [50029393] shinyoo 2026-10-10T03:55:49.000Z pts=None
+        I agree. The vast amount of data ingested and internalized by LLMs has effectively been "laundered". But they are so powerful and evolving so fast that no one can be spared of their impact. We have to to learn to live with it.
+        Traditional proprietary software being "laundered" is just one part of the broader story...
+
+          [50031408] whycome 2026-10-10T10:18:48.000Z pts=None
+          all human culture and creation is a form of "ip laundering" i guess
+
+            [50051059] shinyoo 2026-10-12T03:29:56.000Z pts=None
+            That's an interesting perspective. Indeed human creativity is often a process of reinterpretation, reinvention, and renewal. We've seen sprial-like patterns of similar ideas thoughout history, especially in the arts, intellectual trends, and lifestyles(but maybe not tech). Hopefully, LLMs can help human accelerate these processes in ways that benefit us
+
+        [50029467] jasomill 2026-10-10T04:07:25.000Z pts=None
+        Doesn't clean room typically apply to cases where the "dirty" team has legitimate access to copyrighted code, like the IBM PC BIOS which was published in the technical reference manual, and uses this access to write a functional specification for the "clean" team?
+        I'm not sure how clean room would apply to commercial applications distributed in binary form, as there's no way to look at even disassembled code without violating the license agreement and therefore being in breach of contract and subject to potential copyright infringement claims for copying or even continuing to use the software, let alone cloning it, and surely you're not going to be subject to a copyright claim based on familiarity with the application from merely using it.
+
+          [50029689] 20k 2026-10-10T04:53:18.000Z pts=None
+          The issue is that LLMs very likely have access to the source code of these products as part of their training data, and are then being used to generate clones. There's no barrier in the middle to ensure copyright violations don't leak
+          The reason why 'reverse engineering' has gotten so good is because what we're actually seeing is fully automated luxury plagiarism
+
+            [50029832] Geof25 2026-10-10T05:22:52.000Z pts=None
+            It is very unlikely that LLM had access to original source code of Photoshop.
+
+              [50030233] 20k 2026-10-10T06:27:32.000Z pts=None
+              If adobe use any AI tools to help develop photoshop, its all been loaded in. Or if its ever ended up anywhere on the internet, even in private
+
+                [50030416] arcanemachiner 2026-10-10T07:00:29.000Z pts=None
+                The first part (re: AI tools) is ostensibly not true. It all depends on the degree to which the data that they "don't train on" gets laundered and anonymized to the point where they are able to justify training on it without it being "yours" any more.
+                And I don't think that is publicly known at the current time. (If anyone has any tangible info on this, the please let me know...)
+
+              [50030844] IsTom 2026-10-10T08:22:36.000Z pts=None
+              It could have access for code of an older version with how there has been leaks of sources of various commercial applications over the years.
+
+              [50030967] okamiueru 2026-10-10T08:46:49.000Z pts=None
+              They have had access to plenty of A/GPL software. They are all highly problematic from an ethical and legal point of view.
+
+              [50031845] objclxt 2026-10-10T11:30:13.000Z pts=None
+              > It is very unlikely that LLM had access to original source code of Photoshop.
+              It doesn’t matter. It’s likely had access to the knowledge of somebody who worked on that source code.
+              I have worked at companies that have done clean-room implementations. I was not permitted to look at their source or interact with those teams, because I had been exposed to the source of what they were re-implementing in a prior job.
+              As a human with a mushy brain I was never going to remember the source, but the fact I had been proximate to it was enough to lock me out. You have no idea what the LLM trained on, so you can’t prove a LLM derived clone is a “clean-room” implementation.
+
+                [50037470] user43928 2026-10-10T21:41:51.000Z pts=None
+                Some questionable idea that the LLM "had access to the knowledge of somebody who worked on Photoshop source code" seems like a poor basis to allege it's not a clean room implementation.
+                Wouldn't the burden of proof here be on Adobe if they wanted to make such an argument?
+
+            [50042178] joquarky 2026-10-11T11:43:01.000Z pts=None
+            But look at the bright side in your reality: this technology can losslessly compress any source code at several orders of magnitude better than any prior algorithms!
+            Isn't that an incredible breakthrough in your world?
+
+          [50029723] greggsy 2026-10-10T05:00:00.000Z pts=None
+          The practical uses are more applicable to laundering open source code covered by copyleft licensing like GNU.
+
+        [50030059] birksherty 2026-10-10T05:59:43.000Z pts=None
+        People made new and better things just like companies without copyright too. In recent times companies made things worse too.
+
+        [50030159] schleck8 2026-10-10T06:15:52.000Z pts=None
+        What intellectual property is being laundered here if it's not even the same ecosystem (C++ vs Rust)? If it's so easy, and you just need to rebatch something existing, why has nobody done this over the last 20 years?
+
+          [50030589] bscphil 2026-10-10T07:31:35.000Z pts=None
+          Adobe almost certainly has patents covering aspects of Photoshops design and tools?
+          Microsoft famously has patents covering aspects of the ribbon interface in Microsoft office, which of course this suite must implement. https://en.wikipedia.org/wiki/Ribbon_(user_interface)#Patent...
+          Meanwhile, Wikipedia has a policy that says screenshots of applications have to be "as small a version as possible" in order to meet the fair use exception for presentation of copyright work. I can only imagine an exact clone of the interface could be similarly ruled to infringe on Adobe's intellectual property.
+
+            [50031295] schleck8 2026-10-10T09:57:07.000Z pts=None
+            Copyright is so flawed... This would mean an hommage is a breach of intellectual property in general, even if you paint it completely differently (say watercolor vs oil)
+
+            [50042137] joquarky 2026-10-11T11:37:48.000Z pts=None
+            Patents don't forbid you from replicating the technology for yourself.
+
+        [50037434] CrimsonRain 2026-10-10T21:37:27.000Z pts=None
+        Your brain is an IP laundering machine. And it has been doing that even before we had any IP laws.
+
+        [50040192] Pannoniae 2026-10-11T06:00:28.000Z pts=None
+        >Licensing/copyrighting encouraged people to think up of new things
+        I don't think it did... think about it for a second. If you have to recreate something from scratch every time vs. being able to/being allowed to take something existing and improve it, which regime results in more innovation? Probably the second, because progress builds on each other. I might have a better idea to implement more features, you might be able to optimise it, someone else might make it more polished, someone else might add a nifty UX trick, someone else might refine the art, etc. etc.
+        Traditionally, this was only done on open source projects and even there, the barriers to contribute have been historically high. (Have to open merge request, get through the gatekeeping, document your stuff, etc.)
+        Now it's much easier, point agent into code (or binary), change stuff, have fun;)
+
+        [50042131] joquarky 2026-10-11T11:36:36.000Z pts=None
+        How is this stealing?
+
+        [50049772] onetrickwolf 2026-10-12T00:35:29.000Z pts=None
+        > Licensing/copyrighting encouraged people to think up of new things, and new ways of doing something.
+        I don't think this has been true since the copyright acts extended copyright from a max of 28 years to a minimum of 70 years + life of the author (or 95 years for corporations). I think this is kind of the inevitable conclusion of such absurd length copyright.
+        Copyright is no longer used as a grace period and reward for innovation, it's a tool for corporations to hoard and restrict IP. A core aspect of human creativity is building off other things and things you grew up with, but now people have zero chance of seeing ANYTHING created in their lifetime entering the public domain.
+        This is an inevitable rebellion to the situation these laws put us in.
+
+      [50029375] idiotsecant 2026-10-10T03:52:19.000Z pts=None
+      The death of IP in the west. Good thing? Bad thing? Who knows. Definitely the start of something big though.
+
+        [50029574] angusturner 2026-10-10T04:31:04.000Z pts=None
+        Mightn't be so bad if all the value wasn't being captured by trillion dollar corps, despite them benefiting off the labor and creativity of countless non consenting individuals
+
+          [50030998] adventured 2026-10-10T08:56:36.000Z pts=None
+          Those trillion dollar corps also employ millions of people in very high paying jobs. And the extraordinary stock returns have made their engineers (and countless public investors) wealthy across the past half century.
+          People wishing for the death of the mega corps, are directly wishing for the obliteration of millions of great jobs.
+
+            [50031405] nbaksalyar 2026-10-10T10:17:58.000Z pts=None
+            I’m not sure people are “wishing for the death” in the literal sense.
+            We just need to apply the antitrust law and break these trillion-dollar corps into smaller competing corps.
+            There’s no reason for a single company to provide your email, browser, search, operating system, entertainment, AI, etc.
+
+            [50031672] angusturner 2026-10-10T11:00:01.000Z pts=None
+            How many of those jobs do you expect them to retain as they build increasingly capable models?
+            How much of the profit will be redistributed to all the artists, programmers, scientists, etc. whose works are the foundation of their product?
+            The poorest 50% of global citizens hold the same combined wealth as the top 10 individuals.
+            How are massive and increasingly concentrated corporate profits going to help them? (Or anyone else for that matter).
+
+            [50031831] mold_aid 2026-10-10T11:28:01.000Z pts=None
+            Cry me a river
+
+            [50031900] well_ackshually 2026-10-10T11:40:13.000Z pts=None
+            >People wishing for the death of the mega corps, are directly wishing for the obliteration of millions of great jobs.
+            Yeah, I'll take the obliteration of a few million overpaid American jobs over the destruction of hundreds of millions worldwide, the social upheaval that goes with it, the destroyed families and the direct and indirect deaths. Fuck your promo packet and fuck your cozy desk job.
+
+            [50036195] agoodusername63 2026-10-10T19:20:18.000Z pts=None
+            well they won't give me one of those great jobs
+
+        [50029651] geraneum 2026-10-10T04:45:34.000Z pts=None
+        IP is not dying. It’s being consolidated to just a few mega corps. Good thing? Bad thing? Definitely the start of something big though.
+
+        [50031329] userbinator 2026-10-10T10:04:10.000Z pts=None
+        Imaginary Property was always an illusion, one which is now crumbling quickly despite a lot of desperate attempts at maintaining it.
+        Everything was, is, and always will be a derivative work.
+
+      [50029384] o1o1o1 2026-10-10T03:53:52.000Z pts=None
+      Please don't take offence by this, but:
+      If AI models can generate designs faster and produce work that is "good enough", what is the actual future of design tools and the design profession in your opinion?
+      I've tested this myself with some frontier models and the results are kinda impressive enough that it raised the question if design skills are already obsolete. If that is the case, what use are these tools now?
+
+        [50029646] komali2 2026-10-10T04:44:40.000Z pts=None
+        Good enough is not really good enough.
+        I've seen a lot of "really cool unique designs" that are obviously just a digested regurgitation of amalgamated corporate slop. Anyone wanting an actual unique design language needs to hire actual designers.
+        Those designers may use AI tools but the tooling isn't to where they can be completely replaced. I challenge anyone to show me an e2e LLM design toolkit that can actually replace a designer, not just one shotted "wow that looks so cool" character designs.
+
+        [50037222] deadbabe 2026-10-10T21:11:28.000Z pts=None
+        In the future everything will be some form of command line interface. Don’t worry about design.
+
+      [50029445] sheeshkebab 2026-10-10T04:02:55.000Z pts=None
+      How do you know llms you are using were not trained on decompiled apps?
+
+        [50029472] Fizz43 2026-10-10T04:08:43.000Z pts=None
+        why would that matter? That sounds like a problem between Adobe and the AI companies.
+
+      [50029704] greggsy 2026-10-10T04:57:08.000Z pts=None
+      Would love to see an InDesign clone that supports writing to and from their proprietary format.
+
+      [50030195] modeless 2026-10-10T06:20:46.000Z pts=None
+      Wow. Maybe AI can win artists over after all.
+
+      [50031251] m00dy 2026-10-10T09:48:21.000Z pts=None
+      great work, congratz.
+
+      [50036592] cromka 2026-10-10T20:02:04.000Z pts=None
+      > We do not decompile binaries, we do everything 100% clean room
+      AFAIK clean room does not forbid decompilation, I meant that's how it's been done for ages. What's important is that the observer does not write the code, to avoid being impressed by the decompiled one, risking creating a copy close enough to deem it copyright infringing on the original.
+      Because the copyright applies to the actual code.
+
+    [50029135] chiengineer3 2026-10-10T03:04:59.000Z pts=None
+    I built a from scratch rust RAW processing engine similar to the brains behind photoshop and lightroom - its much more powerful and its not even complete yet
+
+    [50029710] komali2 2026-10-10T04:57:33.000Z pts=None
+    I've been really inspired by it. Ever since that sort of joking project came out, "Malus," that would clean room reimplement GPL software under more permissive licensing, I've been chewing on doing the reverse for proprietary software. I've been calling it the Manfred Macx theory of disruption, for the character in Accelerando that would patent and then release to public domain profitable ideas before a megacorp could lock them down.
+    I've got my wedding coming up so haven't had the time I want to dedicate seriously to finding some proprietary things to disrupt, but I've had fun using this as an opportunity to play with subagent orchestration, open weight models, various harnesses, and local models, to see what happens if I let some LLMs churn on it. That resulted in a hodge podge researched list of potential targets: https://github.com/508-dev/genairosity/issues
+    One thing that stands out is a lot of software kinda does already have a FOSS replacement, it's just not really how people want it to be. GIMP being the representative example. Photoshop people just don't like it, I'm sure for not entirely invalid grievances. However the maintainers of these kinds of tools are often strongly opposed to LLM involved contributions,  again , often for not entirely invalid reasons on these incredibly complex projects.
+    So the long and short of it is that as powerful as LLMs are, we aren't quite where some of the doomsayers are saying we are, insomuch as proprietary software is dead. Even with reverse engineering we aren't there. There's genuine labor, time, and expertise moats around most of these programs.
+    Personally I'm shifting to trying to find niche abandoned software with no export flow. Even if I can only help out a couple hundred people, it sounds like a decent use of my time.
+
+    [50031180] nikanj 2026-10-10T09:34:32.000Z pts=None
+    LLMs are excellent at generating something that looks good, not so great at generating something that actually is good. All of those look really slick, but apparently the functionality is all broken
+
+      [50031219] m00dy 2026-10-10T09:42:07.000Z pts=None
+      lol :), you're wrong.
+
+  [50028994] nailer 2026-10-10T02:40:23.000Z pts=None
+  Ooh it can recreate old games from executables, I wondering if it can do Motorola MC68010, I want to play Stun Runner in 4K.
+  https://www.youtube.com/watch?v=tByxdDiRdPM
+
+  [50029211] armcat 2026-10-10T03:18:42.000Z pts=None
+  I’ve been trying to rebuild and modernise an old abandoned ms dos game, simply by pointing Codex (6.1 Sol) at the game directory, and it works insanely well. It’s able to understand the data formats, unpack graphics and sound assets, and reconstruct game logic.
+
+  [50029430] Beijinger 2026-10-10T04:00:39.000Z pts=None
+  Maybe we should bring Xara Xtreme for Linux back?
+
+  [50029461] methou 2026-10-10T04:06:20.000Z pts=None
+  I'm using IDA Pro's MCP (Well worth of money in the past), it may hit the infamous artificial cyber wall at any time.
+  Try GLM-5.3, it worked pretty for me. It also worked well with Radare2 or binary ninja if you don't have the muscle memory for idapro.
+
+    [50029560] jasomill 2026-10-10T04:26:56.000Z pts=None
+    This makes no sense to me. There are innumerable reasons to reverse engineer software that have nothing to do with security, some not only not prohibited, but in fact specifically authorized by law.
+    It'd make more sense to reject reverse engineering commercial software on the grounds that it likely violates the software's license agreement, and would therefore subject the user to potential breach of contract and copyright claims.
+    But this would also apply to uploading pretty much any non-self authored document to the LLM in the first place, albeit with fair use as a possible defense after the fact, so it still doesn't make much sense.
+
+  [50029504] Meleagris 2026-10-10T04:16:47.000Z pts=None
+  I’m surprised people don’t get refusals running this, or are they running it with cyber-enabled models like daybreak?
+  In my experience, even just hinting at reverse engineering to models from Anthropic or OpenAI leaves them extremely sensitive to refusals. After all, the same techniques used here can be used to find exploits.
+  Or are people using it with local models?
+  Curious.
+
+    [50029537] marcelo-earth 2026-10-10T04:21:36.000Z pts=None
+    Yes, it just rejected me once with Claude Code Opus 5.5, but it works fine with Codex 6.1-Sol (in my experience, it was the other way around)
+
+    [50029557] Scaevolus 2026-10-10T04:25:46.000Z pts=None
+    Reverse engineering and decompilation is not currently blocked by the models, leading to the proliferation of LLM-assisted decomps/recomps. If you ask it to find bugs you're more likely to get a refusal, but simply pointing an LLM at a Ghidra MCP server and telling it to trace program flow, rename functions, or answer questions behaves like normal.
+
+    [50029615] wpm 2026-10-10T04:38:01.000Z pts=None
+    I handed Astra Ghidra with some printer driver exes/dlls loaded, and a Windows 2000 VM with the software installed and said "reverse engineer this printer driver, it's hooked up and powered on on /dev/ttyUSB0, tell me when you're ready to print a test page". No refusals.
+
+      [50032222] hxugufjfjf 2026-10-10T12:24:51.000Z pts=None
+      I did more or less the same and was insta-banned by OpenAI for life. Stay safe out there.
+
+        [50033112] ghosty141 2026-10-10T14:02:18.000Z pts=None
+        What? What software did you try to reverse, Ive never heard of anything even close to this
+
+          [50033134] hxugufjfjf 2026-10-10T14:04:29.000Z pts=None
+          Really just a few attempts at cybersecurity related things (not even RE) with ChatGPT/Codex triggered a warning of breaking ToS by email. A few days later I was banned. No appeal.
+          My conclusion is that OpenAI will help you with cybersecurity and never really block or prevent you from doing the work, but then suddenly warn and/or ban you. Anthropic does the opposite, where they trigger safeguards all the time while working, but never really ban you.
+          Also, while you may have never heard of this happening I found countless threads on Reddit with frustrated people having been banned from OpenAI for using it for cybersecurity. Since all I’m using AI for is cybersecurity, it’s hard to know exactly why I was banned since they don’t say exactly why.
+
+    [50029637] xpct 2026-10-10T04:41:49.000Z pts=None
+    I think people said that Claude refuses to work on RE sometimes.
+    I've had no issues with OpenAI.
+
+      [50031271] DaSHacka 2026-10-10T09:51:57.000Z pts=None
+      Ironically, I've had the opposite experience. My OpenAI account was permanently banned for doing too much RE work, meanwhile the worst I get on Claude is a downgrade to Opus 4.8.
+
+        [50032140] xpct 2026-10-10T12:12:25.000Z pts=None
+        Oh, that's interesting. Mind sharing how much was 'too much'?
+
+          [50032256] hxugufjfjf 2026-10-10T12:27:50.000Z pts=None
+          I’m not the person you’re replying to, but for me just a few attempts at doing cybersecurity related things (not even RE) with ChatGPT triggered a warning by email. A few days later I was banned. No appeal.
+
+          [50037113] DaSHacka 2026-10-10T20:58:36.000Z pts=None
+          It was three strikes, I would get notified over email for each one and the third strike got my account banned. I guess the strikes are one step up from the automatic guardrail refusal messages, I would get one after getting too many refusals in a row or I guess when I did work the model deemed 'particularly sensitive'?
+          I tried to appeal, hoping their automated system would take pity on me but predictably it was instantly denied lol
+          Now granted, I was doing actual offensive cybersecurity work without being enrolled in the cyber program, and I have plenty of spare alternate accounts anyway so it wasn't that big of a deal. It actually already net me a few 0days, so their guardrails aren't very effective.
+
+    [50030822] Retr0id 2026-10-10T08:16:44.000Z pts=None
+    Opus 5.5 hasn't given me much trouble with games, but for DRM and licensing checks I usually have to drop down to 4.8 or 4.6.
+
+    [50031077] Alifatisk 2026-10-10T09:13:32.000Z pts=None
+    The Chinese labs aren’t constraining their models as much as Western labs do. That’s why HF used GLM. If you remember the early times with how Gemini (Bard then) and Claude refused almost everything, you’d despise the idea of guardrailing. (Its important in some areas though)
+
+  [50029703] InvisibleUp 2026-10-10T04:57:03.000Z pts=None
+  Glancing at the Touhou 4 decomp[1], it's a lot better quality than a lot of AI decomps I've seen. It's matching, the variables are named sensibly, comments are sparse and comprehensible, and there's not much in the way of unaddressed Ghidra jank. And only in a month! My main complaint is that the file structuring seems more optimized for AI use than for mirroring the original intent of the devs. (Compare to this human-made Touhou 6 decomp.[2])
+  I know the retro game modding/decomp scene is already getting hit with a flood of low-effort ports.[3] Now they're going to be hit with a flood of half-decent decomps effortlessly generated by anyone with a $200/mo AI subscription, which become half-decent PC ports, which get modding support grafted on. It kinda just... totally eliminates that as a hobby entirely. I know people are going to be upset about this. And it's not even like with the AI art, where the pro and anti-AI camps live in their own camps. Solving the same puzzle twice just feels discouraging. Very similar to the problem academics are having with AI math/physics proofs.
+  I know a large reason people hate AI is because it's largely seen as tearing apart hobbyist/professional communities, eliminating reasons to collaborate with others and form relationships, and replacing it with an individualized dependence on a commercial product. It follows the same trend the tech industry took social media, from a method of connection to a tool of propaganda and paranoia and "@gork is this true?" This project, I think, is one of the most clear examples of that.
+  [1] https://github.com/N0zoM1z0/th04
+  [2] https://github.com/GensokyoClub/th06
+  [3] https://www.pcgamer.com/gaming-industry/pc-ports-of-old-cons...
+
+    [50030093] mjr00 2026-10-10T06:06:57.000Z pts=None
+    > Now they're going to be hit with a flood of half-decent decomps effortlessly generated by anyone with a $200/mo AI subscription, which become half-decent PC ports, which get modding support grafted on. It kinda just... totally eliminates that as a hobby entirely.
+    It really depends on your perspective of what the point of the hobby is. Were decomps/recomps a hobby because people wanted to make sure their old games could run on modern hardware and be extended with mods etc., or were they a hobby because people enjoyed the actual process of using Ghidra and reverse engineering by hand, and the decompiled game was just a side effect?
+    Personally I think it's awesome that PC98 Touhou games are getting recomps. Being able to play the series natively on modern hardware, and all hardware for the foreseeable future, is great and preserves the legacy of the series. I understand that for anyone who enjoys the actual act of reverse engineering it feels like cheating, though.
+    I think people will get over it. Music is a good example. Drum VSTs and piano VSTs are going to sound way better than you unless you're a 99th percentile musician playing on a 99th percentile physical instrument. But people still play the piano and drums, because it's fun. Same idea; the existence of AI doesn't stop people who love the act of reverse engineering from doing it.
+
+      [50030327] cassonmars 2026-10-10T06:42:18.000Z pts=None
+      > It really depends on your perspective of what the point of the hobby is. Were decomps/recomps a hobby because people wanted to make sure their old games could run on modern hardware and be extended with mods etc., or were they a hobby because people enjoyed the actual process of using Ghidra and reverse engineering by hand, and the decompiled game was just a side effect?
+      I think your question would make sense if these were the only two reasons. Someone who just wants to make sure their old games can run would see these tools as a good thing. People who just enjoy reverse engineering by hand wouldn't care this exists, or maybe even, a helpful tutor.
+      So perhaps then, the sentiment being as negative as it is, is revealing something about the hobby: that many participants, considered the metagame of being the first to do it, to be "smart enough" to have figured it out, the "street cred" if you were, is what they are lamenting, but they just either lack the words, or aren't being honest with themselves.
+
+        [50030777] quietfox 2026-10-10T08:07:14.000Z pts=None
+        It is a lot of gatekeeping involved for sure. As a lifelong musician, who probably spent a few thousand hours to learn piano, guitar, drums and music production, I was shocked when people could produce reasonable sounding music with a mouse click and a budget of cents instead of endless dedication and a lot of money. I felt totally devalued and stripped of my „street cred“ to stay with your terms.
+
+          [50030862] Tarq0n 2026-10-10T08:26:01.000Z pts=None
+          That's not (just) gatekeeping. People try to internalize a positive self image, from positive internal and external validation. Skills can also be a source of status or meaning (usefulness to others).
+          Taking that away compounds with the crisis of meaning we already have to make people feel more alienated than ever.
+
+          [50030966] eru 2026-10-10T08:46:43.000Z pts=None
+          Oh, yes.
+          I must think of all the people who poured countless years of their lives learning all the C++ bullshit..
+
+            [50031024] mordv 2026-10-10T09:02:04.000Z pts=None
+            Gatekeeping was especially evident in MCU programming and embedded stuff. 
+            Now you get decent answers for free, instead of "how don't you know that, read the 1200 page manual, stupid!"
+
+              [50037671] insufferableaib 2026-10-10T22:06:01.000Z pts=None
+              God forbid we had to actually spend time reading and understanding how the device worked.
+
+                [50040407] eru 2026-10-11T06:56:19.000Z pts=None
+                I know, suffering builds character.
+
+        [50031173] alberto-m 2026-10-10T09:33:09.000Z pts=None
+        > So perhaps then, the sentiment being as negative as it is, is revealing something about the hobby: that many participants, considered the metagame of being the first to do it, to be "smart enough" to have figured it out, the "street cred"
+        This is a very ingenerous interpretation.
+        I am a hobby hiker. My mountain hikes are so easy that basically anybody could do them: no street cred involved, it’s not even worth to speak about them. But it is important to me that most goals are only reachable by walking and putting in the effort: if a company offered a 20$/mo service that brings subscribers to the endpoint, carried in a luxury litter by robotized carriers, I would feel that my hobby has been devoided of sense.
+
+          [50031793] verandaguy 2026-10-10T11:21:17.000Z pts=None
+          Thanks for framing this in a way that I've struggled to phrase.
+          At every turn it seems like a lot of intellectual pursuits are just being voided by this technology.
+          I've heard the "one level up" argument in software with the supposition being that the work's still there, it's just becoming more abstract... but even in software, this doesn't really track.
+          The injection of this technology into not just intellectual but artistic pursuits (since there are now commercial AI image and music generators) should be a red alert.
+          What is there to live for once everything you once loved to do has been optimized for maximum revenue? Where every time you do something for fun, someone will come out of the woodwork when you show it off to either tell you AI could've done it quicker, or that they made an AI version with a flashier UI or something?
+
+            [50031989] ninjagoo 2026-10-10T11:52:42.000Z pts=None
+            > What is there to live for once everything you once loved to do has been optimized for maximum revenue?
+            if it brings you joy, what does it matter how someone else does it?
+            If you run for fun, what does it matter that someone else does it faster, or in a paid exhibition optimized for max revenue?
+            Do it because it brings you joy, there is no external dependency.
+            > Where every time you do something for fun, someone will come out of the woodwork when you show it off
+            See, this is where things get tricky, either the activity brings you joy, and/or the sharing of it brings you joy, and/or the showing off of it brings you joy.
+            For the first two, it is irrelevant what someone else has to say or do about it; ignore the noise. For showing off, yes, some activities are no longer worthy, so change is needed to find those that are.
+            Hopefully for a hobby, or for anything that you love to do, showing off is not a major criterion for why you do it.
+
+              [50032146] alberto-m 2026-10-10T12:12:46.000Z pts=None
+              We are not robots and telling people how they should feel and how their mood should not be influenced by this or that is akin to saying to depressed people to just stop being depressed. The divide-and-conquer method you appear to be using is worthless for human psychology.
+              The cases of a niche culture destroyed by dilution are so common that there are essays around it (e.g. Geeks, MOPs, and sociopaths in subculture evolution), so it seems to be a very normal and human thing to happen. Blaming the individual members for failing to feel differently is not going to fix that.
+
+                [50038444] ninjagoo 2026-10-11T00:18:07.000Z pts=None
+                > We are not robots and telling people how they should feel and how their mood should not be influenced by this or that is akin to saying to depressed people to just stop being depressed. The divide-and-conquer method you appear to be using is worthless for human psychology.
+                I have some bad news for you -- all major religions are predicated on telling people exactly how to feel. Last I checked, these religions are very popular.
+
+              [50032372] verandaguy 2026-10-10T12:41:33.000Z pts=None
+              Showing off can be the point. If I did something tricky and creative and got an interesting (possibly even useful!) result, why shouldn't I be proud enough of that to have a "hey, look at this cool shit I did/made" moment?
+              That aside, I've been lucky enough in my career to work alongside, mostly, people who have a personal interest in using software as a tool, and knowing their toolchains very well, be that a language, a command line, a system architecture, you name it. If you found something cool to do with a tool, you'd share it to disseminate the knowledge. That culture is very quickly dying off, I feel, because LLM-driven work encourages siloing to a degree I don't think gets discussed enough.
+              Lastly, using LLMs to write code is its own type of exhausting. I thought I could keep up my hobby by mentally checking out of work and working on projects by hand in my free time, but babysitting the LLM, reviewing the massive corpora of code and documentation it puts out (including those put out by colleagues), and the insane volume of context switches this technology encourages in the workplace makes me want to stay the hell away from computers alltogether if I can help it.
+
+              [50035433] TeMPOraL 2026-10-10T18:00:34.000Z pts=None
+              > If you run for fun, what does it matter that someone else does it faster, or in a paid exhibition optimized for max revenue?
+              This example is actually very clarifying - perhaps almost no one actually runs for fun?
+
+                [50037574] tough 2026-10-10T21:54:20.000Z pts=None
+                if you run to be healthier, how does someone doing so faster affect your health
+
+            [50033573] brandonmenc 2026-10-10T14:52:51.000Z pts=None
+            > At every turn it seems like a lot of intellectual pursuits are just being voided by this technology.
+            If the goal was to show off your accomplishments on social media, sure.
+
+          [50032295] testerius 2026-10-10T12:32:05.000Z pts=None
+          But you still can do it without LLMs/AI. And even better you can be proud that you did something "by hand" without AI help. Do you know that you can still cooking, singing, programming and so on? You do not need to buy ready meals, generate music by prompts or let model to figure out solution.
+
+          [50032700] selestify 2026-10-10T13:22:29.000Z pts=None
+          > if a company offered a 20$/mo service that brings subscribers to the endpoint, carried in a luxury litter by robotized carriers, I would feel that my hobby has been devoided of sense.
+          As someone else who hikes: why? I do not understand. Do you not enjoy the hobby of hiking for the sake of hiking?
+          The views will be just as beautiful, the air just as fresh, and the feeling of moving my legs just as energizing, regardless of how others may decide to get to the destination themselves. Why would the experience of others have any impact on my own experience of a trail?
+
+            [50032765] nkrisc 2026-10-10T13:29:55.000Z pts=None
+            Might be stretching the analogy too far, but look what happens to remote places that become easily accessible. They become commodified, crowded, and polluted.
+            There is something about a place requiring effort to visit that makes it special, and it loses that quality when it can be trivially accessed. The air isn’t quite as fresh when there’s a parking lot there.
+
+              [50033550] k__o 2026-10-10T14:50:17.000Z pts=None
+              yes, gatekeeping has much more merit than given credit for. ive seen many communities, ideas, companies, online and off that have been ruined by their growth past a certain point. ive wondered if it's a "when everyone's special no one is" thing but maybe it's just a primal human community thing. idk
+
+                [50038352] jonhohle 2026-10-11T00:01:17.000Z pts=None
+                I think it’s purely a community size issue. When a community is small, everyone’s an owner. Dealing with bad actors is straightforward. When it grows into the hundreds or thousands the scale means you can’t know everyone anymore, you need hall monitors, need to be more guarded and intentional about how you communicate.
+                It’s not bad or wrong, just different. When the changes forced by a group who didn’t build it, it’s frustrating.
+                “Hey, here’s this thing you love doing, but now a computer does it and you don’t have to any more. See, same!” Thanks for allowing me to not do the thing I like to do?
+
+              [50033568] Peaches4Rent 2026-10-10T14:52:43.000Z pts=None
+              I think this is spot on. It's the journey, but its also the destination.
+
+            [50033556] czbc 2026-10-10T14:51:09.000Z pts=None
+            "I hope things will stay the same when other people come in but I'm acknowledging they will not"
+            Rather its the impact of others on, not their experience of, a space that would impact my own experience, for better or worse.
+
+            [50034540] plorkyeran 2026-10-10T16:36:05.000Z pts=None
+            There is indeed something special about getting to the top of a mountain and knowing that anyone you encounter there went through the same thing you did to get there.
+
+          [50034079] orangecat 2026-10-10T15:46:51.000Z pts=None
+          This is a good illustration of the crux; that mindset makes absolutely no sense to me. Is hiking the Appalachian Trail meaningless because you can just drive from Georgia to Maine? Is camping in tents ruined for everyone because fancy Winnebagos exist?
+
+        [50065787] tourmalinetaco 2026-10-13T02:22:21.000Z pts=None
+        It’s absolutely pride-based. The mathematicians didn’t care about AI making the theorems as much as they cared that a human couldn’t claim the clout. I’ve seen this a lot in retro hobby spaces, in places like RetroAchievements with game hogs and with people sitting on projects and info so they can “do it right” and essentially project troll.
+        One notable example was Princess Crown; OG devs start it in 2014, and by 2024 they lack a playable build. In 2024 a new dev forks their open sourced code (which hadn’t been touched since 2020), and have a playable build. Devs claim they didn’t “authorize” the use of their open source code, and quit work on their vaporware project. Within four months the new dev, Eadmaster, has a 1.0 playable build.
+
+      [50030382] ronjakoi 2026-10-10T06:50:10.000Z pts=None
+      What's a VST?
+
+        [50030398] pkhamre 2026-10-10T06:53:21.000Z pts=None
+        Virtual Studio Technology. Often referred to as a virtual instrument or a (virtual) synthesizer, and works as a plugin in digital audio workstations.
+
+      [50030460] WalterGR 2026-10-10T07:07:29.000Z pts=None
+      > Were decomps/recomps a hobby because people wanted to make sure their old games could run on modern hardware and be extended with mods etc., or were they a hobby because people enjoyed the actual process of using Ghidra and reverse engineering by hand, and the decompiled game was just a side effect?
+      It’s interesting to dwell on what ‘we’ appreciated before versus what we appreciate now.  Since LLMs lowered the bar, it feels like raw human effort has come to be held in higher esteem.
+      Are we going to re-evaluate what we were impressed with in the past based on that new metric?  For example, will accomplishments by experienced engineers be devalued in comparison to accomplishments by outsiders?  Will the software engineering equivalent of ‘folk’ or ‘outsider’ art become more valued?  There will be a natural instinct to distrust outsider contributions because, well, how did they get so good?
+      Are some metrics of human effort going to be de rigueur going forward?
+
+        [50030945] BlueTemplar 2026-10-10T08:42:53.000Z pts=None
+        Study former examples of 'AI' doing this : the Luddites and various artisans displaced by 'AI' looms and 'AI' factories in the 19th century.
+
+      [50030644] minraws 2026-10-10T07:42:49.000Z pts=None
+      I think you misunderstand the OP, the issue isn't the work if AI can do it we should still pool together and not waste tokens on the same problem 10-100x times because 100 people are doing the same thing in parallel.
+      Since it's not educational as it used to be, if you built your own version of n64 emulator number 10143 you got something out of it you learnt some interesting stuff, learnt software development, hardware etc.
+      Now we are literally all just taking a magic machine pouring money on one end getting half baked output the other but no progress is being made on money is being wasted. Since even if 1 person had built it everyone would have had access already.
+      This is the same wave of slop coding/vibemaxxing we had a few months ago where everyone was building product X for the 1 million-th time without any actual progress being made.
+      Math has a similar problem now, before if 1000 people tried to solve a problem they all grew from that experience, the LLM is not growing/learning anything from this effort.
+      All we are doing is burning resources for our pleasure, I say that as someone who has now written his own compiler, vcs and browser stack, with vibe coding, though largely I would claim I have used and tried to read the code, clean it up, to learn from it where different things break.
+      But even this feels absurd waste of resource imagine all of us collectively burning 200$ per month plans which assuming a at cost pricing we are all burning 200$ of electricity each month to do what exactly? Some folks are on their 10th subscription that means most people are burning 1000-2000$ of ultra cheap energy generally sourced from a mix of gas/oil turbines burning away at big data centers these days.
+      We could all solve it by making a site.. cough github.. and not duplicating work.. cough..
+      But somehow because it's easy no one seems to care.
+      I am hardly against software progress, and if AI gets better we will have better software (because most people write horrible software most of the time) so I am happy about it, to an extent that I can be, with my profession feeling somewhat challenged.
+      But given I have always worked as a fixer of broken stuff it's very much also feels fine to me. Either way I am very much against these 200-500 dollar plans that allow you to burn hundreds of dollars of energy for little productive gain duplicating the same work 100th time.
+      I am sure software developer using 100-200$ plans just for work can get more out of it. And it's probably making up for the effort they would have put in their work otherwise.
+
+      [50031354] olau 2026-10-10T10:09:34.000Z pts=None
+      A little nitpick on the sound quality of piano VSTs: I don't know about drum VSTs but I don't think your piano VST is actually a good example, because piano synthesis is actually pretty darn hard.
+      I haven't followed this closely the past few years, but it used to be pretty obvious you were listening to a VST compared to a real instrument in actual playing. When you compare recordings, sample based ones sound awesome as long as you just try a single note, but they were obviously missing something in the sympathetic resonances (sounding worse than my upright piano which is perhaps a 20th percentile piano), and the more physics based ones had not so great tones.
+      I've actually been hoping that someone would try to apply deep learning to piano VSTs, even emailed a few researchers, but no reply. If something new has come up I'm not aware of, I apologize.
+
+        [50031525] stefanha 2026-10-10T10:36:56.000Z pts=None
+        Have you checked out Pianoteq? It is physical modeling and sounds incredible. It even runs on a RaspberryPi of you want.
+        When it comes to real instruments, Roland ships physical modeling in some of their instruments. They are a mainstream company.
+        So I think physical modeling is there but harder to get right than recording samples of piano keys being pressed. The results can be been convincing and it's nice that it requires little memory compared to sample based techniques.
+
+          [50033742] mhast 2026-10-10T15:12:13.000Z pts=None
+          I recall seeing a audio technician test some of the modern VSTs and it seemed extremely impressive to me as an amateur.
+          It's to the point where you virtually put microphones around the virtual instrument and it behaves (according to the person who does it for a living) creates an intuitively correct sound.
+          Edit: and to be clear this was a demo from before the LLM times so it's something built the traditional way.
+
+        [50033807] mjr00 2026-10-10T15:18:31.000Z pts=None
+        I get where you're coming from, but IMO, for the 99.99% of modern music where either the piano is sitting in a busy mix with other instruments and/or the piano is getting routed through a ton of compression, saturation, delay, reverb, etc to make it sound like a modern track, you really won't be able to tell whether it's a VSTi or live recording. True for both pop music and soundtracks. The only case anyone can tell a difference is going to be solo piano pieces that are intentionally made to sound as raw as possible, which is fairly niche.
+        You can bring this distinction back to recomps, too -- one area you can't use a vibed recomp over an emulator is things like TAS's[0], since the TAS community has strict rules about staying compatible with the original hardware, including doing things like sending the TAS inputs into an actual console to verify it works properly. A recomp is likely going to have minor (or major) compatibility issues that would prevent this from working. But it won't matter for 99.99% of players.
+        [0] https://tasvideos.org/
+
+      [50034670] plorkyeran 2026-10-10T16:47:18.000Z pts=None
+      > Were decomps/recomps a hobby because people wanted to make sure their old games could run on modern hardware and be extended with mods etc., or were they a hobby because people enjoyed the actual process of using Ghidra and reverse engineering by hand, and the decompiled game was just a side effect?
+      This is a very weird false dichotomy. It almost certainly was both of those for everyone who made any meaningful progress. You have to care about the end result to stick with a project to the end after you've finished the fun parts, and you have to enjoy most of the process of getting there for it to be a hobby. The journey and the destination matter, not one or the other.
+
+      [50034770] csnover 2026-10-10T16:56:07.000Z pts=None
+      I know I am late to respond here, but I would say that I feel like this is the wrong framing. It’s like asking if someone plays football because they like to kick a ball or because they like trying to win the game. The answer is yes, and ….
+      When people work on projects like these, it is often a communal activity, for the love of a shared mutual interest. Friends are made, technical expertise is gained and shared, people learn from the code and from each other, and ultimately something fun is produced. We are a social species and it feels good to help other people, and to feel supported in our efforts by others. It gives us the feeling that we matter, what we’re spending our time on matters, that our interests are not merely selfish, that we are not alone in the dark.
+      In any ecosystem, different specialists fill different niches, and you can’t have a vibrant ecosystem without all of them. For projects like these, the place where the reverse engineers finish is where the mod tool developers take over; where the mod toolers finish is where the artists and game designers take over; where the artists finish, the fans and beta testers take over. Some fans might even try their hand at helping with one of the other parts, and learn how to become good at it, and now you’ve got a pretty good stew going.
+      LLMs poison the entire ocean, kill all the coral and destroy all the ecosystems. This is true in RE, but it is also true in OSS. If you try to do something human, the moment it becomes interesting to someone with tokens for the yes-sir machine, they will steal all that momentum for themselves. Contributing to and actually using the human version, then, becomes something one would only do out of principle. That’s a very shallow pool to try to survive in compared to an entire ocean.
+
+        [50035878] hannasanarion 2026-10-10T18:47:23.000Z pts=None
+        Is principle the only valid reason to want to do something? Why is it unacceptable that people be motivated to do things because they want the results?
+        The actual physical reality of the status quo of reverse engineering and recompiling is that the vast majority of stuff never gets the treatment because they aren't lucky enough to catch the attention of one of the few magical individuals with extreme skill and dedication willing to spend worth hundreds or thousands of hours of their time on them. The consequence is rot.
+        The status quo is thousands of pieces of software, including but not limited to video games, are lost every year, with no feasible way to recreate the systems and conditions that are needed to run them, and no way to update and repair them to be able to run again.
+        An estimated 88% of PS2 games are already lost forever. There are thousands of people in the world right now who have in their possession the last copies of digital media with no way to play them and nowhere near enough skill to crack and preserve them themselves.
+        The alternative to REA isn't hand-made free-range organic recomps, it's nothing.
+
+          [50036296] unleaded 2026-10-10T19:28:59.000Z pts=None
+          >An estimated 88% of PS2 games are already lost forever.
+          This is certainly not true. Where did you read this?
+          also, emulators exist, it's not recomps or nothing.
+
+            [50036402] InvisibleUp 2026-10-10T19:40:37.000Z pts=None
+            Probably a misinterpretation of “not offered for sale today”.
+
+              [50037624] hannasanarion 2026-10-10T22:01:34.000Z pts=None
+              No, that is "archived in any known library". Source is the Video Game History Foundation.
+              https://gamehistory.org/87percent/
+              https://insider-gaming.com/study-classic-games-unavailable/
+
+                [50037748] tecleandor 2026-10-10T22:17:06.000Z pts=None
+                No. That study states "...whether they have been reissued or are otherwise still available
+                through their rightsholders.". Takem from the first page of the PDF.
+
+            [50037669] hannasanarion 2026-10-10T22:05:52.000Z pts=None
+            It is true. The PS2 is the worst example, with so many games lost to disk rot and never digitally available, leading to a particularly poor archival rate.
+            https://insider-gaming.com/study-classic-games-unavailable/
+
+          [50037450] csnover 2026-10-10T21:39:23.000Z pts=None
+          > Is principle the only valid reason to want to do something? Why is it unacceptable that people be motivated to do things because they want the results?
+          No, not at all. I myself am not a “the means is the end” kind of person. If I just wanted to puzzle out solutions with nothing to show for it, I’d do the crossword. But, in my experience, caring only about results leads to myopic short-term solutions that create bigger long-term problems. For instance, if you’re in pain, I can “cure” that by shooting you in the head. A quick positive result for getting rid of the pain—but at what cost? For thinking work, AI seems to be shaping up to be a lot closer to a bullet than an analgesic.
+          All I was saying is that human motivation does not exist in a single dichotomy, and that ecosystems that develop around mutual effort create benefits beyond the mutual goal. You can’t get all those benefits without humans doing the work, but there’s no extrinsic motivation for humans to do the work, so very few will bother, and the ecosystem dies. (I hope it wasn’t ‘load-bearing’.)
+          Anyway, the benefit of reconstructed source code is not even about preservation, it is in enhancing the user experience beyond mere preservation. We’ve been preserving software using emulation alone just fine for quite some time. If you are actually worried about preservation, you might consider how much the Wayback Machine is getting blocked these days because of AI scrapers. Or how an AI agent might apologetically wipe out some irreplaceable archive. Or how nobody in the future will probably be able to care about preservation much as the one-two punch of climate change and AI descend on us. It’s always those damned long-term consequences from short-term thinking, you know?
+
+        [50037288] doctorpangloss 2026-10-10T21:17:47.000Z pts=None
+        One thing's for sure, the people paying $220/mo subs are showing awesome demos. The people who are not paying $220/mo, they're producing: a lot of drama.
+
+          [50038212] jonhohle 2026-10-10T23:35:55.000Z pts=None
+          Also stepping into a fair use minefield.
+          On the one hand, I feel like there was this nice little niche of hyper technical people that had formed nice communities. Then AI bros came in took all the attention and resources.
+          On the other hand, I have significant concerns that this is a mechanical transformation that will blow up for everyone and undo the last 40 years of fair use progress.
+
+            [50038985] treebeard901 2026-10-11T01:40:01.000Z pts=None
+            Early copyright based legal arguments about the training of pirated information for AI didnt have much success. Im sure it will continue not being an issue for the frontier labs while copyright laws are enforced for everyone else.
+
+              [50039365] jonhohle 2026-10-11T02:49:16.000Z pts=None
+              It’s not about what the model was trained on (though it might be), it’s that fair use in reverse engineering relies on transformative, creative work. There are multiple court cases where RE is protected.
+              What’s not protected fair use is mechanical transformation (automated format conversion, etc.). I’d argue using AI for RE and publishing the result is not creative, and is mechanical transformation. That makes it not protected fair use and puts projects at risk. This also has court precedent (not necessarily the AI case, but mechanical vs creative transformation).
+              Misunderstanding this is going to ultimately bring harm to the RE communities where legitimate projects get wrapped up with AI projects in litigation and will chill the whole practice even though it’s legitimate fair use.
+              (US jurisdiction, I’m not a lawyer, I’m not your lawyer, but I’ve spent a reasonable time reading the landmark cases, EFF’s opinions, USPTO opinions, etc.)
+
+          [50048328] qlte 2026-10-11T22:01:20.000Z pts=None
+          This seems like an absurdly unfair generalization motivated by personal bias. Is the idea supposed to be that 100% of passionate hackers blogging about reverse engineering are now subscribers to the top plans* from US AI labs? Vibe coders aren't producing any drama (or slop/spam)?
+          *which cost a non-trivial percentage of median salary in some parts of the world
+
+    [50030229] visarga 2026-10-10T06:26:47.000Z pts=None
+    When anyone can do these activities they will no longer confer distinction. So we are now motivated to find other ways to differentiate ourselves. This powers the next round of activities - our need to stand out by something.
+
+      [50030356] Brian_K_White 2026-10-10T06:46:23.000Z pts=None
+      It's a bit more than a need to stand out. It's a recognition that the definition of value has moved.
+      If a thing is no longer difficult to perform or to produce, then I might still employ or consume it if it's useful, but I will no longer value it. No matter how useful a potato is, it's not worth any money, time, interest, effort, emotional investment, etc. Even though in a vacuum it's almost like a magic ultra utility food, most useful and valuable thing ever.
+      Same for countless mass produced utilitarian goods like plastic bowls and basic computers.
+      I don't want be an injection molded cup or a potato not just because they aren't rock stars, but because they aren't valuable enough to be a person's identity or livlihood at all, even a basic unassuming workman's.
+
+        [50030447] throwawayqqq11 2026-10-10T07:04:54.000Z pts=None
+        There is one valuable distinction to be made, ideas. There are only so many ways to grow potatos, IT in comparison offers unbound(?) possibilities.  
+        The current projects we see are more showcases than original content, like remixes in the cassette era. Replication looses its value.
+
+    [50030440] neya 2026-10-10T07:03:06.000Z pts=None
+    AI is just a tool, if your ability to form relationships was easily displaced by a tool, then I'd say it says a lot about the ability rather than the tool. It's the same argument of hand drill vs a drilling machine. No different. The ability to form relationships have always been with us. Instead of discussing in depth about code, perhaps it is going to be more along the lines of models, variants, self hosting, etc.
+
+      [50030566] jurgenburgen 2026-10-10T07:27:21.000Z pts=None
+      > perhaps it is going to be more along the lines of models, variants, self hosting, etc.
+      Unfortunately those are also better discussed with LLMs.
+      I recently had to refresh on some algorithms and some manual coding for an interview where using LLM is forbidden. It was super fun, I forgot how fun solving software puzzles can be!
+      It’s unfortunate our industry has become so boring. Because our society values capital above all else, quitting my job to do something fun would relegate me to economical loser status. We really need a shift to the left in politics and a way to redistribute the productivity gains this technology allows.
+
+        [50035537] TeMPOraL 2026-10-10T18:09:12.000Z pts=None
+        > I recently had to refresh on some algorithms and some manual coding for an interview where using LLM is forbidden. It was super fun, I forgot how fun solving software puzzles can be!
+        Solving puzzles is fun when it's negative-free.
+        On my last interview, I had fan too, but that's only because I had an alternative and didn't even expect to pass. Then the work started, and now puzzles are less fun again, because if I don't keep successfully solving them, my family won't eat.
+
+      [50030711] tobylane 2026-10-10T07:54:04.000Z pts=None
+      > AI is just a tool, if your ability to form relationships was easily displaced by a tool, then I'd say it says a lot about the ability rather than the tool.
+      In abstract, sure, but that is a much shallower discussion that many people are strongly disinterested in. It's generic, where a human decompile may not be (as a cloner I haven't looked into those projects). I don't like the idea of a group of fans of art frames saying don't bother looking at what's in the art frame, our conversation is equal.
+
+      [50030793] InvisibleUp 2026-10-10T08:09:10.000Z pts=None
+      You can draw a line from Xenowhirl's disassembly of Sonic 1 and Simon Wai's research of the Sonic 2 prototype to the creation of Sonic Mania and the blossoming fangame / ROM hacking community, and from there the careers of a lot of indie devs. It's not that these people aren't capable of talking to each other, it's that they get to know each other in a personal and professional context by bonding over a project they have a shared passion over. If these disassemblies just popped up on GitHub one day, and if the fan games and the ROM hacks were created by solo devs with an AI model... well, we end up with quite a few neat projects. But we don't end up with the rich, vibrant communities that get created in the inherent process of collaborating on a project.
+      Of course, in a post-AI world people will still want to work together on things. But these sorts of tools do disincentivize it. That's the point I'm getting at here.
+
+        [50032428] doright 2026-10-10T12:49:28.000Z pts=None
+        I think people who are doing these decomps aren't necessarily passionate about them to that extent. If they were a huge fan of the history of Sonic, they could use the resources now available to see how the game works, but they would also be internally driven to go beyond just a dump of the game's code on a repo. AI cannot decompile the social history of these games and the stories of the people who made them. It's just a matter if the person actually cares about that. Who knows what drives such an unusual amount of passion.
+        I feel a lot of these decomps were created by people not as passionate as your examples, because they are only showing up now, not in the pre-AI era. There is a flood of AI decomps only now because AI has lowered the barrier enough to where a project a person could not be passionate enough about to spend years of their limited time on Earth toiling on it is now easily accomplishable. It's a huge ask to put years of your life towards one thing. People might have obligations, work, family, children, more important hobbies, yet still wish one day they could get around to that one project, but couldn't find a way of prioritizing it over other things. I can't fault them for that. Now they can get it done in a month and still have time for other things that matter to them.
+        The claim is "we lose the rich communities that only exist from manual work." I still think the people who want those communities, like the people who still create art by hand in spite of the existence of diffusion, will keep doing their own thing. They were going to from the start, AI or not, but now that AI is a thing the separation is clearer to people on the outside, since they are seen to not rely on AI.
+        The communities that will appear because we can now organize AI decomp projects wouldn't have appeared at all with the barrier so high, had it not been easy enough to start them. The blocker was other obligations and not having the time to devote that was intrinsically required to finish them by hand, with the vast majority of people still being a member of outer society.
+        Dare I say it, maybe not all of the people into reverse engineering really enjoyed the process. It's just they put up with learning it because if you wanted to modernize an abandoned game in the pre-AI era, you had no choice but to learn those things. Only the people with the interest and patience remained, and those are the examples we are able to point to, while the people with only enough passion to get it done with AI assistance left a while ago and are only now reappearing.
+
+          [50043584] thomaslord 2026-10-11T14:19:47.000Z pts=None
+          I think you may be missing a key point here. These communities spring up, at least in part, because a group of people all want X to exist and building X alone isn't really feasible. This necessity of collaboration can be a major driver of community-building, especially for people who are very technically competent but not particularly outgoing.
+          If an AI-generated version of X already exists, at least some of the people who might have joined the "let's build X together" community aren't going to sign up anymore. Some of them may feel discouraged because AI got there first, while some may simply feel like the AI version is good enough for their purposes.
+          You may be right that new and different communities will spring up around AI-generated projects. I'd argue something is still lost, even if something new is gained in the process. I think there's something special about communities of people who are passionate enough to do truly hard things that require dedicating large amounts of time and effort. While AI can help people accomplish far more than they otherwise would've, reducing the amount of human effort and attention that goes into any given task is almost inherent in any AI use.
+
+            [50059042] doright 2026-10-12T16:43:29.000Z pts=None
+            It is sad that these communities will be lost. Unfortunately, to a lot of people who just wanted the code and some mods, they now are an artifact of their time. Machine code was meant to be read by machines, not humans. The challenge of turning machine code into code that humans can read was a hard problem requiring months or years of effort that was only an unintentional byproduct of the compilation process, not a challenge deliberately laid out by every compiler for humans to gain a sense of accomplishment each time they emitted an object file. That we are creative enough to derive a sense of satisfaction by creating those challenges for ourselves was a happy coincidence always vulnerable to this kind of disruption.
+            I am not saying that this way is better, but people might start asking themselves when they have a tool sitting right in front of them that they can use to increase their productivity in this domain on the order of 1,000 times or more, if the value of holding together their community overrides the amount of time and maintenance they will have to devote to maintaining it and the project by rejecting AI. Accomplishing the goal they set out for to begin with, having the source code of the game delivered, can be accomplished by any single person now, and that leaves the technically competent communities fragile to breaking up by any one person splitting off, dumping all the code somewhere, and the less passionate leaving one community for another. How many of those people are there for the community itself, and how many are there to just have the code? It will become clearer with anyone being able to split off and use AI to finish things, but I am confident the most passionate people will still remain on the other side. It's just that the motivations of those involved were not as obvious without the distinction between hobby-as-passion and the primarily goal-driven, until now.
+
+    [50030594] ashdnazg 2026-10-10T07:32:51.000Z pts=None
+    I've been decompiling DOS games recently with help from the $20 subscription. The one compiled by the Watcom compiler took like two weeks, with 2/141 functions still not matching. The one compiled by Microsoft C reached a match in two days more or less.
+    I think this points in two directions - first that $200 is really unnecessary for this domain.
+    Second, that with more experience we might be able to write a non-AI matching decompiler and then naming and simplifying could be done by people/AI. While I appreciate the hobby part of it, I think automated tools are the way to really make it reach everything with far less dependency on pockets. The benefit to preservation would be incredible.
+
+    [50030812] TeMPOraL 2026-10-10T08:15:21.000Z pts=None
+    > I know a large reason people hate AI is because it's largely seen as tearing apart hobbyist/professional communities, eliminating reasons to collaborate with others and form relationships, and replacing it with an individualized dependence on a commercial product.
+    For me personally that's a huge win, but it would be a shame if it turned out that the whole AI/anti-AI thing is really just single player vs multiplayer in disguise. Because then we won't reconcile it easily.
+
+    [50030834] walrus01 2026-10-10T08:19:22.000Z pts=None
+    > It kinda just... totally eliminates that as a hobby entirely.
+    $800-level consumer 3D printers let people make highly detailed plastic models of things with very little level of technical knowledge, but people still buy and hand assemble LEGO kits for the fun of it.
+
+      [50030848] KellyCriterion 2026-10-10T08:23:52.000Z pts=None
+      ...and today even adults are served explicitly with all these LEGO editionsn of whatever building or classic car,for above500 USD+  :-D
+
+    [50031208] skibz 2026-10-10T09:39:47.000Z pts=None
+    > hit with a flood of low-effort ports
+    > hit with a flood of half-decent decomps
+    > It kinda just... totally eliminates that as a hobby entirely. I know people are going to be upset about this.
+    A rising tide lifts all ships, or however that saying goes. And a ship with a hole in its hull will sink to the bottom of the ocean. So don't sweat the surge of low-effort projects...
+    Your hobby is not going away. In fact, it's totally popping off right now. This is the perfect opportunity for you to distinguish yourself and lead by a positive example (whether that includes using AI tools responsibly, or not at all, is up to you). Just keep on hacking the good hack.
+
+      [50031360] FridgeSeal 2026-10-10T10:11:14.000Z pts=None
+      “Congratulations, your small hobby subreddit has been chosen as a default subreddit! Prepare to reap the rewards of 1000x the amount of:
+      - traffic.
+      - low efforts posts.
+      - users who won’t read or respect the rules and culture.
+
+        [50031529] stalfie 2026-10-10T10:37:08.000Z pts=None
+        But the point here is that the rules and culture as they were no longer matter. They were there to ensure a level of quality that is now reached by an individual with a 200$ Claude subscription, so they should be discarded and the community will have to converge on some kind of new normal.
+
+    [50031236] saidnooneever 2026-10-10T09:45:47.000Z pts=None
+    because someone ported aomething it doesnt mean u cant do it anymore... how does it eliminate hobbyists exactyl? hobbyists are the ones AI doesnt really impact because they pursue joy rather than financial gains in their craft...
+
+      [50032173] bakugo 2026-10-10T12:18:07.000Z pts=None
+      Why would you dedicate months or even years to doing something just for the sake of it, when you know your creation will be buried underneath 20 other low quality versions of it made in a week by people who are doing it purely for attention and don't even care?
+
+        [50033058] patrickk 2026-10-10T13:58:34.000Z pts=None
+        It’s more likely that the higher quality version will rise to the top, and the slop versions will be buried in obscurity.
+
+        [50033918] jryle70 2026-10-10T15:32:10.000Z pts=None
+        > when you know your creation will be buried underneath 20 other low quality versions
+        So you want to show off instead of doing it for yourself? find something harder to show off then.
+        I can hardly run 5km, but I was still immensely proud of myself whenever I did. It still brings me great joy even though I'm a mediocre runner at best.
+
+    [50032244] testerius 2026-10-10T12:26:28.000Z pts=None
+    Why do you think it will destroy hobby? I think it will increase. When I was a child I wanted to have map editor or tools for modyfing closed sourced favorite games but for me it was not possible. Low level programming and reverse engineering is not for me (but maybe I will get into it soon) so I am happy about tools built for agents. Maybe one day I will decompile and extend favorite games without spending several years with or without success. LOL, I am not sure if I want to do it by hand.
+    And ihmo programming, math, doing music or anything else still can be hobby - with our without AI. Do not be worry, you do not have to use AI for your hobby stuff. You can still code, create from scratch crappy personal frameworks/libs and so on.
+    I only want for times when local LLMs/AI are powerful and available on average hardware, so I could use it for my personal stuff without monthly payments. I wish doing so many things on my own.
+
+      [50032447] patrickk 2026-10-10T12:52:04.000Z pts=None
+      Yep, totally agree with this sentiment.
+      Fan efforts are breathing new life into older games, some of them locked away on older consoles or due to cloud tied services that the game developer has no interest in supporting any more.
+      Efforts like OldUnreal and the Peacock Project are just amazing. Recently, Halo fans have unlocked 128 player multiplayer modes using assets from Halo MCC and unlocked 16 player coop campaign mode. Microsoft has no interest in this cutting into their microtracsaction-strewn free to play game which isn’t as fun as older Halo.
+      Incidentally Ive started tracking really cool fan game projects here, including a disclaimer where possible if the project is AI assisted or not:
+      https://fangamesdb.com
+
+    [50034301] goodmythical 2026-10-10T16:12:29.000Z pts=None
+    >Solving the same puzzle twice just feels discouraging.
+    I'm not so sure about that. Competitive Rubik's exist. Games like Trackmania feature levels that are often "solved" (having a strong world record) for months or years at a time while someone patiently pours hundreds or thousands of hours in to grinding a better time.
+    Even in emulation, we see figures like byuu(?) who spent years attempting cycle perfect emulation of all games where other emulators were chasing say speed or resource optimization while still other emulators were/are "good enough".
+    In the pokemon world, plenty of players consider say Emerald to be the final evolution of the game, while others may pick BW, while many are unsatisfied by all until they get a full mmo character designer role-playing game with all gen pokemon and nuzlocke support and custom starters and...There's even a roguelike version.
+    I think software is ephemeral/artistic enough that both producers and consumers will have different enough taste that there will almost always be some audience for any artist/developer.
+    We've already been living through this with the proliferation and continual development of easier and easier game engines. When one had to write their own engine, or write code at all, developing a game required either intense passion or intense funding. Even then we got clumsy rush-to-market "America's Got Talent for GBA" games. RPGMaker spawned hundreds or thousands of half-baked nothing-burger "games" and some people's all time favorite games. The same is true of Unreal and others. In each iteration, the prevalence of the old diminishes, but rarely vanishes. People still make MUDs, ren'py, RPGmaker, SNES, PS2, Wii...etc games.
+    Will this make more more? Sure, but more more has always meant a greater chance of the new latest genuinely greatest bestest game of all time for perhaps hundreds of thousands or millions of players. And it's still a tool at the end of the day. The passionate devoted dev team that had your perfect version of a game in their mind(s) is perhaps now able to finish what would have taken them years as a hobby project in a month, with all the bells and whistles dialed in because they truly care. Not everyone will be so committed to brilliant design, but then that's always been the case.
+    Yes, it is easier than ever to make garbage games; but, it is also easier than ever to make great games.
+
+    [50035771] jarjoura 2026-10-10T18:36:14.000Z pts=None
+    I agree 100% on your take that this is destroying community spaces.
+    AI makes this so extremely efficient in all kinds of domains that, even if you try to continue to collaborate, I'm not even sure what the collaboration would be for.
+    At work, I've already noticed we aren't working together to solve hard ambiguous problems anymore. The whiteboards are filled with jokes and random notes people never bother to erase. Since everyone is tasked with their own project, unless you make a real physical effort to check-in, it's just way too easy to disassociate from everything else around you because you're able to just keep going.
+    Digital hobbyist projects of all shapes and sizes are becoming lonely little islands with people dreaming up all kinds of things, that everyone else can now also do, so there's now, no incentive to share or seek out experts.
+    I would be curious how real-world hobbies, that require patience and physical skill might start to see upticks in participation.
+
+      [50038373] soundworlds 2026-10-11T00:07:00.000Z pts=None
+      Just want to say I was speaking with a programming friend yesterday who described this exact same experience at his workplace. The siloing sounds insane - even to the point where people "get annoyed if you ask them questions, because they expect you to ask your AI instead"
+      I think the points more to an unhealthy workplace culture than simply AI itself
+
+    [50037983] viraptor 2026-10-10T22:55:12.000Z pts=None
+    > eliminating reasons to collaborate with others and form relationships
+    I don't disagree that there's a negative effect here, I wonder how it will shake out in the end. There are still communities which reject AI use and continue their work and I feel like we hear about them disproportionately. There are also new groups interested in using LLMs and collaborating on their work. And sure, there are individual efforts too and it's easy to see them recently.
+    What I'm saying is I'm not sure we lost communities overall or are they just getting shuffled a bit. We likely won't know for a while. Since the reporting and perception recently is very skewed.
+
+    [50039154] easterncalculus 2026-10-11T02:14:45.000Z pts=None
+    > I know a large reason people hate AI is because it's largely seen as tearing apart hobbyist/professional communities, eliminating reasons to collaborate with others and form relationships
+    No offense but this incessant focus on the 'gamedev community' is part of the reason why a lot of games suck right now. Like half of indie releases these days were clearly started as hackathon type projects, designed to go viral on gamedev subreddits and twitter (see 'friendslop', several of the 'soulslikes', 'scrollslikes', etc), but after years and years of this stuff it's clear that virality is not actually what makes a good product.  This scenario where people see good software (decomps, original creations etc) and clutch their pearls about how it will affect 'the community' is propping up a lot of below-mediocre stuff and it's really, REALLY lame. It's the same kind of crap that let AAA quality nosedive trickling down into indies and this.
+
+      [50079603] Capricorn2481 2026-10-13T22:09:35.000Z pts=None
+      Indie games are really good right now, I don't know what you're on about. There's more of them than ever, there are really creative ones, and there is a wide range of stories and themes.
+      Your focus on a few games you personally don't like is more exclusionary than the people you criticize. And tying those games to a problem with the very concept of a gamedev community is completely incoherent.
+
+  [50029715] WarmWash 2026-10-10T04:58:53.000Z pts=None
+  I see this liquid software being the unavoidable future. A computer that just does stuff in whatever way you guide it, in whatever way you like guiding it. The models will keep getting better and faster up to the point where everything is just happening in real time, no OS no drivers no programs, just an entity that can listen to you and can move around bits to accomplish whatever you are trying to do. Wanna post on HN? Any way that you can code such an action, the computer can just manifest it for you, on the fly, however you want it.
+
+    [50029847] geraneum 2026-10-10T05:25:02.000Z pts=None
+    What a dystopian future where your computer use will be basically “metered” by the token. At least right now we don’t have to pay per mouse clicks.
+
+      [50030695] bel8 2026-10-10T07:49:39.000Z pts=None
+      Local inference solves that.
+      We used to pay for phone calls not long ago. Now a video call is free.
+
+        [50032123] bakugo 2026-10-10T12:10:41.000Z pts=None
+        Do you believe the average person can afford the 1TB+ VRAM required to run a competent model?
+
+          [50032519] bel8 2026-10-10T13:01:04.000Z pts=None
+          Not today. But just like the average person can now afford a smartphone which is more powerful than a workstation not long ago, we will have enough computing power for good enough local inference, at an accessible price.
+
+            [50032850] bakugo 2026-10-10T13:37:13.000Z pts=None
+            We're not in the 2010s anymore, consumer hardware is actively regressing. Smartphones are actually a great example to bring up, because I believe 2026 was the first year in which smartphone hardware did not advance at all (and arguably declined) relative to price, due to AI-related shortages.
+            Nobody can predict the future, of course, but I personally believe this pattern will hold. A decade from now, the idea of a consumer being able to purchase a personal device with more than 8GB of RAM will be a thing of the past, all significant compute will be done in the cloud using the massive amounts of hardware being hoarded by corporations as we speak.
+
+              [50034090] ls612 2026-10-10T15:48:28.000Z pts=None
+              I think one of two things is more likely: either at some point the bottom falls out on the $1T/year datacenter capex we have today, or it doesn’t and eventually supply will enormously expand as new fabs being planned today eventually come online.
+
+              [50034278] orangecat 2026-10-10T16:08:31.000Z pts=None
+              A decade from now, the idea of a consumer being able to purchase a personal device with more than 8GB of RAM will be a thing of the past
+              The only way this is remotely possible is if the copyright cartels get their way and make it illegal to have unlicensed local compute. Assuming that doesn't happen, I'd gladly bet a large amount that computing will be much more affordable 10 years from now.
+
+              [50045556] Traveono 2026-10-11T17:25:40.000Z pts=None
+              Phones got more expensive but you picked the wrong year to talk badly about advancements. Everyone is rolling out their new nodes this year so of all the years to be excited this year would have the most merit similar to iphone 13 release.
+
+          [50032537] Hugsun 2026-10-10T13:03:40.000Z pts=None
+          The expectation is of course that that will not be required. Competent models will become smaller and the compute to run them will become cheaper, once the market stabilizes. That will take some time of course.
+
+          [50033188] simpsond 2026-10-10T14:09:28.000Z pts=None
+          Eventually yes. You can buy greeting cards today for $5 that have more compute power than the Eniac.
+
+          [50037253] deadbabe 2026-10-10T21:13:42.000Z pts=None
+          Yes because the models will be etched straight into silicon.
+
+        [50035184] geraneum 2026-10-10T17:36:02.000Z pts=None
+        This doesn’t make sense. You mentioned OS and drivers, why send the commands to your hardware through the black box and extra hoops instead of directly doing so?
+
+      [50033872] WarmWash 2026-10-10T15:26:43.000Z pts=None
+      I can't imagine it worse that the current hell hole of SaaS, which is basically a way to withhold ownership while forcing you to pay for unwanted feature bloat, unnecessary redesigns, and strict dictation of how you can use the software.
+      Excel '98 probably covers 90% of excel users needs, but here we are sending Microsoft billions a month to lease excel.
+
+        [50079906] Capricorn2481 2026-10-13T22:37:45.000Z pts=None
+        > I can't imagine it worse that the current hell hole of SaaS
+        It literally is SaaS.
+        > but here we are sending Microsoft billions a month
+        Who do you think is behind OpenAI funding?
+
+    [50033813] agumonkey 2026-10-10T15:19:03.000Z pts=None
+    I guess there will be some economics or physics constraints of reevaluating everything all the time.
+
+      [50039152] mxkopy 2026-10-11T02:13:46.000Z pts=None
+      My guess is that the first version will write kernel modules for a distro with live kernel patching. If you’re token-constrained/doing local inference you’ll want to be really specific in your UX ahead of time; basically plan out all the UI flows and components in one go. If you’re less constrained or your requested changes are small then you can just directly prompt for a new kernel module.
+      If anyone wants to steal that as a prompt feel free lmao. This sort of thing is definitely the future and I can imagine distilling some models expressly for this purpose; i.e. models that translate natural language descriptions of UI components directly into C
+
+    [50039780] arational 2026-10-11T04:25:35.000Z pts=None
+    Our current and even foreseeable futute of chip production capacity is not there yet.
+
+  [50029899] mgaldys4 2026-10-10T05:33:41.000Z pts=None
+  Slightly off topic. I looked at REA's Android reversing support and found it still uses jadx mcp. That kills large scale APK reversing. jadx takes tens of minutes to preprocess an APK, build a code relationship database, etc. Even headless mcp is no exception. I basically can't use it to analyze APKs at scale, like 100 large commercial APKs in a pipeline, or 100 preinstalled APKs from a phone ROM to hunt bugs.
+  So I built droidasc. No memory bloat, no parsing slowdown. Analysis is in milliseconds. Global xref on a 300MB APK takes 1.5 seconds. I used it with codex to analyze phones from 3 different brands and found 2 RCEs and 5 root bugs in a few days. I plan to detail these at Black Hat Asia 2027. A friend used droidasc to scan various bug bounty targets at scale and found 10+ RCEs. Way, way faster than jadx.
+  https://github.com/MG1937/ASC
+
+    [50029956] skyfine 2026-10-10T05:43:26.000Z pts=None
+    Interesting, might be fun to try my hand at it sometime.
+    Is the best way to actually get the APKs to just download them from an apk mirror site.
+
+      [50030003] mgaldys4 2026-10-10T05:50:44.000Z pts=None
+      Yes! APKMirror is a good choice. AndroZoo works too, but it's academic and you need to apply for API access.
+
+        [50031262] DaSHacka 2026-10-10T09:50:46.000Z pts=None
+        APKPure is pretty good too, they don't have captchas for downloads so you can make a simple script to pull the APK from them based on the package name.
+
+      [50030449] arcanemachiner 2026-10-10T07:06:04.000Z pts=None
+      You should be able to get free APKs straight from Google via Aurora Store.
+
+    [50034199] DrammBA 2026-10-10T15:59:30.000Z pts=None
+    > REA still uses jadx MCP for Android reversing instead of my tool, which they've probably never even heard of. Here's my pitch:
+    Really?
+
+      [50034900] mgaldys4 2026-10-10T17:07:50.000Z pts=None
+      In case you're not aware: my tool got accepted to Black Hat Europe 2026 and sparked discussion in the reversing community, the Black Hat committee said "your tool is very very highly rated", at Pwn2Own 2026 the Samsung RCE winner ch0pin personally recommended my tool, Chrome vulnerability researcher eternalsakura13 posted on X saying they used droidasc to find a bunch of vulnerabilities, and even just now, I'm still using droidasc to hunt for bugs in Honor. I think it has at least contributed something to the community, so what's wrong with me recommending this tool to others and helping others improve their reversing workflow?
+
+        [50038121] ____tom____ 2026-10-10T23:20:11.000Z pts=None
+        Nothing!
+        Keep up the good work
+
+  [50030161] DeepYogurt 2026-10-10T06:16:48.000Z pts=None
+  the chickens are coming home to roost
+
+  [50030224] haunter 2026-10-10T06:25:41.000Z pts=None
+  How long before the backend of a bank, or an insurance company, or a hospital will be reverese engineered?
+
+    [50030619] bob1029 2026-10-10T07:39:10.000Z pts=None
+    "Reverse engineering" the backends of banking systems is my full time occupation at the moment.
+    Think of it as a more persuasive means of obtaining documentation. Not as a nefarious act.
+
+    [50030708] MisterMunchkin 2026-10-10T07:52:47.000Z pts=None
+    Do you have access to the backend of a bank?
+
+      [50035418] hxugufjfjf 2026-10-10T17:58:53.000Z pts=None
+      Not completely unreasonable if they work at a bank. I have full access to a mainframe and am definitely looking at doing RE on z/OS with this.
+
+    [50030938] megous 2026-10-10T08:41:40.000Z pts=None
+    I really doubt there's anything interesting in there, judging from experience of looking at implementations of mobile banking apps and websites. Horrendous API, some intrusive scanning/probing/fingerprinting code and usually pretty weird ass ad-hoc cryptography protocols + some mechanism to try to lock API use to OS vendor giving a blessing for its use, so usually Google has to say, "ok, you can call API of your bank to access your money" or whatever on every single use of the app. (which is one of their ways to increase moat around their walled OS gardens) Otherwise you're out of luck using a mobile app. Websites don't have this issue, yet. Mozilla doesn't gate my access to bank APIs.
+    Backend will have some shuffling of data around some ledgers + a lot of ceremony around auditing + shit ton of CRUD mess and arcane connections to other systems/institutions. Probably the nightmare of nightmares codebase, if frontends are any indication. :D
+
+      [50032394] matltc 2026-10-10T12:45:23.000Z pts=None
+      Same with healthcare ime. I'm more on the human services side, but I was reversing their apis since pre llm days when I was a relative novice. Many don't even minify, so you can step thru the frontend src in devtools.
+      And yes, if frontends are any indication, just seeing tip of the shit-berg
+      There are some days I just hit a raw debugger in AuthForRealThisTime() under a three-paragraph jsdoc written by bot which is itself under the commented-out Auth() function. So many questions arise, and I can burn hours rabbit-holing the stack
+
+  [50030534] 5ak3t 2026-10-10T07:22:19.000Z pts=None
+  Oct 5 ~4.2k
+  Oct 7 ~10.3k
+  Oct 8 ~17–18k
+  Oct 10 54.6k live
+  Going from ~4,226 to 54,614 stars in ~5 days is about +50k.
+  Even stranger is forks:
+  438 → 10,376 forks.
+  That is an unusually high fork acceleration. Current forks are about 19% of stars.
+
+    [50030919] cedws 2026-10-10T08:36:00.000Z pts=None
+    Reeks of botting, some comments here also look artificial.
+
+      [50033253] _blob 2026-10-10T14:15:42.000Z pts=None
+      Very likely. Also noticed when a repo gets on the trending list on github it gets swarmed by some form of contributors and most of those contributor profiles started contributing to random repos around March/April. It's a pattern but dunno what to take from that.
+
+      [50039009] userbinator 2026-10-11T01:44:54.000Z pts=None
+      I think it's that a lot of people are suddenly jumping on the AI bandwagon.
+
+  [50030561] sreekanth850 2026-10-10T07:26:30.000Z pts=None
+  With C#,  whenever codex need some info about the packages we use, it just use ILSpy to decompile the nuget instead of checking the docs. its much effective though. Even in my own packages, it use to gave back the bugs or gaps that i need to patch up.
+
+  [50030587] OptionX 2026-10-10T07:31:08.000Z pts=None
+  The setup part made me chuckle.
+  The copy this prompt into your agent seems like an evolution of `wget X | bash`-style in all the worst ways.
+
+  [50030599] dyauspitr 2026-10-10T07:34:09.000Z pts=None
+  So what do companies do about this? If every piece of software can be reverse engineered are all companies just going to move to saas only?
+
+    [50030918] marcta 2026-10-10T08:35:57.000Z pts=None
+    Are we getting to the point where every API can be reverse engineered too?  If so, that's not safe either.
+
+      [50034993] dyauspitr 2026-10-10T17:15:42.000Z pts=None
+      I don’t see how you can have a one-to-one reproduction of code running on a server. At best you can guess at something that provides a similar output, but it’s never going to be the same as the original.
+
+    [50033466] asciimov 2026-10-10T14:40:39.000Z pts=None
+    You’ll never run code locally, and only run the official version off their server. Their lawyers will shut down the clones, and their cash reserves will make sure you can never afford pc parts again.
+
+      [50035005] dyauspitr 2026-10-10T17:17:17.000Z pts=None
+      Yes, this is what I fear. I guess I’ll just throw it onto the pile of everything else that AI is going to disrupt.
+
+    [50035244] rvz 2026-10-10T17:42:24.000Z pts=None
+    It will be just like the music industry. This is what will happen:
+    Gaming: This will trigger the return of Stadia-like cloud gaming services.
+    Apps: Will begin to require online accounts to use them.  Even for the most basic of apps and will made into a sass.
+
+  [50030714] SyzygyRhythm 2026-10-10T07:54:44.000Z pts=None
+  I'll have to take a look at this, but I've found that the top models do quite well at this work without any extra work.
+  The Windows Remote Desktop client has two bugs that have been driving me crazy for the better part of a decade. One day I got fed up and fed the binary to Claude, asking it to fix the two bugs. And it just did it. Patched one with some NOPs and adjusted a stack offset for the other. Produced a credible explanation for both, and in fact the fix worked. It helps that I was able to describe the bugs clearly, but still, it had to figure out the right spot among megabytes of executable code.
+
+    [50030727] Lucasoato 2026-10-10T07:57:24.000Z pts=None
+    This is crazy, solving a bug from the executable is orders of magnitude harder than solving it from source code, this means that even with all the money they have, Microsoft didn’t bother to fix their shit.
+
+      [50030879] qiine 2026-10-10T08:29:21.000Z pts=None
+      You might have noticed throwing billions around has diminishing returns
+
+        [50031238] 7bit 2026-10-10T09:46:02.000Z pts=None
+        That's absolutely false
+
+        [50031371] gewetensleegte 2026-10-10T10:13:42.000Z pts=None
+        That's literally true
+
+        [50066456] x-complexity 2026-10-13T03:54:21.000Z pts=None
+        > You might have noticed throwing billions around has diminishing returns
+        This assumes that they're throwing money at the problem, and that said money encounters no leeches in the process.
+
+      [50030995] underdeserver 2026-10-10T08:56:06.000Z pts=None
+      It's harder in the exact way that AI is good at, though. You need to slog through very large amounts of boilerplate until you find what you're looking for.
+      It's not really more complex once you're practiced at it, just tedious.
+
+      [50031171] nikanj 2026-10-10T09:32:51.000Z pts=None
+      Much harder than fixing from source, but much much much easier than making a bug report that Microsoft / Apple / etc will care about. You get better results from a wishing well than Apple Radar.
+
+      [50032572] pluc 2026-10-10T13:08:15.000Z pts=None
+      Eh, there's a huge difference between having AI fix a bug and fixing a bug.
+      The latter implies that you've understood where and how it happens as well as noticed any other areas that may be impacted by fixing the bug or by not fixing it. AI just fixes it without thinking about anything else - which is great, but it explains why serious people (and Microsoft) aren't doing just that. We've spent decades worrying about quality, reliability and performance. Using AI is saying all of that was poppycock and it's faster to rebuild than to understand and fix. It's a different school of thought, and hopefully one that bursts down in flame in a few months.
+
+        [50033881] linkregister 2026-10-10T15:27:54.000Z pts=None
+        The kind of bug that can be fixed by overwriting instructions with NOPs is trivial. The OP isn't trying to invalidate Microsoft's SDLC & QA. They just wanted a solution.
+
+          [50038185] kodebach 2026-10-10T23:31:37.000Z pts=None
+          Who says inserting those NOPs didn't break other behaviour that OP isn't using. And then there's also Hyrum's law. This whole thing could be very non-trivial.
+          Fixing a bug for everyone is very different from fixing the bug just for yourself
+
+        [50035596] TeMPOraL 2026-10-10T18:15:41.000Z pts=None
+        This is not why your "serious people (and Microsoft)" aren't fixing this stuff.
+        They don't fix this stuff, because it's a priority-3 ticket sitting in the middle of the queue that has hundreds of similar tickets on it, and none of them are being done, because the team has moved on and is either developing new stuff, or addressing priority-1 bugs that are blocking the other teams that are developing the new stuff (possibly backend stuff, but still stuff that will bring money).
+
+      [50038494] rasz 2026-10-11T00:26:16.000Z pts=None
+      To humans yes, to a machine there is no difference, in both cases it sees code, maybe minus symbols if stripped.
+
+    [50030899] fragmede 2026-10-10T08:33:32.000Z pts=None
+    What were the bugs?
+
+    [50030987] btx 2026-10-10T08:53:57.000Z pts=None
+    I am amazed by the jump in usability of models this year.
+    Some little thing annoying you about some software, some feature missing just point AI at it and burn some tokens.
+    (ok, maybe a few rounds of telling the model to do better are still needed from time to time)
+    vmconnect.exe (Hyper-V enhanced session) not going fullscreen after login when the window is fullscreen and you have to minimize and maximize to get fullscreen?
+    Have your agent debug the issue and come up with an elaborate hook system that leaves the Microsoft files untouched.
+    Codex/Chatgpt electron app coming with annoying or missing features (Mini, Invite friends, no mcp hotreload, windows updates failing, ...)?
+    Just point codex at codex and have it build an mcp Ouroboros to improve itself and enable dynamic js userscripts.
+    Deskflow clipboard sharing between devices missing file sharing, just have sessions on Mac, Linux and Windows collude to cook up a solution.
+    Yet writing proper documentation and reports that are human digestible still seems a bit out of reach, why would humans need to read anyway...
+
+    [50031023] Alifatisk 2026-10-10T09:01:52.000Z pts=None
+    That’s unbelievable. To be able to locate and fix bugs by patching the binary.
+
+      [50031787] turpentine 2026-10-10T11:19:17.000Z pts=None
+      Studying and patching binaries has always been done.  This is not new.
+
+        [50032860] Alifatisk 2026-10-10T13:38:22.000Z pts=None
+        The novelty isn't binary patching itself. Its the the barrier to entry. Manually locating an bug in compiled code and calculating offsets used to require good skills and knowledge in the domain. Here, someone described the symptoms in a prompt (reminder, still plain English) and got an binary patch without touching a disassembler. To me, that's unbelievable.
+
+    [50031250] 7bit 2026-10-10T09:48:17.000Z pts=None
+    That would make for an amazing blog post. ou got one per chance to follow?
+
+      [50031936] IshKebab 2026-10-10T11:44:57.000Z pts=None
+      I dunno, this isn't surprising at all now. The latest models are just really really good at reverse engineering. I asked Astra whether it was possible to do a task with a binary (commercial) library. I didn't even ask it to reverse engineer it but it happily went ahead and decompiled it, found some undocumented functions, figured out how they worked and then wrote an example usage for me.
+
+      [50037697] SyzygyRhythm 2026-10-10T22:08:32.000Z pts=None
+      There's honestly not much to say--I just described the bugs and it fixed them. This was just Opus 5. I put a stripped transcript here in case you want to look:
+      https://nvidiot.net/ai/rdp-bugfixes.html
+      I'm pretty familiar with reverse engineering and for most of my career I doubt I went more than a month without patching some memory into 0x90. The explanations are perfectly reasonable and are close to what I expected. It's just that it would have taken me a week to find where to patch without the source!
+
+        [50038318] mappu 2026-10-10T23:53:31.000Z pts=None
+        I'm impressed it didn't seem to mention anything about what tools it was using, just straight to imports. Did you prepare any special tools for it, did you have WinDbg/Ghidra/... set up in Claude already? Or did it do this completely stock? Any idea if it even found pdb/symbols for the binary?
+
+          [50038757] SyzygyRhythm 2026-10-11T01:05:01.000Z pts=None
+          It looked for Ghidra and radare2, but I didn't have those installed (I do have WinDbg, but it didn't use it). So instead it built a bunch of Python scripts using pefile and Capstone (many of them inline). FYI, the linked log has most of the intermediate work removed since some of it contained personal information. It took a little over half an hour total, though some of that might have been waiting on approvals.
+
+    [50031934] mdnahas 2026-10-10T11:44:52.000Z pts=None
+    My thought: Claude may not have fixed the bugs, but avoided the problem for the poster’s use cases.  “Fixing a bug”, in my mind, means solving all problems for all use cases.   And Claude didn’t have to do that.
+    The insertion of NOPs is a great way to remove a function call that might have crashed the program.   If you didn’t need anything that function did, you’ve solved your problem but not fixed the bug.
+
+      [50032487] scotty79 2026-10-10T12:58:02.000Z pts=None
+      By that definition scarcely any bug gets fixed ever. Perfect is the mortal enemy of good.
+      Also I don't think it's an honest take. You took this stance because the change was done by AI. If a person patched MS app he uses that had a bug that bothered him for a decade you would be more appreciative.
+
+      [50037382] SyzygyRhythm 2026-10-10T21:31:00.000Z pts=None
+      Here was the explanation for the window-growing bug. It did the window adjustment math wrong, and it was able to fix it by replacing the call with NOPs.
+        Bug 2 — window grows on every fullscreen→windowed transition
+      
+        mstsc.exe implements container-handled fullscreen (mstscax.dll calls it through a vtable thunk at RVA 0x1a3e0). In LeaveFullScreen (RVA 0x161a0):
+      
+        SetWindowPlacement(hwnd, &savedPlacement)   // restores the pre-fullscreen WINDOW rect
+        GetWindowRect(hwnd, &rc)                    // rc = that window rect (frame included)
+        SetWindowLong(GWL_STYLE, style | WS_CAPTION|WS_THICKFRAME|WS_MAXIMIZEBOX)
+        AdjustWindowRectEx(&rc, style, FALSE, exStyle)   // <-- adds the frame a SECOND time
+        SetWindowPos(hwnd, ..., rc.width, rc.height, SWP_NOMOVE|SWP_FRAMECHANGED)
+      
+        EnterFullScreen (0x15a8c) saves a raw GetWindowPlacement, and the clamp just above compares rcNormalPosition against [this+0xb0/0xb4], which 0x104b0 computes as window sizes — so the saved rect is unambiguously a window rect. Running AdjustWindowRectEx on it inflates by one non-client frame per cycle: +2×SM_CXSIZEFRAME wide (~16px) and +SM_CYCAPTION+2×frame tall (~39px). That's your "slightly wider, mostly taller."
+      
+        Patch: mstsc.exe RVA 0x16385 (file offset 0x15785), e8 16 2d 00 00 → 5× 0x90. The restored size is now exactly the saved one. The call's return value was already discarded, so NOPping it has no other effect.
+
+        [50038982] userbinator 2026-10-11T01:39:55.000Z pts=None
+        Annoying Claudisms aside (I really wish they would train it to speak more like a human, as its training corpus should contain plenty of real human English), that does sound very convincing.
+
+    [50033549] zoomablemind 2026-10-10T14:50:12.000Z pts=None
+    > One day I got fed up and fed the binary to Claude, asking it to fix the two bugs...
+    That's quite remarkable. How detailed was your prompting to specify the incorrect and desired behavior?
+
+      [50037350] SyzygyRhythm 2026-10-10T21:26:07.000Z pts=None
+      Minimal. Literally the entire prompt:
+      I have a challenging task. There is a copy of the Windows Remote Desktop executable in this dir. I'd like to see if you can fix two bugs in it (without source code). First, occasionally texture filtering will be disabled until the program is restarted. What happens is that if the window isn't full size, it looks grainy (aliased) instead of smooth, and text is difficult to read. The second bug is when switching from full screen to a window. Each time you do this, the non-fullscreen window gets slightly wider and taller (mostly taller), which causes the aspect ratio to go wrong over time (not to mention getting too big). Can you try to fix one or both of these bugs by patching the binary? You'll also have to strip the signing since it will no longer be correct.
+
+        [50038992] hiworld6543 2026-10-11T01:40:59.000Z pts=None
+        I have such respect for your ability to describe the problem in a way that it could be solved. Well done.
+
+        [50044458] zoomablemind 2026-10-11T15:40:22.000Z pts=None
+        Thank you for sharing the prompts. Amazing that it was sufficient for the agent to zero in on the bytes. Perhaps it was aware of some prior work done by someone in such context. It's quite possible that the actual code for that behavior could be in some library not the main binary. Yet the agent located it to the binary.
+
+    [50034455] sva_ 2026-10-10T16:27:46.000Z pts=None
+    Yes the RE skills are truly remarkable. I recently got an Insta360 camera. Problem: The Studio desktop app (video editor) is only distributed for Windows/Mac. No problem I thought, wine will do it! Next problem was however, that they currently only support nvidia/mac hardware for hardware acceleration, otherwise you only get software encoding/decoding which is a pain at 360 deg 8k video. So I managed to RE the binary with Claude and write a shim that uses the integrated AMD GPU of my laptop (780m) - the app is quite usable now. I think doing this RE manually might've taken me several weeks at least, and I probably wouldn't have bothered.
+    While I was at it, I figured since the Android app has a bunch of bloat like nagscreens, telemetry, social media integration, I might look into that as well. So I stripped the Android app down to the bare essentials to be what it is: just a video editor.
+    It is really crazy how good LLM are when you give it access to some tools such as ghidra headless, frida, etc.
+
+  [50030732] bob1029 2026-10-10T07:59:01.000Z pts=None
+  I don't know how much this matters as we get into a world where any software system can be composed in a few hours.
+  As the value of a particular piece of software decreases, the value of reversing its specific implementation does as well.
+  Reverse engineering is about discovering specific methods or protocols. Not for porting entire implementations to new platforms or products. A lot of the specific methods and protocols have been sucked up into the LLM weights, so the need to go digging for these patterns is dramatically reduced.
+  The biggest application I see here is with digital archaeological work (the opposite of new things).
+
+  [50030872] Retr0id 2026-10-10T08:27:24.000Z pts=None
+  I have extremely mixed feelings about how this impacts things like game decompilation projects, but when it comes to cracking DRM my feelings are only positive. (Although I'm sure those on the other side of the DRM are unhappy)
+  When you crack some DRM, the DMCA makes it challenging to share your work with the world, regardless of the morality of your use case (say, repairing one's tractor). There is no longer a pressing need to share that work, when anyone can just say "computer, sync my spotify collection to my jellyfin instance, using correctly tagged FLACs", and it goes away and does it from first principles.
+
+    [50031046] el1s7 2026-10-10T09:07:12.000Z pts=None
+    So you don't care about artists then? Those Spotify streams is what makes them income.
+
+      [50031076] Retr0id 2026-10-10T09:13:11.000Z pts=None
+      Good point, I'll add "sync the jellyfin playback stats back to Spotify" to the prompt. Maybe with a multiplier for artists I want to support extra.
+
+  [50031228] RobotToaster 2026-10-10T09:43:46.000Z pts=None
+  Anyone used this for firmware files?
+
+    [50037410] cromka 2026-10-10T21:33:55.000Z pts=None
+    I have done this with regular agents and their use of
+    Ghidra and other tools, with great results
+
+  [50031380] userbinator 2026-10-10T10:14:20.000Z pts=None
+  It's good that Stallman is still alive to experience this world. I think he never would've thought that freedom in software could come in this form, and as a long-time reverser myself, I've always held the opinion that his fixation on source code and the free software movement was not as liberating as it could've been.
+  "Source code? We don't need no stinkin' source code!"
+
+    [50031473] ares623 2026-10-10T10:28:35.000Z pts=None
+    Please explain how this is more liberating than access to source code? Wouldn't this be reliant on continued and cheap access to the models? Even the open weight ones are heavily funded and not out of the kindness of their hearts. Just a few comments down is a thread about being blocked by the usual guardrails from the main providers.
+
+      [50031550] stalfie 2026-10-10T10:41:30.000Z pts=None
+      But this is access to source code. All source code is now essentially open. If not now, it will be in a few months. You aren't any more dependent on the models then before , you just have the source code of everything that compiles on your computer. What happens in the future is anyone's guess, but for all software published until this point in history, closed source no longer exists.
+
+        [50031798] well_ackshually 2026-10-10T11:22:20.000Z pts=None
+        It's "access" to "source code" as long as you can pay Anthropic/OpenAI and they don't raise their prices or lock you out.
+
+          [50031996] freecodeio 2026-10-10T11:53:33.000Z pts=None
+          really creeped out by the ai bro takes, specifically the ones "at least in a few months", almost as if there's no engineering principles anymore and just hype
+
+            [50032510] stalfie 2026-10-10T13:00:20.000Z pts=None
+            Eh, decompiling is happening now, at current LLM capabilities. The resulting codebase compiles into something that is functionally identical to the original. What engineering principles exactly do you need beyond "works exactly the same as the original product", in this particular context?
+
+          [50032480] stalfie 2026-10-10T12:57:19.000Z pts=None
+          No I mean sure, if you want to decompile it yourself from scratch, but once anyone does, then the source code is available to anyone. So from that point onwards, no one is dependent on LLMs to decompile it again.
+
+          [50032610] yfontana 2026-10-10T13:13:25.000Z pts=None
+          GLM 5.3, an open model, is also quite good at reverse engineering.
+
+        [50033764] mrdependable 2026-10-10T15:14:02.000Z pts=None
+        My guess is we will be streaming everything in the future with whatever crap hardware they let us buy.
+
+      [50038962] userbinator 2026-10-11T01:35:55.000Z pts=None
+      Don't forget you can also use AI to help you write or improve an existing decompiler. Thus it might not be necessary to continue to rely on AI models once you have a very good decompiler.
+
+        [50079929] Capricorn2481 2026-10-13T22:40:12.000Z pts=None
+        What do you mean by this? We already have good decompilers. People are not using AI to decompile things, they are using it to interpet decompilation.
+
+    [50032053] bakugo 2026-10-10T12:01:40.000Z pts=None
+    Pretty sure Stallman would have some choice words to say about his idea of "software freedom" being twisted to include "relying on a corporation's subscription service for all your software needs and being unable to do anything yourself".
+
+      [50032420] almostuseful 2026-10-10T12:48:16.000Z pts=None
+      Give it a few months and open-weight self-hosted models will be able to do similar reverse engineering work. It is an extraordinary future we live in.
+
+        [50033175] brandnewideas 2026-10-10T14:08:39.000Z pts=None
+        This just plain won't happen. They'll either drive hardware prices through the roof, or heavily regulate open models. Radical changes are coming. It's a bleak, bleak future we live in.
+
+        [50037842] zahlman 2026-10-10T22:31:40.000Z pts=None
+        That doesn't really solve "being unable to do anything yourself", though.
+        (It's strange to me how often the "Hacker News" commentariat seems not to value knowing things.)
+
+  [50031536] hanumseous 2026-10-10T10:38:14.000Z pts=None
+  Hmm, probably not a good idea if you want to build apps publicly.
+  But, the most interesting about this project for me is how peoples reacted to it.
+
+  [50031903] Alifatisk 2026-10-10T11:40:19.000Z pts=None
+  Does anyone have insight into the sudden trend of game decomm / recomp and mashups like Minecraft in GTA, Mario in Skyrim, Cod in Life is Strange, Among us in Portal 2 and so on? What triggered it? Is there a specific new tool, technique or LLM that sparked this interest? I am curious.
+  Update, found this article to cover the timeline well. https://knowyourmeme.com/memes/cultures/ai-video-game-mergin...
+  This tweet is what opened the floodgates: https://nitter.app/chasmmmmmmmmmmm/status/210137541186725513...
+
+    [50032204] hystericalraisi 2026-10-10T12:22:53.000Z pts=None
+    Opus 5.5 being cheap and extremely capable + added  YouTube virality.
+    I’ve been doing decompilation with LLMs for 4 months, and 5.5 is so insanely good I now can finish Windows 95-98 games in just a week. And by finish I mean get byte-to-byte exact output  from your decompiled code  to retail with clear names, semantics and no “Ghidra smell”. With older Opus models you would have to manually guide them and inspect ASM yourself otherwise they will just burn through your tokens  (which also used to cost more!)
+    Example: https://github.com/sushi-shi/homm1-decomp
+    And I have way more on my gh.
+
+      [50040222] Pannoniae 2026-10-11T06:09:32.000Z pts=None
+      Even with 5.0 I could get through stuff with like approx 60k functions and ~15MB of executable code in a few weeks.
+      5.5 is even better. It's so glorious. I've got some modern game. I don't have the source. I'm curious how it works. After a day and a half it's already 5% bytematched ;)
+
+    [50032281] matltc 2026-10-10T12:30:30.000Z pts=None
+    People love a good crossover?
+
+    [50071013] Kuyawa 2026-10-13T13:01:52.000Z pts=None
+    "Every game is open source now"
+    I like that, everything is open source now
+
+  [50032308] testerius 2026-10-10T12:34:02.000Z pts=None
+  I wish in few years local LLMs/AI be more available and powerful so I could decompile and extend childhood games. Tools, missions... Damn. My dreams.
+
+    [50033454] asciimov 2026-10-10T14:38:23.000Z pts=None
+    If mega corps have their way the pc on your desktop is the last you’ll ever own. These days they just might have the money to make that happen.
+
+  [50033879] vivzkestrel 2026-10-10T15:27:45.000Z pts=None
+  - here s a new idea for you that ll even beat this one
+  - any game coop MOD
+  - drag a single player game exe file into the tool, it builds a networking layer and makes the game playable on 2-4 player COOP
+  - this ll be the greatest agentic reverse engineering tool ever made on the planet if you can pull it off
+  - drag call of duty black ops 1 into it, boom you get back an exe with 2 player coop on campaign
+  - drag mirror's edge exe into it, boom now you have. 2 player coop on mirror's edge
+  - any of you agentic wizards out there think you can pull this off?
+
+  [50034223] evanjrowley 2026-10-10T16:01:32.000Z pts=None
+  The lost source code of Westwood Studio games cannot stop me now.
+
+  [50034417] hxseven 2026-10-10T16:24:03.000Z pts=None
+  The website appears to be overwhelmed at the moment. Here is the latest version from the Wayback Machine:
+  https://web.archive.org/web/20261010094404/https://rea.tools...
+  And the Github page: https://github.com/morluto/rea
+
+  [50038012] mrandish 2026-10-10T22:59:47.000Z pts=None
+  I'm hoping that LLM-assisted reverse engineering, decompilation, reconstruction, and emulation might be coalescing into a way motivated users can band together to fight back against the growing enshittification of digital products.
+
+  [50044366] dramadorico 2026-10-11T15:31:14.000Z pts=None
+  This is insane.
+  AI is progressing so much so fast. 
+  It's already making such utterly huge and complex systems like game engines, that would take several years of hard work with extensive knowledge, reduced in just a mere worthless task a kid can do in a free weekend, just by prompting a model from a cheap laptop and an internet connection.
+  It's amazing, yeah, but... it's also... unsettling.
+  Things that we valued so much, now will be forgotten... a remnant of past times.
+  And now, now it can not only create new systems, but crack them, modify them, replicate them.
+  This is so strange. How would big software companies react to this?
+  How long then, until we see an open source release of Windows?
+  How long until every single software and game would be available for any platform?
+  Console-exclusive games ported for PC, being able to run all software on Linux, give new life to old programs...
+  All that it's for sure something amazing that I'm eager to see, but... I truly don't think people realize how big these implications could be in a near future. We're witnessing the very dawn of how AI is changing the pillars of this world.
+  AI is right now breaking one of the premises on which we based all systems since the beginning of computers: that we cannot access or generate the source code of a compiled program.
+  Reverse engineering was always a thing, but it's one of the most complex and time consuming tasks. It was, at least, until now.
+  A strange future lies ahead, as I see it.
+  I truly hope I'm wrong, but... this is the beginning of the death of software, and the world as we always knew it.
+
+  [50065921] learningstud 2026-10-13T02:44:34.000Z pts=None
+  Someone make a better CUDA, please.
+
+  [50067077] learningstud 2026-10-13T05:17:29.000Z pts=None
+  What are the legal consequences? Would this rewrite patent/IP laws? I always wondered why software can be patented at all. Since math cannot be patented, then software cannot be patented by extension of the Curry-Howard correspondence. Now REA is making this a reality. The only safe program delivery would then require hardware-enforced compute boundary inside a lower ring of the CPU not accessible by anything that is booted after CPU production or fully-homomorphic encryption.

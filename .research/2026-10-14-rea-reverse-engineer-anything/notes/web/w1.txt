@@ -1,0 +1,18 @@
+# GitHub REST API snapshot, retrieved 2026-10-14T11:50:41Z
+## gh api repos/morluto/rea
+{"created_at":"2026-04-14T00:51:32Z","forks_count":56138,"full_name":"morluto/rea","license":"MIT","stargazers_count":226212,"subscribers_count":760}
+## gh api repos/LaurieWired/GhidraMCP
+{"created_at":"2025-03-23T05:36:55Z","forks_count":1174,"full_name":"LaurieWired/GhidraMCP","license":"Apache-2.0","stargazers_count":11231,"subscribers_count":83}
+## gh api repos/mrexodia/ida-pro-mcp
+{"created_at":"2025-03-25T22:23:41Z","forks_count":1548,"full_name":"mrexodia/ida-pro-mcp","license":"MIT","stargazers_count":12840,"subscribers_count":62}
+## gh api repos/NationalSecurityAgency/ghidra
+{"created_at":"2019-03-01T03:27:48Z","forks_count":9691,"full_name":"NationalSecurityAgency/ghidra","license":"Apache-2.0","stargazers_count":86791,"subscribers_count":1181}
+## gh api 'repos/morluto/rea/forks?per_page=3&sort=oldest'
+{"created_at":"2026-07-13T03:44:28Z","full_name":"samithaj/rea"}
+{"created_at":"2026-07-13T04:41:24Z","full_name":"SamSongAI/rea"}
+{"created_at":"2026-07-13T06:50:30Z","full_name":"will702/rea"}
+## gh api -H 'Accept: application/vnd.github.star+json' 'repos/morluto/rea/stargazers?per_page=100&page=1'
+{"message":"Not Found","documentation_url":"https://docs.github.com/rest/activity/starring#list-stargazers","status":"404"}gh: Not Found (HTTP 404)
+
+## graphql repository(owner:morluto,name:rea){stargazerCount stargazers{totalCount}}
+{"data":{"repository":{"stargazerCount":226215,"stargazers":{"totalCount":0}}}}
