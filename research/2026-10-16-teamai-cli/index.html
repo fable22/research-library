@@ -1,0 +1,928 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>teamai-cli가 팀의 agent 설정을 PR 리뷰 하나로 묶는 방식과 그에 맞춘 팀 workflow</title>
+<meta name="description" content="teamai-cli는 팀 agent 설정을 git 저장소에서 PR로 바꾸고 세션 시작 hook으로 나눠 준다. learnings는 리뷰 없이 올라가고 hook 안전 설정은 기본값이 꺼져 있어, 팀은 리뷰어와 검토 기준부터 정한다.">
+<meta property="og:type" content="article">
+<meta property="og:title" content="teamai-cli가 팀의 agent 설정을 PR 리뷰 하나로 묶는 방식과 그에 맞춘 팀 workflow">
+<meta property="og:description" content="teamai-cli는 팀 agent 설정을 git 저장소에서 PR로 바꾸고 세션 시작 hook으로 나눠 준다. learnings는 리뷰 없이 올라가고 hook 안전 설정은 기본값이 꺼져 있어, 팀은 리뷰어와 검토 기준부터 정한다.">
+<meta property="og:url" content="https://fable22.github.io/research-library/research/2026-10-16-teamai-cli/">
+<meta name="twitter:card" content="summary">
+<style>
+/* ─────────────────────────────────────────────────────────────
+   [[design-tokens]]  wikilink blue + redlink red on cool ink
+   ───────────────────────────────────────────────────────────── */
+:root {
+  color-scheme: light;
+  --paper:      #eef0f5;
+  --card:       #ffffff;
+  --card-2:     #f6f8fb;
+  --ink:        #111620;
+  --ink-2:      #4d5666;
+  --muted:      #7c8698;
+  --rule:       #dde2ea;
+  --grid:       #e6eaf1;
+  --link:       #1f5fc4;   /* wikilink blue  · series 1 */
+  --link-soft:  #dbe6f9;
+  --redlink:    #b32424;   /* dangling link  · series 2 */
+  --redlink-soft:#f7dede;
+  --neutral-bar:#b9c2d1;
+  --shadow:     0 1px 2px rgba(17,22,32,.06), 0 8px 28px -14px rgba(17,22,32,.28);
+  --sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", "Noto Sans KR", sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, "D2Coding", "Nanum Gothic Coding", monospace;
+  --serif: "Iowan Old Style", Georgia, "Nanum Myeongjo", "Noto Serif KR", serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --paper:      #0b0e13;
+    --card:       #151a22;
+    --card-2:     #1b2029;
+    --ink:        #eef1f6;
+    --ink-2:      #a4afc0;
+    --muted:      #7f8b9e;
+    --rule:       #262d38;
+    --grid:       #232935;
+    --link:       #4f92ee;
+    --link-soft:  #1c2c45;
+    --redlink:    #df5a5a;
+    --redlink-soft:#3a2023;
+    --neutral-bar:#3c4553;
+    --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --paper:      #0b0e13;
+  --card:       #151a22;
+  --card-2:     #1b2029;
+  --ink:        #eef1f6;
+  --ink-2:      #a4afc0;
+  --muted:      #7f8b9e;
+  --rule:       #262d38;
+  --grid:       #232935;
+  --link:       #4f92ee;
+  --link-soft:  #1c2c45;
+  --redlink:    #df5a5a;
+  --redlink-soft:#3a2023;
+  --neutral-bar:#3c4553;
+  --shadow:     0 1px 2px rgba(0,0,0,.5), 0 10px 30px -16px rgba(0,0,0,.8);
+}
+
+body { margin: 0; }
+
+/* ── deck shell ───────────────────────────────────────────── */
+.deck {
+  position: fixed; inset: 0;
+  display: grid;
+  grid-template-columns: 224px 1fr;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 16px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── index rail (the wiki _index.md) ──────────────────────── */
+.rail {
+  border-right: 1px solid var(--rule);
+  background: var(--card);
+  overflow-y: auto;
+  padding: 22px 0 20px;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.rail-head {
+  font-family: var(--mono);
+  font-size: 11px; letter-spacing: .1em; text-transform: uppercase;
+  color: var(--muted);
+  padding: 0 20px 12px;
+}
+.rail-item {
+  display: grid; grid-template-columns: 24px 1fr; align-items: baseline; gap: 8px;
+  padding: 5px 20px;
+  font-size: 13px; color: var(--ink-2);
+  background: none; border: 0; text-align: left; width: 100%;
+  font-family: var(--sans); cursor: pointer;
+  border-left: 2px solid transparent;
+}
+.rail-item .n { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.rail-item:hover { background: var(--card-2); color: var(--ink); }
+.rail-item[aria-current="true"] { color: var(--link); border-left-color: var(--link); background: var(--card-2); font-weight: 600; }
+.rail-item[aria-current="true"] .n { color: var(--link); }
+.rail-sep { height: 1px; background: var(--rule); margin: 10px 20px; }
+
+/* ── stage & slides ───────────────────────────────────────── */
+.stage { position: relative; overflow: hidden; }
+.slide {
+  position: absolute; inset: 0;
+  overflow-y: auto; overflow-x: hidden;
+  padding: clamp(26px, 3.4vw, 54px) clamp(20px, 4vw, 60px) 108px;
+  opacity: 0; visibility: hidden;
+  transform: translateX(18px);
+  transition: opacity .32s ease, transform .32s ease, visibility .32s;
+}
+.slide[data-active="true"] { opacity: 1; visibility: visible; transform: none; }
+.slide-inner { max-width: 960px; margin: 0 auto; }
+@media (prefers-reduced-motion: reduce) { .slide { transition: none; transform: none; } }
+
+/* ── typography ───────────────────────────────────────────── */
+.eyebrow {
+  font-family: var(--mono); font-size: 12px; letter-spacing: .04em;
+  color: var(--link); margin: 0 0 10px;
+}
+.eyebrow::before { content: "[["; opacity: .45; }
+.eyebrow::after  { content: "]]"; opacity: .45; }
+/* 한국어는 어절 안에서 끊으면 조사가 앞말과 분리된다 */
+h1, h2, h3, .dek, p, ul.clean li, .bar-name, figcaption, .fig-title, .fig-sub, td, th { word-break: keep-all; }
+h1 { font-size: clamp(30px, 4.4vw, 50px); line-height: 1.14; letter-spacing: -.022em; font-weight: 800; margin: 0 0 18px; text-wrap: balance; }
+h2 { font-size: clamp(23px, 3vw, 32px); line-height: 1.2; letter-spacing: -.018em; font-weight: 750; margin: 0 0 8px; text-wrap: balance; }
+h3 { font-size: 15px; font-weight: 700; letter-spacing: -.005em; margin: 0 0 6px; }
+.dek { color: var(--ink-2); font-size: clamp(15px, 1.5vw, 17px); margin: 0 0 26px; max-width: 62ch; text-wrap: pretty; }
+p { margin: 0 0 12px; }
+strong { font-weight: 700; }
+.q {
+  font-family: var(--serif); font-size: clamp(19px, 2.3vw, 25px); line-height: 1.45;
+  font-style: italic; color: var(--ink); border-left: 3px solid var(--link);
+  padding: 2px 0 2px 20px; margin: 0 0 22px; max-width: 60ch;
+}
+.q cite { display: block; font-family: var(--mono); font-style: normal; font-size: 12px; color: var(--muted); margin-top: 10px; }
+/* 문장 안의 짧은 인용. 블록 인용 .q 와 같은 class 라 check-prose 가 둘 다 건너뛴다 */
+span.q { display: inline; font: inherit; font-style: normal; color: var(--ink-2); border: 0; padding: 0; margin: 0; max-width: none; }
+.wl { font-family: var(--mono); color: var(--link); font-size: .93em; }
+.wl-dead { font-family: var(--mono); color: var(--redlink); font-size: .93em; }
+
+/* ── cards / grids ────────────────────────────────────────── */
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(2, minmax(0,1fr)); }
+.g3 { grid-template-columns: repeat(3, minmax(0,1fr)); }
+.card {
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 16px 18px; box-shadow: var(--shadow);
+}
+.card p:last-child { margin-bottom: 0; }
+.card .tag {
+  font-family: var(--mono); font-size: 11px; letter-spacing: .06em; text-transform: uppercase;
+  color: var(--muted); display: block; margin-bottom: 8px;
+}
+.small { font-size: 13.5px; color: var(--ink-2); line-height: 1.6; }
+.note {
+  font-size: 13px; color: var(--ink-2); background: var(--card-2);
+  border: 1px solid var(--rule); border-left: 3px solid var(--link);
+  border-radius: 0 8px 8px 0; padding: 11px 15px; margin: 16px 0 0;
+}
+.note.warn { border-left-color: var(--redlink); }
+.note b { color: var(--ink); }
+
+/* ── stat tiles ───────────────────────────────────────────── */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px,1fr)); gap: 12px; margin: 0 0 22px; }
+.stat { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; box-shadow: var(--shadow); }
+.stat .lab { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+.stat .val { font-size: 30px; font-weight: 780; letter-spacing: -.03em; line-height: 1.1; display: block; }
+.stat .val .u { font-size: 15px; font-weight: 600; color: var(--ink-2); letter-spacing: 0; }
+.stat .sub { font-size: 12px; color: var(--ink-2); display: block; margin-top: 3px; }
+/* 핵심 한두 문장. 제목 아래에서 독자가 이 주장으로 무엇을 하는지 말한다. */
+.key { font-size: clamp(15px, 1.5vw, 17px); font-weight: 600; line-height: 1.55; color: var(--ink); margin: 0 0 22px; padding-left: 12px; border-left: 4px solid var(--link); max-width: 70ch; text-wrap: pretty; }
+/* 첨언. 계산 과정, 원문 문단 위치, 인용 원문, 조건의 세부. 기본은 접힘. */
+details.more { margin: 0 0 22px; border: 1px solid var(--rule); border-radius: 10px; padding: 8px 14px; background: var(--card); color: var(--ink-2); font-size: 14px; }
+details.more summary { cursor: pointer; font-weight: 600; color: var(--muted); font-size: 13px; }
+details.more[open] summary { margin-bottom: 6px; }
+details.more p { margin: 8px 0; }
+/* 한 줄짜리 사실 목록. 항목마다 한 줄이 넘으면 첨언으로 보낸다. */
+ul.facts { list-style: none; padding: 0; margin: 0 0 18px; display: grid; gap: 8px; }
+ul.facts li { display: grid; grid-template-columns: minmax(3.2em, max-content) 1fr; gap: 10px; font-size: 14.5px; color: var(--ink); line-height: 1.5; }
+ul.facts li .m { font-size: 12px; color: var(--muted); padding-top: 3px; }
+.stat.hero .val { color: var(--link); }
+.stat.bad .val { color: var(--redlink); }
+
+/* ── bar charts ───────────────────────────────────────────── */
+.figure { background: var(--card); border: 1px solid var(--rule); border-radius: 10px; padding: 18px 20px 14px; box-shadow: var(--shadow); margin: 0 0 16px; }
+.figure > figcaption { font-size: 12.5px; color: var(--muted); margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--rule); }
+.fig-title { font-size: 14px; font-weight: 700; margin: 0 0 2px; }
+.fig-sub { font-size: 12.5px; color: var(--muted); margin: 0 0 14px; }
+
+.bars { display: grid; gap: 7px; }
+.bar-row { display: grid; grid-template-columns: minmax(84px, 132px) 1fr minmax(42px, auto); align-items: center; gap: 10px; }
+.bar-name { font-size: 12.5px; color: var(--ink-2); text-align: right; overflow-wrap: anywhere; }
+.bar-row.is-hero .bar-name { color: var(--ink); font-weight: 700; }
+.bar-track {
+  position: relative; height: 15px; border-radius: 2px;
+  background-image: repeating-linear-gradient(to right, transparent 0 calc(25% - 1px), var(--grid) calc(25% - 1px) 25%);
+}
+.bar-track.g5 { background-image: repeating-linear-gradient(to right, transparent 0 calc(20% - 1px), var(--grid) calc(20% - 1px) 20%); }
+/* span 이라 display 를 주지 않으면 height/width 가 무시돼 막대가 렌더되지 않는다 */
+.bar { display: block; height: 100%; width: var(--w); background: var(--neutral-bar); border-radius: 0 4px 4px 0; }
+.bar.s1 { background: var(--link); }
+.bar.s2 { background: var(--redlink); }
+.bar-val { font-family: var(--mono); font-size: 12.5px; font-variant-numeric: tabular-nums; color: var(--ink-2); text-align: right; }
+.bar-row.is-hero .bar-val { color: var(--ink); font-weight: 700; }
+.bar-pair { display: grid; gap: 2px; }
+.bar-val.two { line-height: 1.5; font-size: 11.5px; }
+.bar-axis { display: grid; grid-template-columns: minmax(84px,132px) 1fr minmax(42px,auto); gap: 10px; margin-top: 8px; }
+.bar-axis .ticks { grid-column: 2; display: flex; justify-content: space-between; font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; margin: 0 0 14px; font-size: 12.5px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 7px; }
+.legend i { width: 11px; height: 11px; border-radius: 2px; display: inline-block; }
+.legend i.s1 { background: var(--link); } .legend i.s2 { background: var(--redlink); } .legend i.sn { background: var(--neutral-bar); }
+
+/* ── tables ───────────────────────────────────────────────── */
+.tablewrap { overflow-x: auto; border: 1px solid var(--rule); border-radius: 10px; background: var(--card); box-shadow: var(--shadow); margin: 0 0 18px; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 8px 12px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--rule); }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); font-weight: 600; background: var(--card-2); }
+tbody td { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-2); }
+tbody td:first-child { font-family: var(--sans); color: var(--ink-2); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.hero td { background: var(--link-soft); color: var(--ink); font-weight: 700; }
+tr.hero td:first-child { color: var(--ink); }
+td.win { color: var(--link); font-weight: 700; }
+td.lose { color: var(--redlink); font-weight: 700; }
+/* 글이 든 표: 독자 상황별 표, 판단 표. 숫자 표의 오른쪽 정렬·줄바꿈 금지를 푼다 */
+table.prose-table th, table.prose-table td { text-align: left; white-space: normal; vertical-align: top; line-height: 1.5; font-size: 13.5px; }
+table.prose-table tbody td { font-family: var(--sans); font-variant-numeric: normal; }
+
+/* ── code / md sample ─────────────────────────────────────── */
+pre {
+  font-family: var(--mono); font-size: 12px; line-height: 1.62;
+  background: var(--card-2); border: 1px solid var(--rule); border-radius: 10px;
+  padding: 14px 16px; overflow-x: auto; margin: 0 0 14px; color: var(--ink-2);
+  tab-size: 2;
+}
+pre b { color: var(--ink); font-weight: 700; }
+pre .k { color: var(--link); }
+pre .r { color: var(--redlink); }
+pre .c { color: var(--muted); }
+
+/* ── paper figures (light-source PNGs; keep a white plate) ─ */
+.plate { background: #ffffff; border: 1px solid var(--rule); border-radius: 10px; padding: 10px; box-shadow: var(--shadow); }
+.plate img { display: block; width: 100%; height: auto; border-radius: 4px; }
+
+/* ── svg charts ───────────────────────────────────────────── */
+.svgwrap { overflow-x: auto; }
+svg.chart { display: block; width: 100%; height: auto; min-width: 520px; }
+svg .grid-l { stroke: var(--grid); stroke-width: 1; }
+svg .axis-l { stroke: var(--rule); stroke-width: 1; }
+svg .tick { fill: var(--muted); font-family: var(--mono); font-size: 11px; }
+svg .lbl { fill: var(--ink-2); font-family: var(--sans); font-size: 12px; }
+svg .lbl-hi { fill: var(--ink); font-family: var(--sans); font-size: 12px; font-weight: 700; }
+svg .ln { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+svg .ln.dim { stroke: var(--neutral-bar); }
+svg .ln.s1 { stroke: var(--link); }
+svg .ln.s2 { stroke: var(--redlink); }
+svg .dot { stroke: var(--card); stroke-width: 2; }
+svg .dot.dim { fill: var(--neutral-bar); }
+svg .dot.s1 { fill: var(--link); }
+svg .dot.s2 { fill: var(--redlink); }
+svg .box { fill: var(--card-2); stroke: var(--rule); }
+svg .box-hi { fill: var(--link-soft); stroke: var(--link); }
+svg .arw { stroke: var(--muted); stroke-width: 1.5; fill: none; }
+svg .txt { fill: var(--ink); font-family: var(--sans); font-size: 12.5px; font-weight: 650; }
+svg .txt-s { fill: var(--ink-2); font-family: var(--sans); font-size: 11px; }
+
+/* ── misc lists ───────────────────────────────────────────── */
+ul.clean { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+ul.clean li { display: grid; grid-template-columns: 20px 1fr; gap: 10px; font-size: 14.5px; color: var(--ink-2); }
+ul.clean li .m { font-family: var(--mono); font-size: 12px; color: var(--link); line-height: 1.8; }
+ul.clean li .m.bad { color: var(--redlink); }
+ul.clean li b { color: var(--ink); }
+.src { display: grid; gap: 8px; font-size: 13.5px; }
+.src a { color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px; overflow-wrap: anywhere; }
+.src .t { color: var(--ink-2); }
+
+/* ── HUD ──────────────────────────────────────────────────── */
+.hud {
+  position: absolute; left: 224px; right: 0; bottom: 0;
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px clamp(20px, 4vw, 60px);
+  background: linear-gradient(to top, var(--paper) 62%, transparent);
+  pointer-events: none;
+}
+.hud > * { pointer-events: auto; }
+.nav-btn {
+  font-family: var(--mono); font-size: 13px; color: var(--ink-2);
+  background: var(--card); border: 1px solid var(--rule); border-radius: 7px;
+  padding: 6px 13px; cursor: pointer; box-shadow: var(--shadow);
+}
+.nav-btn:hover:not(:disabled) { color: var(--link); border-color: var(--link); }
+.nav-btn:disabled { opacity: .35; cursor: default; }
+.counter { font-family: var(--mono); font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.progress { flex: 1; height: 2px; background: var(--rule); border-radius: 2px; overflow: hidden; max-width: 340px; }
+.progress i { display: block; height: 100%; background: var(--link); width: 0; transition: width .32s ease; }
+.hint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: auto; }
+:focus-visible { outline: 2px solid var(--link); outline-offset: 2px; border-radius: 3px; }
+
+/* ── responsive ───────────────────────────────────────────── */
+@media (max-width: 860px) {
+  .deck { grid-template-columns: 1fr; }
+  .rail { display: none; }
+  .hud { left: 0; }
+  .g2, .g3 { grid-template-columns: 1fr; }
+  .bar-row, .bar-axis { grid-template-columns: minmax(70px, 96px) 1fr auto; }
+  .hint { display: none; }
+}
+/* ── article: 기본 읽기 방식. 장을 이어서 스크롤로 읽고 rail 은 목차가 된다. 덱은 토글. ── */
+body[data-mode="article"] .deck { position: static; inset: auto; min-height: 100vh; }
+body[data-mode="article"] .rail { position: sticky; top: 0; height: 100vh; box-sizing: border-box; }
+body[data-mode="article"] .stage { overflow: visible; }
+body[data-mode="article"] .slide {
+  position: static; inset: auto; opacity: 1; visibility: visible; transform: none; transition: none;
+  overflow: visible; padding-bottom: 40px; border-bottom: 1px solid var(--rule); scroll-margin-top: 8px;
+}
+body[data-mode="article"] .slide:last-child { border-bottom: 0; padding-bottom: 96px; }
+body[data-mode="article"] .hud { position: fixed; }
+body[data-mode="article"] #prev, body[data-mode="article"] #next, body[data-mode="article"] .hint { display: none; }
+
+@media print {
+  .deck { position: static; height: auto; grid-template-columns: 1fr; }
+  .rail, .hud { display: none; }
+  .stage { overflow: visible; }
+  .slide { position: static; opacity: 1; visibility: visible; transform: none; page-break-after: always; padding: 24px 0; }
+}
+
+/* ── 계보 바: 같은 연구 라인의 문서를 잇는다 ───────────── */
+.lineage {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+  margin: 0 0 26px; padding: 10px 12px;
+  background: var(--card); border: 1px solid var(--rule); border-radius: 10px;
+  box-shadow: var(--shadow);
+  font-family: var(--mono); font-size: 11.5px;
+}
+.lineage .lg {
+  color: var(--muted); letter-spacing: .06em; text-transform: uppercase;
+  margin-right: 4px; white-space: nowrap;
+}
+.lineage a, .lineage .self, .lineage .ext {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  border: 1px solid var(--rule); text-decoration: none;
+  color: var(--ink-2); background: var(--card-2);
+}
+.lineage a:hover { color: var(--link); border-color: var(--link); }
+.lineage .self { color: var(--card); background: var(--link); border-color: var(--link); font-weight: 700; }
+.lineage .arrow { color: var(--muted); padding: 0 1px; }
+.lineage .ext { color: var(--muted); font-style: normal; }
+@media (max-width: 620px) { .lineage .lg { width: 100%; margin-bottom: 4px; } }
+
+/* 문서 간 이동 링크 */
+a.xref {
+  color: var(--link); text-decoration-thickness: 1px; text-underline-offset: 2px;
+  font-weight: 600;
+}
+.note a { color: var(--link); text-underline-offset: 2px; }
+figcaption a { color: var(--link); text-underline-offset: 2px; }
+.card a { color: var(--link); text-underline-offset: 2px; }
+</style>
+</head>
+<body data-mode="article">
+<div class="deck">
+  <nav class="rail" aria-label="목차">
+    <div class="rail-head">_index.md</div>
+    <!-- 목차는 셸 스크립트가 장에서 만든다. 장의 data-label 이 목차 이름이다 -->
+  </nav>
+
+  <main class="stage" id="stage">
+  <!-- 01 -->
+  <section class="slide" data-active="true" data-label="표지">
+    <div class="slide-inner">
+      <p class="eyebrow">index</p>
+      <h1>teamai-cli가 팀의 agent 설정을 PR 리뷰 하나로 묶는 방식과 그에 맞춘 팀 workflow</h1>
+      <p class="dek">teamai-cli는 팀의 skill, rule, hook, MCP 설정을 git 저장소 하나에 두고 각자의 AI coding 도구에 도구별 형식으로 써 넣는 CLI다. 바꾸는 사람은 branch와 PR로 올리고 리뷰어가 merge하면, 다른 팀원은 다음 세션을 열 때 hook이 받아 온다. 그래서 팀 저장소의 PR 리뷰가 모든 팀원 agent의 동작을 바꾸는 관문이 된다. 세션에서 배운 learnings는 이 관문을 거치지 않고 별도 branch로 바로 올라가므로, 프로덕션 팀은 두 경로마다 검토할 사람을 따로 정해야 한다. merge된 hook과 MCP도 기본값에서는 확인 없이 설치되므로 꺼진 안전 설정을 켠다.</p>
+    </div>
+  </section>
+  <!-- 02 -->
+  <section class="slide" data-label="요약">
+    <div class="slide-inner">
+      <p class="eyebrow">tl-dr</p>
+      <h2>들이기 전에 알아 둘 것</h2>
+      <p class="key">팀 저장소에 merge된 것은 별도 확인 없이 모든 팀원의 agent에 닿는다. 팀이 새로 맡을 일은 그 merge를 누가 어떤 기준으로 하는지 정하고, 기본값으로 꺼진 안전 설정을 켜는 것이다.</p>
+      <ul class="clean">
+        <li><span class="m">1</span><span>변경은 <code>teamai push</code>가 만든 PR을 리뷰어가 merge할 때 팀에 들어가고, 팀원은 다음 세션 시작 때 받는다. 지금 열린 세션은 바뀌지 않을 수 있다 (<a href="#p4">올리는 길과 받는 길</a>).</span></li>
+        <li><span class="m">2</span><span>pull은 팀원이 고친 사본을 덮어쓰지 않는다. 고친 사람에게는 팀의 다음 수정이 닿지 않으므로 <code>teamai status</code>로 어긋남을 주기적으로 본다 (<a href="#p5">사본 규칙</a>, <a href="#p6">사례</a>).</span></li>
+        <li><span class="m">3</span><span>role을 정하지 않은 팀원은 모든 namespace를 받는다. 배포 범위를 나누려면 모든 팀원이 role을 정했는지부터 확인한다 (<a href="#p7">배포 범위</a>).</span></li>
+        <li><span class="m">4</span><span>learnings는 PR 없이 <code>teamai-learnings</code> branch에 올라가고 recall로 다른 agent에게 읽힌다. 이 경로의 검토자와 정리 주기를 팀이 정한다 (<a href="#p8">learnings 경로</a>).</span></li>
+        <li><span class="m">5</span><span>team hook과 MCP server는 기본값에서 다음 pull 때 바로 설치된다. <code>autoApply: false</code>, <code>requireTeamScripts</code>, MCP allowlist를 팀 저장소를 만들 때 정한다 (<a href="#p9">실행 조건</a>).</span></li>
+        <li><span class="m">6</span><span>사람별 개입 횟수와 token 사용량이 기본으로 팀 저장소에 쌓인다. 켜 둘지와 어디에 쓸지를 팀이 먼저 합의한다 (<a href="#p10">사용 기록</a>).</span></li>
+        <li><span class="m">7</span><span>CLI는 팀원끼리 버전을 맞춰 주지 않는다. 팀 저장소 형식을 바꾸는 기능은 모두가 업그레이드한 뒤에 쓴다 (<a href="#p13">성립하지 않는 곳</a>).</span></li>
+      </ul>
+      <p>역할 분담, 리뷰, 권한, 공유 컨텍스트별로 바꿀 일은 <a href="#p12">팀 workflow 장</a>에 표로 모았고, 저장소에 근거가 없는 항목은 그렇게 표시했다.</p>
+    </div>
+  </section>
+  <!-- 03 -->
+  <section class="slide" data-label="문제">
+    <div class="slide-inner">
+      <p class="eyebrow">problem</p>
+      <h2>팀원마다 흩어지던 agent 설정</h2>
+      <p class="key">팀이 agent 도구를 여럿 쓰면 skill, rule, MCP, hook을 사람마다 도구마다 손으로 맞춰야 한다. teamai-cli는 그 원본을 팀 git 저장소 하나에 두고, 도구마다 다른 파일 형식과 위치로 바꿔 써 넣는 일을 맡는다.</p>
+      <p>README는 teamai-cli를 팀의 skill, rule, agent, learnings, model, MCP 같은 AI 자산을 git 저장소에서 관리하는 도구라고 소개한다. 같은 내용이라도 도구마다 받는 형식이 달라서, 예를 들어 팀 agent 하나가 Codex에는 <code>.toml</code>, Copilot에는 <code>.agent.md</code>, Kiro에는 <code>.json</code>, 나머지에는 <code>.md</code>로 써진다. 팀 문화를 적은 <code>culture.md</code>도 Claude Code에서는 <code>.claude/rules/teamai-context.md</code>로, Codex에서는 세션 시작 hook으로 들어간다.</p>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>팀 저장소의 자리</th><th>담는 것</th><th>팀원에게 닿는 방식</th></tr></thead>
+        <tbody>
+          <tr><td><code>skills/&lt;name&gt;/SKILL.md</code></td><td>skill</td><td>각 도구의 skill 디렉터리로 복사</td></tr>
+          <tr><td><code>rules/*.md</code>, <code>claudemd/*.md</code>, <code>culture.md</code></td><td>rule, 공유 지시, 팀 문화</td><td>도구별 rule 파일, 또는 세션 시작 hook의 context</td></tr>
+          <tr><td><code>agents/&lt;name&gt;.yaml</code></td><td>subagent 정의</td><td>도구별 형식으로 변환해 agents 디렉터리에</td></tr>
+          <tr><td><code>hooks/hooks.yaml</code>, <code>mcp/mcp.yaml</code></td><td>팀 hook, MCP server</td><td>각 도구의 설정 파일에 주입</td></tr>
+          <tr><td><code>env/env.yaml</code>, <code>env/secrets.yaml</code></td><td>환경 변수, secret의 이름과 설명</td><td>shell profile 블록과 <code>teamai env exec</code>. secret 값은 저장소에 없다</td></tr>
+          <tr><td><code>models/models.yaml</code></td><td>model gateway 목록</td><td><code>teamai models switch</code>로 도구 설정에</td></tr>
+          <tr><td><code>learnings/</code>, <code>teamwiki/</code></td><td>세션에서 배운 것, 코드 지식 그래프</td><td><code>teamai recall</code>로 검색 (beta, 기본 꺼짐)</td></tr>
+        </tbody>
+      </table></div>
+      <p>README의 지원 표는 Claude Code, Codex, Cursor, CodeBuddy, GitHub Copilot CLI, OpenCode, Kiro 등 20개 도구를 열두 가지 자산 항목에 대해 표시한다. 도구마다 빠진 칸이 있어서, 예를 들어 Trae는 agents와 hooks 칸이 비어 있다. 쓰는 도구의 칸부터 확인한다.</p>
+      <details class="more"><summary>첨언: 원문</summary>
+        <p>README: <span class="q">“TeamAI manages a team's skills, rules, agents, learnings, models, MCP, and other AI assets in a git repo.”</span> docs/guide/sharing.md: <span class="q">“`&lt;name&gt;.toml` for the Codex family, `&lt;name&gt;.agent.md` for Copilot, `&lt;name&gt;.json` for Kiro, and `&lt;name&gt;.md` for the rest.”</span> docs/guide/team-culture.md: <span class="q">“They are not written into the project's `AGENTS.md`.”</span></p>
+        <p>표는 docs/product-overview.md 의 「What is in the team repo」 표를 줄여 옮기고, 닿는 방식은 sharing.md 와 team-culture.md 에서 가져왔다.</p>
+      </details>
+    </div>
+  </section>
+  <!-- 04 -->
+  <section class="slide" data-label="올리는 길과 받는 길">
+    <div class="slide-inner">
+      <p class="eyebrow">mechanism-loop</p>
+      <h2>올리는 길과 받는 길</h2>
+      <p class="key">변경은 <code>teamai push</code>가 만든 branch와 PR을 리뷰어가 기본 branch에 merge할 때 팀에 들어간다. 다른 팀원은 agent 세션을 열 때 SessionStart hook이 띄우는 <code>teamai pull</code>로 받으므로, merge된 변경은 대개 그다음 세션부터 보인다.</p>
+      <figure class="figure">
+        <p class="fig-title">PR merge 한 곳을 지나야 모든 팀원에게 닿는다</p>
+        <p class="fig-sub">docs/product-overview.md 의 두 줄 흐름을 push.ts, hook-handlers.ts 의 코드로 채워 다시 그렸다</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 770 290" role="img" aria-label="두 줄로 된 순환. 윗줄은 올리는 길로, 팀원의 로컬 수정이 teamai push 로 branch 와 PR 이 되고, 리뷰어가 merge 하면 팀 저장소의 기본 branch 에 들어간다. 오른쪽에서 아랫줄로 내려와, 세션 시작 hook 이 teamai pull 을 background 로 띄우고, pull 이 도구별 형식으로 바꿔 각 도구 디렉터리에 쓴 뒤, 다음 agent 세션이 그것을 읽는다. 그 세션에서 생긴 수정이 다시 윗줄 왼쪽의 로컬 수정으로 올라가는 화살표가 순환을 닫는다.">
+          <rect class="box" x="10" y="30" width="170" height="64" rx="8"/>
+          <text class="txt" x="22" y="56">팀원의 로컬 수정</text>
+          <text class="txt-s" x="22" y="76">~/.claude/skills/… 등</text>
+          <path class="arw" d="M180 62 L198 62"/><path class="arw" d="M192 57 L198 62 L192 67"/>
+          <rect class="box" x="200" y="30" width="170" height="64" rx="8"/>
+          <text class="txt" x="212" y="56">teamai push</text>
+          <text class="txt-s" x="212" y="76">teamai/push/&lt;user&gt;/&lt;시각&gt; + PR</text>
+          <path class="arw" d="M370 62 L388 62"/><path class="arw" d="M382 57 L388 62 L382 67"/>
+          <rect class="box-hi" x="390" y="30" width="170" height="64" rx="8"/>
+          <text class="txt" x="402" y="56">리뷰어가 merge</text>
+          <text class="txt-s" x="402" y="76">teamai.yaml reviewers, 보호 branch</text>
+          <path class="arw" d="M560 62 L578 62"/><path class="arw" d="M572 57 L578 62 L572 67"/>
+          <rect class="box" x="580" y="30" width="180" height="64" rx="8"/>
+          <text class="txt" x="592" y="56">팀 저장소 기본 branch</text>
+          <text class="txt-s" x="592" y="76">skills/ rules/ hooks/ mcp/ …</text>
+          <path class="arw" d="M670 94 L670 188"/><path class="arw" d="M665 182 L670 188 L675 182"/>
+          <rect class="box" x="580" y="190" width="180" height="64" rx="8"/>
+          <text class="txt" x="592" y="216">SessionStart hook</text>
+          <text class="txt-s" x="592" y="236">pull 을 background 로, 최대 120초</text>
+          <path class="arw" d="M580 222 L562 222"/><path class="arw" d="M568 217 L562 222 L568 227"/>
+          <rect class="box" x="390" y="190" width="170" height="64" rx="8"/>
+          <text class="txt" x="402" y="216">teamai pull</text>
+          <text class="txt-s" x="402" y="236">도구별 형식으로 변환</text>
+          <path class="arw" d="M390 222 L372 222"/><path class="arw" d="M378 217 L372 222 L378 227"/>
+          <rect class="box" x="200" y="190" width="170" height="64" rx="8"/>
+          <text class="txt" x="212" y="216">도구 디렉터리</text>
+          <text class="txt-s" x="212" y="236">.claude/ .codex/ .cursor/ …</text>
+          <path class="arw" d="M200 222 L182 222"/><path class="arw" d="M188 217 L182 222 L188 227"/>
+          <rect class="box" x="10" y="190" width="170" height="64" rx="8"/>
+          <text class="txt" x="22" y="216">다음 agent 세션</text>
+          <text class="txt-s" x="22" y="236">새 skill, rule 을 읽는다</text>
+          <path class="arw" d="M95 190 L95 96"/><path class="arw" d="M90 102 L95 96 L100 102"/>
+          <text class="txt-s" x="104" y="150">쓰다가 고친 것</text>
+        </svg>
+        </div>
+        <figcaption>강조한 상자가 팀 전체의 동작이 바뀌는 지점이다. 아랫줄은 각 팀원 기계에서 따로 돈다. provider 가 <code>git</code> 인 기계에서는 PR 이 열리지 않아 사람이 직접 연다.</figcaption>
+      </figure>
+      <p>올리는 길에서 <code>teamai push</code>는 사용자 이름과 초 단위 시각으로 branch를 만들고, provider의 API로 기본 branch를 향한 PR을 연다. <code>teamai.yaml</code>의 <code>reviewers</code>가 있으면 그 사람들을 PR 리뷰어로 넣는다. 저장소 문서는 팀원이 branch를 올리고 PR을 열 수 있게 하되 기본 branch는 보호해 두라고 전제한다. 이 보호 설정은 git host에서 하는 일이라 teamai-cli가 확인하지는 않는다.</p>
+      <p>받는 길은 <code>teamai init</code>이 설치하는 기본 hook에서 시작한다. SessionStart의 pull은 background로 돌고 120초까지 기다리며, 세션 시작을 붙잡지 않는다. 그래서 rule과 MCP를 SessionStart hook보다 먼저 한 번 읽는 도구는 새로 받은 것을 그다음 세션에서야 본다고 CHANGELOG가 밝힌다. 오늘 merge한 rule이 지금 일하는 팀원의 agent에 바로 걸린다고 기대하면 안 되는 이유다.</p>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>기본 hook 이벤트</th><th>하는 일</th></tr></thead>
+        <tbody>
+          <tr><td>SessionStart</td><td>팀 자원 pull, 세션 시작 기록, 최근 7일 안에 merge된 MR 알림, 팀 env 안내</td></tr>
+          <tr><td>PostToolUse</td><td>skill 사용 기록</td></tr>
+          <tr><td>UserPromptSubmit</td><td>prompt 기록 (교정 여부를 세는 데 쓴다)</td></tr>
+          <tr><td>Stop</td><td>CLI 업데이트 확인, 세션 종료 기록, learnings 공유 제안</td></tr>
+        </tbody>
+      </table></div>
+      <details class="more"><summary>첨언: 원문과 위치</summary>
+        <p>docs/product-overview.md:22, 24: <span class="q">“teamai push → branch + PR → review and merge”</span>, <span class="q">“SessionStart hook → teamai pull → each AI tool”</span>. src/utils/git.ts:902 <code>return `teamai/push/${username}/${timestamp}`;</code>, src/push.ts:372 <code>reviewers: teamConfig.reviewers?.length ? teamConfig.reviewers : undefined,</code></p>
+        <p>src/hook-handlers.ts:1136 <code>{ event: 'session-start', matcher: '*', handler: pullHandler, timeoutMs: PULL_TIMEOUT_MS, background: true },</code>, 같은 파일 101행 <code>export const PULL_TIMEOUT_MS = 120_000;</code></p>
+        <p>CHANGELOG.md:9 <span class="q">“A tool that reads rules and MCP once, before its SessionStart hook, sees them from the following session”</span>. docs/guide/distribution.md:91 <span class="q">“Teammates push branches and open pull requests. The default branch stays protected.”</span></p>
+      </details>
+    </div>
+  </section>
+  <!-- 05 -->
+  <section class="slide" data-label="사본 규칙">
+    <div class="slide-inner">
+      <p class="eyebrow">delivery</p>
+      <h2>pull이 팀원의 사본을 다루는 규칙</h2>
+      <p class="key">pull은 팀원이 고친 사본을 남겨 두고, 지운 사본은 다시 써 넣는다. 그래서 rule 하나를 손본 팀원에게는 그 뒤 팀이 그 rule을 고쳐도 새 버전이 가지 않고 경고 한 줄만 남는다.</p>
+      <p>pull은 자기가 마지막으로 쓴 파일의 hash를 checkout마다 기록해 둔다. 다음 pull에서 디스크의 파일을 그 기록과 비교해, 기록과도 다르고 지금 쓸 팀 버전과도 다를 때만 팀원이 고친 것으로 본다. 판정은 아래 표대로 갈린다.</p>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>팀원 쪽 파일 상태</th><th>pull이 하는 일</th><th>팀원에게 보이는 것</th></tr></thead>
+        <tbody>
+          <tr><td>받은 그대로</td><td>새 팀 버전으로 덮어쓴다</td><td>없음</td></tr>
+          <tr><td>지웠다</td><td>다시 써 넣는다</td><td>없음. 지우는 것이 팀 버전으로 돌아가는 방법이다</td></tr>
+          <tr class="hero"><td>고쳤고 팀 버전은 그대로</td><td>남겨 둔다</td><td>info 한 줄. push로 공유하거나 지우고 <code>pull --force</code></td></tr>
+          <tr class="hero"><td>고쳤고 팀 버전도 바뀜</td><td>남겨 둔다</td><td>warn 한 줄. 팀 변경을 직접 합친 뒤 push하라는 안내</td></tr>
+          <tr><td>기록이 없고 teamai가 쓴 것인지 증명할 수 없음</td><td>쓰지도 지우지도 않는다</td><td>warn 한 줄</td></tr>
+          <tr><td>팀 저장소에서 그 파일이 지워짐 (revert 포함)</td><td>받은 그대로면 지운다. 팀원이 고친 사본과 팀원 저장소가 git으로 추적하는 사본은 남긴다</td><td>남긴 경우 warn 한 줄</td></tr>
+        </tbody>
+      </table></div>
+      <p>남겨 둔 사본을 가진 팀원이 <code>teamai push</code>를 하면, push는 팀 버전이 그사이 바뀌었으니 합치지 않으면 그 변경을 덮어쓴다고 경고한다. 경고에서 멈추고 PR은 리뷰어 앞으로 가므로, 이 경우를 걸러 내는 마지막 자리는 PR 리뷰다.</p>
+      <p>문서는 <code>teamai.yaml</code>의 <code>sharing.rules.enforced</code>에 넣은 rule을 팀원이 지울 수 없다고 설명한다. 이 커밋의 코드에서 <code>enforced</code>는 설정 schema에만 있고 그 값을 읽는 코드는 찾지 못했다. 지운 rule이 돌아오는 것은 위 표의 일반 규칙 덕분이고, 고친 rule이 그대로 남는 것도 enforced 여부와 상관없다. 보안 rule처럼 팀원이 바꾸면 안 되는 내용은 로컬 수정으로도 무력해질 수 있다는 전제로 운영한다.</p>
+      <details class="more"><summary>첨언: 원문, 검색 명령</summary>
+        <p>src/resources/delivered-copies.ts:48, 51: <span class="q">“Keep a copy only on proof that the member changed it: a recorded file whose”</span> … <span class="q">“so deleting it is how the member takes the team version back.”</span> 같은 파일 698행의 경고: <code>Kept ${dest}: you changed it, and the version teamai would deploy there (${teamRelPath}) has changed since. </code></p>
+        <p>src/push.ts:329: <span class="q">“pushing replaces that change unless you merged it.”</span></p>
+        <p>docs/guide/sharing.md:40 <span class="q">“A rule members cannot delete goes in `teamai.yaml`:”</span>. src/types.ts:93 <code>enforced: z.array(z.string()).default([]),</code>. <code>git grep -n enforced db0cb20 -- src ':!src/__tests__'</code> 는 여섯 줄을 돌려준다. 영어 단어 enforced를 쓴 주석 세 줄(hook-handlers.ts:1231, projects.ts:31, utils/path-safety.ts:88)을 빼면 이 schema 줄과 init.ts 의 빈 기본값 두 줄(1279, 1902행)이 전부다.</p>
+        <p>팀이 지운 파일의 처리: src/resources/delivered-copies.ts:588 <code>judgeRemoval</code>, 621행 <code>keepsTrackedCopy</code>. rule은 src/resources/rules.ts:922 <code>log.warn(`Kept ${fullPath}: teamai no longer delivers ${ruleName} here, but you changed this copy. Delete it when you no longer need it.`);</code></p>
+      </details>
+    </div>
+  </section>
+  <!-- 06 -->
+  <section class="slide" data-label="사례">
+    <div class="slide-inner">
+      <p class="eyebrow">case</p>
+      <h2>보안 rule을 고친 날의 세 팀원</h2>
+      <p class="key">같은 merge 하나가 팀원 셋에게 서로 다르게 닿는다. 세션을 이미 연 사람은 다음 세션부터, rule을 손본 적이 있는 사람은 자기 사본을 지우기 전까지 받지 못하고, role이 없는 사람은 다른 팀의 namespace까지 받는다.</p>
+      <p>팀 저장소의 <code>rules/backend/secrets.md</code>를 고치는 PR이 오전 10시에 merge되었다고 하자. <code>manifest/roles.yaml</code>에는 backend와 frontend role이 있고, 원 자료에 없는 가상의 상황이다. 앞 장들의 규칙만으로 결과를 따라가면 이렇다.</p>
+<pre><b>10:00</b> PR merge, 기본 branch에 새 secrets.md
+
+<b>팀원 A</b>  role=backend, 09:30부터 세션 진행 중
+  현재 세션   rule을 SessionStart 전에 읽는 도구라면 옛 내용 그대로
+  11:00 새 세션  SessionStart → pull(background) → 파일 갱신
+             <span class="c">pull이 끝나기 전에 rule을 읽으면 이번 세션도 옛 내용, 그다음 세션부터 새 내용</span>
+
+<b>팀원 B</b>  role=backend, 지난주 secrets.md를 로컬에서 고침
+  새 세션    pull: 기록과 다르고 팀 버전도 바뀜 → <span class="r">kept</span>
+             warn 한 줄 (silent pull이라 터미널에 안 보일 수 있음)
+             B의 agent는 계속 B의 옛 수정본을 따른다
+
+<b>팀원 C</b>  role 미지정
+  새 세션    namespace 필터가 걸리지 않음 → rules/backend/, rules/frontend/ 모두 받음
+             새 secrets.md도 받는다</pre>
+      <p>B의 경우가 운영에서 가장 늦게 드러난다. 세션 시작 pull은 <code>silent</code>로 돌기 때문에 경고를 B가 읽지 못할 수 있고, B의 agent는 팀이 고친 보안 규칙을 모른 채 일한다. 팀원이 가끔 <code>teamai status</code>를 돌려 팀 저장소와 다른 파일을 확인하게 하거나, 보안 rule만은 로컬에서 고치지 말고 PR로 바꾸자는 합의를 두는 편이 안전하다.</p>
+      <details class="more"><summary>첨언: 각 줄의 근거</summary>
+        <p>A: CHANGELOG.md:9 와 src/hook-handlers.ts:1136 의 background pull. pull 이 끝나기 전에 도구가 rule 을 읽는지는 도구마다 다르고 저장소가 도구별로 밝히지 않아, 줄 하나를 회색으로 남겼다.</p>
+        <p>B: src/resources/delivered-copies.ts 의 classifyCopy 와 698행 경고. 세션 시작 pull 은 src/hook-handlers.ts:141 <code>await pull({ silent: true });</code> 로 부른다. 그 출력이 각 도구 화면에 어떻게 보이는지는 실행해 보지 않았다.</p>
+        <p>C: docs/guide/distribution.md:182 <span class="q">“Namespaces only filter for members who have set a role: a member with no `primaryRole` syncs everything”</span></p>
+      </details>
+    </div>
+  </section>
+  <!-- 07 -->
+  <section class="slide" data-label="배포 범위">
+    <div class="slide-inner">
+      <p class="eyebrow">distribution</p>
+      <h2>role과 project로 나누는 배포 범위</h2>
+      <p class="key">namespace 디렉터리에 둔 자산은 그 namespace를 선언한 role이나 project의 팀원에게만 간다. role을 정하지 않은 팀원은 필터 없이 전부 받으므로, 범위 제한을 쓰려면 모든 팀원의 role 설정이 먼저다.</p>
+      <p>role은 사람의 직무(frontend, backend)이고 project는 지금 일하는 서비스다. <code>manifest/roles.yaml</code>과 <code>manifest/projects.yaml</code>이 각자 받을 namespace를 적는다. 예를 들어 checkout project를 선언한 디렉터리는 <code>rules/checkout/</code>, <code>skills/checkout/</code>, <code>hooks/checkout/hooks.yaml</code>, <code>mcp/checkout/mcp.yaml</code>까지 받고, 같은 이름의 root 항목은 namespace 쪽으로 바뀐다. namespace 밖, 곧 root에 둔 파일은 모두에게 간다.</p>
+<pre><span class="c"># manifest/roles.yaml</span>
+roles:
+  - id: frontend
+    resources:
+      knowledge: [common, frontend]   <span class="c"># rules/&lt;ns&gt;/, claudemd/&lt;ns&gt;/</span>
+      skills: [common, frontend]
+      agents: [common, frontend]</pre>
+      <ul class="facts">
+        <li><span class="m">role 없음</span><span>필터가 걸리지 않아 모든 namespace를 받는다. <code>teamai init</code>은 새 팀원에게 role을 고르게 하지만, manifest보다 먼저 들어온 팀원은 <code>teamai roles set</code>을 한 번 해야 한다</span></li>
+        <li><span class="m">tag</span><span>범위를 좁히지 않는다. 구독하면 그 tag가 붙은 skill과 rule이 더해질 뿐이다</span></li>
+        <li><span class="m">workspace</span><span>안에 있는 저장소들이 선택한 것까지 받는다. 같은 이름인데 내용이 다른 항목은 보류하고 이름을 알린다</span></li>
+      </ul>
+      <p>이 구조가 팀의 역할 분담을 저장소 디렉터리에 옮겨 놓는다. 누가 어떤 namespace의 주인인지 정해 두면, 리뷰어 지정과 변경 범위가 함께 정리된다. 다만 namespace별 리뷰어를 강제하는 기능은 teamai-cli에 없고, git host의 CODEOWNERS 같은 장치로 따로 거는 일이다 (저장소에 근거가 없는 제안이다).</p>
+      <details class="more"><summary>첨언: 원문</summary>
+        <p>docs/guide/distribution.md:182 <span class="q">“Namespaces only filter for members who have set a role: a member with no `primaryRole` syncs everything”</span>, 193행 <span class="q">“Tags never restrict: a subscription only adds matching tagged skills.”</span> 문서는 role 을 정하지 않은 팀원에게 role 확인을 요청하는 rule 을 enforced 로 두라고 권하는데, enforced 가 코드에서 하는 일은 사본 규칙 장에 적었다.</p>
+      </details>
+    </div>
+  </section>
+  <!-- 08 -->
+  <section class="slide" data-label="learnings 경로">
+    <div class="slide-inner">
+      <p class="eyebrow">learning-loop</p>
+      <h2>리뷰를 거치지 않는 learnings 경로</h2>
+      <p class="key">세션에서 배운 것은 PR 없이 <code>teamai-learnings</code> branch에 바로 올라가고, recall을 켠 팀원의 agent가 작업 전에 찾아 읽는다. 실행 자산과 달리 올라가는 내용을 사람이 검토하는 지점이 없으므로, 이 경로를 쓰려면 검토자와 정리 주기를 팀이 정한다.</p>
+      <figure class="figure">
+        <p class="fig-title">두 경로 중 하나만 PR을 지난다</p>
+        <p class="fig-sub">윗줄은 앞 장의 올리는 길, 아랫줄은 contribute-check.ts, learnings-branch.ts, promote.ts 에서 읽은 learnings 경로</p>
+        <div class="svgwrap">
+        <svg class="chart" viewBox="0 0 770 330" role="img" aria-label="두 줄의 경로. 윗줄은 teamai push 에서 PR 리뷰와 merge 를 지나 기본 branch 에 들어가는 길이다. 아랫줄은 세션 끝의 Stop hook 이 마찰 점수로 공유를 제안하고, agent 가 요약을 써서 teamai contribute 로 PR 없이 teamai-learnings branch 에 올리고, recall 이 그것을 다른 agent 에게 돌려주며 열람이 upvote 로 쌓이는 길이다. upvote 가 기준을 넘으면 recall promote 가 skill 이나 rule 로 다시 쓰고, 그 파일이 점선을 따라 윗줄의 teamai push 로 올라가야 리뷰를 지난다.">
+          <text class="txt-s" x="10" y="18">리뷰를 거치는 길</text>
+          <rect class="box" x="10" y="26" width="170" height="58" rx="8"/>
+          <text class="txt" x="22" y="50">teamai push</text>
+          <text class="txt-s" x="22" y="68">skill, rule, agent</text>
+          <path class="arw" d="M180 55 L198 55"/><path class="arw" d="M192 50 L198 55 L192 60"/>
+          <rect class="box-hi" x="200" y="26" width="170" height="58" rx="8"/>
+          <text class="txt" x="212" y="50">PR 리뷰, merge</text>
+          <text class="txt-s" x="212" y="68">사람이 본다</text>
+          <path class="arw" d="M370 55 L388 55"/><path class="arw" d="M382 50 L388 55 L382 60"/>
+          <rect class="box" x="390" y="26" width="170" height="58" rx="8"/>
+          <text class="txt" x="402" y="50">기본 branch</text>
+          <text class="txt-s" x="402" y="68">다음 pull 로 모두에게</text>
+          <text class="txt-s" x="10" y="128">리뷰를 거치지 않는 길</text>
+          <rect class="box" x="10" y="136" width="170" height="58" rx="8"/>
+          <text class="txt" x="22" y="160">Stop hook</text>
+          <text class="txt-s" x="22" y="178">마찰 점수 ≥ 20 이면 제안</text>
+          <path class="arw" d="M180 165 L198 165"/><path class="arw" d="M192 160 L198 165 L192 170"/>
+          <rect class="box" x="200" y="136" width="170" height="58" rx="8"/>
+          <text class="txt" x="212" y="160">teamai contribute</text>
+          <text class="txt-s" x="212" y="178">agent 가 쓴 요약 문서</text>
+          <path class="arw" d="M370 165 L388 165"/><path class="arw" d="M382 160 L388 165 L382 170"/>
+          <rect class="box" x="390" y="136" width="170" height="58" rx="8"/>
+          <text class="txt" x="402" y="160">teamai-learnings</text>
+          <text class="txt-s" x="402" y="178">orphan branch, PR 없음</text>
+          <path class="arw" d="M560 165 L578 165"/><path class="arw" d="M572 160 L578 165 L572 170"/>
+          <rect class="box" x="580" y="136" width="180" height="58" rx="8"/>
+          <text class="txt" x="592" y="160">recall</text>
+          <text class="txt-s" x="592" y="178">결과를 열면 upvote 1</text>
+          <path class="arw" d="M670 194 L670 246"/><path class="arw" d="M665 240 L670 246 L675 240"/>
+          <rect class="box" x="480" y="248" width="280" height="58" rx="8"/>
+          <text class="txt" x="492" y="272">teamai recall promote</text>
+          <text class="txt-s" x="492" y="290">AI 가 skill, rule, doc 로 다시 써서 로컬 clone 에</text>
+          <path class="arw" d="M480 277 L95 277 L95 86" style="stroke-dasharray:5 4"/><path class="arw" d="M90 92 L95 86 L100 92"/>
+          <text class="txt-s" x="110" y="270">사람이 push 해야 리뷰를 지난다 (점선)</text>
+        </svg>
+        </div>
+        <figcaption>점선은 코드에서 확인하지 못한 연결이다. promote 명령이 publish 하는 것은 learning 에 붙이는 표시 하나뿐이고, 새로 쓴 skill 이나 rule 파일을 기본 branch 로 올리는 코드는 찾지 못했다.</figcaption>
+      </figure>
+      <p>Stop hook은 세션의 마찰을 점수로 센다. 사용자의 중단, tool 거부, 교정이 각각 20점이고 기준이 20점이라 셋 중 하나만 있어도 넘는다. 다만 tool call이 15번 미만인 세션에는 점수와 상관없이 제안하지 않는다. 그래서 tool call 12번에 거부가 세 번 나온 짧은 세션은 조용히 끝나고, tool call 20번에 교정 한 번이 있던 세션은 공유 제안을 받는다. 마찰이 없어도 닿는 길이 하나 더 있다. 그 세션의 recall이 하나도 맞지 않았으면 20점, 맞았지만 최고 점수가 낮으면 10점을 더한다. 그래서 recall을 켠 팀에서는 tool call 30번에 마찰 없이 recall 결과만 0건이었던 세션도 공유 제안을 받는다. recall을 켜는 결정이 learnings가 올라오는 빈도까지 바꾸는 셈이다.</p>
+      <p>제안은 사용자에게 <code>/teamai share</code>를 실행해 보라고 권하는 문장이다. Claude Code는 Stop hook 출력을 화면에 바로 보여 주고, 그 출력을 버리는 도구에서는 다음 prompt 때 model에게 사용자에게 전하라고 넘긴다. 사용자가 실행하면 <code>share</code> skill이 sub-agent로 세션을 요약하고 <code>teamai contribute</code>로 올린다. skill에는 올리기 전에 요약을 사용자에게 보여 주는 단계가 없어서, 공유를 시작한 사람도 본문을 읽지 않은 채 올라갈 수 있다. 이 문서는 PR 없이 <code>teamai-learnings</code> orphan branch에 commit된다. 코드 주석은 그 이유를 보호된 기본 branch에 쓰기 권한이 없어도 기여할 수 있게 하려는 것이라고 설명한다. 이 경로에서 본문의 secret을 지우는 처리는 찾지 못했으므로, 요약에 token이나 내부 주소가 섞이면 그대로 팀 저장소에 남는다. share skill은 요약을 간체 중국어로 쓰라고 지시하므로, 한국어로 일하는 팀이라면 recall 결과의 언어부터 확인한다.</p>
+      <ul class="facts">
+        <li><span class="m">0.90</span><span>promote 후보가 되는 최소 confidence. recall에 걸린 횟수, upvote 수, 마지막 recall 이후 지난 날수로 계산한다</span></li>
+        <li><span class="m">5 / 2</span><span>최소 upvote 5번, 서로 다른 사용자 2명</span></li>
+        <li><span class="m">14일</span><span>learning이 쓰인 뒤 지나야 하는 최소 기간</span></li>
+      </ul>
+      <p>recall은 기본으로 꺼져 있고, 꺼져 있으면 share skill도 그 사실을 알리고 멈춘다. 팀이 recall을 켜는 순간부터 리뷰되지 않은 문서가 다른 팀원 agent의 작업 앞에 놓이므로, 켜는 결정과 정리 담당을 함께 정하는 편이 맞다. <code>teamai recall maintenance --prune</code>은 confidence 0.15 아래 문서를 지우거나 <code>--archive</code>로 치운다.</p>
+      <details class="more"><summary>첨언: 원문과 상수</summary>
+        <p>src/types.ts:2016 <code>export const CONTRIBUTE_BASE_THRESHOLD = 15;</code>, 2026행 <code>export const CONTRIBUTE_SMART_THRESHOLD = 20;</code>, 2035, 2038, 2041행 중단, 거부, 교정 가중치 20. 2049–2051행 tool error 단계 <code>{ min: 8, points: 25 },</code> … <code>{ min: 3, points: 10 },</code>. src/contribute-check.ts:607 <code>const willHint = score &gt;= CONTRIBUTE_SMART_THRESHOLD &amp;&amp; toolCount &gt;= CONTRIBUTE_BASE_THRESHOLD;</code></p>
+        <p>실패한 tool call은 2049–2051행대로 3, 5, 8번에서 10, 18, 25점이다. skill 사용 5점과 도구 다양성 최대 5점(2055–2056행)도 더해지지만 이 둘만으로는 20점에 닿지 않는다. 그 뒤 src/contribute-check.ts:595 <code>const phase2 = applyPhase2Adjustments(score, sessionId, cwd, sessionStartIso);</code> 가 recall 품질로 점수를 더 올린다. src/types.ts:2067 <code>export const CONTRIBUTE_KNOWLEDGE_GAP_BONUS = 20;</code>, 2070행 <code>export const CONTRIBUTE_LOW_QUALITY_BONUS = 10;</code>, 2073행 최고 점수 기준 5.0. 문턱 계산은 코드를 읽은 것이고 실행해 보지 않았다. recall을 끈 세션에도 recall 품질 기록이 남는지는 확인하지 못했다.</p>
+        <p>제안 문구: src/contribute-check.ts:476 <span class="q">“Consider running `/teamai share what this session taught me` to summarize what you learned and share it with your team (or run `teamai skill get share`).”</span>, 635행 <span class="q">“The stash is delivered as UserPromptSubmit context, which the host does”</span>. skill-data/share/SKILL.md:50 <span class="q">“Run this as a **sub-agent** (Agent tool) to avoid polluting the main session's context”</span></p>
+        <p>src/utils/learnings-branch.ts:4 <span class="q">“Learnings leave the default branch so a member can contribute without write”</span>. skill-data/share/SKILL.md:51 <span class="q">“The document is pushed to the team repo's `teamai-learnings` branch, under `learnings/`, with no pull request”</span>, 13행 <span class="q">“Write the document in Simplified Chinese”</span></p>
+        <p>src/maintenance/promote.ts:26–29 의 MIN_CONFIDENCE 0.90, MIN_UPVOTED 5, MIN_USERS 2, MIN_AGE_DAYS 14. src/index.ts:1528 <code>await publishMaintenance(localConfig, `[teamai] Mark ${candidate.docId} as promoted`, [marked]);</code></p>
+        <p>secret 처리 검색: <code>git grep -n -i "redact\|scrub" db0cb20 -- src/contribute.ts src/utils/learnings-publish.ts src/utils/pending-learnings.ts</code> 는 세 줄을 돌려준다. pending-learnings.ts:7 의 import 한 줄과, git remote URL 의 자격 증명을 가리는 122행과 375행이다.</p>
+      </details>
+    </div>
+  </section>
+  <!-- 09 -->
+  <section class="slide" data-label="실행 조건">
+    <div class="slide-inner">
+      <p class="eyebrow">guardrails</p>
+      <h2>hook과 MCP가 팀원 기계에서 실행되는 조건</h2>
+      <p class="key">기본 설정에서는 merge된 team hook과 MCP server가 다음 pull에서 팀원의 확인 없이 설치된다. 실행 범위를 좁히는 설정은 모두 기본값이 꺼져 있어서, 프로덕션 팀은 팀 저장소를 만들 때 직접 켠다.</p>
+      <p>team hook은 agent 도구의 이벤트(tool call 전후, 세션 시작 등)에 맞춰 팀원의 shell에서 실행되는 명령이다. <code>hooks/hooks.yaml</code>에 한 줄을 더한 PR이 merge되면, 기본값에서는 다음 세션의 pull이 그 명령을 모든 팀원의 도구 설정에 넣는다. 그래서 팀 저장소의 PR 리뷰는 문서 리뷰보다 코드 리뷰에 가까운 기준으로 해야 한다.</p>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>설정</th><th>기본값</th><th>바꾸면</th></tr></thead>
+        <tbody>
+          <tr><td><code>sharing.hooks.autoApply</code></td><td>true</td><td>false면 pull은 대기 중인 hook 수만 알리고, 팀원이 <code>teamai hooks inject</code>를 해야 설치된다</td></tr>
+          <tr><td><code>sharing.hooks.requireTeamScripts</code></td><td>false</td><td>true면 명령이 <code>~/.teamai/team-scripts/</code> 아래 script가 아닌 hook은 건너뛴다</td></tr>
+          <tr><td><code>sharing.mcp.autoApply</code></td><td>true</td><td>false면 <code>teamai mcp inject</code>를 해야 설치된다</td></tr>
+          <tr><td><code>sharing.mcp.allowedCommands</code>, <code>allowedHosts</code></td><td>빈 목록, 곧 제한 없음</td><td>목록 밖의 stdio 명령과 host를 거부한다</td></tr>
+          <tr><td><code>TEAMAI_HOOKS_DISABLED=1</code></td><td>없음</td><td>그 기계에서만 team hook을 모두 끈다</td></tr>
+        </tbody>
+      </table></div>
+      <p>설치할 hook 명령 목록은 pull이 silent가 아닐 때만 출력되고, 세션 시작 pull은 silent로 돈다. <code>autoApply</code>를 켜 둔 팀에서는 팀원이 새 hook의 존재를 모른 채 실행하게 되므로, 위 설정 중 하나는 켜 두는 편이 맞다. <code>teamai.yaml</code>의 <code>scripts</code>(preInit, postPull 등)도 pull 중에 팀원 기계에서 Node로 실행되고, 실패해도 pull은 실패하지 않는다.</p>
+      <p>secret 값은 저장소에 들어가지 않는다. 팀 저장소에는 이름과 설명만 두고, 값은 각자 <code>teamai env set</code>으로 넣는다. 세션 시작 hook은 agent에게 secret 값을 묻거나 읽거나 출력하지 말라는 문장을 context로 넣는데, 이것은 model에 대한 지시이고 파일 접근을 막는 장치는 아니다.</p>
+      <details class="more"><summary>첨언: 원문</summary>
+        <p>src/types.ts:107 <code>autoApply: z.boolean().default(true),</code>, 109행 <code>requireTeamScripts: z.boolean().default(false),</code>, 155행 MCP 의 <code>autoApply: z.boolean().default(true),</code>, 157행 <code>allowedCommands: z.array(z.string()).default([]),</code>, 158행 <span class="q">“Allowed http/sse hosts (supports a leading `*.` wildcard). Empty = no restriction.”</span></p>
+        <p>src/resources/hooks.ts:203 <code>defs = defs.filter((d) =&gt; isTeamScriptCommand(d.command));</code>. docs/guide/sharing.md:200 <span class="q">“Turn team hooks off on this machine with `TEAMAI_HOOKS_DISABLED=1`.”</span>, 133행 <span class="q">“Secret values stay off the repo. On each machine:”</span>. docs/guide/distribution.md:103 <span class="q">“A failure does not fail init or pull.”</span></p>
+        <p>src/hook-handlers.ts:921 <span class="q">“Never ask for, read or print a secret value; if one is missing, ask the member to run `teamai env set KEY` in their own terminal.”</span></p>
+        <p>teamai-cli의 workflow 기능에서 prompt step은 read-only로 정의된다. 실행 전후로 작업 디렉터리의 <code>git status</code>를 비교해서 바뀐 경로가 있으면 step을 실패시키고 파일은 그대로 둔다. 쓰기를 막는 sandbox가 아니라 쓴 뒤에 잡아내는 검사이고, 작업 디렉터리 밖에 쓴 파일은 이 비교에 잡히지 않는다. src/workflow/local-driver.ts:178 <code>execFile('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: workspace, env: process.env }</code>, 290행 <code>const before = await snapshotWorktree(driver.workspace);</code>, 308행 실패 메시지 <span class="q">“Read-only prompt step changed repository paths”</span>. Claude 를 부를 때의 인자는 src/workflow/local-tool-adapter.ts:68 <code>args: ['-p', prompt, '--output-format', 'json', ...</code> 로, 권한을 줄이는 flag 는 이 줄에 없다.</p>
+      </details>
+    </div>
+  </section>
+  <!-- 10 -->
+  <section class="slide" data-label="사용 기록">
+    <div class="slide-inner">
+      <p class="eyebrow">reporting</p>
+      <h2>팀 저장소에 쌓이는 사람별 사용 기록</h2>
+      <p class="key">usage reporting은 기본으로 켜져 있어서, pull할 때마다 팀원별 skill 사용 횟수, 개입 횟수, prompt 수, token 사용량이 <code>teamai-reports</code> branch에 올라간다. 숫자뿐이지만 사람 이름별로 남으므로, 켜 둘지와 무엇에 쓸지를 팀이 먼저 합의한다.</p>
+      <ul class="facts">
+        <li><span class="m">skills</span><span>skill별 사용 횟수와 마지막 사용 시각</span></li>
+        <li><span class="m">interventions</span><span>사용자 중단(ESC), tool 거부, 교정 횟수의 누적</span></li>
+        <li><span class="m">prompts</span><span>사람이 보낸 prompt 수</span></li>
+        <li><span class="m">tokens</span><span>Claude Code, CodeBuddy, Codex transcript에서 센 token 사용량</span></li>
+        <li><span class="m">workflows</span><span>workflow 실행 수, 성공과 실패 수, 누적 시간</span></li>
+      </ul>
+      <p>prompt 본문, 명령, diff, secret 값은 기록에 들어갈 필드가 없다. <code>teamai digest</code>는 이 숫자로 주간 요약을 만든다. 끄려면 팀이 <code>teamai.yaml</code>에 <code>usageReport: false</code>를 두거나, 한 사람이 자기 기계의 <code>usageReportEnabled: false</code>로 덮어쓴다.</p>
+      <p>개입 횟수는 agent가 잘못 간 순간을 세는 숫자라 skill과 rule을 고칠 곳을 찾는 데 쓸모가 있다. 같은 숫자를 사람 평가에 쓰기 시작하면 팀원은 중단과 거부를 줄이는 쪽으로 움직이고, 그러면 위험한 tool call을 막는 습관이 약해진다. 이 우려는 저장소에 없는, 저자가 덧붙인 판단이다.</p>
+      <details class="more"><summary>첨언: 원문</summary>
+        <p>src/types.ts:313 <code>return localConfig.usageReportEnabled ?? teamConfig.usageReport ?? true;</code>. 1569행 <span class="q">“Aggregated Human Intervention metric for this user (Issue #34).”</span>, 1618행 <code>/** Total corrections (re-prompt after stop) across all sessions. */</code>. docs/guide/reporting.md:7 <span class="q">“`teamai pull` commits session and usage counts into the team repo”</span>.</p>
+      </details>
+    </div>
+  </section>
+  <!-- 11 -->
+  <section class="slide" data-label="저장소 자신의 규칙">
+    <div class="slide-inner">
+      <p class="eyebrow">dogfood</p>
+      <h2>teamai-cli 저장소가 자기 agent에게 거는 규칙</h2>
+      <p class="key">teamai-cli 저장소의 AGENTS.md는 agent가 코드를 바꿀 때 worktree를 쓰고, 동작이 바뀐 PR에는 실제 CLI 실행 기록을 붙이고, 리뷰 지적에는 근거에 따라 심각도를 매기라고 정한다. teamai-cli가 사용자 팀에 강제하는 것은 아니지만, 팀 저장소의 rule을 쓸 때 옮겨 올 만한 실례다.</p>
+      <ul class="facts">
+        <li><span class="m">격리</span><span>코드를 바꾸기 전에 worktree에 들어가고 main 작업 디렉터리는 고치지 않는다</span></li>
+        <li><span class="m">검증</span><span>runtime 동작이 바뀐 PR은 build 뒤 실제 CLI로 끝까지 돌려 본 기록을 PR에 붙인다. type check와 unit test만으로는 부족하다고 적었다. 대표 실행 하나면 된다</span></li>
+        <li><span class="m">리뷰 등급</span><span>실행 기록이 없는 PR은 <code>[P1 blocking]</code>이다. P1 지적은 구체적인 실패 상황이나 어긴 규칙을 대야 하고, 둘 다 없으면 P2 이하로 내린다</span></li>
+        <li><span class="m">범위</span><span>바뀐 줄마다 PR 목표로 거슬러 올라갈 수 있어야 하고, 관계없는 수정은 지적한다</span></li>
+        <li><span class="m">자기 리뷰</span><span>push 전에 마지막 변경이 아니라 branch 전체 diff를 보고, 공유 상태마다 읽는 쪽과 쓰는 쪽을 모두 적는다</span></li>
+        <li><span class="m">agent 문서</span><span><code>skill-data/</code>는 agent가 실제로 읽는 글이라 문서처럼 다루고, 동작이 바뀌면 함께 고친다</span></li>
+      </ul>
+      <p>이 규칙들은 리뷰하는 agent와 사람이 같은 기준을 쓰게 만든다. 팀 저장소에 code-reviewer agent와 rule을 올릴 때 이 형식을 빌리면, 리뷰 지적의 무게가 사람마다 달라지는 문제를 줄일 수 있다.</p>
+      <details class="more"><summary>첨언: 원문</summary>
+        <p>AGENTS.md:11 <span class="q">“call `EnterWorktree` before changing code. Do not edit the main working directory.”</span>, 27행 <span class="q">“verify the change end to end with the real CLI. Type check and unit tests are not enough”</span>, 38행 <span class="q">“Review the whole branch diff, not only the last change. For every piece of”</span>, 46행 <span class="q">“flag such a PR that lacks one as `[P1 blocking]`.”</span>, 68행 <span class="q">“Changes must be surgical. Every changed line should trace directly to the”</span>, 20행 <span class="q">“that is what the agent actually reads.”</span></p>
+      </details>
+    </div>
+  </section>
+  <!-- 12 -->
+  <section class="slide" data-label="팀 workflow">
+    <div class="slide-inner">
+      <p class="eyebrow">team-workflow</p>
+      <h2>프로덕션 팀이 바꿀 일하는 방식</h2>
+      <p class="key">teamai-cli를 들이면 agent 설정의 변경이 코드 변경과 같은 무게를 갖는다. 팀 저장소의 리뷰어와 리뷰 기준, 꺼진 안전 설정, role 지정, learnings 검토, CLI 버전 맞추기가 누군가의 일로 새로 생긴다.</p>
+      <div class="tablewrap"><table class="prose-table">
+        <thead><tr><th>영역</th><th>할 일</th><th>근거</th></tr></thead>
+        <tbody>
+          <tr><td>역할 분담</td><td>팀 저장소의 리뷰어를 <code>teamai.yaml</code> <code>reviewers</code>에 적고, git host에서 기본 branch를 보호한다</td><td>코드: push가 reviewers를 PR에 넣는다. 문서: 보호 branch 전제</td></tr>
+          <tr><td>역할 분담</td><td>namespace마다 주인을 정하고 git host의 CODEOWNERS 같은 장치로 리뷰를 건다</td><td>저장소에 근거 없음. namespace별 리뷰 기능이 teamai-cli에 없다</td></tr>
+          <tr><td>리뷰</td><td>hooks, mcp, scripts를 바꾸는 PR은 실행 코드 리뷰 기준으로 본다</td><td>코드: 기본값에서 merge 뒤 확인 없이 설치</td></tr>
+          <tr><td>리뷰</td><td><code>teamai review --branch</code>로 구조, 이름, 중복, 형식, 유출을 먼저 걸러 내고, 내용의 옳고 그름은 사람이 본다</td><td>코드: 검사 종류가 이 다섯으로 정해져 있다</td></tr>
+          <tr><td>권한</td><td><code>autoApply: false</code> 또는 <code>requireTeamScripts: true</code>, MCP allowlist를 켠다</td><td>코드: 모두 기본값이 꺼져 있다</td></tr>
+          <tr><td>공유 컨텍스트</td><td>모든 팀원이 role을 정하게 하고, 보안 rule은 로컬에서 고치지 않기로 합의한다</td><td>문서: role 없으면 전부 받는다. 코드: 고친 사본은 남는다</td></tr>
+          <tr><td>공유 컨텍스트</td><td><code>teamai status</code>로 팀 저장소와 다른 사본을 주기적으로 확인한다</td><td>코드에 경고가 있다. 주기는 저장소에 근거 없음</td></tr>
+          <tr><td>검증</td><td>learnings를 켜면 검토자와 <code>recall maintenance</code> 주기를 정하고, promote 결과는 PR로 올린다</td><td>코드: learnings는 PR 없음. promote의 PR 경로는 확인하지 못함</td></tr>
+          <tr><td>검증</td><td>merge한 rule이 실제로 걸렸는지 새 세션에서 확인하고 나서 공지한다</td><td>CHANGELOG: 다음 세션부터 보이는 도구가 있다</td></tr>
+          <tr><td>버전</td><td>팀 저장소 형식을 바꾸는 기능(model alias, 새 manifest 항목)은 모두가 업그레이드한 뒤 쓴다</td><td>CHANGELOG: CLI는 버전을 확인하지 않는다. 자동 업데이트가 기본이다</td></tr>
+          <tr><td>관측</td><td>usage reporting을 켤지, 사람별 숫자를 어디까지 볼지 합의한다</td><td>코드: 기본 켜짐. 사용 범위는 저장소에 근거 없음</td></tr>
+        </tbody>
+      </table></div>
+      <p>표의 근거 열이 갈리는 지점이 중요하다. 리뷰가 관문이 된다는 것과 안전 설정이 꺼져 있다는 것은 코드에서 읽은 사실이다. 몇 명이 승인해야 하는지, merge한 rule이 문제를 일으켰을 때 어떻게 되돌리는지, learnings의 품질을 누가 책임지는지는 저장소 어디에도 정해져 있지 않다. 되돌리기는 팀 저장소에서 PR을 revert하고 다음 세션의 pull을 기다리는 git의 일반 절차로 하게 된다. 그사이 열려 있던 세션에는 늦게 닿는다. 새로 넣은 rule을 revert하면 받은 그대로인 사본은 다음 pull에서 지워지지만, 팀원이 고친 사본과 팀원 저장소가 git으로 추적하는 사본은 경고 한 줄과 함께 남는다(사본 규칙 장의 표).</p>
+      <details class="more"><summary>첨언: 표의 근거 위치</summary>
+        <p>reviewers: src/push.ts:372. 보호 branch: docs/guide/distribution.md:91. 기본값: src/types.ts:107, 109, 155, 157. review 검사: src/review-branch.ts:49 <code>export type FindingCheck = 'structure' | 'naming' | 'duplicates' | 'format' | 'leaks';</code>. role: docs/guide/distribution.md:182. 사본: src/resources/delivered-copies.ts:48, 698. learnings: src/utils/learnings-branch.ts:4. 다음 세션: CHANGELOG.md:9. 버전: CHANGELOG.md:17 <span class="q">“Upgrade every member together: team instructions leave the shared `AGENTS.md`.”</span>, 23행 <span class="q">“TeamAI does not check versions;”</span>, src/update-policy.ts:19 <code>return 'auto';</code>. reporting: src/types.ts:313.</p>
+      </details>
+    </div>
+  </section>
+  <!-- 13 -->
+  <section class="slide" data-label="성립하지 않는 곳">
+    <div class="slide-inner">
+      <p class="eyebrow">boundary</p>
+      <h2>이 흐름이 성립하지 않는 곳</h2>
+      <p class="key">지금까지의 흐름은 SessionStart hook이 있는 도구, PR을 여는 provider, 팀원 모두 같은 CLI 버전을 전제로 한다. 셋 중 하나가 빠지면 변경이 늦게 닿거나 사람이 손으로 이어 줘야 한다.</p>
+      <ul class="facts">
+        <li><span class="m">hook 없음</span><span>세션 시작 hook이 없는 도구는 팀원이 직접 <code>teamai pull</code>을 해야 받는다. README 지원 표에서 hooks 칸이 빈 도구(Trae, JoyCode 등)를 쓰는 팀원이 여기에 든다</span></li>
+        <li><span class="m">provider git</span><span><code>--provider git</code>으로 init한 기계에서 push는 branch만 올리고 PR은 사람이 git host에서 연다. <code>teamai review --branch</code>가 그 branch를 읽기 전용으로 검사한다</span></li>
+        <li><span class="m">--http</span><span>git 없이 HTTP backend에서 받는 팀원은 읽기 전용이라 push 경로가 없다</span></li>
+        <li><span class="m">버전 차이</span><span>옛 CLI는 새 형식을 모른 채 쓴다. CHANGELOG는 옛 버전이 공유 <code>AGENTS.md</code>에 블록을 다시 써 넣거나, model alias를 실제 model 이름으로 바꿔 push할 수 있다고 적었다</span></li>
+      </ul>
+      <p>이 경계를 넘는 팀원이 있다면 teamai-cli가 자동으로 해 주던 일을 사람이 대신해야 한다. 도입 전에 팀이 쓰는 도구를 README 지원 표와 맞춰 보고, hook이 없는 도구를 쓰는 사람에게는 pull을 습관으로 정해 주는 편이 낫다.</p>
+      <details class="more"><summary>첨언: 원문</summary>
+        <p>docs/guide/member-guide.md:42 <span class="q">“A session start runs `teamai pull`. Run it yourself when the tool has no such hook.”</span>, 25행 <span class="q">“`push` pushes the branch; open the PR/MR on the Git host yourself.”</span>. src/index.ts:135 <span class="q">“Git-free HTTP team repo (read-only consumer; only needs an API key)”</span>. CHANGELOG.md:17, 23.</p>
+        <p>이 문서가 근거로 든 CHANGELOG.md:9, 17, 23은 모두 5행 <code>## [Unreleased]</code> 아래에 있다. 날짜가 붙은 가장 최근 릴리스는 196행의 0.23.0(2026-09-08)이다. 지금 npm으로 설치되는 버전에 이 변경이 들어 있는지는 확인하지 않았다.</p>
+      </details>
+    </div>
+  </section>
+  <!-- 14 -->
+  <section class="slide" data-label="해석의 한계">
+    <div class="slide-inner">
+      <p class="eyebrow">critique</p>
+      <h2>코드를 읽어서 알 수 있는 것의 한계</h2>
+      <p class="key">모든 동작은 고정한 커밋의 코드와 문서를 읽고 정리한 것이고 CLI를 실행하지 않았다. 도입 전에 시험용 팀 저장소 하나로 사례 장의 세 팀원 상황을 직접 재현해 보면 위 설명이 실제와 맞는지 바로 확인할 수 있다.</p>
+      <ul class="facts">
+        <li><span class="m">실행 안 함</span><span>hook 출력이 각 도구 화면에 어떻게 보이는지, background pull이 도구의 rule 읽기보다 먼저 끝나는지는 실행해야 안다</span></li>
+        <li><span class="m">문서와 코드</span><span><code>sharing.rules.enforced</code>는 문서가 약속한 동작을 하는 코드를 찾지 못했다. 다른 경로에서 읽는다면 test 디렉터리에 단서가 있을 텐데 열지 않았다</span></li>
+        <li><span class="m">promote</span><span>promote가 새로 쓴 파일이 기본 branch로 가는 길은 추론이다. 명령이 publish하는 파일은 표시 하나만 확인했다</span></li>
+        <li><span class="m">provider</span><span>reviewers를 PR에 넣는 동작은 provider마다 구현이 다른데, 공통 interface만 읽었다</span></li>
+        <li><span class="m">지원 표</span><span>README의 20개 도구 지원 표는 maintainer가 적은 것이고 도구별로 확인하지 않았다</span></li>
+        <li><span class="m">이력</span><span>shallow clone이라 개발 속도, 기여자 분포, 릴리스 주기는 다루지 않았다. CHANGELOG에는 날짜가 붙은 릴리스가 있다</span></li>
+      </ul>
+      <p>팀 workflow 장의 권고 가운데 근거 열에 저장소에 근거가 없다고 적은 항목은 저자가 덧붙인 판단이다. 특히 사람별 사용 기록을 평가에 쓰지 말라는 권고와 CODEOWNERS 제안은 teamai-cli 문서 어디에도 없다.</p>
+    </div>
+  </section>
+  <!-- 15 -->
+  <section class="slide" data-label="읽은 범위">
+    <div class="slide-inner">
+      <p class="eyebrow">setup</p>
+      <h2>읽은 커밋과 열지 않은 디렉터리</h2>
+      <p class="key">Tencent/teamai-cli 커밋 db0cb20의 파일 1,155개 중 약 50개를 열었다. test, codebase 지식 그래프, 세션 이전, dashboard, provider별 구현은 열지 않아서 그 기능은 다루지 않았다.</p>
+      <p>README의 대표 그림(<code>assets/use-cases.png</code>)은 도입 전후를 여덟 장면으로 보여 주는 일러스트라 옮기지 않았다. 메커니즘 그림은 docs/product-overview.md 의 두 줄 흐름을 코드로 채워 다시 그렸다.</p>
+      <details class="more"><summary>첨언: 읽은 파일과 열지 않은 파일</summary>
+      <p>읽은 것은 AGENTS.md, README.md, CHANGELOG.md, docs/product-overview.md, docs/guide 의 배포, 공유, 팀 문화, 팀원 안내, workflow, reference, knowledge, reporting 문서, skill-data 의 core와 share skill, 그리고 src 에서 push, pull hook, 사본 판정, hook 안전 설정, learnings 공유와 promote, workflow local driver, review branch 검사 경로다. 큰 파일은 해당 함수만 읽었다.</p>
+      <p>열지 않은 곳과 그 비용은 이렇다. <code>src/__tests__</code>(648개)를 열지 않아 각 동작이 test로 덮이는지 모르고, enforced 문제도 test에서 확인하지 못했다. <code>src/wiki-engine</code>, <code>src/session-flow</code>, <code>src/dashboard</code>, <code>skill-data/wiki</code>를 열지 않아 teamwiki와 세션 이전은 문제 장의 표에 이름만 있다. <code>src/providers</code>는 공통 interface만 읽어 provider별 PR 동작은 다루지 않았다. <code>src/models</code>, <code>src/pkg</code>, 나머지 <code>src</code> 최상위 파일 대부분, <code>docs/designs</code>(두 개 제외), <code>docs/dev</code>, 중국어와 다른 언어 문서, <code>.github</code>, <code>scripts</code>, <code>examples</code>의 일부는 열지 않았다. shallow clone이라 커밋 이력은 보지 않았다.</p>
+      </details>
+    </div>
+  </section>
+  <!-- 16 -->
+  <section class="slide" data-label="출처">
+    <div class="slide-inner">
+      <p class="eyebrow">sources</p>
+      <h2>출처</h2>
+      <div class="src">
+        <div><a href="https://github.com/Tencent/teamai-cli/tree/db0cb20e5ce09edb56f8dd9c3a071a2a34e31b0a">Tencent/teamai-cli @ db0cb20e5ce09edb56f8dd9c3a071a2a34e31b0a</a> <span class="t">r1. MIT. 코드, docs/, skill-data/, AGENTS.md, CHANGELOG.md</span></div>
+        <div><a href="https://github.com/Tencent/teamai-cli/blob/db0cb20e5ce09edb56f8dd9c3a071a2a34e31b0a/docs/product-overview.md">docs/product-overview.md</a> <span class="t">두 줄 흐름과 팀 저장소 구성</span></div>
+        <div><a href="https://github.com/Tencent/teamai-cli/blob/db0cb20e5ce09edb56f8dd9c3a071a2a34e31b0a/docs/guide/distribution.md">docs/guide/distribution.md</a> <span class="t">role, project, namespace, 팀 script</span></div>
+        <div><a href="https://github.com/Tencent/teamai-cli/blob/db0cb20e5ce09edb56f8dd9c3a071a2a34e31b0a/src/resources/delivered-copies.ts">src/resources/delivered-copies.ts</a> <span class="t">사본 판정</span></div>
+        <div><a href="https://github.com/Tencent/teamai-cli/blob/db0cb20e5ce09edb56f8dd9c3a071a2a34e31b0a/src/contribute-check.ts">src/contribute-check.ts</a> <span class="t">마찰 점수와 공유 제안</span></div>
+      </div>
+    </div>
+  </section>
+  </main>
+
+  <footer class="hud">
+    <button class="nav-btn" id="prev" aria-label="이전 장">← 이전</button>
+    <button class="nav-btn" id="next" aria-label="다음 장">다음 →</button>
+    <span class="counter" id="counter">01 / 16</span>
+    <div class="progress" aria-hidden="true"><i id="progbar"></i></div>
+    <span class="hint">← → 키 · Space · Home / End</span>
+    <button class="nav-btn" id="mode" aria-label="읽기 방식 전환">덱으로 보기</button>
+  </footer>
+</div>
+
+<script>
+(function () {
+  var slides  = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  // 목차가 비어 있으면 장에서 만든다. 이름은 data-label, 없으면 h2/h1 의 앞 14자.
+  // 장을 더하거나 이름을 바꿀 때 목차를 손으로 맞추지 않아도 되게 하려는 것이다.
+  var rail = document.querySelector(".rail");
+  if (rail && !rail.querySelector(".rail-item")) {
+    slides.forEach(function (s, k) {
+      var eb = (s.querySelector(".eyebrow") || {}).textContent || "";
+      if (k === 2 || /^\s*critique\s*$/.test(eb)) { var sep = document.createElement("div"); sep.className = "rail-sep"; rail.appendChild(sep); }
+      var h = s.querySelector("h2, h1");
+      var label = s.getAttribute("data-label") || (h ? h.textContent.replace(/\s+/g, " ").trim().slice(0, 14) : "");
+      var b = document.createElement("button");
+      b.className = "rail-item"; b.setAttribute("data-go", String(k));
+      var n = document.createElement("span"); n.className = "n"; n.textContent = (k + 1 < 10 ? "0" : "") + (k + 1);
+      var t = document.createElement("span"); t.textContent = label;
+      b.appendChild(n); b.appendChild(t); rail.appendChild(b);
+    });
+  }
+  var railBtn = Array.prototype.slice.call(document.querySelectorAll(".rail-item"));
+  var prev = document.getElementById("prev"), next = document.getElementById("next");
+  var counter = document.getElementById("counter"), progbar = document.getElementById("progbar");
+  var stage = document.getElementById("stage"), modeBtn = document.getElementById("mode");
+  var i = 0;
+  slides.forEach(function (s, k) { if (!s.id) { s.id = "p" + (k + 1); } });
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function isArticle() { return document.body.getAttribute("data-mode") !== "deck"; }
+  function mark(n) {
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    railBtn.forEach(function (b, k) { b.setAttribute("aria-current", k === i ? "true" : "false"); });
+    counter.textContent = pad(i + 1) + " / " + pad(slides.length);
+    progbar.style.width = ((i + 1) / slides.length * 100) + "%";
+    prev.disabled = (i === 0);
+    next.disabled = (i === slides.length - 1);
+  }
+  function show(n, updateHash) {
+    mark(n);
+    slides.forEach(function (s, k) {
+      s.setAttribute("data-active", k === i ? "true" : "false");
+      s.setAttribute("aria-hidden", k === i ? "false" : "true");
+      if (k === i) { s.scrollTop = 0; }
+    });
+    if (updateHash !== false) { try { history.replaceState(null, "", "#p" + (i + 1)); } catch (e) {} }
+  }
+  // article 에서는 장을 숨기지 않는다. 목차 클릭과 #pN 은 그 장으로 스크롤한다.
+  function go(n, updateHash) {
+    if (!isArticle()) { show(n, updateHash); return; }
+    mark(n);
+    slides.forEach(function (s) { s.setAttribute("data-active", "true"); s.setAttribute("aria-hidden", "false"); });
+    slides[i].scrollIntoView({ block: "start" });
+    if (updateHash !== false) { try { history.replaceState(null, "", "#p" + (i + 1)); } catch (e) {} }
+  }
+  function setMode(m) {
+    document.body.setAttribute("data-mode", m);
+    try { localStorage.setItem("rl-mode", m); } catch (e) {}
+    modeBtn.textContent = m === "deck" ? "이어 읽기" : "덱으로 보기";
+    go(i, false);
+  }
+  modeBtn.addEventListener("click", function () { setMode(isArticle() ? "deck" : "article"); });
+  prev.addEventListener("click", function () { go(i - 1); });
+  next.addEventListener("click", function () { go(i + 1); });
+  railBtn.forEach(function (b) {
+    b.addEventListener("click", function () { go(parseInt(b.getAttribute("data-go"), 10)); });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (isArticle() || e.metaKey || e.ctrlKey || e.altKey) { return; }
+    var t = e.target;
+    if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) { return; }
+    if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); show(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); show(i - 1); }
+    else if (e.key === "Home") { e.preventDefault(); show(0); }
+    else if (e.key === "End") { e.preventDefault(); show(slides.length - 1); }
+  });
+  var x0 = null, y0 = null;
+  stage.addEventListener("touchstart", function (e) {
+    x0 = e.changedTouches[0].clientX; y0 = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stage.addEventListener("touchend", function (e) {
+    if (x0 === null || isArticle()) { x0 = null; return; }
+    var dx = e.changedTouches[0].clientX - x0, dy = e.changedTouches[0].clientY - y0;
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.6) { show(dx < 0 ? i + 1 : i - 1); }
+    x0 = null; y0 = null;
+  }, { passive: true });
+  // article 에서 스크롤 위치를 목차에 반영한다.
+  var ticking = false;
+  window.addEventListener("scroll", function () {
+    if (!isArticle() || ticking) { return; }
+    ticking = true;
+    window.requestAnimationFrame(function () {
+      ticking = false;
+      var line = window.innerHeight * 0.35, best = 0;
+      for (var k = 0; k < slides.length; k++) { if (slides[k].getBoundingClientRect().top <= line) { best = k; } }
+      if (best !== i) { mark(best); try { history.replaceState(null, "", "#p" + (best + 1)); } catch (e) {} }
+    });
+  }, { passive: true });
+  var saved = null;
+  try { saved = localStorage.getItem("rl-mode"); } catch (e) {}
+  document.body.setAttribute("data-mode", saved === "deck" ? "deck" : "article");
+  modeBtn.textContent = isArticle() ? "덱으로 보기" : "이어 읽기";
+  var m = /^#p(\d+)$/.exec(window.location.hash || "");
+  go(m ? parseInt(m[1], 10) - 1 : 0, false);
+})();
+</script>
+</body>
+</html>
