@@ -1,0 +1,31 @@
+{
+  "slug": "2026-10-16-teamai-cli",
+  "question": "Tencent의 teamai-cli는 무엇이고 어떻게 동작하는가? 그리고 프로덕션에서 팀이 agent 체제로 일할 때 무엇을 어떻게 해야 하며, 어떤 workflow와 일하는 방식의 변화가 필요한가?",
+  "slides": 16,
+  "evidenceCount": 84,
+  "lensesReported": [
+    "B",
+    "A"
+  ],
+  "deadLenses": [],
+  "fixRounds": [
+    {
+      "round": 1,
+      "applied": 15,
+      "rejected": 3,
+      "touched": 10,
+      "recheck": {
+        "hard": 0,
+        "wording": 0,
+        "badRejections": 0
+      }
+    }
+  ],
+  "stoppedBecause": "dry",
+  "after_last_recheck": [],
+  "openFindings": 0,
+  "needsJudgment": 3,
+  "unverified": 5,
+  "wordingRecorded": [],
+  "finishedAt": "2026-10-16T19:39:24+09:00"
+}

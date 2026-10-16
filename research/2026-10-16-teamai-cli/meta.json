@@ -1,0 +1,9 @@
+{
+  "title": "teamai-cli가 팀의 agent 설정을 PR 리뷰 하나로 묶는 방식과 그에 맞춘 팀 workflow",
+  "date": "2026-10-16",
+  "seq": 36,
+  "summary": "teamai-cli는 팀 agent 설정을 git 저장소에서 PR로 바꾸고 세션 시작 hook으로 나눠 준다. learnings는 리뷰 없이 올라가고 hook 안전 설정은 기본값이 꺼져 있어, 팀은 리뷰어와 검토 기준부터 정한다.",
+  "category": "oss",
+  "format": "article",
+  "purpose": "explainer"
+}

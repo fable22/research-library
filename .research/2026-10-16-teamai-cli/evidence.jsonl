@@ -1,0 +1,84 @@
+{"id":"e1","source":"r1","locator":"src/push.ts:372","quote":"reviewers: teamConfig.reviewers?.length ? teamConfig.reviewers : undefined,","why":"push PR carries teamai.yaml reviewers"}
+{"id":"e2","source":"r1","locator":"src/push.ts:365","quote":"const targetBranch = await getDefaultBranch(localConfig.repo.localPath);","why":"push PR targets default branch"}
+{"id":"e3","source":"r1","locator":"src/utils/git.ts:902","quote":"return `teamai/push/${username}/${timestamp}`;","why":"push branch naming"}
+{"id":"e4","source":"r1","locator":"docs/product-overview.md:22","quote":"teamai push → branch + PR → review and merge","why":"maintainer flow diagram, publish side"}
+{"id":"e5","source":"r1","locator":"docs/product-overview.md:24","quote":"SessionStart hook → teamai pull → each AI tool","why":"maintainer flow diagram, receive side"}
+{"id":"e6","source":"r1","locator":"docs/guide/distribution.md:91","quote":"Teammates push branches and open pull requests. The default branch stays protected.","why":"permission model assumed by the tool"}
+{"id":"e7","source":"r1","locator":"docs/guide/getting-started.md:77","quote":"2. A reviewer on the team repo merges the pull request.","why":"human reviewer gate"}
+{"id":"e8","source":"r1","locator":"docs/guide/getting-started.md:78","quote":"3. The next session on a teammate's machine pulls it.","why":"delivery timing"}
+{"id":"e9","source":"r1","locator":"src/hook-handlers.ts:1136","quote":"{ event: 'session-start', matcher: '*', handler: pullHandler, timeoutMs: PULL_TIMEOUT_MS, background: true },","why":"session-start pull runs detached"}
+{"id":"e10","source":"r1","locator":"src/hook-handlers.ts:101","quote":"export const PULL_TIMEOUT_MS = 120_000;","why":"pull budget 120s"}
+{"id":"e11","source":"r1","locator":"src/hook-handlers.ts:141","quote":"await pull({ silent: true });","why":"session-start pull is silent"}
+{"id":"e12","source":"r1","locator":"CHANGELOG.md:9","quote":"A tool that reads rules and MCP once, before its SessionStart hook, sees them from the following session","why":"next-session visibility"}
+{"id":"e13","source":"r1","locator":"src/resources/delivered-copies.ts:48","quote":"Keep a copy only on proof that the member changed it: a recorded file whose","why":"local edits are kept"}
+{"id":"e14","source":"r1","locator":"src/resources/delivered-copies.ts:51","quote":"so deleting it is how the member takes the team version back.","why":"deleted copy is re-delivered"}
+{"id":"e15","source":"r1","locator":"src/resources/delivered-copies.ts:698","quote":"Kept ${dest}: you changed it, and the version teamai would deploy there (${teamRelPath}) has changed since. ","why":"warning when team changed a kept copy"}
+{"id":"e16","source":"r1","locator":"src/push.ts:329","quote":"pushing replaces that change unless you merged it.","why":"push overwrite warning"}
+{"id":"e17","source":"r1","locator":"src/types.ts:93","quote":"enforced: z.array(z.string()).default([]),","why":"enforced only in schema"}
+{"id":"e18","source":"r1","locator":"docs/guide/sharing.md:40","quote":"A rule members cannot delete goes in `teamai.yaml`:","why":"docs claim enforced rules"}
+{"id":"e19","source":"r1","locator":"src/types.ts:107","quote":"autoApply: z.boolean().default(true),","why":"hooks autoApply default true"}
+{"id":"e20","source":"r1","locator":"src/types.ts:109","quote":"requireTeamScripts: z.boolean().default(false),","why":"requireTeamScripts default false"}
+{"id":"e21","source":"r1","locator":"src/types.ts:157","quote":"allowedCommands: z.array(z.string()).default([]),","why":"mcp allowlist default empty"}
+{"id":"e22","source":"r1","locator":"src/types.ts:158","quote":"/** Allowed http/sse hosts (supports a leading `*.` wildcard). Empty = no restriction. */","why":"empty means unrestricted"}
+{"id":"e23","source":"r1","locator":"src/resources/hooks.ts:203","quote":"defs = defs.filter((d) => isTeamScriptCommand(d.command));","why":"requireTeamScripts filter"}
+{"id":"e24","source":"r1","locator":"src/resources/hooks.ts:211","quote":"log.info(`${defs.length} team hook(s) pending — run 'teamai hooks inject' to apply (sharing.hooks.autoApply=false)`);","why":"autoApply false holds hooks"}
+{"id":"e25","source":"r1","locator":"docs/guide/sharing.md:200","quote":"Turn team hooks off on this machine with `TEAMAI_HOOKS_DISABLED=1`.","why":"member kill switch"}
+{"id":"e26","source":"r1","locator":"docs/guide/sharing.md:133","quote":"Secret values stay off the repo. On each machine:","why":"secrets local"}
+{"id":"e27","source":"r1","locator":"src/hook-handlers.ts:921","quote":"Never ask for, read or print a secret value; if one is missing, ask the member to run `teamai env set KEY` in their own terminal.","why":"agent instructed on secrets"}
+{"id":"e28","source":"r1","locator":"src/utils/learnings-branch.ts:4","quote":"Learnings leave the default branch so a member can contribute without write","why":"learnings bypass protected main"}
+{"id":"e29","source":"r1","locator":"skill-data/share/SKILL.md:51","quote":"The document is pushed to the team repo's `teamai-learnings` branch, under `learnings/`, with no pull request","why":"no PR for learnings"}
+{"id":"e30","source":"r1","locator":"skill-data/share/SKILL.md:13","quote":"**Write the document in Simplified Chinese**, as earlier releases required.","why":"learning language"}
+{"id":"e31","source":"r1","locator":"src/types.ts:2016","quote":"export const CONTRIBUTE_BASE_THRESHOLD = 15;","why":"hint gate tool calls"}
+{"id":"e32","source":"r1","locator":"src/types.ts:2026","quote":"export const CONTRIBUTE_SMART_THRESHOLD = 20;","why":"hint score threshold"}
+{"id":"e33","source":"r1","locator":"src/types.ts:2041","quote":"export const CONTRIBUTE_CORRECTION_WEIGHT = 20;","why":"correction weight"}
+{"id":"e34","source":"r1","locator":"src/types.ts:2035","quote":"export const CONTRIBUTE_INTERRUPT_WEIGHT = 20;","why":"interrupt weight"}
+{"id":"e35","source":"r1","locator":"src/types.ts:2038","quote":"export const CONTRIBUTE_REJECT_WEIGHT = 20;","why":"reject weight"}
+{"id":"e36","source":"r1","locator":"src/contribute-check.ts:607","quote":"const willHint = score >= CONTRIBUTE_SMART_THRESHOLD && toolCount >= CONTRIBUTE_BASE_THRESHOLD;","why":"hint condition"}
+{"id":"e37","source":"r1","locator":"src/types.ts:2049","quote":"{ min: 8, points: 25 },","why":"tool error tiers"}
+{"id":"e38","source":"r1","locator":"src/types.ts:2051","quote":"{ min: 3, points: 10 },","why":"tool error lowest tier"}
+{"id":"e39","source":"r1","locator":"src/maintenance/promote.ts:26","quote":"const MIN_CONFIDENCE = 0.90;","why":"promote threshold"}
+{"id":"e40","source":"r1","locator":"src/maintenance/promote.ts:27","quote":"const MIN_UPVOTED = 5;","why":"promote upvotes"}
+{"id":"e41","source":"r1","locator":"src/maintenance/promote.ts:28","quote":"const MIN_USERS = 2;","why":"promote users"}
+{"id":"e42","source":"r1","locator":"src/maintenance/promote.ts:29","quote":"const MIN_AGE_DAYS = 14;","why":"promote age"}
+{"id":"e43","source":"r1","locator":"src/index.ts:1528","quote":"await publishMaintenance(localConfig, `[teamai] Mark ${candidate.docId} as promoted`, [marked]);","why":"only the mark is published"}
+{"id":"e44","source":"r1","locator":"docs/guide/knowledge.md:51","quote":"Opening a document that recall returned counts as one upvote for this session.","why":"upvote semantics"}
+{"id":"e45","source":"r1","locator":"src/workflow/local-driver.ts:308","quote":"Read-only prompt step changed repository paths","why":"read-only failure code"}
+{"id":"e46","source":"r1","locator":"src/workflow/local-driver.ts:290","quote":"const before = await snapshotWorktree(driver.workspace);","why":"before/after snapshot"}
+{"id":"e47","source":"r1","locator":"src/workflow/local-tool-adapter.ts:68","quote":"args: ['-p', prompt, '--output-format', 'json', ...(input.agent ? ['--agent', input.agent.name] : [])],","why":"claude invocation for prompt step"}
+{"id":"e48","source":"r1","locator":"src/types.ts:313","quote":"return localConfig.usageReportEnabled ?? teamConfig.usageReport ?? true;","why":"usage report default on"}
+{"id":"e49","source":"r1","locator":"src/types.ts:1618","quote":"/** Total corrections (re-prompt after stop) across all sessions. */","why":"per-user intervention counts"}
+{"id":"e50","source":"r1","locator":"skill-data/core/SKILL.md:81","quote":"2. **Never teach Git.** Do not mention branches, commits, clone, or push/pull of","why":"agent hides git"}
+{"id":"e51","source":"r1","locator":"CHANGELOG.md:23","quote":"TeamAI does not check versions;","why":"no version check"}
+{"id":"e52","source":"r1","locator":"CHANGELOG.md:17","quote":"**Upgrade every member together: team instructions leave the shared `AGENTS.md`.**","why":"upgrade together"}
+{"id":"e53","source":"r1","locator":"src/update-policy.ts:19","quote":"return 'auto';","why":"default update auto"}
+{"id":"e54","source":"r1","locator":"src/mr-hint.ts:28","quote":"const LOOKBACK_DAYS = 7;","why":"mr hint lookback"}
+{"id":"e55","source":"r1","locator":"src/mr-hint.ts:404","quote":"lines.push('Please remind the user to run `teamai import --from-mr <url...>` when convenient.');","why":"mr hint text"}
+{"id":"e56","source":"r1","locator":"src/review-branch.ts:49","quote":"export type FindingCheck = 'structure' | 'naming' | 'duplicates' | 'format' | 'leaks';","why":"review checks list"}
+{"id":"e57","source":"r1","locator":"docs/guide/distribution.md:182","quote":"Namespaces only filter for members who have set a role: a member with no `primaryRole` syncs everything","why":"role filter caveat"}
+{"id":"e58","source":"r1","locator":"docs/guide/distribution.md:193","quote":"Tags never restrict: a subscription only adds matching tagged skills.","why":"tags"}
+{"id":"e59","source":"r1","locator":"src/types.ts:112","quote":"enabled: z.boolean().default(false),","why":"recall default off"}
+{"id":"e60","source":"r1","locator":"docs/guide/sharing.md:176","quote":"Only tools that are already installed are touched.","why":"hooks only installed tools"}
+{"id":"e61","source":"r1","locator":"docs/guide/team-culture.md:28","quote":"They are not written into the project's `AGENTS.md`.","why":"culture placement"}
+{"id":"e62","source":"r1","locator":"README.md:22","quote":"**TeamAI manages a team's skills, rules, agents, learnings, models, MCP, and other AI assets in a git repo.**","why":"one-line definition"}
+{"id":"e63","source":"r1","locator":"docs/guide/knowledge.md:13","quote":"When you correct the AI, deny a tool call, or the AI retries a failing command, the session ends with a prompt to share it:","why":"hint docs"}
+{"id":"e64","source":"r1","locator":"src/types.ts:1569","quote":"Aggregated Human Intervention metric for this user (Issue #34).","why":"intervention metric"}
+{"id":"e65","source":"r1","locator":"docs/guide/reporting.md:7","quote":"`teamai pull` commits session and usage counts into the team repo","why":"reporting docs"}
+{"id":"e66","source":"r1","locator":"docs/guide/distribution.md:103","quote":"`teamai.yaml` can name Node scripts. The CLI runs each one with its own Node, not a shell.","why":"team scripts"}
+{"id":"e67","source":"r1","locator":"src/hook-handlers.ts:943","quote":"if (!config || config.scope !== 'project' || stdin.source === 'resume') return null;","why":"team rules hook"}
+{"id":"e68","source":"r1","locator":"docs/guide/workflow.md:125","quote":"The run is stored in this scope's TeamAI data directory. The command exits when it finishes.","why":"no daemon"}
+{"id":"e69","source":"r1","locator":"src/review-branch.ts:11","quote":"It is strictly read-only: the branch tree is read out of git's object store","why":"review read-only"}
+{"id":"e70","source":"r1","locator":"docs/designs/team-intelligence-platform.md:25","quote":"Push only valuable sessions (tool errors / retries count as valuable)","why":"design intent"}
+{"id":"e71","source":"r1","locator":"skill-data/core/SKILL.md:67","quote":"(Only when recall is on; it is off by default.","why":"share needs recall"}
+{"id": "e72", "source": "r1", "locator": "AGENTS.md:11", "quote": "**Use a worktree**: call `EnterWorktree` before changing code. Do not edit the main working directory.", "why": "maintainers' agent rule: worktree isolation"}
+{"id": "e73", "source": "r1", "locator": "AGENTS.md:20", "quote": "**Treat `skill-data/` like docs**: that is what the agent actually reads.", "why": "agent-read text treated as docs"}
+{"id": "e74", "source": "r1", "locator": "AGENTS.md:27", "quote": "verify the change end to end with the real CLI. Type check and unit tests are not enough", "why": "verification rule"}
+{"id": "e75", "source": "r1", "locator": "AGENTS.md:38", "quote": "Review the whole branch diff, not only the last change. For every piece of", "why": "self review"}
+{"id": "e76", "source": "r1", "locator": "AGENTS.md:46", "quote": "or type checks — flag such a PR that lacks one as `[P1 blocking]`. A", "why": "review severity rule"}
+{"id": "e77", "source": "r1", "locator": "AGENTS.md:68", "quote": "- Changes must be surgical. Every changed line should trace directly to the", "why": "surgical changes"}
+{"id": "e78", "source": "r1", "locator": "docs/guide/member-guide.md:42", "quote": "A session start runs `teamai pull`. Run it yourself when the tool has no such hook.", "why": "no-hook tools"}
+{"id": "e79", "source": "r1", "locator": "docs/guide/member-guide.md:25", "quote": "`push` pushes the branch; open the PR/MR on the Git host yourself.", "why": "provider git no PR"}
+{"id": "e80", "source": "r1", "locator": "docs/guide/sharing.md:72", "quote": "`<name>.toml` for the Codex family, `<name>.agent.md` for Copilot, `<name>.json` for Kiro, and `<name>.md` for the rest.", "why": "per-tool agent format"}
+{"id": "e81", "source": "r1", "locator": "src/workflow/local-driver.ts:178", "quote": "execFile('git', ['status', '--porcelain', '--untracked-files=all'], { cwd: workspace, env: process.env }", "why": "read-only check is git status of workspace"}
+{"id": "e82", "source": "r1", "locator": "src/index.ts:135", "quote": "Git-free HTTP team repo (read-only consumer; only needs an API key)", "why": "http consumer read-only"}
+{"id": "e83", "source": "r1", "locator": "src/types.ts:155", "quote": "autoApply: z.boolean().default(true),", "why": "mcp autoApply default true"}
+{"id": "e84", "source": "r1", "locator": "docs/guide/distribution.md:103", "quote": "A failure does not fail init or pull.", "why": "team script failure tolerant"}
