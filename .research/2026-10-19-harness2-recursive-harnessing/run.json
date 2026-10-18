@@ -1,0 +1,31 @@
+{
+  "slug": "2026-10-19-harness2-recursive-harnessing",
+  "question": "Google Research의 Harness²(recursive agent harnessing)는 왜 모델 가중치를 고정한 채 에이전트 성능을 끌어올릴 수 있는가? 흔히 이야기되는 다른 하네스 개선 기법들과 비교해 무엇이 더 나으며, 그중 실제로 실증된 것은 무엇이고 주장에 그치는 것은 무엇인가?",
+  "slides": 17,
+  "evidenceCount": 84,
+  "lensesReported": [
+    "B",
+    "A"
+  ],
+  "deadLenses": [],
+  "fixRounds": [
+    {
+      "round": 1,
+      "applied": 19,
+      "rejected": 4,
+      "touched": 15,
+      "recheck": {
+        "hard": 0,
+        "wording": 0,
+        "badRejections": 0
+      }
+    }
+  ],
+  "stoppedBecause": "dry",
+  "after_last_recheck": [],
+  "openFindings": 0,
+  "needsJudgment": 2,
+  "unverified": 6,
+  "wordingRecorded": [],
+  "finishedAt": "2026-10-18T21:01:09Z"
+}
