@@ -12,6 +12,7 @@ fable22 에서 정리한 리서치 문서 모음입니다. 논문 분석, 주제
 
 | 날짜 | 문서 | 분류 |
 |---|---|---|
+| 2026-10-19 | [Claude Code effort가 바꾸는 것과 단계를 고르는 기준](https://fable22.github.io/research-library/research/2026-10-19-claude-code-effort/) | 메모 |
 | 2026-10-14 | [rea가 에이전트에게 reverse engineering을 맡기는 방식과 기존 RE 도구와 다른 점](https://fable22.github.io/research-library/research/2026-10-14-rea-reverse-engineer-anything/) | 오픈소스 분석 |
 | 2026-10-07 | [Meta의 organizational second brain이 전문가 교정을 지식 파일 편집으로 바꾸는 방식과 AI-native SDLC와 다른 점](https://fable22.github.io/research-library/research/2026-10-07-meta-organizational-second-brain/) | 메모 |
 | 2026-09-30 | [Claude Sonnet 5.5 이전 안내: Sonnet 5 코드에서 바꿀 곳](https://fable22.github.io/research-library/research/2026-09-30-claude-sonnet-5-5-migration/) | 메모 |

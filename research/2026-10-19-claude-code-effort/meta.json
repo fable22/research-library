@@ -1,0 +1,23 @@
+{
+  "title": "Claude Code effort가 바꾸는 것과 단계를 고르는 기준",
+  "date": "2026-10-19",
+  "seq": 36,
+  "summary": "Claude Code의 effort는 Claude가 스스로 들이는 검증과 판단의 양을 정한다. claude.dev 블로그 글의 Terminal-Bench 3.0 곡선, 실패 종류, 분야별 통과율과 세 빌드 실험의 단계별 화면을 따라가면, effort는 edge case 실패를 절반 넘게 줄이지만 모호한 지시를 다르게 읽는 실패는 늘린다. 그래서 저자는 interview와 low로 만들고 high로 검증한다.",
+  "category": "note",
+  "format": "article",
+  "purpose": "explainer",
+  "tags": [
+    "claude code",
+    "effort",
+    "terminal-bench",
+    "opus 5.5",
+    "fable 5.1",
+    "agent",
+    "verification",
+    "explainer"
+  ],
+  "source": {
+    "label": "claude.dev/blog/spending-your-effort",
+    "url": "https://claude.dev/blog/spending-your-effort"
+  }
+}

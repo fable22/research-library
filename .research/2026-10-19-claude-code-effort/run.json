@@ -1,0 +1,18 @@
+{
+  "slug": "2026-10-19-claude-code-effort",
+  "question": "Claude Code의 effort는 실제로 무엇을 바꾸며, 언제 어느 단계를 골라야 하는가?",
+  "slides": 17,
+  "evidenceCount": 63,
+  "lensesReported": ["B", "A"],
+  "deadLenses": [],
+  "fixRounds": [
+    {"round": 1, "applied": 12, "rejected": 1, "touched": 13, "recheck": {"hard": 0, "wording": 0, "badRejections": 0}}
+  ],
+  "stoppedBecause": "dry",
+  "after_last_recheck": [],
+  "openFindings": 0,
+  "needsJudgment": 3,
+  "unverified": 4,
+  "wordingRecorded": [],
+  "finishedAt": "2026-10-19T15:10:04+09:00"
+}
