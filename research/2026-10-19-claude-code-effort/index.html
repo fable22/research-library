@@ -397,7 +397,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <p class="eyebrow">index</p>
       <h1>Claude Code effort가 바꾸는 것과 단계를 고르는 기준</h1>
       <p class="dek">Claude Code의 effort는 작업에 compute를 얼마나 써도 되는지 모델에게 알려 주는 값이다. 올리면 Claude가 스스로 검증하고 edge case를 시험하는 양이 늘고, 사람에게 묻지 않고 내리는 판단도 많아진다. 그래서 edge case를 놓쳐 생기는 실패는 크게 줄지만, 모호한 지시를 테스트와 다르게 읽어 틀리는 경우는 오히려 늘었다. 저자는 사람이 루프에 있는 동안은 low로 만들고 마지막 검증만 high로 돌린다.</p>
-      <p class="src">claude.dev 블로그 「Using Claude Code: Spending your effort」 (Thariq Shihipar, 2026-09-25) · 2026-10-19에 읽은 판</p>
+      <p class="src">claude.dev 블로그 「Using Claude Code: Spending your effort」 (Thariq Shihipar, Anthropic Claude Code 팀, 2026-09-25) · 2026-10-19에 읽은 판</p>
     </div>
   </section>
 
@@ -411,7 +411,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         <li><span class="m">→</span><span>effort를 올리면 같은 과제에 재현, 대조 테스트, fuzzing 같은 검증 단계가 붙고, 실패하면 다시 고치는 경로가 생긴다. HTML sanitizer 과제에서 Fable 5.1은 low 1/5에서 xhigh 5/5가 됐다. (<a class="xref" href="#p4">04</a>, <a class="xref" href="#p6">06</a>)</span></li>
         <li><span class="m">→</span><span>Terminal-Bench 3.0에서 Fable 5.1과 Opus 5.5는 단계를 올릴 때마다 통과율과 token이 함께 오르고, Fable 5는 xhigh에서 max로 갈 때 통과율이 그대로다. Opus 5.5 high는 Fable 5.1 max와 비슷한 점수를 token 절반으로 낸다. (<a class="xref" href="#p5">05</a>)</span></li>
         <li><span class="m">→</span><span>Fable 5.1을 low에서 max로 올리면 edge case를 놓친 실패는 59건에서 24건으로 줄지만, 판단을 잘못한 실패는 133건에서 107건으로 덜 줄어든다. 이 107건에는 다음 줄의 47건이 들어 있고, 그것을 빼면 108건에서 60건으로 준다. (<a class="xref" href="#p7">07</a>)</span></li>
-        <li><span class="m">→</span><span>지시가 두 가지로 읽힐 때 테스트와 다른 쪽을 고른 실패는 effort를 올리자 25건에서 47건으로 늘었다. 이런 모호함은 effort 대신 spec과 interview로 줄인다. (<a class="xref" href="#p8">08</a>)</span></li>
+        <li><span class="m">→</span><span>지시가 두 가지로 읽힐 때 테스트와 다른 쪽을 고른 실패는 effort를 올리자 25건에서 47건으로 늘었다. max로 올려도 방향은 바로잡히지 않으므로, 이런 모호함은 effort 대신 spec과 interview로 줄인다. (<a class="xref" href="#p8">08</a>)</span></li>
         <li><span class="m">→</span><span>분야별로는 security와 hardware에서 상승폭이 크고, operations는 올라도 22%로 낮게 머문다. (<a class="xref" href="#p9">09</a>)</span></li>
         <li><span class="m">→</span><span>한 줄 지시에서는 effort가 앱의 범위를 크게 바꾸고, 자세한 spec을 주면 단계 사이의 결과물 차이가 줄어든다. (<a class="xref" href="#p10">10</a>, <a class="xref" href="#p11">11</a>, <a class="xref" href="#p12">12</a>)</span></li>
         <li><span class="m">→</span><span>저자는 interview로 spec을 채우고, low로 구현하고 반복한 뒤, high로 검증한다. 단계별 기준은 low가 빠른 대화형 작업, medium이 평소 기능 구현, high가 검증이 중요한 일, max가 혼자 끝까지 가야 하는 어려운 일이다. (<a class="xref" href="#p13">13</a>, <a class="xref" href="#p14">14</a>)</span></li>
@@ -658,13 +658,14 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
   </section>
 
   <!-- 08 -->
-  <section class="slide" data-label="늘어나는 실패">
+  <section class="slide" data-label="max의 한계">
     <div class="slide-inner">
       <p class="eyebrow">limit-judgment</p>
-      <h2>지시를 다르게 읽는 실패</h2>
+      <h2>max가 방향을 잡아 주지는 않는다</h2>
       <p class="key">지시를 달리 읽을 여지가 있을 때 테스트와 다른 쪽을 고른 실패는 effort를 올리자 원문이 보여 준 모델 모두에서 늘었다(Fable 5.1은 25에서 47). 사람에게 묻는 대신 Claude가 스스로 정하는 일이 많아진 결과로 읽히며, 이런 모호함은 effort를 올려서는 줄지 않으므로 spec과 interview로 미리 없앤다.</p>
       <p>원문 차트는 이 실패를 지시가 두 가지 읽기를 허용했고 모델이 테스트가 원하지 않은 쪽을 골랐다고 정의한다. 테스트를 아무리 많이 짜도 Claude가 고른 읽기에 맞춰 짜므로, 검증이 늘어난다고 이 실패가 잡히지는 않는다. 그러면서 높은 단계일수록 Claude가 판단을 더 많이 스스로 내리므로, 갈림길에서 한쪽을 고를 기회도 늘어난다.</p>
       <p>저자도 같은 방향을 두 곳에서 말한다. 기능 개발에서는 높은 effort가 더 많은 일을 해내는 대신 Claude가 사용자를 대신해 더 많은 가정을 한다고 정리한다. gsea-proteomics에서는 사용자가 루프에 있었다면 Claude가 문제 설정을 물었을 수도 있고, 사용자가 없을 때는 high가 낫다고 덧붙인다. Terminal-Bench는 물어볼 사람이 없는 환경이지만, Claude Code 세션에는 대개 사용자가 있다. 그래서 모호한 결정은 effort에 맡기기 전에 사용자가 직접 정해 주는 편이 낫다.</p>
+      <p>지시 해석만의 문제도 아니다. 원문은 effort를 올려도 접근 방식 자체가 틀린 실패는 고쳐지지 않는다고 쓴다. 차트의 판단 묶음에서 지시 해석 실패를 빼도, Fable 5.1은 max에서 370번 중 60번을 여전히 판단을 잘못해 실패한다(low에서는 108번). 맨 위 단계가 늘 가장 낫지도 않아서, Fable 5는 FIG A에서 xhigh와 max가 모두 43.4%다. 저자도 /config 재디자인에서는 Claude가 그리는 방향을 먼저 보려고 low를 고른다. 이 문서는 이를 max가 정해진 방향을 더 철저히 따라가게 할 뿐 그 방향이 맞는지는 사람이 정해야 한다는 뜻으로 읽는다.</p>
       <ul class="facts">
         <li><span class="m">예측</span><span>"날짜를 정규화해 줘"처럼 timezone을 어떻게 다룰지 정해지지 않은 지시는 max로 올려도 고른 쪽이 틀리면 그대로 틀린다. interview에서 그 갈림길을 먼저 묻게 하는 편이 효과가 크다</span></li>
         <li><span class="m">반대 경우</span><span>요구사항이 이미 문서에 적혀 있는 경우는 다르다. 명시된 요구사항을 어긴 실패는 45에서 26으로 줄었으므로, 적어 둔 조건을 지키게 하는 데는 effort가 도움이 된다</span></li>
@@ -673,6 +674,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <details class="more"><summary>첨언: 원문</summary>
         <p>FIG B 분류 정의, picked the wrong reading: <span class="q">“The brief allowed two readings. It chose the one the tests did not.”</span></p>
         <p>§Takeaways: <span class="q">“Low effort allows Claude to respond quickly with a starting point, higher effort levels will get more work done but Claude will also make more assumptions on my behalf.”</span> gsea-proteomics: <span class="q">“If a user were in the loop, Claude may have asked the user about the way to set up the problem, but without a user in the loop, high effort does better.”</span></p>
+        <p>FIG B 설명: <span class="q">“Overall, increasing effort tends to reduce failures due to missing edgecases (purple blocks), but does not fix when the model has the wrong approach (blue blocks).”</span> /config: <span class="q">“For this particular task, I think I prefer using low effort to understand Claude’s vision.”</span></p>
       </details>
     </div>
   </section>
@@ -895,6 +897,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <h2>숫자를 읽을 때 감안할 점</h2>
       <p class="key">수치는 모두 Anthropic의 내부 run이고 과제당 5번 시도라, 과제 하나의 1/5과 5/5 차이에는 우연이 섞일 수 있다. 빌드 실험은 저자가 고른 toy 예시를 한 번씩 돌린 결과다. 자기 작업에 맞는 단계는 대표 작업 몇 개를 두 단계로 돌려 비교해 보고 정한다.</p>
       <ul class="facts">
+        <li><span class="m">저자</span><span>저자는 Anthropic Claude Code 팀 사람이다(w3). 모델을 만든 회사가 자기 모델로 돌린 평가를 자기 제품의 사용법과 함께 설명하는 글이다</span></li>
         <li><span class="m">내부 run</span><span>각주에 따르면 과제당 5번 시도했고 Fable 5.1은 제품의 안전장치를 끄고 돌렸다. security 과제는 인터넷 없이 돌려서 공개 leaderboard나 출시 글의 수치와 맞지 않는다고 원문이 밝힌다</span></li>
         <li><span class="m">security</span><span>Claude 제품에서는 Fable 5.1의 안전장치가 일부 security 요청을 Opus로 넘긴다. 9장의 security 상승폭은 제품에서 같은 요청을 보냈을 때와 다를 수 있다</span></li>
         <li><span class="m">그림끼리</span><span>FIG A는 GPU 과제를 뺀 70개 과제이고 FIG B는 370번 시도, 곧 74개 과제다. Fable 5.1 low의 통과율이 FIG A에서는 32.0%, FIG B에서는 140/370(37.8%)이고 median token도 64k와 73k로 다르다. 그래서 숫자는 같은 그림 안에서만 비교한다</span></li>
@@ -920,6 +923,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
         <li><span class="m">w1</span><span>도입부, What is effort?, Effort curves, Building with effort, Takeaways, How effort levels impact output on difficult tasks, When to use different effort levels in Claude Code, 각주 1을 모두 읽었다. FIG B와 FIG C는 원문에 보이는 Fable 5.1 탭 외에 Opus 5와 Fable 5 탭의 값까지 읽었다</span></li>
         <li><span class="m">데모</span><span>빌드 그림 세 개는 탭마다 연 직후의 화면만 보았다. 데모 안의 이후 단계(max의 heat chart, /config의 walkthrough, spec 앱의 11단계)는 따라가지 않아 10~12장의 화면 설명은 첫 화면에 한정된다</span></li>
         <li><span class="m">w2</span><span>Terminal-Bench 3.0 릴리스의 과제 목록을 열지 않아, 9장의 분야별 과제가 실제로 어떤 채점을 받는지는 확인하지 않았다</span></li>
+        <li><span class="m">w3</span><span>저자 소속을 확인하려고 Simon Willison의 대담 정리 글에서 참석자 소개 문장만 읽었다</span></li>
         <li><span class="m">열지 않음</span><span>글 아래의 관련 글 다섯 편과 Claude Code의 <code>/effort</code> 문서를 열지 않아, 단계별 기본값이나 모델별 지원 단계는 다루지 않았다</span></li>
       </ul>
     </div>
@@ -933,6 +937,7 @@ figcaption a { color: var(--link); text-underline-offset: 2px; }
       <div class="src">
         <div><span class="t">w1.</span> <a href="https://claude.dev/blog/spending-your-effort">Using Claude Code: Spending your effort</a> <span class="t">Thariq Shihipar, claude.dev Blog, 2026-09-25. 2026-10-19에 읽음. 보관본: <a href="http://web.archive.org/web/20261007211903/https://claude.dev/blog/spending-your-effort/">Wayback Machine 2026-10-07</a></span></div>
         <div><span class="t">w2.</span> <a href="https://github.com/harbor-framework/terminal-bench/releases/tag/v3.0.0">harbor-framework/terminal-bench v3.0.0</a> <span class="t">원문이 링크한 과제 목록. 열지 않음</span></div>
+        <div><span class="t">w3.</span> <a href="https://simonwillison.net/2026/Jul/21/cat-and-thariq/">A Fireside Chat with Cat and Thariq from the Claude Code team</a> <span class="t">Simon Willison, 2026-07-21. 2026-10-19에 읽음. 저자 소속 확인용</span></div>
       </div>
     </div>
   </section>
